@@ -26,3 +26,17 @@ C:\Users\Dan\source\repos\GeneticAlgorithm\GeneticAlgorithm\obj\Debug\GeneticAlg
 C:\Users\Dan\source\repos\GeneticAlgorithm\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.csproj.CopyComplete
 C:\Users\Dan\source\repos\GeneticAlgorithm\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.exe
 C:\Users\Dan\source\repos\GeneticAlgorithm\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.pdb
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.csprojAssemblyReference.cache
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.csproj.CoreCompileInputs.cache
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.exe
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.pdb
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\GeneticAlgorithm.exe.config
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\GeneticAlgorithm.exe
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\GeneticAlgorithm.pdb
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\OpenTK.dll
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\OpenTK.GLControl.dll
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\OpenTK.pdb
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\OpenTK.xml
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\OpenTK.GLControl.pdb
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\bin\Debug\OpenTK.GLControl.xml
+C:\Users\Dan\source\repos\R3T\GeneticAlgorithm\obj\Debug\GeneticAlgorithm.csproj.CopyComplete

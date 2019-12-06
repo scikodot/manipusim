@@ -400,6 +400,24 @@ namespace Helper
         }
     }
 
+    public class Attractor
+    {
+        public Point Center;
+        public double Weight;
+        public Point[] Area;
+        public double Radius;
+        public double InliersCount;
+
+        public Attractor(Point center, double weight, Point[] area, double radius)
+        {
+            Center = center;
+            Weight = weight;
+            Area = area;
+            Radius = radius;
+            InliersCount = 0;
+        }
+    }
+
     public static class Misc
     {
         public static double[] ToRad(double[] degrees)
@@ -419,6 +437,18 @@ namespace Helper
             T[,] array_new = new T[array.GetLength(0), array.GetLength(1)];
             array.CopyTo(array_new, 0);
             return array_new;
+        }
+
+        public static double BoxMullerTransform(Random rng, double mu, double sigma)
+        {
+            double phi = 0, r = 0;
+            while (phi == 0)
+                phi = rng.NextDouble();
+            while (r == 0)
+                r = rng.NextDouble();
+
+            double z = Math.Cos(Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r));
+            return mu + sigma * z;
         }
     }
 }
