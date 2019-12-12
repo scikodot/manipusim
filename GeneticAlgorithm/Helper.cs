@@ -10,71 +10,77 @@ namespace Helper
 {
     public class Point
     {
-        public double x, y;
+        public double x, y, z;
 
-        public Point(double x, double y)
+        public Point(double x, double y, double z)
         {
             this.x = x;
             this.y = y;
+            this.z = z;
         }
 
         public double Distance
         {
-            get { return Math.Sqrt(x * x + y * y); }
-        }
-
-        public double Angle
-        {
-            get { return Math.Atan2(y, x); }
+            get { return Math.Sqrt(x * x + y * y + z * z); }
         }
 
         public double DistanceTo(Point p)
         {
-            return Math.Sqrt(Math.Pow(p.x - x, 2) + Math.Pow(p.y - y, 2));
+            return Math.Sqrt(Math.Pow(p.x - x, 2) + Math.Pow(p.y - y, 2) + Math.Pow(p.z - z, 2));
         }
 
         public static Point Zero
         {
             get
             {
-                return new Point(0, 0);
+                return new Point(0, 0, 0);
             }
         }
 
-        public static Point operator +(Point p1, Point p2) => new Point(p2.x + p1.x, p2.y + p1.y);
-        public static Point operator -(Point p1, Point p2) => new Point(p2.x - p1.x, p2.y - p1.y);
-        public static Point operator +(Point p, Vector v) => new Point(p.x + v.x, p.y + v.y);
-        public static Point operator -(Point p, Vector v) => new Point(p.x - v.x, p.y - v.y);
-        public static Point operator /(Point p, double s) => new Point(p.x / s, p.y / s);
+        public static Point operator +(Point p1, Point p2) => new Point(p2.x + p1.x, p2.y + p1.y, p2.z + p1.z);
+        public static Point operator -(Point p1, Point p2) => new Point(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
+        public static Point operator +(Point p, Vector v) => new Point(p.x + v.x, p.y + v.y, p.z + v.z);
+        public static Point operator -(Point p, Vector v) => new Point(p.x - v.x, p.y - v.y, p.z - v.z);
+        public static Point operator /(Point p, double s) => new Point(p.x / s, p.y / s, p.z / s);
+        public static Point operator *(Matrix m, Point p) =>
+            new Point
+            (
+                m[0, 0] * p.x + m[0, 1] * p.y + m[0, 2] * p.z,
+                m[1, 0] * p.x + m[1, 1] * p.y + m[1, 2] * p.z,
+                m[2, 0] * p.x + m[2, 1] * p.y + m[2, 2] * p.z
+            );
     }
 
     public class Vector
     {
-        public double x, y;
+        public double x, y, z;
 
-        public Vector(double x, double y)
+        public Vector(double x, double y, double z)
         {
             this.x = x;
             this.y = y;
+            this.z = z;
         }
 
         public Vector(Point p)
         {
             x = p.x;
             y = p.y;
+            z = p.z;
         }
 
         public Vector(Point p1, Point p2)
         {
             x = p2.x - p1.x;
             y = p2.y - p1.y;
+            z = p2.z - p1.z;
         }
 
         public double Length
         {
             get
             {
-                return Math.Sqrt(x * x + y * y);
+                return Math.Sqrt(x * x + y * y + z * z);
             }
         }
 
@@ -96,35 +102,42 @@ namespace Helper
         {
             get
             {
-                return new Vector(x / Length, y / Length);
+                return new Vector(x / Length, y / Length, z / Length);
             }
         }
 
-        public Vector Ortho
+        /*public Vector Ortho
         {
             get
             {
                 return new Vector(y, -x);
             }
-        }
+        }*/
 
         public static Vector Zero
         {
             get
             {
-                return new Vector(0, 0);
+                return new Vector(0, 0, 0);
             }
         }
 
         public static double AngleBetween(Vector v1, Vector v2)
         {
-            return Math.Acos((v1.x * v2.x + v1.y * v2.y) / (v1.Length * v2.Length));
+            return Math.Acos((v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) / (v1.Length * v2.Length));
         }
 
-        public static Vector operator +(Vector v1, Vector v2) => new Vector(v1.x + v2.x, v1.y + v2.y);
-        public static Vector operator -(Vector v1, Vector v2) => new Vector(v1.x - v2.x, v1.y - v2.y);
-        public static Vector operator -(Vector v) => new Vector(-v.x, -v.y);
-        public static Vector operator *(Vector v, double scale) => new Vector(v.x * scale, v.y * scale);
+        public static Vector operator +(Vector v1, Vector v2) => new Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+        public static Vector operator -(Vector v1, Vector v2) => new Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+        public static Vector operator -(Vector v) => new Vector(-v.x, -v.y, -v.z);
+        public static Vector operator *(Vector v, double s) => new Vector(v.x * s, v.y * s, v.z * s);
+        public static Vector operator *(Matrix m, Vector v) =>
+            new Vector
+            (
+                m[0, 0] * v.x + m[0, 1] * v.y + m[0, 2] * v.z,
+                m[1, 0] * v.x + m[1, 1] * v.y + m[1, 2] * v.z,
+                m[2, 0] * v.x + m[2, 1] * v.y + m[2, 2] * v.z
+            );
     }
 
     public class Segment
@@ -143,7 +156,7 @@ namespace Helper
             maxY = Math.Max(p1.y, p2.y);
         }
 
-        public Segment(Point point1, Point point2, Point offsetRef, double offset)
+        /*public Segment(Point point1, Point point2, Point offsetRef, double offset)
         {
             Vector ortho = new Vector(point2, point1).Ortho;
             double A = ortho.x, B = ortho.y, C = -ortho.x * point1.x - ortho.y * point1.y;
@@ -156,7 +169,7 @@ namespace Helper
             maxX = Math.Max(p1.x, p2.x);
             minY = Math.Min(p1.y, p2.y);
             maxY = Math.Max(p1.y, p2.y);
-        }
+        }*/
 
         public bool Contains(Point p)
         {
@@ -166,18 +179,80 @@ namespace Helper
                 return false;
         }
 
-        public Point[] Discretize(int step)
+        public Point[] Discretize(int segments)
         {
-            Point[] pos = new Point[step + 1];
-            for (int j = 0; j < step + 1; j++)
+            Point[] pos = new Point[segments + 1];
+            for (int j = 0; j < segments + 1; j++)
             {
                 pos[j] = new Point
                 (
-                    p1.x + j * (p2.x - p1.x) / step,
-                    p1.y + j * (p2.y - p1.y) / step
+                    p1.x + j * (p2.x - p1.x) / segments,
+                    p1.y + j * (p2.y - p1.y) / segments,
+                    p1.z + j * (p2.z - p1.z) / segments
                 );
             }
             return pos;
+        }
+    }
+
+    public class Matrix
+    {
+        double[,] Data;
+
+        public Matrix(double[,] Data)
+        {
+            this.Data = Data;
+        }
+
+        public static Matrix Rotation(int axis, double angle)
+        {
+            double[,] mat = new double[3, 3];
+            switch (axis)
+            {
+                case 0:
+                    mat = new double[3, 3]
+                    {
+                        { 1, 0, 0 },
+                        { 0, Math.Cos(angle), -Math.Sin(angle) },
+                        { 0, Math.Sin(angle), Math.Cos(angle) }
+                    };
+                    break;
+                case 1:
+                    mat = new double[3, 3]
+                    {
+                        { Math.Cos(angle), 0, -Math.Sin(angle) },
+                        { 0, 1, 0 },
+                        { Math.Sin(angle), 0, Math.Cos(angle) }
+                    };
+                    break;
+                case 2:
+                    mat = new double[3, 3]
+                    {
+                        { Math.Cos(angle), -Math.Sin(angle), 0 },
+                        { Math.Sin(angle), Math.Cos(angle), 0 },
+                        { 0, 0, 1 }
+                    };
+                    break;
+            }
+
+            return new Matrix(mat);
+        }
+
+        public double this[int r, int c]
+        {
+            get
+            {
+                if (r < 0 || r > Data.GetLength(0))
+                    throw new Exception("Row index out of range!");
+                else if (c < 0 || c > Data.GetLength(1))
+                    throw new Exception("Column index out of range!");
+                else
+                    return Data[r, c];
+            }
+            set
+            {
+                Data[r, c] = value;
+            }
         }
     }
 
@@ -200,7 +275,7 @@ namespace Helper
                 else
                     Layer = parent.Layer + 1;
                 this.p = p;
-                this.q = q;
+                this.q = Misc.CopyArray(q);
             }
         }
 
@@ -257,7 +332,7 @@ namespace Helper
             Count++;
         }
 
-        public void Concat(Tree tree, Tuple<int, int> coords)
+        /*public void Concat(Tree tree, Tuple<int, int> coords)
         {
             for (int i = 1; i < tree.Layers.Count; i++)
             {
@@ -280,7 +355,7 @@ namespace Helper
                     }
                 }
             }
-        }
+        }*/
 
         public Node Min(Point p)
         {
@@ -300,6 +375,25 @@ namespace Helper
             }
             return min_node;
         }
+
+        /*public Node MinWeight()
+        {
+            Node min_node = null;
+            double min = double.PositiveInfinity;
+            foreach (var layer in Layers)
+            {
+                foreach (var node in layer)
+                {
+                    double curr = node.Weight;
+                    if (curr < min)
+                    {
+                        min = curr;
+                        min_node = node;
+                    }
+                }
+            }
+            return min_node;
+        }*/
 
         public void Rectify(Node start)
         {
@@ -370,7 +464,7 @@ namespace Helper
         }
     }
 
-    public class AssociativeTable
+    /*public class AssociativeTable
     {
         public Dictionary<double, double[]> Table;
 
@@ -398,7 +492,7 @@ namespace Helper
                 Table.Add(a, res.Item3);
             }
         }
-    }
+    }*/
 
     public class Attractor
     {
@@ -425,18 +519,18 @@ namespace Helper
             return Array.ConvertAll(degrees, (t) => { return t * Math.PI / 180; });
         }
 
-        public static T[] CopyArray<T>(T[] array)
+        public static T[] CopyArray<T>(T[] source)
         {
-            T[] array_new = new T[array.Length];
-            array.CopyTo(array_new, 0);
-            return array_new;
+            T[] destination = new T[source.Length];
+            Array.Copy(source, destination, source.Length);
+            return destination;
         }
 
-        public static T[,] CopyArray<T>(T[,] array)
+        public static T[,] CopyArray<T>(T[,] source)
         {
-            T[,] array_new = new T[array.GetLength(0), array.GetLength(1)];
-            array.CopyTo(array_new, 0);
-            return array_new;
+            T[,] destination = new T[source.GetLength(0), source.GetLength(1)];
+            Array.Copy(source, destination, source.Length);
+            return destination;
         }
 
         public static double BoxMullerTransform(Random rng, double mu, double sigma)
@@ -449,6 +543,29 @@ namespace Helper
 
             double z = Math.Cos(Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r));
             return mu + sigma * z;
+        }
+    }
+
+    public static class Primitives
+    {
+        public static Random Rng = new Random();
+
+        public static Point[] Sphere(double r, Point c, int points_num)
+        {
+            Point[] sphere = new Point[points_num];
+            double x, y_pos, y, z_pos, z;
+            for (int i = 0; i < points_num; i++)
+            {
+                x = -r + Rng.NextDouble() * 2 * r;
+                y_pos = Math.Sqrt(r * r - x * x);
+                y = -y_pos + Rng.NextDouble() * 2 * y_pos;
+                z_pos = Math.Sqrt(r * r - x * x - y * y);
+                z = Rng.Next(0, 2) == 0 ? -z_pos : z_pos;
+
+                sphere[i] = new Point(x, y, z) + c;
+            }
+
+            return sphere;
         }
     }
 }

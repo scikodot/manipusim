@@ -217,7 +217,8 @@ namespace GeneticAlgorithm
                     manip_points.Add(new Point
                     (
                         joints[i].x + (j + 1) * (joints[i + 1].x - joints[i].x) / (actuatorsNum + 1),
-                        joints[i].y + (j + 1) * (joints[i + 1].y - joints[i].y) / (actuatorsNum + 1)
+                        joints[i].y + (j + 1) * (joints[i + 1].y - joints[i].y) / (actuatorsNum + 1),
+                        0
                     ));
                 }
             }
@@ -330,10 +331,10 @@ namespace GeneticAlgorithm
             double range = 0;
             for (int i = 0; i < ParamNum; i++)
             {
-                range = -120 * Math.PI / 180 - Agent.q[i];
+                range = -120 - Agent.q[i] * 180 / Math.PI;
                 Agent.StepRanges[i, 0] = range <= -1 ? -1 : range;
 
-                range = 120 * Math.PI / 180 - Agent.q[i];
+                range = 120 - Agent.q[i] * 180 / Math.PI;
                 Agent.StepRanges[i, 1] = range >= 1 ? 1 : range;
             }
 
@@ -351,7 +352,7 @@ namespace GeneticAlgorithm
                 Chromosome<double> ch = new Chromosome<double>(ParamNum);
                 for (int i = 0; i < ParamNum; i++)
                 {
-                    ch.Genes[i] = Agent.StepRanges[i, 0] + (Agent.StepRanges[i, 1] - Agent.StepRanges[i, 0]) * Rng.NextDouble();
+                    ch.Genes[i] = Agent.StepRanges[i, 0] + Rng.NextDouble() * (Agent.StepRanges[i, 1] - Agent.StepRanges[i, 0]);
                     ch.Genes[i] *= coeff;
                 }
 
@@ -365,14 +366,14 @@ namespace GeneticAlgorithm
                     coeff = dist / init_dist;
                 }
 
-                if (dist < 0.0002)
+                if (dist < 0.002)
                 {
                     Converged = true;
                     break;
                 }
             }
             sw.Stop();
-            Console.WriteLine("IKP Time: {0}; Real time: {1}", Time, sw.ElapsedTicks / 10);
+            //Console.WriteLine("IKP Time: {0}; Real time: {1}", Time, sw.ElapsedTicks / 10);
 
             bool[] Collisions = DetectCollisions(Agent);
 

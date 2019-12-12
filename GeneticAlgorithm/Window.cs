@@ -12,25 +12,67 @@ namespace RoboDraw
 {
     public class Window : GameWindow
     {
-        private float[] linesX =
+        public class Entity
+        {
+            public int VBO, EBO, VAO;
+
+            public Entity(float[] data, uint[] indices = null)
+            {
+                //generating array/buffer objects
+                VBO = GL.GenBuffer();
+                VAO = GL.GenVertexArray();
+
+                GL.BindVertexArray(VAO);
+
+                //binding vertex data to buffer
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+                GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
+
+                //binding indices data to buffer, if presented
+                if (indices != null)
+                {
+                    EBO = GL.GenBuffer();
+                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
+                    GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
+                }
+
+                //configuring all the needed attributes
+                var PosAttrib = _shader.GetAttribLocation("aPos");
+                GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
+                GL.EnableVertexAttribArray(PosAttrib);
+
+                var ColAttrib = _shader.GetAttribLocation("aColor");
+                GL.VertexAttribPointer(ColAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
+                GL.EnableVertexAttribArray(ColAttrib);
+
+                GL.BindVertexArray(0);
+            }
+
+            public void Display(Matrix4 model, Action draw)
+            {
+                GL.BindVertexArray(VAO);
+                _shader.SetMatrix4("model", model);
+                draw();
+            }
+        }
+
+        private float[] gridX_lines =
         {
             10.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
             -10.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
         };
 
-        private float[] linesY =
+        private float[] gridY_lines =
         {
-            0.0f, 10.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            0.0f, -10.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+            0.0f, 0.0f, 10.0f, 1.0f, 1.0f, 1.0f,
+            0.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f,
         };
-        
-        private int vbo_frameX, vbo_frameY, vbo_joints, vbo_path, vbo_goal, vbo_attr_p;
-        private int vao_frameX, vao_frameY, vao_joints, vao_path, vao_goal, vao_attr_p;
-        private int[] vbo_obst, vbo_bound, vbo_chs, vbo_attr_a;
-        private int[] vao_obst, vao_bound, vao_chs, vao_attr_a;
-        private List<int> vbo_tree, vao_tree;
 
-        private Shader _shader;
+        Entity gridX, gridY, joints, path, goal, attr_points;
+        Entity[] obstacles, boundings, attr_areas;
+        List<Entity> tree = new List<Entity>();
+
+        private static Shader _shader;
         
         private Camera _camera;
         private bool _firstMove = true;
@@ -39,6 +81,7 @@ namespace RoboDraw
         private double _time;
         
         private int Count = 0, MainCount = 0;
+        private bool ShowAttractors, num1_prev;
         
         private Thread Main;
         private Attractor[] AttractorsLoc;
@@ -71,9 +114,12 @@ namespace RoboDraw
             };
             Main.Start();
 
-            // coordinate frame lines
-            SetData(ref vbo_frameX, ref vao_frameX, linesX);
-            SetData(ref vbo_frameY, ref vao_frameY, linesY);
+            // coordinate frame grid
+            gridX = new Entity(gridX_lines);
+            gridY = new Entity(gridY_lines);
+
+            var input = Keyboard.GetState();
+            num1_prev = input.IsKeyDown(Key.Number1);
 
             base.OnLoad(e);
         }
@@ -93,58 +139,33 @@ namespace RoboDraw
 
             Matrix4 model;
 
-            // lines on the X axis
-            GL.BindVertexArray(vao_frameX);
-            model = Matrix4.Identity;
-            _shader.SetMatrix4("model", model);
-            GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-            //for (int i = 1; i < 5; i++)
-            //{
-            //    model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitZ * i);
-            //    _shader.SetMatrix4("model", model);
-            //    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-
-            //    model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitZ * -i);
-            //    _shader.SetMatrix4("model", model);
-            //    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-            //}
-
-            // lines on the Y axis
-            GL.BindVertexArray(vao_frameY);
-            model = Matrix4.Identity;
-            _shader.SetMatrix4("model", model);
-            GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-            //for (int i = 1; i < 5; i++)
-            //{
-            //    model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitX * i);
-            //    _shader.SetMatrix4("model", model);
-            //    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-
-            //    model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitX * -i);
-            //    _shader.SetMatrix4("model", model);
-            //    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-            //}
-
-            if (vbo_attr_p == 0)
+            var input = Keyboard.GetState();
+            if (input.IsKeyDown(Key.Number1) && !num1_prev)
             {
-                if (Manager.Attractors.Count != 0)
+                ShowAttractors = !ShowAttractors;
+                Console.WriteLine($"Times entered: {MainCount}");
+            }
+
+            //attractors' points
+            if (attr_points == null)
+            {
+                if (Manager.States["Attractors"])
                 {
-                    Point[] points = new Point[Manager.Attractors.Count];
+                    Point[] points = new Point[Manager.Attractors.Count - 1];
                     for (int i = 0; i < points.Length; i++)
                     {
-                        points[i] = Manager.Attractors[i].Center;
+                        points[i] = Manager.Attractors[i + 1].Center;
                     }
 
-                    SetData(ref vbo_attr_p, ref vao_attr_p, GL_Convert(points, new Vector3(1, 0, 0)));
+                    attr_points = new Entity(GL_Convert(points, Vector3.UnitX));
 
-                    AttractorsLoc = new Attractor[Manager.Attractors.Count];
-                    Manager.Attractors.CopyTo(AttractorsLoc);
+                    AttractorsLoc = Manager.Attractors.GetRange(1, Manager.Attractors.Count - 1).ToArray();
                 }
             }
-            else
+            else if (ShowAttractors)
             {
                 model = Matrix4.Identity;
-                DisplayData(vao_attr_p, model, () =>
+                attr_points.Display(model, () =>
                 {
                     GL.PointSize(5);
                     GL.DrawArrays(PrimitiveType.Points, 0, AttractorsLoc.Length);
@@ -152,104 +173,87 @@ namespace RoboDraw
                 });
             }
 
-            if (vbo_attr_a == null)
+            //attractors' areas
+            if (attr_areas == null)
             {
-                if (Manager.Attractors.Count != 0)
+                if (Manager.States["Attractors"])
                 {
-                    Point[][] areas = new Point[Manager.Attractors.Count][];
+                    Point[][] areas = new Point[Manager.Attractors.Count - 1][];
                     for (int i = 0; i < areas.Length; i++)
                     {
-                        areas[i] = Manager.Attractors[i].Area;
+                        areas[i] = Manager.Attractors[i + 1].Area;
                     }
 
-                    vbo_attr_a = new int[Manager.Attractors.Count];
-                    vao_attr_a = new int[Manager.Attractors.Count];
+                    attr_areas = new Entity[Manager.Attractors.Count - 1];
                     
                     for (int i = 0; i < areas.Length; i++)
                     {
-                        SetData(ref vbo_attr_a[i], ref vao_attr_a[i], GL_Convert(areas[i], new Vector3(1, 0, 1)));
+                        attr_areas[i] = new Entity(GL_Convert(areas[i], new Vector3(1, 0, 1)));
                     }
                 }
             }
-            else
+            else if (ShowAttractors)
             {
                 model = Matrix4.Identity;
-                for (int i = 0; i < vao_attr_a.Length; i++)
+                for (int i = 0; i < attr_areas.Length; i++)
                 {
-                    DisplayData(vao_attr_a[i], model, () =>
+                    attr_areas[i].Display(model, () =>
                     {
                         GL.DrawArrays(PrimitiveType.Points, 0, AttractorsLoc[i].Area.Length);
                     });
                 }
             }
 
-            // goal
-            if (vao_goal == 0)
-            {
-                if (Manager.States["Goal"])
-                    SetData(ref vbo_goal, ref vao_goal, GL_Convert(new Point[] { Manager.Goal }, new Vector3(1, 1, 0)));
-            }
-            else
-            {
-                model = Matrix4.Identity;
-                DisplayData(vao_goal, model, () =>
-                {
-                    GL.PointSize(5);
-                    GL.DrawArrays(PrimitiveType.Points, 0, 1);
-                    GL.PointSize(1);
-                });
-            }
-
             // obstacles + boundings
-            if (vbo_obst == null)
+            if (obstacles == null)
             {
                 if (Manager.States["Obstacles"])
                 {
-                    vbo_obst = new int[Manager.Obstacles.Length];
-                    vao_obst = new int[Manager.Obstacles.Length];
-                    vbo_bound = new int[Manager.Obstacles.Length];
-                    vao_bound = new int[Manager.Obstacles.Length];
-                    for (int i = 0; i < vbo_obst.Length; i++)
+                    obstacles = new Entity[Manager.Obstacles.Length];
+                    boundings = new Entity[Manager.Obstacles.Length];
+                    for (int i = 0; i < obstacles.Length; i++)
                     {
-                        SetData(ref vbo_obst[i], ref vao_obst[i], GL_Convert(Manager.Obstacles[i].Data, Vector3.One));
-                        SetData(ref vbo_bound[i], ref vao_bound[i], GL_Convert(Manager.Obstacles[i].Bounding, Vector3.UnitY));
+                        obstacles[i] = new Entity(GL_Convert(Manager.Obstacles[i].Data, Vector3.One));
+                        boundings[i] = new Entity(GL_Convert(Manager.Obstacles[i].Bounding, Vector3.UnitY), new uint[]
+                            {
+                                0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
+                            });
                     }
                 }
             }
             else
             {
                 model = Matrix4.Identity;
-                for (int i = 0; i < vao_obst.Length; i++)
+                for (int i = 0; i < obstacles.Length; i++)
                 {
-                    DisplayData(vao_obst[i], model, () =>
+                    obstacles[i].Display(model, () =>
                     {
                         GL.DrawArrays(PrimitiveType.Points, 0, Manager.Obstacles[i].Data.Length);
                     });
                 }
                 
-                for (int i = 0; i < vao_bound.Length; i++)
+                for (int i = 0; i < boundings.Length; i++)
                 {
-                    DisplayData(vao_bound[i], model, () =>
+                    boundings[i].Display(model, () =>
                     {
-                        GL.DrawArrays(PrimitiveType.LineLoop, 0, Manager.Obstacles[i].Bounding.Length);
+                        GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
                     });
                 }
             }
-            
 
             // checking if the thread has aborted
             if (!Main.IsAlive)
             {
                 // path
-                if (vao_path == 0)
+                if (path == null)
                 {
                     if (Manager.States["Path"])
-                        SetData(ref vbo_path, ref vao_path, GL_Convert(Manager.Path.ToArray(), Vector3.UnitX));
+                        path = new Entity(GL_Convert(Manager.Path.ToArray(), Vector3.UnitX));
                 }
                 else
                 {
                     model = Matrix4.Identity;
-                    DisplayData(vao_path, model, () =>
+                    path.Display(model, () =>
                     {
                         GL.DrawArrays(PrimitiveType.LineStrip, 0, Manager.Path.Count);
                     });
@@ -268,48 +272,101 @@ namespace RoboDraw
                     }*/
 
                     if (Manager.Joints.Count != 0)
-                        SetData(ref vbo_joints, ref vao_joints, GL_Convert(Manager.Joints[Count < Manager.Joints.Count - 1 ? Count++ : Count], new Vector3(1.0f, 0.5f, 0.0f)));
+                        joints = new Entity(GL_Convert(Manager.Joints[Count < Manager.Joints.Count - 1 ? Count++ : Count], new Vector3(1.0f, 0.5f, 0.0f)));
 
                     model = Matrix4.Identity;
-                    DisplayData(vao_joints, model, () =>
+                    joints.Display(model, () =>
                     {
                         GL.DrawArrays(PrimitiveType.LineStrip, 0, Manager.Manip.Links.Length + 1);
                     });
                 }
+            }
 
-                // random Tree
-                if (vao_tree == null)
+            //random tree
+            if (Manager.Buffer.Count != 0)
+            {
+                for (int i = 0; i < Manager.Buffer.Count; i++)
                 {
-                    if (Manager.States["Tree"])
-                    {
-                        vbo_tree = new List<int>();
-                        vao_tree = new List<int>();
-                        for (int i = 1; i < Manager.Tree.Layers.Count; i++)
-                        {
-                            for (int j = 0; j < Manager.Tree.Layers[i].Count; j++)
-                            {
-                                int b = 0, a = 0;
-                                SetData(ref b, ref a, GL_Convert(new Point[] { Manager.Tree.Layers[i][j].p, Manager.Tree.Layers[i][j].Parent.p }, Vector3.Zero));
-                                vbo_tree.Add(b);
-                                vao_tree.Add(a);
-                            }
-                        }
-                    }
+                    tree.Add(new Entity(GL_Convert(new Point[] { Manager.Buffer[i].p, Manager.Buffer[i].Parent.p }, Vector3.Zero)));
                 }
-                else
+                Manager.Buffer.Clear();
+            }
+
+            model = Matrix4.Identity;
+            for (int i = 0; i < tree.Count; i++)
+            {
+                tree[i].Display(model, () =>
                 {
-                    model = Matrix4.Identity;
-                    for (int i = 0; i < Manager.Tree.Count - 1; i++)
-                    {
-                        DisplayData(vao_tree[i], model, () =>
-                        {
-                            GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                        });
-                    }
+                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                });
+            }
+
+            // goal
+            if (goal == null)
+            {
+                if (Manager.States["Goal"])
+                {
+                    List<Point> MainAttr = new List<Point> { Manager.Attractors[0].Center };
+                    MainAttr.AddRange(Manager.Attractors[0].Area);
+                    goal = new Entity(GL_Convert(MainAttr.ToArray(), new Vector3(1, 1, 0)));
                 }
+            }
+            else
+            {
+                model = Matrix4.Identity;
+                goal.Display(model, () =>
+                {
+                    GL.PointSize(5);
+                    GL.DrawArrays(PrimitiveType.Points, 0, 1);
+                    GL.PointSize(1);
+                    GL.DrawArrays(PrimitiveType.Points, 1, Manager.Attractors[0].Area.Length);
+                });
+            }
+
+            // X axis grid lines
+            model = Matrix4.Identity;
+            gridX.Display(model, () =>
+            {
+                GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+            });
+            for (int i = 1; i < 11; i++)
+            {
+                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitZ * i);
+                gridX.Display(model, () =>
+                {
+                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                });
+
+                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitZ * -i);
+                gridX.Display(model, () =>
+                {
+                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                });
+            }
+
+            // Y axis grid lines
+            model = Matrix4.Identity;
+            gridY.Display(model, () =>
+            {
+                GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+            });
+            for (int i = 1; i < 11; i++)
+            {
+                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitX * i);
+                gridY.Display(model, () =>
+                {
+                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                });
+
+                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitX * -i);
+                gridY.Display(model, () =>
+                {
+                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                });
             }
 
             SwapBuffers();
+            num1_prev = input.IsKeyDown(Key.Number1);
 
             base.OnRenderFrame(e);
         }
@@ -357,8 +414,8 @@ namespace RoboDraw
                 _lastPos = new Vector2(mouse.X, mouse.Y);
 
                 // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
-                //_camera.Yaw += deltaX * sensitivity;
-                //_camera.Pitch -= deltaY * sensitivity; // reversed since y-coordinates range from bottom to top
+                _camera.Yaw += deltaX * sensitivity;
+                _camera.Pitch -= deltaY * sensitivity; // reversed since y-coordinates range from bottom to top
             }
 
             base.OnUpdateFrame(e);
@@ -401,39 +458,6 @@ namespace RoboDraw
             base.OnUnload(e);
         }
 
-        protected void SetData(ref int VBO, ref int VAO, float[] data)
-        {
-            //generating array/buffer objects in case they haven't been generated yet
-            if (VAO == 0)
-                VAO = GL.GenVertexArray();
-            if (VBO == 0)
-                VBO = GL.GenBuffer();
-            
-            GL.BindVertexArray(VAO);
-
-            //binding data to buffer
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
-
-            //configuring all the needed attributes
-            var attrib1 = _shader.GetAttribLocation("aPos");
-            GL.VertexAttribPointer(attrib1, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(attrib1);
-
-            var attrib2 = _shader.GetAttribLocation("aColor");
-            GL.VertexAttribPointer(attrib2, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(attrib2);
-
-            GL.BindVertexArray(0);
-        }
-
-        protected void DisplayData(int VAO, Matrix4 model, Action draw)
-        {
-            GL.BindVertexArray(VAO);
-            _shader.SetMatrix4("model", model);
-            draw();
-        }
-
         protected float[] GL_Convert(Point[] data, Vector3 color)
         {
             float[] res = new float[data.Length * 6];
@@ -442,7 +466,7 @@ namespace RoboDraw
             {
                 res[6 * i] = (float)data[i].x;
                 res[6 * i + 1] = (float)data[i].y;
-                res[6 * i + 2] = 0;
+                res[6 * i + 2] = (float)data[i].z;
                 res[6 * i + 3] = color.X;
                 res[6 * i + 4] = color.Y;
                 res[6 * i + 5] = color.Z;

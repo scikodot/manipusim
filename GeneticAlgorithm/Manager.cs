@@ -18,23 +18,27 @@ namespace RoboDraw
         public static List<Point[]> Joints;
         public static Tree Tree;
         public static List<Attractor> Attractors;
+        public static List<Tree.Node> Buffer = new List<Tree.Node>();
 
         public static Dictionary<string, bool> States;
 
         public static void Execute()
         {
-            States = new Dictionary<string, bool>();
-            States.Add("Obstacles", false);
-            States.Add("Goal", false);
-            States.Add("Path", false);
-            States.Add("Joints", false);
-            States.Add("Tree", false);
+            States = new Dictionary<string, bool>
+            {
+                { "Obstacles", false },
+                { "Goal", false },
+                { "Path", false },
+                { "Joints", false },
+                { "Tree", false },
+                { "Attractors", false }
+            };
 
             //manipulator
             Manip = new Manipulator
             {
                 Links = new double[] { 2, 2, 2, 2 },
-                q = Misc.ToRad(new double[] { 45, 15, 15, 15 }),
+                q = Misc.ToRad(new double[] { 15, 15, 45, 15 }),
                 Base = Point.Zero
             };
 
@@ -48,29 +52,45 @@ namespace RoboDraw
 
             //obstacles
             Obstacles = new Obstacle[2];
-            Point[] obst_data = new Point[360];
-            for (int i = 0; i < obst_data.Length; i++)
+            Obstacles[0] = new Obstacle(Primitives.Sphere(1, new Point(0, 1.5, 0), 2000));
+            Obstacles[1] = new Obstacle(Primitives.Sphere(1, new Point(-2.2, 0, 0), 2000));
+            States["Obstacles"] = true;
+            /*Obstacles = new Obstacle[2];
+            Point[] obst_data = new Point[16 * 128];
+            for (int i = 0; i < 16; i++)
             {
-                obst_data[i] = new Point
-                (
-                    Math.Cos(i * Math.PI / 180) + 0,
-                    Math.Sin(i * Math.PI / 180) + 3.5
-                );
+                Matrix rot = Matrix.Rotation(1, i * 2 * Math.PI / 16);
+
+                for (int j = 0; j < 128; j++)
+                {
+                    obst_data[128 * i + j] = rot * new Point
+                    (
+                        Math.Cos(j * Math.PI / 64),
+                        Math.Sin(j * Math.PI / 64),
+                        0
+                    ) + new Vector(0, 1.5, 0);
+                }
             }
             Obstacles[0] = new Obstacle(obst_data);
-            for (int i = 0; i < obst_data.Length; i++)
+            for (int i = 0; i < 16; i++)
             {
-                obst_data[i] = new Point
-                (
-                    Math.Cos(i * Math.PI / 180) - 2.2,
-                    Math.Sin(i * Math.PI / 180) + 0
-                );
+                Matrix rot = Matrix.Rotation(1, i * 2 * Math.PI / 16);
+
+                for (int j = 0; j < 128; j++)
+                {
+                    obst_data[128 * i + j] = rot * new Point
+                    (
+                        Math.Cos(j * Math.PI / 64),
+                        Math.Sin(j * Math.PI / 64),
+                        0
+                    ) + new Vector(-2.2, 0, 0);
+                }
             }
             Obstacles[1] = new Obstacle(obst_data);
-            States["Obstacles"] = true;
+            States["Obstacles"] = true;*/
 
             //goal
-            Goal = new Point(-2 * Math.Sqrt(2) - 2, 0);
+            Goal = new Point(-2 * Math.Sqrt(2) - 2, 0, 0);
             States["Goal"] = true;
 
             //initialize genetic algorithm parameters
@@ -81,16 +101,44 @@ namespace RoboDraw
             Attractors = new List<Attractor>();
 
             Random rng = new Random();
-            double work_radius, x, y_plus, y_minus, y;
-            while (Attractors.Count < 200)
-            {
-                work_radius = Manip.Links.Sum();
-                x = Manip.Base.x + rng.NextDouble() * 2 * work_radius - work_radius;
-                y_plus = Math.Sqrt(work_radius * work_radius - x * x);
-                y_minus = -y_plus;
-                y = Manip.Base.y + (rng.NextDouble() * 2 * (y_plus - y_minus) - (y_plus - y_minus)) / 2;
+            double work_radius = Manip.Links.Sum(), x, y_pos, y, z_pos, z;
 
-                Point p = new Point(x, y);
+            //adding main attractor
+            Point AttrPoint = Goal;
+
+            double AttrWeight = Manip.DistanceTo(Goal);
+
+            Point[] AttrArea = new Point[8 * 8];
+            double r = 0.05 * Math.Pow(AttrWeight / Manip.DistanceTo(Goal), 4);
+            for (int i = 0; i < 8; i++)
+            {
+                Matrix rot = Matrix.Rotation(1, i * 2 * Math.PI / 8);
+
+                for (int j = 0; j < 8; j++)
+                {
+                    AttrArea[8 * i + j] = rot * new Point
+                    (
+                        r * Math.Cos(j * Math.PI / 4),
+                        r * Math.Sin(j * Math.PI / 4),
+                        0
+                    ) + new Vector(AttrPoint);
+                }
+            }
+
+            Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
+
+            //adding ancillary attractors
+            while (Attractors.Count < 1000)
+            {
+                x = -work_radius + rng.NextDouble() * 2 * work_radius;
+                y_pos = Math.Sqrt(work_radius * work_radius - x * x);
+                y = -y_pos + rng.NextDouble() * 2 * y_pos;
+                z_pos = Math.Sqrt(work_radius * work_radius - x * x - y * y);
+                z = -z_pos + rng.NextDouble() * 2 * z_pos;
+
+                work_radius -= Manip.Links.Sum() / 2000;
+
+                Point p = new Point(x, y, z) + Manip.Base;
                 bool collision = false;
                 foreach (var obst in Obstacles)
                 {
@@ -103,27 +151,35 @@ namespace RoboDraw
 
                 if (!collision)
                 {
-                    Point AttrPoint = p;
+                    AttrPoint = p;
 
-                    double AttrWeight = Manip.DistanceTo(p) + Goal.DistanceTo(p);
+                    AttrWeight = Manip.DistanceTo(p) + Goal.DistanceTo(p);
 
-                    Point[] AttrArea = new Point[180];
-                    double r = 0.1 * Math.Pow(AttrWeight / Manip.DistanceTo(Goal), 4);
-                    for (int i = 0; i < AttrArea.Length; i++)
+                    AttrArea = new Point[8 * 8];
+                    r = 0.05 * Math.Pow(AttrWeight / Manip.DistanceTo(Goal), 4);
+                    for (int i = 0; i < 8; i++)
                     {
-                        AttrArea[i] = new Point
-                        (
-                            r * Math.Cos(i * Math.PI / (AttrArea.Length / 2)) + AttrPoint.x,
-                            r * Math.Sin(i * Math.PI / (AttrArea.Length / 2)) + AttrPoint.y
-                        );
+                        Matrix rot = Matrix.Rotation(1, i * 2 * Math.PI / 8);
+
+                        for (int j = 0; j < 8; j++)
+                        {
+                            AttrArea[8 * i + j] = rot * new Point
+                            (
+                                r * Math.Cos(j * Math.PI / 4),
+                                r * Math.Sin(j * Math.PI / 4),
+                                0
+                            ) + new Vector(AttrPoint);
+                        }
                     }
 
                     Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
                 }
             }
+            States["Attractors"] = true;
 
             Generator.Solver = Solver;
-            Tree = Generator.RRT(new Random(), Goal, Manip, Obstacles, 15000, 0.04);
+            Generator.RRT(new Random(), ref Tree, Goal, Manip, Obstacles, 15000, 0.04);
+            //Tree.RectifyWhole();
 
             Tree.Node start = Tree.Min(Goal), node_curr = start;
             List<Point> path = new List<Point>();
@@ -159,11 +215,9 @@ namespace RoboDraw
             States["Path"] = true;
 
             Joints = new List<Point[]>();
-            foreach (var config in configs)
-            {
-                if (config == null)
-                    break;
-                Manip.q = config;
+            for (int i = 0; i < configs.Count; i++)
+            {                
+                Manip.q = configs[i];
                 Joints.Add(Manip.Joints);
             }
             States["Joints"] = true;
