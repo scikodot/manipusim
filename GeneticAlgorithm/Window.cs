@@ -143,7 +143,6 @@ namespace RoboDraw
             if (input.IsKeyDown(Key.Number1) && !num1_prev)
             {
                 ShowAttractors = !ShowAttractors;
-                Console.WriteLine($"Times entered: {MainCount}");
             }
 
             //attractors' points
@@ -277,7 +276,7 @@ namespace RoboDraw
                     model = Matrix4.Identity;
                     joints.Display(model, () =>
                     {
-                        GL.DrawArrays(PrimitiveType.LineStrip, 0, Manager.Manip.Links.Length + 1);
+                        GL.DrawArrays(PrimitiveType.LineStrip, 0, Manager.Manip.DH.Length + 1);
                     });
                 }
             }

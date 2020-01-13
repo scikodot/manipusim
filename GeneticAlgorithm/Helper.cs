@@ -204,6 +204,23 @@ namespace Helper
             this.Data = Data;
         }
 
+        public static Matrix Identity(int size)
+        {
+            double[,] mat = new double[size, size];
+            for (int i = 0; i < size; i++)
+            {
+                for (int j = 0; j < size; j++)
+                {
+                    if (i == j)
+                        mat[i, j] = 1;
+                    else
+                        mat[i, j] = 0;
+                }
+            }
+
+            return new Matrix(mat);
+        }
+
         public static Matrix Rotation(int axis, double angle)
         {
             double[,] mat = new double[3, 3];
@@ -253,6 +270,33 @@ namespace Helper
             {
                 Data[r, c] = value;
             }
+        }
+
+        public static Matrix operator *(Matrix m1, Matrix m2)
+        {
+            int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
+                r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
+
+            double[,] mat = new double[r1, c2];
+            if (c1 != r2)
+                throw new Exception("Matrices dimensions mismatch!");
+            else
+            {
+                for (int i = 0; i < r1; i++)
+                {
+                    for (int j = 0; j < c2; j++)
+                    {
+                        double t = 0;
+                        for (int k = 0; k < c1; k++)
+                        {
+                            t += m1[i, k] * m2[k, j];
+                        }
+                        mat[i, j] = t;
+                    }
+                }
+            }
+
+            return new Matrix(mat);
         }
     }
 

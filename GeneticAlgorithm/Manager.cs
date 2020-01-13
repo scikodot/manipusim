@@ -36,19 +36,60 @@ namespace RoboDraw
 
             //manipulator
             Manip = new Manipulator
-            {
-                Links = new double[] { 2, 2, 2, 2 },
-                q = Misc.ToRad(new double[] { 15, 15, 45, 15 }),
-                Base = Point.Zero
-            };
+            (
+                new Point(-1.5, 0, 1.5),
+                new double[] { 0.2, 2, 2, 2 },
+                Misc.ToRad(new double[] { 0, 0, 0, 0 }),
+                new double[,]
+                {
+                    { -180, 180 },
+                    { -180, 180 },
+                    { -180, 180 },
+                    { -180, 180 }
+                },
+                new Tuple<Func<Manipulator, double>, double, double, double>[]
+                {
+                    new Tuple<Func<Manipulator, double>, double, double, double>((m) => { return m.q[0]; }, 0.2, Math.PI / 2, 0),
+                    new Tuple<Func<Manipulator, double>, double, double, double>((m) => { return -Math.PI / 2; }, 0, 0, 0),
+                    new Tuple<Func<Manipulator, double>, double, double, double>((m) => { return m.q[1]; }, 0, 0, 2),
+                    new Tuple<Func<Manipulator, double>, double, double, double>((m) => { return m.q[2]; }, 0, 0, 2),
+                    new Tuple<Func<Manipulator, double>, double, double, double>((m) => { return m.q[3]; }, 0, 0, 2)
+                }
+            );
+            //Manip.DH_Init();
+            /*Manip = new Manipulator
+            (
+                new Point(-1.5, 0, 1.5),
+                new double[] { 2, 1, 1, 2, 1, 1 },
+                Misc.ToRad(new double[] { 15, 15, 45, 15, 15, 45 }),
+                new double[,]
+                {
+                    { -180, 180 },
+                    { -180, 180 },
+                    { -180, 180 },
+                    { -180, 180 },
+                    { -180, 180 },
+                    { -180, 180 }
+                },
+                new double[][]
+                {
+                    new double[] { 2, Math.PI / 2, 0 },
+                    new double[] { 0, -Math.PI / 2, 0 },
+                    new double[] { 2, Math.PI / 2, 0 },
+                    new double[] { 0, -Math.PI / 2, 0 },
+                    new double[] { 2, Math.PI / 2, 0 },
+                    new double[] { 0, -Math.PI / 2, 0 },
+                    new double[] { 2, 0, 0 },
+                }
+            );*/
 
-            double MaxStep = 1;
-            Manip.StepRanges = new double[Manip.Links.Length, 2];
-            for (int i = 0; i < Manip.Links.Length; i++)
+            /*double MaxStep = 1;
+            Manip.q_ranges = new double[Manip.l.Length, 2];
+            for (int i = 0; i < Manip.l.Length; i++)
             {
-                Manip.StepRanges[i, 0] = -MaxStep;
-                Manip.StepRanges[i, 1] = MaxStep;
-            }
+                Manip.q_ranges[i, 0] = -MaxStep;
+                Manip.q_ranges[i, 1] = MaxStep;
+            }*/
 
             //obstacles
             Obstacles = new Obstacle[2];
@@ -90,18 +131,19 @@ namespace RoboDraw
             States["Obstacles"] = true;*/
 
             //goal
-            Goal = new Point(-2 * Math.Sqrt(2) - 2, 0, 0);
+            Goal = new Point(-2.2, 0, -2);
+            //Goal = new Point(-2 * Math.Sqrt(2) - 2, 0, 0);
             States["Goal"] = true;
 
             //initialize genetic algorithm parameters
             Algorithm.Initialize(Manip, Obstacles);
 
-            IKP Solver = new IKP(0.02, Manip.Links.Length, 10, 0.2, 50);
+            IKP Solver = new IKP(0.02, Manip.l.Length, 10, 0.2, 50);
 
             Attractors = new List<Attractor>();
 
             Random rng = new Random();
-            double work_radius = Manip.Links.Sum(), x, y_pos, y, z_pos, z;
+            double work_radius = 2 * Manip.l.Sum(), x, y_pos, y, z_pos, z;
 
             //adding main attractor
             Point AttrPoint = Goal;
@@ -128,7 +170,7 @@ namespace RoboDraw
             Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
 
             //adding ancillary attractors
-            while (Attractors.Count < 1000)
+            while (Attractors.Count < 5000)
             {
                 x = -work_radius + rng.NextDouble() * 2 * work_radius;
                 y_pos = Math.Sqrt(work_radius * work_radius - x * x);
@@ -136,7 +178,7 @@ namespace RoboDraw
                 z_pos = Math.Sqrt(work_radius * work_radius - x * x - y * y);
                 z = -z_pos + rng.NextDouble() * 2 * z_pos;
 
-                work_radius -= Manip.Links.Sum() / 2000;
+                work_radius -= 2 * Manip.l.Sum() / 10000;
 
                 Point p = new Point(x, y, z) + Manip.Base;
                 bool collision = false;
@@ -178,7 +220,7 @@ namespace RoboDraw
             States["Attractors"] = true;
 
             Generator.Solver = Solver;
-            Generator.RRT(new Random(), ref Tree, Goal, Manip, Obstacles, 15000, 0.04);
+            Generator.RRT(new Random(), ref Tree, Goal, Manip, Obstacles, 10000, 0.04);
             //Tree.RectifyWhole();
 
             Tree.Node start = Tree.Min(Goal), node_curr = start;
@@ -213,12 +255,12 @@ namespace RoboDraw
 
             Path = path;
             States["Path"] = true;
-
+            
             Joints = new List<Point[]>();
             for (int i = 0; i < configs.Count; i++)
             {                
                 Manip.q = configs[i];
-                Joints.Add(Manip.Joints);
+                Joints.Add(Manip.DKP);
             }
             States["Joints"] = true;
         }

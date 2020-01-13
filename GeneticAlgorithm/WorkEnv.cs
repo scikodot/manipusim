@@ -10,31 +10,139 @@ namespace WorkEnv
     public class Manipulator
     {
         public Point Base;
-        public double[] Links, q;
-        public double[,] StepRanges;
+        public double[] l, q;
+        public double[,] q_ranges;
+        public Tuple<Func<Manipulator, double>, double, double, double>[] DH;
+
+        public List<Matrix> MatZ, MatX;
 
         public Manipulator()
         {
 
         }
 
-        public Manipulator(Point Base, double[] Links, double[] q, double[,] StepRanges)
+        public Manipulator(Point Base, double[] l, double[] q_init, double[,] q_ranges, Tuple<Func<Manipulator, double>, double, double, double>[] DH)
         {
             this.Base = Base;
-            this.Links = Misc.CopyArray(Links);
-            this.q = Misc.CopyArray(q);
-            this.StepRanges = Misc.CopyArray(StepRanges);
+            this.l = Misc.CopyArray(l);
+            q = Misc.CopyArray(q_init);
+            this.q_ranges = Misc.CopyArray(q_ranges);
+
+            this.DH = DH;
+            DH_Init();
+
+            /*MatZ = new List<Matrix>();
+            MatX = new List<Matrix>();
+            foreach (var param in DH)
+            {
+                double theta = param[0], d = param[1], alpha = param[2], r = param[3];
+
+                Matrix Z = new Matrix(new double[4, 4]
+                {
+                    { Math.Cos(theta), -Math.Sin(theta), 0, 0 },
+                    { Math.Sin(theta), Math.Cos(theta), 0, 0 },
+                    { 0, 0, 1, d },
+                    { 0, 0, 0, 1 }
+                });
+                MatZ.Add(Z);
+
+                Matrix X = new Matrix(new double[4, 4]
+                {
+                    { 1, 0, 0, r },
+                    { 0, Math.Cos(alpha), -Math.Sin(alpha), 0 },
+                    { 0, Math.Sin(alpha), Math.Cos(alpha), 0 },
+                    { 0, 0, 0, 1 }
+                });
+                MatX.Add(X);
+            }*/
         }
 
         public Manipulator(Manipulator Source)
         {
             Base = Source.Base;
-            Links = Misc.CopyArray(Source.Links);
+            l = Misc.CopyArray(Source.l);
             q = Misc.CopyArray(Source.q);
-            StepRanges = Misc.CopyArray(Source.StepRanges);
+            q_ranges = Misc.CopyArray(Source.q_ranges);
+
+            DH = Misc.CopyArray(Source.DH);
+            DH_Init();
         }
 
-        public double[] qAbs
+        public void DH_Init()
+        {
+            MatZ = DH_Z();
+            MatX = DH_X();
+        }
+
+        private List<Matrix> DH_Z()
+        {
+            List<Matrix> matZ = new List<Matrix>();
+            foreach (var param in DH)
+            {
+                double theta = param.Item1(this), d = param.Item2;
+
+                Matrix Z = new Matrix(new double[4, 4]
+                {
+                            { Math.Cos(theta), 0, -Math.Sin(theta), 0 },
+                            { 0, 1, 0, d },
+                            { Math.Sin(theta), 0, Math.Cos(theta), 0 },
+                            { 0, 0, 0, 1 }
+                });
+                matZ.Add(Z);
+            }
+            /*for (int i = 0; i < DH.Length; i++)
+            {
+                double theta = (i == DH.Length - 1 && LockedGripper) ? 0 : q[i], d = DH[i].Item2;
+
+                Matrix Z = new Matrix(new double[4, 4]
+                {
+                        { Math.Cos(theta), 0, -Math.Sin(theta), 0 },
+                        { 0, 1, 0, d },
+                        { Math.Sin(theta), 0, Math.Cos(theta), 0 },
+                        { 0, 0, 0, 1 }
+                });
+                matZ.Add(Z);
+            }*/
+
+            return matZ;
+        }
+
+        private List<Matrix> DH_X()
+        {
+            List<Matrix> matX = new List<Matrix>();
+            foreach (var param in DH)
+            {
+                double alpha = param.Item3, r = param.Item4;
+
+                Matrix X = new Matrix(new double[4, 4]
+                {
+                        { 1, 0, 0, r },
+                        { 0, Math.Cos(alpha), -Math.Sin(alpha), 0 },
+                        { 0, Math.Sin(alpha), Math.Cos(alpha), 0 },
+                        { 0, 0, 0, 1 }
+                });
+                matX.Add(X);
+            }
+
+            return matX;
+        }
+
+        /*public void UpdateZ()
+        {
+            if (MatZ.Count != 0)
+            {
+                for (int i = 0; i < MatZ.Count; i++)
+                {
+                    double S = (i == DH.Length - 1 && LockedGripper) ? 0 : Math.Sin(q[i]),
+                           C = (i == DH.Length - 1 && LockedGripper) ? 1 : Math.Cos(q[i]);
+                    MatZ[i][0, 0] = MatZ[i][2, 2] = C;
+                    MatZ[i][0, 2] = -S;
+                    MatZ[i][2, 0] = S;
+                }
+            }
+        }*/
+
+        /*public double[] qAbs
         {
             get
             {
@@ -45,9 +153,35 @@ namespace WorkEnv
                 }
                 return res;
             }
+        }*/
+
+        public Point[] DKP
+        {
+            get
+            {
+                MatZ = DH_Z();
+
+                Point[] Joints = new Point[DH.Length + 1];
+                Joints[0] = Base;
+
+                Matrix Conv = new Matrix(new double[4, 4]
+                {
+                        { 1, 0, 0, Base.x },
+                        { 0, 1, 0, Base.y },
+                        { 0, 0, 1, Base.z },
+                        { 0, 0, 0, 1 },
+                });
+                for (int i = 1; i < DH.Length + 1; i++)
+                {
+                    Conv *= MatZ[i - 1] * MatX[i - 1];
+                    Joints[i] = new Point(Conv[0, 3], Conv[1, 3], Conv[2, 3]);
+                }
+
+                return Joints;
+            }
         }
 
-        public Point[] Joints
+        /*public Point[] Joints
         {
             get
             {
@@ -59,8 +193,8 @@ namespace WorkEnv
                 {
                     Joints[i] = new Point
                     (
-                        Links[i - 1] * Math.Cos(q_abs[i - 1]),
-                        Links[i - 1] * Math.Sin(q_abs[i - 1]),
+                        l[i - 1] * Math.Cos(q_abs[i - 1]),
+                        l[i - 1] * Math.Sin(q_abs[i - 1]),
                         0
                     );
                     if (i > 1)
@@ -71,25 +205,40 @@ namespace WorkEnv
 
                 return Joints;
             }
-        }
+        }*/
 
         public Point GripperPos
         {
             get
             {
-                double[] q_abs = qAbs;
+                MatZ = DH_Z();
+
+                Matrix Conv = new Matrix(new double[4, 4]
+                {
+                        { 1, 0, 0, Base.x },
+                        { 0, 1, 0, Base.y },
+                        { 0, 0, 1, Base.z },
+                        { 0, 0, 0, 1 },
+                });
+                for (int i = 0; i < DH.Length; i++)
+                {
+                    Conv *= MatZ[i] * MatX[i];
+                }
+
+                return new Point(Conv[0, 3], Conv[1, 3], Conv[2, 3]);
+                /*double[] q_abs = qAbs;
                 return new Point
                 (
-                    q_abs.Zip(Links, (t, s) => { return s * Math.Cos(t); }).Sum(),
-                    q_abs.Zip(Links, (t, s) => { return s * Math.Sin(t); }).Sum(),
+                    q_abs.Zip(l, (t, s) => { return s * Math.Cos(t); }).Sum(),
+                    q_abs.Zip(l, (t, s) => { return s * Math.Sin(t); }).Sum(),
                     0
-                );
+                );*/
             }
         }
 
         public bool InWorkingRange(Point point)
         {
-            if (point.Distance - Base.Distance > Links.Sum())
+            if (point.Distance - Base.Distance > l.Sum())
                 return false;
             else
                 return true;
@@ -97,7 +246,8 @@ namespace WorkEnv
 
         public double DistanceTo(Point p)
         {
-            return new Vector(p.x - GripperPos.x, p.y - GripperPos.y, 0).Length;
+            Vector vec = new Vector(GripperPos, p);
+            return vec.Length;
         }
     }
 

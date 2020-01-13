@@ -159,15 +159,23 @@ namespace GeneticAlgorithm
 
         public static bool[] DetectCollisions(Manipulator manip)
         {
-            Point[] joints = manip.Joints;
+            List<Point> joints = manip.DKP.ToList();
+
+            //removing duplicates
+            for (int i = 0; i < joints.Count - 1; i++)
+            {
+                if (joints[i].DistanceTo(joints[i + 1]) == 0)
+                    joints.RemoveAt(i + 1);
+            }
+
             List<Point> manip_points = new List<Point>();
 
-            bool[] collisions = new bool[Agent.q.Length];
+            bool[] collisions = new bool[joints.Count - 1];
 
             //check collision for each link
             int actuatorsNum = 50;
             double actuatorsOffset = 0.1;
-            for (int i = 0; i < Agent.q.Length; i++)
+            for (int i = 0; i < joints.Count - 1; i++)
             {
                 /*//prepare actuators for current link
                 Point[] pos = new Point[actuatorsNum];
@@ -210,7 +218,7 @@ namespace GeneticAlgorithm
 
                 LoopBreak:
                 continue;*/
-
+                
                 manip_points.Add(joints[i]);
                 for (int j = 0; j < actuatorsNum; j++)
                 {
@@ -218,11 +226,11 @@ namespace GeneticAlgorithm
                     (
                         joints[i].x + (j + 1) * (joints[i + 1].x - joints[i].x) / (actuatorsNum + 1),
                         joints[i].y + (j + 1) * (joints[i + 1].y - joints[i].y) / (actuatorsNum + 1),
-                        0
+                        joints[i].z + (j + 1) * (joints[i + 1].z - joints[i].z) / (actuatorsNum + 1)
                     ));
                 }
             }
-            manip_points.Add(joints[joints.Length - 1]);
+            manip_points.Add(joints[joints.Count - 1]);
 
             foreach (var obst in Obstacles)
             {
@@ -328,14 +336,14 @@ namespace GeneticAlgorithm
             Time = 0;
             return new Tuple<bool, double, double[], bool[]>(Converged, Min, dq, Collisions);*/
 
-            double range = 0;
+            double range = 0, step_neg = 0, step_pos = 0;
             for (int i = 0; i < ParamNum; i++)
             {
-                range = -120 - Agent.q[i] * 180 / Math.PI;
-                Agent.StepRanges[i, 0] = range <= -1 ? -1 : range;
+                range = Agent.q_ranges[i, 0] - Agent.q[i] * 180 / Math.PI;
+                step_neg = range <= -2 ? -2 : range;
 
-                range = 120 - Agent.q[i] * 180 / Math.PI;
-                Agent.StepRanges[i, 1] = range >= 1 ? 1 : range;
+                range = Agent.q_ranges[i, 1] - Agent.q[i] * 180 / Math.PI;
+                step_pos = range >= 2 ? 2 : range;
             }
 
             Manipulator Contestant = new Manipulator(Agent);
@@ -352,7 +360,7 @@ namespace GeneticAlgorithm
                 Chromosome<double> ch = new Chromosome<double>(ParamNum);
                 for (int i = 0; i < ParamNum; i++)
                 {
-                    ch.Genes[i] = Agent.StepRanges[i, 0] + Rng.NextDouble() * (Agent.StepRanges[i, 1] - Agent.StepRanges[i, 0]);
+                    ch.Genes[i] = step_neg + Rng.NextDouble() * (step_pos - step_neg);
                     ch.Genes[i] *= coeff;
                 }
 
@@ -366,14 +374,14 @@ namespace GeneticAlgorithm
                     coeff = dist / init_dist;
                 }
 
-                if (dist < 0.002)
+                if (dist < 0.008)
                 {
                     Converged = true;
                     break;
                 }
             }
             sw.Stop();
-            //Console.WriteLine("IKP Time: {0}; Real time: {1}", Time, sw.ElapsedTicks / 10);
+            Console.WriteLine("IKP Time: {0}; Real time: {1}", Time, sw.ElapsedTicks / 10);
 
             bool[] Collisions = DetectCollisions(Agent);
 
