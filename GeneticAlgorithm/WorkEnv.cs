@@ -3,25 +3,47 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Helper;
 
-namespace WorkEnv
-{    
+namespace Logic
+{   
+    public struct TupleDH
+    {
+        public Func<Manipulator, double> theta;
+        public double d;
+        public double alpha;
+        public double r;
+
+        public TupleDH(Func<Manipulator, double> theta, double d, double alpha, double r)
+        {
+            this.theta = theta;
+            this.d = d;
+            this.alpha = alpha;
+            this.r = r;
+        }
+    }
+
     public class Manipulator
     {
         public Point Base;
         public double[] l, q;
         public double[,] q_ranges;
-        public Tuple<Func<Manipulator, double>, double, double, double>[] DH;
+        public TupleDH[] DH;
+        public List<Matrix> RZ, TZ, RX, TX;
 
-        public List<Matrix> MatZ, MatX;
+        public Point Goal;
+        public List<Point> Path;
+        public List<Point[]> Joints;
+        public Tree Tree;
+        public List<Attractor> Attractors;
+        public List<Tree.Node> Buffer = new List<Tree.Node>();
+        public Dictionary<string, bool> States;
 
         public Manipulator()
         {
 
         }
 
-        public Manipulator(Point Base, double[] l, double[] q_init, double[,] q_ranges, Tuple<Func<Manipulator, double>, double, double, double>[] DH)
+        public Manipulator(Point Base, double[] l, double[] q_init, double[,] q_ranges, TupleDH[] DH, Point Goal)
         {
             this.Base = Base;
             this.l = Misc.CopyArray(l);
@@ -31,30 +53,9 @@ namespace WorkEnv
             this.DH = DH;
             DH_Init();
 
-            /*MatZ = new List<Matrix>();
-            MatX = new List<Matrix>();
-            foreach (var param in DH)
-            {
-                double theta = param[0], d = param[1], alpha = param[2], r = param[3];
+            this.Goal = Goal;
 
-                Matrix Z = new Matrix(new double[4, 4]
-                {
-                    { Math.Cos(theta), -Math.Sin(theta), 0, 0 },
-                    { Math.Sin(theta), Math.Cos(theta), 0, 0 },
-                    { 0, 0, 1, d },
-                    { 0, 0, 0, 1 }
-                });
-                MatZ.Add(Z);
-
-                Matrix X = new Matrix(new double[4, 4]
-                {
-                    { 1, 0, 0, r },
-                    { 0, Math.Cos(alpha), -Math.Sin(alpha), 0 },
-                    { 0, Math.Sin(alpha), Math.Cos(alpha), 0 },
-                    { 0, 0, 0, 1 }
-                });
-                MatX.Add(X);
-            }*/
+            Joints = new List<Point[]> { DKP };
         }
 
         public Manipulator(Manipulator Source)
@@ -66,33 +67,78 @@ namespace WorkEnv
 
             DH = Misc.CopyArray(Source.DH);
             DH_Init();
+
+            Goal = Source.Goal;
+
+            Joints = new List<Point[]>(Source.Joints);
         }
 
         public void DH_Init()
         {
-            MatZ = DH_Z();
-            MatX = DH_X();
+            DH_Z();
+            DH_X();
+            //MatZ = DH_Z();
+            //MatX = DH_X();
         }
 
-        private List<Matrix> DH_Z()
+        private void DH_Z()
+        {
+            RZ = new List<Matrix>();
+            TZ = new List<Matrix>();
+            foreach (var param in DH)
+            {
+                double theta = param.theta(this), d = param.d;
+
+                Matrix rz = new Matrix(new double[3, 3]
+                {
+                    { Math.Cos(theta), 0, -Math.Sin(theta) },
+                    { 0, 1, 0 },
+                    { Math.Sin(theta), 0, Math.Cos(theta) },
+                });
+                RZ.Add(rz);
+
+                Matrix tz = new Matrix(new double[3, 1]
+                {
+                    { 0 },
+                    { d },
+                    { 0 }
+                });
+                TZ.Add(tz);
+            }
+        }
+
+        private void DH_X()
+        {
+            RX = new List<Matrix>();
+            TX = new List<Matrix>();
+            foreach (var param in DH)
+            {
+                double alpha = param.alpha, r = param.r;
+
+                Matrix rx = new Matrix(new double[3, 3]
+                {
+                    { 1, 0, 0 },
+                    { 0, Math.Cos(alpha), -Math.Sin(alpha) },
+                    { 0, Math.Sin(alpha), Math.Cos(alpha) }
+                });
+                RX.Add(rx);
+
+                Matrix tx = new Matrix(new double[3, 1]
+                {
+                    { r },
+                    { 0 },
+                    { 0 }
+                });
+                TX.Add(tx);
+            }
+        }
+
+        /*private List<Matrix> DH_Z()
         {
             List<Matrix> matZ = new List<Matrix>();
             foreach (var param in DH)
             {
-                double theta = param.Item1(this), d = param.Item2;
-
-                Matrix Z = new Matrix(new double[4, 4]
-                {
-                            { Math.Cos(theta), 0, -Math.Sin(theta), 0 },
-                            { 0, 1, 0, d },
-                            { Math.Sin(theta), 0, Math.Cos(theta), 0 },
-                            { 0, 0, 0, 1 }
-                });
-                matZ.Add(Z);
-            }
-            /*for (int i = 0; i < DH.Length; i++)
-            {
-                double theta = (i == DH.Length - 1 && LockedGripper) ? 0 : q[i], d = DH[i].Item2;
+                double theta = param.theta(this), d = param.d;
 
                 Matrix Z = new Matrix(new double[4, 4]
                 {
@@ -102,17 +148,17 @@ namespace WorkEnv
                         { 0, 0, 0, 1 }
                 });
                 matZ.Add(Z);
-            }*/
+            }
 
             return matZ;
-        }
+        }*/
 
-        private List<Matrix> DH_X()
+        /*private List<Matrix> DH_X()
         {
             List<Matrix> matX = new List<Matrix>();
             foreach (var param in DH)
             {
-                double alpha = param.Item3, r = param.Item4;
+                double alpha = param.alpha, r = param.r;
 
                 Matrix X = new Matrix(new double[4, 4]
                 {
@@ -125,118 +171,120 @@ namespace WorkEnv
             }
 
             return matX;
-        }
-
-        /*public void UpdateZ()
-        {
-            if (MatZ.Count != 0)
-            {
-                for (int i = 0; i < MatZ.Count; i++)
-                {
-                    double S = (i == DH.Length - 1 && LockedGripper) ? 0 : Math.Sin(q[i]),
-                           C = (i == DH.Length - 1 && LockedGripper) ? 1 : Math.Cos(q[i]);
-                    MatZ[i][0, 0] = MatZ[i][2, 2] = C;
-                    MatZ[i][0, 2] = -S;
-                    MatZ[i][2, 0] = S;
-                }
-            }
-        }*/
-
-        /*public double[] qAbs
-        {
-            get
-            {
-                double[] res = new double[q.Length];
-                for (int i = 0; i < q.Length; i++)
-                {
-                    res[i] = q[i] + (i > 0 ? res[i - 1] : 0);
-                }
-                return res;
-            }
-        }*/
-
-        public Point[] DKP
-        {
-            get
-            {
-                MatZ = DH_Z();
-
-                Point[] Joints = new Point[DH.Length + 1];
-                Joints[0] = Base;
-
-                Matrix Conv = new Matrix(new double[4, 4]
-                {
-                        { 1, 0, 0, Base.x },
-                        { 0, 1, 0, Base.y },
-                        { 0, 0, 1, Base.z },
-                        { 0, 0, 0, 1 },
-                });
-                for (int i = 1; i < DH.Length + 1; i++)
-                {
-                    Conv *= MatZ[i - 1] * MatX[i - 1];
-                    Joints[i] = new Point(Conv[0, 3], Conv[1, 3], Conv[2, 3]);
-                }
-
-                return Joints;
-            }
-        }
-
-        /*public Point[] Joints
-        {
-            get
-            {
-                Point[] Joints = new Point[q.Length + 1];
-                Joints[0] = Base;
-
-                double[] q_abs = qAbs;
-                for (int i = 1; i < q.Length + 1; i++)
-                {
-                    Joints[i] = new Point
-                    (
-                        l[i - 1] * Math.Cos(q_abs[i - 1]),
-                        l[i - 1] * Math.Sin(q_abs[i - 1]),
-                        0
-                    );
-                    if (i > 1)
-                    {
-                        Joints[i] += Joints[i - 1];
-                    }
-                }
-
-                return Joints;
-            }
         }*/
 
         public Point GripperPos
         {
             get
             {
-                MatZ = DH_Z();
+                DH_Z();
+                //MatZ = DH_Z();
 
-                Matrix Conv = new Matrix(new double[4, 4]
+                /*Matrix Conv = new Matrix(new double[4, 4]
                 {
                         { 1, 0, 0, Base.x },
                         { 0, 1, 0, Base.y },
                         { 0, 0, 1, Base.z },
                         { 0, 0, 0, 1 },
+                });*/
+                Matrix R = new Matrix(new double[3, 3]
+                {
+                    { 1, 0, 0 },
+                    { 0, 1, 0 },
+                    { 0, 0, 1 }
+                });
+                Matrix T = new Matrix(new double[3, 1]
+                {
+                    { Base.x },
+                    { Base.y },
+                    { Base.z }
                 });
                 for (int i = 0; i < DH.Length; i++)
                 {
-                    Conv *= MatZ[i] * MatX[i];
+                    if (DH[i].d != 0)
+                    {
+                        T += R * TZ[i];
+                    }
+                    if (DH[i].theta(this) != 0)
+                    {
+                        R *= RZ[i];
+                    }
+
+                    if (DH[i].r != 0)
+                    {
+                        T += R * TX[i];
+                    }
+                    if (DH[i].alpha != 0)
+                    {
+                        R *= RX[i];
+                    }
+                    //Conv *= MatZ[i] * MatX[i];
                 }
 
-                return new Point(Conv[0, 3], Conv[1, 3], Conv[2, 3]);
-                /*double[] q_abs = qAbs;
-                return new Point
-                (
-                    q_abs.Zip(l, (t, s) => { return s * Math.Cos(t); }).Sum(),
-                    q_abs.Zip(l, (t, s) => { return s * Math.Sin(t); }).Sum(),
-                    0
-                );*/
+                return new Point(T[0, 0], T[1, 0], T[2, 0]);
+                //return new Point(Conv[0, 3], Conv[1, 3], Conv[2, 3]);
             }
         }
 
-        public bool InWorkingRange(Point point)
+        public Point[] DKP
+        {
+            get
+            {
+                DH_Z();
+                //MatZ = DH_Z();
+
+                Point[] Joints = new Point[DH.Length + 1];
+                Joints[0] = Base;
+
+                /*Matrix Conv = new Matrix(new double[4, 4]
+                {
+                        { 1, 0, 0, Base.x },
+                        { 0, 1, 0, Base.y },
+                        { 0, 0, 1, Base.z },
+                        { 0, 0, 0, 1 },
+                });*/
+                Matrix R = new Matrix(new double[3, 3]
+                {
+                    { 1, 0, 0 },
+                    { 0, 1, 0 },
+                    { 0, 0, 1 }
+                });
+                Matrix T = new Matrix(new double[3, 1]
+                {
+                    { Base.x },
+                    { Base.y },
+                    { Base.z }
+                });
+                for (int i = 1; i < DH.Length + 1; i++)
+                {
+                    if (DH[i - 1].d != 0)
+                    {
+                        T += R * TZ[i - 1];
+                    }
+                    if (DH[i - 1].theta(this) != 0)
+                    {
+                        R *= RZ[i - 1];
+                    }
+
+                    if (DH[i - 1].r != 0)
+                    {
+                        T += R * TX[i - 1];
+                    }
+                    if (DH[i - 1].alpha != 0)
+                    {
+                        R *= RX[i - 1];
+                    }
+
+                    Joints[i] = new Point(T[0, 0], T[1, 0], T[2, 0]);
+                    //Conv *= MatZ[i - 1] * MatX[i - 1];
+                    //Joints[i] = new Point(Conv[0, 3], Conv[1, 3], Conv[2, 3]);
+                }
+
+                return Joints;
+            }
+        }
+
+        public bool InWorkspace(Point point)
         {
             if (point.Distance - Base.Distance > l.Sum())
                 return false;
@@ -246,8 +294,7 @@ namespace WorkEnv
 
         public double DistanceTo(Point p)
         {
-            Vector vec = new Vector(GripperPos, p);
-            return vec.Length;
+            return new Vector(GripperPos, p).Length;
         }
     }
 

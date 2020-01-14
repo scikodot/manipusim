@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WorkEnv;
-using GeneticAlgorithm;
 
-namespace Helper
+namespace Logic
 {
     public class Point
     {
@@ -272,16 +270,40 @@ namespace Helper
             }
         }
 
+        public static Matrix operator +(Matrix m1, Matrix m2)
+        {
+            int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
+                r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
+
+            double[,] mat;
+            if (c1 != c2 || r1 != r2)
+                throw new Exception("Matrices dimensions mismatch!");
+            else
+            {
+                mat = new double[r1, c1];
+                for (int i = 0; i < r1; i++)
+                {
+                    for (int j = 0; j < c1; j++)
+                    {
+                        mat[i, j] = m1[i, j] + m2[i, j];
+                    }
+                }
+            }
+
+            return new Matrix(mat);
+        }
+
         public static Matrix operator *(Matrix m1, Matrix m2)
         {
             int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
                 r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
 
-            double[,] mat = new double[r1, c2];
+            double[,] mat;
             if (c1 != r2)
                 throw new Exception("Matrices dimensions mismatch!");
             else
             {
+                mat = new double[r1, c2];
                 for (int i = 0; i < r1; i++)
                 {
                     for (int j = 0; j < c2; j++)
@@ -324,6 +346,7 @@ namespace Helper
         }
 
         public List<List<Node>> Layers;
+        public List<Node> Buffer;
         public int Count, LayersAdded;
 
         public Tree(Node root)
@@ -332,6 +355,8 @@ namespace Helper
             {
                 new List<Node>()
             };
+            Buffer = new List<Node>();
+
             Layers[0].Add(root);
             Count = 1;
             LayersAdded = 0;

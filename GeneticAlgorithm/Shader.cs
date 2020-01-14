@@ -6,7 +6,7 @@ using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 
 
-namespace RoboDraw
+namespace Graphics
 {
     // A simple class meant to help create shaders.
     public class Shader

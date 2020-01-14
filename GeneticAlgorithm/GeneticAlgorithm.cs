@@ -4,10 +4,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Helper;
-using WorkEnv;
 
-namespace GeneticAlgorithm
+namespace Logic
 {
     public class Chromosome<T>
     {
@@ -54,16 +52,12 @@ namespace GeneticAlgorithm
     class Algorithm
     {
         public static Random Rng;
-
-        //operation parameters
-        public static Manipulator Agent;
         public static Obstacle[] Obstacles;
 
-        public static void Initialize(Manipulator agent, Obstacle[] obstacles)
+        public static void Initialize(Obstacle[] obstacles)
         {
             Rng = new Random();
-
-            Agent = new Manipulator(agent);
+            
             Obstacles = obstacles;
         }
 
@@ -251,7 +245,6 @@ namespace GeneticAlgorithm
 
     class IKP : Algorithm
     {
-        public static Point Goal;
         public static double Precision;
         public static int ParamNum, GenSize, Count, MaxTime, Time = 0, TotalRealTime = 0;
         public static double Pm;
@@ -270,10 +263,8 @@ namespace GeneticAlgorithm
             Decode = t => t * Math.PI / 180;
         }
 
-        public Tuple<bool, double, double[], bool[]> Execute(Point goal)
+        public Tuple<bool, double, double[], bool[]> Execute(Manipulator agent, Point goal)
         {
-            Goal = goal;
-
             /*Chs = new Chromosome<double>[GenSize];
             Fit = new double[GenSize];
 
@@ -339,17 +330,15 @@ namespace GeneticAlgorithm
             double range = 0, step_neg = 0, step_pos = 0;
             for (int i = 0; i < ParamNum; i++)
             {
-                range = Agent.q_ranges[i, 0] - Agent.q[i] * 180 / Math.PI;
+                range = agent.q_ranges[i, 0] - agent.q[i] * 180 / Math.PI;
                 step_neg = range <= -2 ? -2 : range;
 
-                range = Agent.q_ranges[i, 1] - Agent.q[i] * 180 / Math.PI;
+                range = agent.q_ranges[i, 1] - agent.q[i] * 180 / Math.PI;
                 step_pos = range >= 2 ? 2 : range;
             }
-
-            Manipulator Contestant = new Manipulator(Agent);
-            double[] q_init = new double[ParamNum];
-            Array.Copy(Agent.q, q_init, ParamNum);
-            double dist = Agent.DistanceTo(Goal), init_dist = dist, coeff = 1;
+            
+            double[] q_best = Misc.CopyArray(agent.q);
+            double dist = agent.DistanceTo(goal), init_dist = dist, coeff = 1;
             double Min = double.PositiveInfinity;
             bool Converged = false;
 
@@ -365,11 +354,11 @@ namespace GeneticAlgorithm
                 }
 
                 double[] dq = ch.GetParamAll(Decode);
-                Contestant.q = Agent.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
-                double dist_new = Contestant.DistanceTo(Goal);
+                agent.q = q_best.Zip(dq, (t, s) => { return t + s; }).ToArray();
+                double dist_new = agent.DistanceTo(goal);
                 if (dist_new < dist)
                 {
-                    Array.Copy(Contestant.q, Agent.q, ParamNum);
+                    q_best = Misc.CopyArray(agent.q);
                     Min = dist = dist_new;
                     coeff = dist / init_dist;
                 }
@@ -383,24 +372,24 @@ namespace GeneticAlgorithm
             sw.Stop();
             Console.WriteLine("IKP Time: {0}; Real time: {1}", Time, sw.ElapsedTicks / 10);
 
-            bool[] Collisions = DetectCollisions(Agent);
+            bool[] Collisions = DetectCollisions(agent);
 
             Time = 0;
-            return new Tuple<bool, double, double[], bool[]>(Converged, Min, Agent.q.Zip(q_init, (t, s) => { return t - s; }).ToArray(), Collisions);
+            return new Tuple<bool, double, double[], bool[]>(Converged, Min, q_best, Collisions);
         }
 
-        public static void FitnessFunction()
+        /*public static void FitnessFunction()
         {
-            Manipulator Contestant = new Manipulator(Agent);
+            Manipulator Contestant = new Manipulator(agent);
             for (int i = 0; i < Chs.Length; i++)
             {
                 //extracting parameters' values from chromosome
                 double[] dq = Chs[i].GetParamAll(Decode);
-                Contestant.q = Agent.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
+                Contestant.q = agent.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
 
                 //applying fitness functions to the given chromosome
                 Fit[i] = Contestant.DistanceTo(Goal);
             }
-        }
+        }*/
     }
 }

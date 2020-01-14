@@ -3,30 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Helper;
-using WorkEnv;
-using GeneticAlgorithm;
-using RoboDraw;
 
-namespace PathGenerator
+namespace Logic
 {
-    class Generator
+    class PathPlanner
     {
-        public static Manipulator Agent;
-        public static Obstacle[] Obstacles;
-        public static IKP Solver;
-
-        public static void RRT(Random rng, ref Tree holder, Point goal, Manipulator manip, Obstacle[] obstacles, int k, double d)
+        public static void RRT(Random rng, Manipulator agent, Obstacle[] obstacles, IKP solver, int k, double d)
         {
-            Agent = new Manipulator(manip);
-            Obstacles = obstacles;
+            Manipulator Contestant = new Manipulator(agent);
 
-            holder = new Tree(new Tree.Node(null, Agent.GripperPos, Agent.q));
+            agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));
 
-            Attractor[] arr = new Attractor[Manager.Attractors.Count];
-            Manager.Attractors.CopyTo(arr);
-            var AttractorsLoc = arr.ToList();
+            var AttractorsLoc = new List<Attractor>(agent.Attractors);
             AttractorsLoc.Sort((t, s) => { return t.Weight <= s.Weight ? (t.Weight < s.Weight ? -1 : 0) : 1; });
+            //Attractor[] arr = new Attractor[manip.Attractors.Count];
+            //manip.Attractors.CopyTo(arr);
+            //var AttractorsLoc = arr.ToList();
+            //AttractorsLoc.Sort((t, s) => { return t.Weight <= s.Weight ? (t.Weight < s.Weight ? -1 : 0) : 1; });
 
             for (int i = 0; i < k; i++)
             {
@@ -54,12 +47,12 @@ namespace PathGenerator
                 z = -z_pos + rng.NextDouble() * 2 * z_pos;
 
                 Point p = new Point(x, y, z) + AttractorsLoc[index].Center;
-                Tree.Node min_node = holder.Min(p);
+                Tree.Node min_node = agent.Tree.Min(p);
 
                 Vector v = new Vector(min_node.p, p);
                 Point p_n = min_node.p + v.Normalized * d;
                 bool collision = false;
-                foreach (var obst in Obstacles)
+                foreach (var obst in obstacles)
                 {
                     if (obst.Contains(p_n))
                     {
@@ -70,18 +63,18 @@ namespace PathGenerator
 
                 if (!collision)
                 {
-                    Algorithm.Agent.q = Misc.CopyArray(min_node.q);
-                    var res = Solver.Execute(p_n);
+                    Contestant.q = Misc.CopyArray(min_node.q);
+                    var res = solver.Execute(Contestant, p_n);
                     if (res.Item1 && !res.Item4.Contains(true))
                     {
                         if (AttractorsLoc[index].InliersCount < 5)
                         {
-                            Tree.Node node = new Tree.Node(min_node, p_n, Algorithm.Agent.q);
-                            holder.AddNode(node);
+                            Tree.Node node = new Tree.Node(min_node, p_n, Contestant.q);
+                            agent.Tree.AddNode(node);
                             if (p_n.DistanceTo(AttractorsLoc[index].Center) < AttractorsLoc[index].Radius)
                                 AttractorsLoc[index].InliersCount++;
 
-                            Manager.Buffer.Add(node);
+                            agent.Tree.Buffer.Add(node);
                         }
                         else
                         {

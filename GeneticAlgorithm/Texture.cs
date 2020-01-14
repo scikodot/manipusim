@@ -3,7 +3,7 @@ using System.Drawing.Imaging;
 using OpenTK.Graphics.OpenGL4;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
-namespace RoboDraw
+namespace Graphics
 {
     // A helper class, much like Shader, meant to simplify loading textures.
     public class Texture

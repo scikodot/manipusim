@@ -1,4 +1,4 @@
-﻿namespace RoboDraw
+﻿namespace Graphics
 {
     public static class Program
     {
