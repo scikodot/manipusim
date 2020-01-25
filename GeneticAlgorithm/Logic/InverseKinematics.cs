@@ -7,48 +7,6 @@ using System.Threading.Tasks;
 
 namespace Logic
 {
-    /*public class Chromosome<T>
-    {
-        public int ParamNum;
-        public T[] Genes;
-
-        public Chromosome(int param_num)
-        {
-            ParamNum = param_num;
-            Genes = new T[ParamNum];
-        }
-
-        public Chromosome(T[] genes)
-        {
-            ParamNum = genes.Length;
-            Genes = genes;
-        }
-
-        public T GetParam(int num)
-        {
-            return Genes[num];
-        }
-
-        public T[] GetParamAll()
-        {
-            return Genes;
-        }
-
-        public S[] GetParamAll<S>(Func<T, S> func)
-        {
-            S[] _params = new S[ParamNum];
-            for (int i = 0; i < ParamNum; i++)
-                _params[i] = func(GetParam(i));
-
-            return _params;
-        }
-
-        public string StrRep()
-        {
-            return string.Join("", Genes);
-        }
-    }*/
-
     class Algorithm
     {
         public static Random Rng;
@@ -77,7 +35,7 @@ namespace Logic
                     joints.RemoveAt(i + 1);
             }
 
-            // represent manipulator as a sequence of actuators
+            // representing manipulator as a sequence of actuators
             List<Point> actuators = new List<Point>();
             int actuatorsNum = 50;
             for (int i = 0; i < joints.Count - 1; i++)
@@ -95,7 +53,7 @@ namespace Logic
             }
             actuators.Add(joints[joints.Count - 1]);
 
-            // check collisions for all actuators
+            // checking collisions for all actuators
             bool[] collisions = new bool[joints.Count - 1];
             foreach (var obst in Obstacles)
             {
@@ -116,44 +74,33 @@ namespace Logic
 
     class HillClimbing : Algorithm
     {
-        //public Func<double, double> Decode;
-
         public HillClimbing(Obstacle[] obstacles, int paramNum, double precision, double stepSize, int maxTime) : base(obstacles, paramNum, precision, stepSize, maxTime) { }
 
         public Tuple<bool, double, double[], bool[]> Execute(Manipulator agent, Point goal)
-        {
-            double range = 0, step_neg = 0, step_pos = 0;
-            for (int i = 0; i < ParamNum; i++)
-            {
-                range = agent.q_ranges[i, 0] - agent.q[i] * 180 / Math.PI;
-                step_neg = range <= -StepSize ? -StepSize : range;
-
-                range = agent.q_ranges[i, 1] - agent.q[i] * 180 / Math.PI;
-                step_pos = range >= StepSize ? StepSize : range;
-            }
-            
+        {            
             double[] qBest = Misc.CopyArray(agent.q);
-            double dist = agent.DistanceTo(goal), init_dist = dist, scale = 1;
-            double Min = double.PositiveInfinity;
+            double dist = agent.DistanceTo(goal), init_dist = dist, k = 1;
+            double min_dist = double.PositiveInfinity;
             bool Converged = false;
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
             double[] dq = new double[ParamNum];
+            double range = 0, step_neg = 0, step_pos = 0;
             while (Time++ < MaxTime)
             {
-                /*Chromosome<double> ch = new Chromosome<double>(ParamNum);
                 for (int i = 0; i < ParamNum; i++)
                 {
-                    ch.Genes[i] = step_neg + Rng.NextDouble() * (step_pos - step_neg);
-                    ch.Genes[i] *= coeff;
-                }
+                    // checking GC constraints
+                    range = agent.q_ranges[i, 0] - agent.q[i] * 180 / Math.PI;
+                    step_neg = range <= -StepSize ? -StepSize : range;
 
-                double[] dq = ch.GetParamAll(Decode);*/
-                for (int i = 0; i < ParamNum; i++)
-                {
+                    range = agent.q_ranges[i, 1] - agent.q[i] * 180 / Math.PI;
+                    step_pos = range >= StepSize ? StepSize : range;
+
+                    // geenrating random GCs' offset
                     dq[i] = (step_neg + Rng.NextDouble() * (step_pos - step_neg)) * Math.PI / 180;
-                    dq[i] *= scale;
+                    dq[i] *= k;
                 }
 
                 agent.q = qBest.Zip(dq, (t, s) => { return t + s; }).ToArray();
@@ -161,8 +108,8 @@ namespace Logic
                 if (dist_new < dist)
                 {
                     qBest = Misc.CopyArray(agent.q);
-                    Min = dist = dist_new;
-                    scale = dist / init_dist;
+                    min_dist = dist = dist_new;
+                    k = dist / init_dist;
                 }
 
                 if (dist < Precision)
@@ -177,7 +124,7 @@ namespace Logic
             bool[] Collisions = DetectCollisions(agent);
 
             Time = 0;
-            return new Tuple<bool, double, double[], bool[]>(Converged, Min, qBest, Collisions);
+            return new Tuple<bool, double, double[], bool[]>(Converged, min_dist, qBest, Collisions);
         }
     }
 }

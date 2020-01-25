@@ -142,8 +142,6 @@ namespace Logic
         {
             DH_Z();
             DH_X();
-            //MatZ = DH_Z();
-            //MatX = DH_X();
         }
 
         private void DH_Z()

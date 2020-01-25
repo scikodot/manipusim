@@ -104,14 +104,6 @@ namespace Logic
             }
         }
 
-        /*public Vector Ortho
-        {
-            get
-            {
-                return new Vector(y, -x);
-            }
-        }*/
-
         public static Vector Zero
         {
             get
@@ -153,21 +145,6 @@ namespace Logic
             minY = Math.Min(p1.y, p2.y);
             maxY = Math.Max(p1.y, p2.y);
         }
-
-        /*public Segment(Point point1, Point point2, Point offsetRef, double offset)
-        {
-            Vector ortho = new Vector(point2, point1).Ortho;
-            double A = ortho.x, B = ortho.y, C = -ortho.x * point1.x - ortho.y * point1.y;
-            double d = (A * offsetRef.x + B * offsetRef.y + C) / Math.Sqrt(A * A + B * B);
-
-            p1 = point1 + (d > 0 ? -ortho : ortho).Normalized * offset;
-            p2 = point2 + (d > 0 ? -ortho : ortho).Normalized * offset;
-
-            minX = Math.Min(p1.x, p2.x);
-            maxX = Math.Max(p1.x, p2.x);
-            minY = Math.Min(p1.y, p2.y);
-            maxY = Math.Max(p1.y, p2.y);
-        }*/
 
         public bool Contains(Point p)
         {
@@ -392,39 +369,10 @@ namespace Logic
                 AddLayer();
 
             n.Parent.Childs.Add(n);
-            //if (n.Parent.Childs.Count > 1)
-            //{
-            //    Rectify(n.Parent);
-            //}
             
             Layers[n.Layer].Add(n);
             Count++;
         }
-
-        /*public void Concat(Tree tree, Tuple<int, int> coords)
-        {
-            for (int i = 1; i < tree.Layers.Count; i++)
-            {
-                int parent_layer = coords.Item1;
-                if (i == 1)
-                {
-                    foreach (var node in tree.Layers[i])
-                    {
-                        node.Layer = parent_layer + 1;
-                        node.Parent = Layers[coords.Item1][coords.Item2];
-                        AddNode(node);
-                    }
-                }
-                else
-                {
-                    foreach (var node in tree.Layers[i])
-                    {
-                        node.Layer = parent_layer + i;
-                        AddNode(node);
-                    }
-                }
-            }
-        }*/
 
         public Node Min(Point p)
         {
@@ -444,25 +392,6 @@ namespace Logic
             }
             return min_node;
         }
-
-        /*public Node MinWeight()
-        {
-            Node min_node = null;
-            double min = double.PositiveInfinity;
-            foreach (var layer in Layers)
-            {
-                foreach (var node in layer)
-                {
-                    double curr = node.Weight;
-                    if (curr < min)
-                    {
-                        min = curr;
-                        min_node = node;
-                    }
-                }
-            }
-            return min_node;
-        }*/
 
         public void Rectify(Node start)
         {
@@ -533,36 +462,6 @@ namespace Logic
         }
     }
 
-    /*public class AssociativeTable
-    {
-        public Dictionary<double, double[]> Table;
-
-        public AssociativeTable(Manipulator Agent, int entries)
-        {
-            Table = new Dictionary<double, double[]>();
-            double[] q_init = new double[IKP.ParamNum];
-            Array.Copy(Agent.q, q_init, IKP.ParamNum);
-
-            Random rng = new Random();
-            IKP Solver = new IKP(0.02, Agent.Links.Length, 10, 0.2, 50);
-            for (int i = 0; i < 3600; i++)
-            {
-                double d = 0.04, a = i;  //a = Math.Round(-Math.PI + 2 * Math.PI * rng.NextDouble(), 2);
-                Vector v = new Vector(d * Math.Cos(a / 10), d * Math.Sin(a / 10));
-
-                var res = Solver.Execute(Agent.GripperPos + v);
-                Array.Copy(q_init, Agent.q, IKP.ParamNum);
-                while (!res.Item1)
-                {
-                    res = Solver.Execute(Agent.GripperPos + v);
-                    Array.Copy(q_init, Agent.q, IKP.ParamNum);
-                }
-
-                Table.Add(a, res.Item3);
-            }
-        }
-    }*/
-
     public class Attractor
     {
         public Point Center;
@@ -593,11 +492,6 @@ namespace Logic
             return Array.ConvertAll(degrees, (t) => { return (float)(t * Math.PI / 180); });
         }
 
-        /*public static List<float> ToRad(List<float> degrees)
-        {
-            return degrees.ConvertAll((t) => { return (float)(t * Math.PI / 180); });
-        }*/
-
         public static T[] CopyArray<T>(T[] source)
         {
             T[] destination = new T[source.Length];
@@ -620,26 +514,24 @@ namespace Logic
             while (r == 0)
                 r = rng.NextDouble();
 
-            double z = Math.Cos(Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r));
+            double z = Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r));
             return mu + sigma * z;
         }
     }
 
     public static class Primitives
     {
-        public static Random Rng = new Random();
-
-        public static Point[] Sphere(double r, Point c, int points_num)
+        public static Point[] Sphere(double r, Point c, int points_num, Random rng)
         {
             Point[] sphere = new Point[points_num];
             double x, y_pos, y, z_pos, z;
             for (int i = 0; i < points_num; i++)
             {
-                x = -r + Rng.NextDouble() * 2 * r;
+                x = -r + rng.NextDouble() * 2 * r;
                 y_pos = Math.Sqrt(r * r - x * x);
-                y = -y_pos + Rng.NextDouble() * 2 * y_pos;
+                y = -y_pos + rng.NextDouble() * 2 * y_pos;
                 z_pos = Math.Sqrt(r * r - x * x - y * y);
-                z = Rng.Next(0, 2) == 0 ? -z_pos : z_pos;
+                z = rng.Next(0, 2) == 0 ? -z_pos : z_pos;
 
                 sphere[i] = new Point(x, y, z) + c;
             }

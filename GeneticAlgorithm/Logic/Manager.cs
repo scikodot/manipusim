@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics;
 
 namespace Logic
 {
@@ -133,74 +132,17 @@ namespace Logic
             {
                 Manipulators[i] = new Manipulator(MD[i]);
             }
-            /*Manipulators = new Manipulator[]
-            {
-                new Manipulator
-                (
-                    new Point(-1.5, 0, 1.5),
-                    new double[] { 0.2, 2, 2, 2 },
-                    Misc.ToRad(new double[] { 0, 0, 0, 0 }),
-                    new double[,]
-                    {
-                        { -180, 180 },
-                        { -180, 180 },
-                        { -180, 180 },
-                        { -180, 180 }
-                    },
-                    new TupleDH[]
-                    {
-                        new TupleDH((m) => { return m.q[0]; }, 0.2, Math.PI / 2, 0),
-                        new TupleDH((m) => { return m.q[1] - Math.PI / 2; }, 0, 0, 2),
-                        new TupleDH((m) => { return m.q[2]; }, 0, 0, 2),
-                        new TupleDH((m) => { return m.q[3]; }, 0, 0, 2)
-                    },
-                    new Point(-2.2, 0, -2)
-                ),
-                new Manipulator
-                (
-                    new Point(2, 0, -2),
-                    new double[] { 0.2, 2, 2, 2 },
-                    Misc.ToRad(new double[] { 0, 0, 0, 0 }),
-                    new double[,]
-                    {
-                        { -180, 180 },
-                        { -180, 180 },
-                        { -180, 180 },
-                        { -180, 180 }
-                    },
-                    new TupleDH[]
-                    {
-                        new TupleDH((m) => { return m.q[0]; }, 0.2, Math.PI / 2, 0),
-                        new TupleDH((m) => { return m.q[1] - Math.PI / 2; }, 0, 0, 2),
-                        new TupleDH((m) => { return m.q[2]; }, 0, 0, 2),
-                        new TupleDH((m) => { return m.q[3]; }, 0, 0, 2)
-                    },
-                    new Point(2.2, 0, 2)
-                )
-            };*/
 
             // obstacles
             Obstacles = new Obstacle[OD.Length];
             for (int i = 0; i < OD.Length; i++)
             {
-                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Point(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].points_num));
+                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Point(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].points_num, new Random()));
             }
-            /*Obstacles = new Obstacle[]
-            {
-                new Obstacle(Primitives.Sphere(1, new Point(0, 1.5, 0), 2000)),
-                new Obstacle(Primitives.Sphere(1, new Point(-2.2, 2.5, 0), 2000)),
-                new Obstacle(Primitives.Sphere(1, new Point(-2.2, 0, -0.5), 2000))
-            };*/
         }
 
         public static void Execute(Manipulator manip)
         {
-            /*manip.States = new Dictionary<string, bool>
-            {
-                { "Goal", false },
-                { "Attractors", false }
-            };*/
-
             manip.Attractors = new List<Attractor>();
 
             Random rng = new Random();
@@ -210,9 +152,9 @@ namespace Logic
             Point AttrPoint = manip.Goal;
 
             double AttrWeight = manip.DistanceTo(manip.Goal);
-            
+
             double r = 0.05 * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
-            Point[] AttrArea = Primitives.Sphere(r, AttrPoint, 64);
+            Point[] AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
 
             manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
 
@@ -226,7 +168,7 @@ namespace Logic
                 y = -y_pos + rng.NextDouble() * 2 * y_pos;
                 z_pos = Math.Sqrt(work_radius * work_radius - x * x - y * y);
                 z = -z_pos + rng.NextDouble() * 2 * z_pos;
-                
+
                 //work_radius -= 2 * manip.l.Sum() / 20000;
 
                 Point p = new Point(x, y, z) + manip.Base;
@@ -245,9 +187,9 @@ namespace Logic
                     AttrPoint = p;
 
                     AttrWeight = manip.DistanceTo(p) + manip.Goal.DistanceTo(p);
-                    
+
                     r = 0.05 * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
-                    AttrArea = Primitives.Sphere(r, AttrPoint, 64);
+                    AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
 
                     manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
                 }
@@ -255,8 +197,6 @@ namespace Logic
             manip.States["Attractors"] = true;
 
             PathPlanner.RRT(rng, manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d);
-            //PathPlanner.RRT(rng, manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, 0.02, 3, 300), 10000, 0.08);
-            //Tree.RectifyWhole();
 
             // retrieving resultant path along with respective configurations
             Tree.Node start = manip.Tree.Min(manip.Goal), node_curr = start;
@@ -289,9 +229,9 @@ namespace Logic
 
             manip.Path = path;
             manip.States["Path"] = true;
-            
+
             for (int i = 0; i < configs.Count; i++)
-            {                
+            {
                 manip.q = configs[i];
                 manip.Joints.Add(manip.DKP);
             }

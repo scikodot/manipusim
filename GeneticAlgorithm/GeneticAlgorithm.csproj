@@ -84,10 +84,10 @@
     <Compile Include="Graphics\ImGui\ImGuiController.cs" />
     <Compile Include="Graphics\ImGui\ImGuiShader.cs" />
     <Compile Include="Graphics\ImGui\ImGuiTexture.cs" />
-    <Compile Include="Logic\PathGenerator.cs" />
+    <Compile Include="Logic\PathPlanner.cs" />
     <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />
     <Compile Include="Logic\WorkEnv.cs" />
-    <Compile Include="Logic\GeneticAlgorithm.cs" />
+    <Compile Include="Logic\InverseKinematics.cs" />
     <Compile Include="Logic\Manager.cs" />
     <Compile Include="Logic\Helper.cs" />
     <Compile Include="Program.cs" />

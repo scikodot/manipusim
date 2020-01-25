@@ -82,13 +82,11 @@ namespace Graphics
         private Camera _camera;
         private bool _firstMove = true;
         private Vector2 _lastPos;
-
-        private double _time;
         
         private int[] JointsCount;
-        private bool ShowAttractors, num1_prev, f_prev;
 
         private Thread[] threads;
+        private bool[] ThreadsRunning;
         private Attractor[][] AttractorsLoc;
 
         private bool demo = false, Capture = false;
@@ -104,17 +102,13 @@ namespace Graphics
             controller = new ImGuiController(Width, Height);
 
             GL.Enable(EnableCap.DepthTest);
-
+            
             _shader = new Shader(@"C:\Users\Dan\source\repos\R3T\Shaders\VertexShader.txt",
                 @"C:\Users\Dan\source\repos\R3T\Shaders\FragmentShader.txt");
             _shader.Use();
 
-            // We initialize the camera so that it is 3 units back from where the rectangle is
-            // and give it the proper aspect ratio
+            // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
-
-            // We make the mouse cursor invisible so we can have proper FPS-camera movement
-            //CursorVisible = false;
 
             // initializing workspace and manipulators' threads
             UpdateWorkspace();
@@ -124,10 +118,6 @@ namespace Graphics
             gridX = new Entity(gridX_lines);
             gridY = new Entity(gridY_lines);
 
-            var input = Keyboard.GetState();
-            num1_prev = input.IsKeyDown(Key.Number1);
-            f_prev = input.IsKeyDown(Key.F);
-
             base.OnLoad(e);
         }
 
@@ -135,8 +125,6 @@ namespace Graphics
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             controller.Update(this, (float)e.Time);
-
-            _time += 4.0 * e.Time;
 
             ShowCore(e);
 
@@ -209,11 +197,6 @@ namespace Graphics
         
         protected override void OnMouseMove(MouseMoveEventArgs e)
         {
-            if (Focused) // check to see if the window is focused
-            {
-                //Mouse.SetPosition(X + Width / 2f, Y + Height / 2f);  // set mouse position back to center
-            }
-
             base.OnMouseMove(e);
         }
         
@@ -365,37 +348,6 @@ namespace Graphics
                     });
                 }
 
-                // attractors
-                /*if (attractors[j] == null)
-                {
-                    if (manip.States["Attractors"])
-                    {
-                        attractors[j] = new Entity[manip.Attractors.Count - 1];
-                        for (int i = 1; i < manip.Attractors.Count; i++)
-                        {
-                            var point = GL_Convert(new Point[] { manip.Attractors[i].Center }, Vector3.UnitX);
-                            var area = GL_Convert(manip.Attractors[i].Area, new Vector3(1, 0, 1));
-                            attractors[j][i - 1] = new Entity(point.Concat(area).ToArray());
-                        }
-
-                        AttractorsLoc[j] = manip.Attractors.GetRange(1, manip.Attractors.Count - 1).ToArray();
-                    }
-                }
-                else if (ShowAttractors)
-                {
-                    model = Matrix4.Identity;
-                    for (int i = 0; i < attractors[j].Length; i++)
-                    {
-                        attractors[j][i].Display(model, () =>
-                        {
-                            GL.PointSize(3);
-                            GL.DrawArrays(PrimitiveType.Points, 0, 1);
-                            GL.PointSize(1);
-                            GL.DrawArrays(PrimitiveType.Points, 1, AttractorsLoc[j][i].Area.Length);
-                        });
-                    }
-                }*/
-
                 //random tree
                 if (manip.Tree != null)
                 {
@@ -497,7 +449,8 @@ namespace Graphics
                 {
                     if (ImGui.TreeNode($"Manip {j}"))
                     {
-                        ImGui.Checkbox("Show tree", ref MD[j].ShowTree);
+                        int count = Manager.Manipulators[j].Tree == null ? 0 : Manager.Manipulators[j].Tree.Count;
+                        ImGui.Checkbox($"Show tree ({count} verts)", ref MD[j].ShowTree);
                         ImGui.InputFloat3("Goal", ref MD[j].Goal);
                         ImGui.InputFloat3("Base", ref MD[j].Base);
                         ImGui.InputInt("Links number", ref MD[j].N);
@@ -511,7 +464,7 @@ namespace Graphics
                             ImGui.TreePop();
                         }
 
-                        if (ImGui.TreeNode("Initial GC (degrees)"))
+                        if (ImGui.TreeNode("Initial GC (deg)"))
                         {
                             for (int i = 0; i < MD[j].N; i++)
                             {
@@ -520,7 +473,7 @@ namespace Graphics
                             ImGui.TreePop();
                         }
 
-                        if (ImGui.TreeNode("GC ranges"))
+                        if (ImGui.TreeNode("GC ranges (deg)"))
                         {
                             for (int i = 0; i < MD[j].N; i++)
                             {
@@ -587,7 +540,7 @@ namespace Graphics
                 ImGui.PushID(0);
                 ImGui.InputInt("Iterations", ref Manager.AD.MaxTime);
                 ImGui.InputFloat("Precision", ref Manager.AD.Precision);
-                ImGui.InputFloat("Step size", ref Manager.AD.StepSize);
+                ImGui.InputFloat("Step size (deg)", ref Manager.AD.StepSize);
                 ImGui.NewLine();
                 ImGui.PushID(1);
                 ImGui.Text("RRT path planner:");
@@ -626,10 +579,13 @@ namespace Graphics
                     ImGui.TextWrapped("Updates the entire workspace");
                 }
 
-                if (ImGui.BeginPopupModal("Update?"))
-                {
-                    ImGui.Text("Do you really want to update the workspace? This will reset the current process.");
-                    if (ImGui.Button("OK"))
+                bool dummy = true;
+                if (ImGui.BeginPopupModal("Update?", ref dummy, ImGuiWindowFlags.NoResize))
+                {                    
+                    ImGui.Text("Do you really want to update the workspace?\nThis will reset the current process.");
+                    ImGui.Spacing();
+                    ImGui.SetCursorPos(new System.Numerics.Vector2(ImGui.GetWindowSize().X / 2 - 104, ImGui.GetCursorPosY()));
+                    if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
                     {
                         // update workspace and reset threads
                         AbortThreads();
@@ -639,7 +595,7 @@ namespace Graphics
                         ImGui.CloseCurrentPopup();
                     }
                     ImGui.SameLine();
-                    if (ImGui.Button("Cancel"))
+                    if (ImGui.Button("Cancel", new System.Numerics.Vector2(100, 0)))
                     {
                         ImGui.CloseCurrentPopup();
                     }
@@ -696,10 +652,23 @@ namespace Graphics
         {
             // enabling/disabling specific threads for calculating paths for manipulators
             threads = new Thread[Manager.Manipulators.Length];
+            ThreadsRunning = new bool[Manager.Manipulators.Length];
             for (int i = 0; i < threads.Length; i++)
             {
                 int index = i;
-                threads[i] = new Thread(() => Manager.Execute(Manager.Manipulators[index]))
+                threads[i] = new Thread(() => 
+                {
+                    try
+                    {
+                        ThreadsRunning[index] = true;
+                        Manager.Execute(Manager.Manipulators[index]);
+                        ThreadsRunning[index] = false;
+                    }
+                    catch (ThreadAbortException e)
+                    {
+                        ThreadsRunning[index] = false;
+                    }
+                })
                 {
                     Name = $"Manipulator {index}",
                     IsBackground = true
@@ -710,19 +679,25 @@ namespace Graphics
         protected void RunThreads()
         {
             // run all threads
-            foreach (var thread in threads)
-                thread.Start();
+            for (int i = 0; i < threads.Length; i++)
+            {
+                threads[i].Start();
+            }
         }
 
         protected void AbortThreads()
         {
-            // abort all threads if presented
+            // abort all running threads if presented
             if (threads != null)
             {
-                foreach (var thread in threads)
-                thread.Abort();
-
-                while (threads.Any((t) => { return t.ThreadState != ThreadState.Aborted; })) { }
+                for (int i = 0; i < threads.Length; i++)
+                {
+                    if (ThreadsRunning[i] == true)
+                        threads[i].Abort();
+                }
+                
+                // wait until all threads abort
+                while (ThreadsRunning.Contains(true)) { }
             }
         }
 
