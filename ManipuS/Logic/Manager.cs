@@ -13,14 +13,14 @@ namespace Logic
         {
             new ManipData
             {
-                N = 4,
+                N = 7,
                 Base = new System.Numerics.Vector3(-1.5f, 0, 1.5f),
-                l = new float[10] { 0.2f, 2, 2, 2, 0, 0, 0, 0, 0, 0 },
+                l = new float[10] { 0.2f, 1, 1, 1, 1, 1, 1, 0, 0, 0 },
                 q = new float[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
                 q_ranges = new System.Numerics.Vector2[10]
                 {
                     new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
+                    new System.Numerics.Vector2(-90, 90),
                     new System.Numerics.Vector2(-180, 180),
                     new System.Numerics.Vector2(-180, 180),
                     new System.Numerics.Vector2(-180, 180),
@@ -33,30 +33,31 @@ namespace Logic
                 DH = new System.Numerics.Vector4[10]
                 {
                     new System.Numerics.Vector4(0, 0.2f, 90, 0),
-                    new System.Numerics.Vector4(-90, 0, 0, 2),
-                    new System.Numerics.Vector4(0, 0, 0, 2),
-                    new System.Numerics.Vector4(0, 0, 0, 2),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
+                    new System.Numerics.Vector4(-90, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
                     new System.Numerics.Vector4(0, 0, 0, 0),
                     new System.Numerics.Vector4(0, 0, 0, 0),
                     new System.Numerics.Vector4(0, 0, 0, 0)
                 },
-                Goal = new System.Numerics.Vector3(-2.2f, 0, -2),
+                //Goal = new System.Numerics.Vector3(-2.2f, 0f, -2),
+                Goal = new System.Numerics.Vector3(0f, 0f, -2),
 
                 ShowTree = true
             },
             new ManipData
             {
-                N = 4,
-                Base = new System.Numerics.Vector3(2, 0, -2),
+                N = 7,
+                Base = new System.Numerics.Vector3(1, 0, -2),
                 l = new float[10] { 0.2f, 2, 2, 2, 0, 0, 0, 0, 0, 0 },
                 q = new float[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
                 q_ranges = new System.Numerics.Vector2[10]
                 {
                     new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
+                    new System.Numerics.Vector2(-90, 90),
                     new System.Numerics.Vector2(-180, 180),
                     new System.Numerics.Vector2(-180, 180),
                     new System.Numerics.Vector2(-180, 180),
@@ -69,17 +70,18 @@ namespace Logic
                 DH = new System.Numerics.Vector4[10]
                 {
                     new System.Numerics.Vector4(0, 0.2f, 90, 0),
-                    new System.Numerics.Vector4(-90, 0, 0, 2),
-                    new System.Numerics.Vector4(0, 0, 0, 2),
-                    new System.Numerics.Vector4(0, 0, 0, 2),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
+                    new System.Numerics.Vector4(-90, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
+                    new System.Numerics.Vector4(0, 0, 0, 1),
                     new System.Numerics.Vector4(0, 0, 0, 0),
                     new System.Numerics.Vector4(0, 0, 0, 0),
                     new System.Numerics.Vector4(0, 0, 0, 0)
                 },
-                Goal = new System.Numerics.Vector3(2.2f, 0, 2),
+                //Goal = new System.Numerics.Vector3(0, 0, 0),
+                Goal = new System.Numerics.Vector3(-2f, -1f, 0f),
 
                 ShowTree = true
             }
@@ -89,7 +91,7 @@ namespace Logic
             new ObstData
             {
                 r = 1,
-                c = new System.Numerics.Vector3(0, 1.5f, 0),
+                c = new System.Numerics.Vector3(0, 2f, 0),
                 points_num = 2000,
 
                 ShowBounding = true
@@ -97,7 +99,7 @@ namespace Logic
             new ObstData
             {
                 r = 1,
-                c = new System.Numerics.Vector3(-2.2f, 2.5f, 0),
+                c = new System.Numerics.Vector3(-2.2f, 3.5f, 0),
                 points_num = 2000,
 
                 ShowBounding = true
@@ -105,8 +107,24 @@ namespace Logic
             new ObstData
             {
                 r = 1,
-                c = new System.Numerics.Vector3(-2.2f, 0, -0.5f),
+                c = new System.Numerics.Vector3(-2.2f, 0f, -1.5f),
                 points_num = 2000,
+
+                ShowBounding = true
+            },
+            new ObstData
+            {
+                r = 2.5f,
+                c = new System.Numerics.Vector3(0, 1f, -6f),
+                points_num = 6000,
+
+                ShowBounding = true
+            },
+            new ObstData
+            {
+                r = 0.75f,
+                c = new System.Numerics.Vector3(-1.6f, 2f, -2f),
+                points_num = 1500,
 
                 ShowBounding = true
             }
@@ -146,14 +164,14 @@ namespace Logic
             manip.Attractors = new List<Attractor>();
 
             Random rng = new Random();
-            double work_radius = 2 * manip.l.Sum(), x, y_pos, y, z_pos, z;
+            double work_radius = manip.l.Sum(), x, y_pos, y, z_pos, z;
 
             // adding main attractor
             Point AttrPoint = manip.Goal;
 
             double AttrWeight = manip.DistanceTo(manip.Goal);
 
-            double r = 0.05 * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
+            double r = AD.d * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
             Point[] AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
 
             manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
@@ -163,15 +181,16 @@ namespace Logic
             // adding ancillary attractors
             while (manip.Attractors.Count < AD.AttrNum)
             {
+                // generating attractor point
                 x = -work_radius + rng.NextDouble() * 2 * work_radius;
                 y_pos = Math.Sqrt(work_radius * work_radius - x * x);
                 y = -y_pos + rng.NextDouble() * 2 * y_pos;
                 z_pos = Math.Sqrt(work_radius * work_radius - x * x - y * y);
                 z = -z_pos + rng.NextDouble() * 2 * z_pos;
 
-                //work_radius -= 2 * manip.l.Sum() / 20000;
-
                 Point p = new Point(x, y, z) + manip.Base;
+
+                // checking whether the attractor is inside any obstacle or not
                 bool collision = false;
                 foreach (var obst in Obstacles)
                 {
@@ -181,14 +200,15 @@ namespace Logic
                         break;
                     }
                 }
-
+                
                 if (!collision)
                 {
+                    // adding attractor to the list
                     AttrPoint = p;
 
                     AttrWeight = manip.DistanceTo(p) + manip.Goal.DistanceTo(p);
 
-                    r = 0.05 * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
+                    r = AD.d * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
                     AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
 
                     manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
@@ -196,6 +216,7 @@ namespace Logic
             }
             manip.States["Attractors"] = true;
 
+            // generating random tree
             PathPlanner.RRT(rng, manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d);
 
             // retrieving resultant path along with respective configurations
@@ -224,12 +245,15 @@ namespace Logic
                     node_curr = node_curr.Parent;
                 }
             }
+
+            // reverting path so that it goes from root to goal
             path.Reverse();
             configs.Reverse();
 
             manip.Path = path;
             manip.States["Path"] = true;
 
+            // acquiring all the configurations along the path
             for (int i = 0; i < configs.Count; i++)
             {
                 manip.q = configs[i];

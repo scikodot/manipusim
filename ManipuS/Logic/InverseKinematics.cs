@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Logic
 {
@@ -77,14 +74,13 @@ namespace Logic
         public HillClimbing(Obstacle[] obstacles, int paramNum, double precision, double stepSize, int maxTime) : base(obstacles, paramNum, precision, stepSize, maxTime) { }
 
         public Tuple<bool, double, double[], bool[]> Execute(Manipulator agent, Point goal)
-        {            
+        {
+            // initial parameters
             double[] qBest = Misc.CopyArray(agent.q);
             double dist = agent.DistanceTo(goal), init_dist = dist, k = 1;
             double min_dist = double.PositiveInfinity;
             bool Converged = false;
-
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
+            
             double[] dq = new double[ParamNum];
             double range = 0, step_neg = 0, step_pos = 0;
             while (Time++ < MaxTime)
@@ -98,15 +94,18 @@ namespace Logic
                     range = agent.q_ranges[i, 1] - agent.q[i] * 180 / Math.PI;
                     step_pos = range >= StepSize ? StepSize : range;
 
-                    // geenrating random GCs' offset
+                    // generating random GCs' offset
                     dq[i] = (step_neg + Rng.NextDouble() * (step_pos - step_neg)) * Math.PI / 180;
                     dq[i] *= k;
                 }
 
+                // retrieving score of the new configuration
                 agent.q = qBest.Zip(dq, (t, s) => { return t + s; }).ToArray();
                 double dist_new = agent.DistanceTo(goal);
+
                 if (dist_new < dist)
                 {
+                    // updating agent's configuration if it's better than the previos one
                     qBest = Misc.CopyArray(agent.q);
                     min_dist = dist = dist_new;
                     k = dist / init_dist;
@@ -114,16 +113,20 @@ namespace Logic
 
                 if (dist < Precision)
                 {
+                    // the algorithm has converged
                     Converged = true;
                     break;
                 }
             }
-            sw.Stop();
-            Console.WriteLine("Time: {0}; Real time: {1}", Time, sw.ElapsedTicks / 10);
 
-            bool[] Collisions = DetectCollisions(agent);
+            // checking for collisions of the found configuration if the algorithm has converged
+            bool[] Collisions = new bool[agent.q.Length - 1];
+            if (Converged)
+                Collisions = DetectCollisions(agent);
 
+            // resetting timer
             Time = 0;
+
             return new Tuple<bool, double, double[], bool[]>(Converged, min_dist, qBest, Collisions);
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Diagnostics;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
@@ -19,17 +20,17 @@ namespace Graphics
 
             public Entity(float[] data, uint[] indices = null)
             {
-                //generating array/buffer objects
+                // generating array/buffer objects
                 VBO = GL.GenBuffer();
                 VAO = GL.GenVertexArray();
 
                 GL.BindVertexArray(VAO);
 
-                //binding vertex data to buffer
+                // binding vertex data to buffer
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
                 GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
 
-                //binding indices data to buffer, if presented
+                // binding indices data to buffer, if presented
                 if (indices != null)
                 {
                     EBO = GL.GenBuffer();
@@ -37,7 +38,7 @@ namespace Graphics
                     GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
                 }
 
-                //configuring all the needed attributes
+                // configuring all the needed attributes
                 var PosAttrib = _shader.GetAttribLocation("aPos");
                 GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
                 GL.EnableVertexAttribArray(PosAttrib);
@@ -51,14 +52,19 @@ namespace Graphics
 
             public void Display(Matrix4 model, Action draw)
             {
+                // displaying entity with the appropriate draw method
                 GL.BindVertexArray(VAO);
                 _shader.SetMatrix4("model", model);
                 draw();
             }
         }
 
-        ImGuiController controller;
+        // main graphics objects
+        private static Shader _shader;
+        private ImGuiController controller;
+        private Camera _camera;
 
+        // workspace grid
         private float[] gridX_lines =
         {
             10.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
@@ -71,26 +77,28 @@ namespace Graphics
             0.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f,
         };
 
+        // all the needed entities
         Entity gridX, gridY;
         Entity[] obstacles, boundings;
         Entity[] goal, joints, path;
-        Entity[][] attractors;
         List<Entity>[] tree;
-
-        private static Shader _shader;
         
-        private Camera _camera;
+        // variables for mouse state processing
         private bool _firstMove = true;
         private Vector2 _lastPos;
         
+        // indices of current manipulators' configurations
         private int[] JointsCount;
 
+        // manipulators' calculating threads
         private Thread[] threads;
         private bool[] ThreadsRunning;
-        private Attractor[][] AttractorsLoc;
 
-        private bool demo = false, Capture = false;
-        
+        // misc variables
+        private bool Capture = false;
+        private string SavePath = "D:/ManipuS";
+        private Stopwatch[] timers;
+
         public Window(int width, int height, string title, GraphicsMode gMode) : base(width, height, gMode, title,
                                     GameWindowFlags.Default,
                                     DisplayDevice.Default,
@@ -98,13 +106,12 @@ namespace Graphics
 
         protected override void OnLoad(EventArgs e)
         {
-            // define ImGui controller
+            // defining ImGui controller
             controller = new ImGuiController(Width, Height);
-
-            GL.Enable(EnableCap.DepthTest);
             
-            _shader = new Shader(@"C:\Users\Dan\source\repos\R3T\Shaders\VertexShader.txt",
-                @"C:\Users\Dan\source\repos\R3T\Shaders\FragmentShader.txt");
+            // retrieving shaders' files
+            _shader = new Shader(@"C:\Users\Dan\source\repos\ManipuS\Shaders\VertexShader.txt",
+                @"C:\Users\Dan\source\repos\ManipuS\Shaders\FragmentShader.txt");
             _shader.Use();
 
             // Camera is 6 units back and has the proper aspect ratio
@@ -114,7 +121,7 @@ namespace Graphics
             UpdateWorkspace();
             UpdateThreads();
 
-            // coordinate frame grid
+            // workspace grid
             gridX = new Entity(gridX_lines);
             gridY = new Entity(gridY_lines);
 
@@ -126,10 +133,13 @@ namespace Graphics
         {
             controller.Update(this, (float)e.Time);
 
+            // drawing main part (workspace)
             ShowCore(e);
 
+            // drawing GUI
             ShowGUI();
 
+            // capture screen after render if queried
             if (Capture)
                 ScreenCapture();
 
@@ -146,14 +156,17 @@ namespace Graphics
 
             var input = Keyboard.GetState();
 
+            // exit program
             if (input.IsKeyDown(Key.Escape))
             {
                 Exit();
             }
 
+            // camera parameters
             const float cameraSpeed = 3f;
             const float sensitivity = 0.2f;
 
+            // panning
             if (input.IsKeyDown(Key.W))
                 _camera.Position += _camera.Up * cameraSpeed * (float)e.Time; // Up 
             if (input.IsKeyDown(Key.S))
@@ -175,11 +188,11 @@ namespace Graphics
                 _lastPos = new Vector2(mouse.X, mouse.Y);
                 _firstMove = false;
             }
-            else if (CursorWindow.X > (int)(0.25 * Width) + 8 && 
-                     CursorWindow.X < Width + 8 &&
-                     CursorWindow.Y > 31 && 
-                     CursorWindow.Y < Height + 31 && 
-                     mouse.LeftButton == ButtonState.Pressed && !ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow))  // for (1000, 600) client size we have (1016, 639) actual size, where: 8 - indent for resizing feature, 39 - 2 * 8 = 23 - main titlebar height
+            else if (CursorWindow.X > (int)(0.25 * Width) + 8 &&  // Updating camera only if the mouse is inside the respective viewport
+                     CursorWindow.X < Width + 8 &&                // with the left button pressed and if no GUI window is active.
+                     CursorWindow.Y > 31 &&                       // Of indents: for (1000, 600) client size we have (1016, 639) actual size, where:
+                     CursorWindow.Y < Height + 31 &&              // 8 - indent for resizing feature, 39 - 2 * 8 = 23 - main titlebar height
+                     mouse.LeftButton == ButtonState.Pressed && !ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow))
             {
                 // Calculate the offset of the mouse position
                 var deltaX = mouse.X - _lastPos.X;
@@ -190,6 +203,7 @@ namespace Graphics
                 _camera.Pitch -= deltaY * sensitivity; // reversed since y-coordinates range from bottom to top
             }
 
+            // updating last mouse position
             _lastPos = new Vector2(mouse.X, mouse.Y);
 
             base.OnUpdateFrame(e);
@@ -202,8 +216,10 @@ namespace Graphics
         
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
+            // applying zoom only if no GUI window is currently hovered over
             if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
                 _camera.Fov -= e.DeltaPrecise;  // zooming
+
             base.OnMouseWheel(e);
         }
 
@@ -212,13 +228,16 @@ namespace Graphics
         {
             // We need to update the aspect ratio once the window has been resized
             _camera.AspectRatio = (float)(0.75 * Width / Height);
+
             base.OnResize(e);
 
+            // reporting GUI controller about resizing
             controller.WindowResized(Width, Height);
         }
 
         protected override void OnUnload(EventArgs e)
         {
+            // freeing all the used resources
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
             GL.UseProgram(0);
@@ -230,17 +249,20 @@ namespace Graphics
 
         protected void ShowCore(FrameEventArgs e)
         {
+            // workspace viewport
             GL.Viewport((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
 
+            // clearing viewport
             GL.Enable(EnableCap.ScissorTest);
+            GL.Enable(EnableCap.DepthTest);
             GL.Scissor((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
 
+            // attaching shader
             _shader.Use();
             _shader.SetBool("use_color", 1);
-
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
 
@@ -289,10 +311,8 @@ namespace Graphics
             }
 
             // obstacles + boundings
-            if (obstacles == null)
+            if (obstacles.Contains(null))
             {
-                obstacles = new Entity[Manager.Obstacles.Length];
-                boundings = new Entity[Manager.Obstacles.Length];
                 for (int i = 0; i < obstacles.Length; i++)
                 {
                     obstacles[i] = new Entity(GL_Convert(Manager.Obstacles[i].Data, Vector3.One));
@@ -311,14 +331,14 @@ namespace Graphics
                     {
                         GL.DrawArrays(PrimitiveType.Points, 0, Manager.Obstacles[i].Data.Length);
                     });
-                }
 
-                for (int i = 0; i < boundings.Length; i++)
-                {
-                    boundings[i].Display(model, () =>
+                    if (Manager.OD[i].ShowBounding)
                     {
-                        GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
-                    });
+                        boundings[i].Display(model, () =>
+                        {
+                            GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
+                        });
+                    }
                 }
             }
 
@@ -348,7 +368,7 @@ namespace Graphics
                     });
                 }
 
-                //random tree
+                // random tree
                 if (manip.Tree != null)
                 {
                     if (manip.Tree.Buffer.Count != 0)
@@ -373,7 +393,7 @@ namespace Graphics
                     }
                 }
 
-                // checking if the thread has aborted
+                // checking if the thread has finished
                 if (!threads[j].IsAlive)
                 {
                     // path
@@ -387,12 +407,14 @@ namespace Graphics
                         model = Matrix4.Identity;
                         path[j].Display(model, () =>
                         {
+                            GL.Disable(EnableCap.DepthTest);  // disabling depth test to let the path vertices overlap the tree
                             GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.Path.Count);
+                            GL.Enable(EnableCap.DepthTest);
                         });
                     }
                 }
 
-                // joints
+                // current manipulator configuration
                 if (manip.Joints.Count != 0)
                     joints[j] = new Entity(GL_Convert(manip.Joints[JointsCount[j] < manip.Joints.Count - 1 ? JointsCount[j]++ : JointsCount[j]], new Vector3(1.0f, 0.5f, 0.0f)));
 
@@ -406,34 +428,22 @@ namespace Graphics
                 });
             }
 
-            if (demo)
-                ImGui.ShowDemoWindow();
-
             base.OnRenderFrame(e);
         }
 
         protected void ShowGUI()
         {
+            // GUI viewport
             GL.Viewport(0, 0, Width, Height);
 
+            // clearing viewport
             GL.Enable(EnableCap.ScissorTest);
             GL.Scissor(0, 0, (int)(0.25 * Width), Height);
             GL.ClearColor(0.3f, 0.3f, 0.3f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
 
-            /*if (ImGui.BeginMainMenuBar())
-            {
-                if (ImGui.BeginMenu("File"))
-                {
-                    ImGui.MenuItem("Open...");
-                    ImGui.MenuItem("Save");
-                    ImGui.MenuItem("Save as...");
-                    ImGui.EndMenu();
-                }
-                ImGui.EndMainMenuBar();
-            }*/
-
+            // manipulators window
             if (ImGui.Begin("Manipulators",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
@@ -449,6 +459,8 @@ namespace Graphics
                 {
                     if (ImGui.TreeNode($"Manip {j}"))
                     {
+                        ImGui.Text($"Time spent: {(float)timers[j].ElapsedMilliseconds / 1000} s");
+
                         int count = Manager.Manipulators[j].Tree == null ? 0 : Manager.Manipulators[j].Tree.Count;
                         ImGui.Checkbox($"Show tree ({count} verts)", ref MD[j].ShowTree);
                         ImGui.InputFloat3("Goal", ref MD[j].Goal);
@@ -498,6 +510,7 @@ namespace Graphics
                 ImGui.End();
             }
 
+            // obstacles window
             if (ImGui.Begin("Obstacles",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
@@ -513,7 +526,7 @@ namespace Graphics
                 {
                     if (ImGui.TreeNode($"Obst {i}"))
                     {
-                        ImGui.Checkbox("Show bounding", ref OD[i].ShowBounding);
+                        ImGui.Checkbox("Show collider", ref OD[i].ShowBounding);
                         ImGui.InputFloat("Radius", ref OD[i].r);
                         ImGui.InputFloat3("Center", ref OD[i].c);
                         ImGui.InputInt("Points number", ref OD[i].points_num);
@@ -525,6 +538,7 @@ namespace Graphics
                 ImGui.End();
             }
 
+            // algorithm window
             if (ImGui.Begin("Algorithm",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
@@ -550,6 +564,7 @@ namespace Graphics
                 ImGui.End();
             }
 
+            // options & info window
             if (ImGui.Begin("Options & Info",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
@@ -587,7 +602,7 @@ namespace Graphics
                     ImGui.SetCursorPos(new System.Numerics.Vector2(ImGui.GetWindowSize().X / 2 - 104, ImGui.GetCursorPosY()));
                     if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
                     {
-                        // update workspace and reset threads
+                        // updating workspace and resetting threads
                         AbortThreads();
                         UpdateWorkspace();
                         UpdateThreads();
@@ -605,6 +620,7 @@ namespace Graphics
 
                 if (ImGui.Button("Screenshot"))
                 {
+                    // inform the program that window capturing has been queried
                     Capture = true;
                 }
                 if (ImGui.IsItemHovered())
@@ -613,7 +629,8 @@ namespace Graphics
                     ImGui.TextWrapped("Takes a picture of the entire window");
                 }
 
-                ImGui.Checkbox("Demo", ref demo);
+                // save path for captured screenshot
+                ImGui.InputText("Save path", ref SavePath, 100);
 
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));
@@ -622,6 +639,7 @@ namespace Graphics
                 ImGui.End();
             }
 
+            // rendering controller and checking for errors
             controller.Render();
             Util.CheckGLError("End of frame");
         }
@@ -632,20 +650,27 @@ namespace Graphics
             Manager.Initialize();
 
             // initializing all displaying entities
-            int length = Manager.Manipulators.Length;
-            goal = new Entity[length];
-            joints = new Entity[length];
-            path = new Entity[length];
-            attractors = new Entity[length][];
-            tree = new List<Entity>[length];
+            int obst_length = Manager.Obstacles.Length;
+            obstacles = new Entity[obst_length];
+            boundings = new Entity[obst_length];
+
+            int manip_length = Manager.Manipulators.Length;
+            goal = new Entity[manip_length];
+            joints = new Entity[manip_length];
+            path = new Entity[manip_length];
+            tree = new List<Entity>[manip_length];
             for (int i = 0; i < tree.Length; i++)
             {
                 tree[i] = new List<Entity>();
             }
 
-            AttractorsLoc = new Attractor[length][];
+            JointsCount = new int[manip_length];
 
-            JointsCount = new int[length];
+            timers = new Stopwatch[manip_length];
+            for (int i = 0; i < manip_length; i++)
+            {
+                timers[i] = new Stopwatch();
+            }
         }
 
         protected void UpdateThreads()
@@ -658,15 +683,20 @@ namespace Graphics
                 int index = i;
                 threads[i] = new Thread(() => 
                 {
+                    timers[index].Start();
                     try
                     {
                         ThreadsRunning[index] = true;
                         Manager.Execute(Manager.Manipulators[index]);
                         ThreadsRunning[index] = false;
                     }
-                    catch (ThreadAbortException e)
+                    catch (ThreadAbortException e)  // checking for abort query
                     {
                         ThreadsRunning[index] = false;
+                    }
+                    finally
+                    {
+                        timers[index].Stop();
                     }
                 })
                 {
@@ -678,7 +708,7 @@ namespace Graphics
 
         protected void RunThreads()
         {
-            // run all threads
+            // running all threads
             for (int i = 0; i < threads.Length; i++)
             {
                 threads[i].Start();
@@ -687,7 +717,7 @@ namespace Graphics
 
         protected void AbortThreads()
         {
-            // abort all running threads if presented
+            // aborting all running threads if presented
             if (threads != null)
             {
                 for (int i = 0; i < threads.Length; i++)
@@ -703,7 +733,7 @@ namespace Graphics
 
         protected void ScreenCapture()
         {
-            // take a picture of a viewport and save it
+            // taking a picture of a viewport
             byte[,,] img = new byte[Height, Width, 3];
             GL.ReadPixels(0, 0, Width, Height, PixelFormat.Rgb, PixelType.UnsignedByte, img);
 
@@ -716,13 +746,15 @@ namespace Graphics
                 }
             }
 
-            bitmap.Save("D://RRT_Snap.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+            // saving captured image
+            bitmap.Save(SavePath + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
 
             Capture = false;
         }
 
         protected float[] GL_Convert(Point[] data, Vector3 color)
         {
+            // converting program data to OpenGL buffer format
             float[] res = new float[data.Length * 6];
 
             for (int i = 0; i < data.Length; i++)

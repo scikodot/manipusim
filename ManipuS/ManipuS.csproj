@@ -7,7 +7,7 @@
     <ProjectGuid>{BB87F67F-7D6E-4C2C-B4CF-D781C186414D}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>Project</RootNamespace>
-    <AssemblyName>GeneticAlgorithm</AssemblyName>
+    <AssemblyName>ManipuS</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
