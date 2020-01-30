@@ -155,7 +155,7 @@ namespace Logic
             Obstacles = new Obstacle[OD.Length];
             for (int i = 0; i < OD.Length; i++)
             {
-                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Point(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].points_num, new Random()));
+                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Point(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].points_num, new Random()), ColliderShape.Sphere);
             }
         }
 

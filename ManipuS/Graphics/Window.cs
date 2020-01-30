@@ -79,7 +79,7 @@ namespace Graphics
 
         // all the needed entities
         Entity gridX, gridY;
-        Entity[] obstacles, boundings;
+        Entity[] obstacles, boundings, lon;
         Entity[] goal, joints, path;
         List<Entity>[] tree;
         
@@ -310,16 +310,26 @@ namespace Graphics
                 });
             }
 
-            // obstacles + boundings
+            // obstacles & colliders
             if (obstacles.Contains(null))
             {
                 for (int i = 0; i < obstacles.Length; i++)
                 {
                     obstacles[i] = new Entity(GL_Convert(Manager.Obstacles[i].Data, Vector3.One));
-                    boundings[i] = new Entity(GL_Convert(Manager.Obstacles[i].Bounding, Vector3.UnitY), new uint[]
-                        {
+
+                    switch (Manager.Obstacles[i].Collider.Shape)
+                    {
+                        case ColliderShape.Box:
+                            boundings[i] = new Entity(GL_Convert(Manager.Obstacles[i].Collider.Data, Vector3.UnitY), new uint[]
+                            {
                                 0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
-                        });
+                            });
+                            break;
+                        case ColliderShape.Sphere:
+                            boundings[i] = new Entity(GL_Convert(Manager.Obstacles[i].Collider.Data, Vector3.UnitY));
+                            lon[i] = new Entity(GL_Convert(Manager.Obstacles[i].Collider.Data, Vector3.UnitY), ((Sphere)Manager.Obstacles[i].Collider).indicesLongitude);
+                            break;
+                    }
                 }
             }
             else
@@ -331,12 +341,13 @@ namespace Graphics
                     {
                         GL.DrawArrays(PrimitiveType.Points, 0, Manager.Obstacles[i].Data.Length);
                     });
-
+                    
                     if (Manager.OD[i].ShowBounding)
                     {
-                        boundings[i].Display(model, () =>
+                        boundings[i].Display(model, Manager.Obstacles[i].Collider.Draw);
+                        lon[i].Display(model, () =>
                         {
-                            GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
+                            GL.DrawElements(BeginMode.LineLoop, 12 * 20, DrawElementsType.UnsignedInt, 0);
                         });
                     }
                 }
@@ -653,6 +664,7 @@ namespace Graphics
             int obst_length = Manager.Obstacles.Length;
             obstacles = new Entity[obst_length];
             boundings = new Entity[obst_length];
+            lon = new Entity[obst_length];
 
             int manip_length = Manager.Manipulators.Length;
             goal = new Entity[manip_length];
