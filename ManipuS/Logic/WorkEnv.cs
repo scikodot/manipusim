@@ -382,6 +382,7 @@ namespace Logic
         public Point Center { get; set; }
         public double Radius;
 
+        private uint levels = 15, pointsNum = 60;  // levels is always odd, pointsNum is always even
         public uint[] indicesLongitude;
 
         public Sphere(Point[] obst)
@@ -404,7 +405,6 @@ namespace Logic
             }
 
             // data
-            int levels = 5, pointsNum = 20;
             Data = new Point[2 + levels * pointsNum];
             double y = Radius;
             Data[0] = new Point(0, y, 0) + Center;
@@ -423,28 +423,37 @@ namespace Logic
             y = -Radius;
             Data[Data.Length - 1] = new Point(0, y, 0) + Center;
 
+            // defining indices to draw sphere
             List<uint> indices = new List<uint>();
-            for (uint j = 0; j < 20; j++)
+            for (uint j = 0; j < pointsNum / 2; j++)
             {
                 indices.Add(0);
-                for (uint k = 0; k < 5; k++)
+                for (uint k = 0; k < levels; k++)
                 {
-                    indices.Add(1 + j + k * 20);
+                    indices.Add(j + k * pointsNum + 1);
                 }
-                for (uint k = 0; k < 5 + 1; k++)
+                indices.Add(levels * pointsNum + 1);
+                for (uint k = 0; k < levels; k++)
                 {
-                    indices.Add(1 + 5 * 20 - j - k * 20);
+                    indices.Add(j + (levels - k) * pointsNum + 1 - pointsNum / 2);
                 }
             }
             indicesLongitude = indices.ToArray();
         }
 
+        // draw method for latitudinal circles
         public void Draw()
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < levels; i++)
             {
-                GL.DrawArrays(PrimitiveType.LineLoop, 1 + i * 20, 20);
+                GL.DrawArrays(PrimitiveType.LineLoop, i * (int)pointsNum + 1, (int)pointsNum);
             }
+        }
+
+        // draw method for longitudinal circles
+        public void DrawLongitudes()
+        {
+            GL.DrawElements(BeginMode.LineLoop, indicesLongitude.Length, DrawElementsType.UnsignedInt, 0);
         }
     }
 

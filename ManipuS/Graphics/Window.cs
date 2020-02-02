@@ -16,13 +16,13 @@ namespace Graphics
     {
         public class Entity
         {
-            public int VBO, EBO, VAO;
+            public int VAO, VBO, EBO;
 
             public Entity(float[] data, uint[] indices = null)
             {
                 // generating array/buffer objects
-                VBO = GL.GenBuffer();
                 VAO = GL.GenVertexArray();
+                VBO = GL.GenBuffer();
 
                 GL.BindVertexArray(VAO);
 
@@ -99,6 +99,9 @@ namespace Graphics
         private string SavePath = "D:/ManipuS";
         private Stopwatch[] timers;
 
+        // 3D model
+        Model Crytek;
+
         public Window(int width, int height, string title, GraphicsMode gMode) : base(width, height, gMode, title,
                                     GameWindowFlags.Default,
                                     DisplayDevice.Default,
@@ -124,6 +127,9 @@ namespace Graphics
             // workspace grid
             gridX = new Entity(gridX_lines);
             gridY = new Entity(gridY_lines);
+
+            // loading a 3D model
+            Crytek = new Model("D:/nanosuit/nanosuit.obj");
 
             base.OnLoad(e);
         }
@@ -182,6 +188,7 @@ namespace Graphics
             var cursor = Mouse.GetCursorState();
             var window = Location;
             var CursorWindow = new System.Drawing.Point(cursor.X - window.X, cursor.Y - window.Y);  // cursor position relative to window
+            var GuiActive = ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow);
 
             if (_firstMove) // this bool variable is initially set to true
             {
@@ -192,7 +199,7 @@ namespace Graphics
                      CursorWindow.X < Width + 8 &&                // with the left button pressed and if no GUI window is active.
                      CursorWindow.Y > 31 &&                       // Of indents: for (1000, 600) client size we have (1016, 639) actual size, where:
                      CursorWindow.Y < Height + 31 &&              // 8 - indent for resizing feature, 39 - 2 * 8 = 23 - main titlebar height
-                     mouse.LeftButton == ButtonState.Pressed && !ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow))
+                     mouse.LeftButton == ButtonState.Pressed && !GuiActive)
             {
                 // Calculate the offset of the mouse position
                 var deltaX = mouse.X - _lastPos.X;
@@ -252,9 +259,10 @@ namespace Graphics
             // workspace viewport
             GL.Viewport((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
 
+            GL.Enable(EnableCap.DepthTest);
+
             // clearing viewport
             GL.Enable(EnableCap.ScissorTest);
-            GL.Enable(EnableCap.DepthTest);
             GL.Scissor((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
@@ -262,7 +270,7 @@ namespace Graphics
 
             // attaching shader
             _shader.Use();
-            _shader.SetBool("use_color", 1);
+            //_shader.SetBool("use_color", 1);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
 
@@ -310,7 +318,7 @@ namespace Graphics
                 });
             }
 
-            // obstacles & colliders
+            /*// obstacles & colliders
             if (obstacles.Contains(null))
             {
                 for (int i = 0; i < obstacles.Length; i++)
@@ -345,10 +353,7 @@ namespace Graphics
                     if (Manager.OD[i].ShowBounding)
                     {
                         boundings[i].Display(model, Manager.Obstacles[i].Collider.Draw);
-                        lon[i].Display(model, () =>
-                        {
-                            GL.DrawElements(BeginMode.LineLoop, 12 * 20, DrawElementsType.UnsignedInt, 0);
-                        });
+                        lon[i].Display(model, ((Sphere)Manager.Obstacles[i].Collider).DrawLongitudes);
                     }
                 }
             }
@@ -437,7 +442,13 @@ namespace Graphics
                     GL.PointSize(1);
                     GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.DH.Length + 1);
                 });
-            }
+            }*/
+
+            // 3D model
+            model = Matrix4.Identity;
+            Matrix4.CreateScale(0.2f, out model);
+            _shader.SetMatrix4("model", model);
+            Crytek.Draw(_shader);
 
             base.OnRenderFrame(e);
         }
