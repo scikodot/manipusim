@@ -96,8 +96,13 @@ namespace Graphics
 
         // misc variables
         private bool Capture = false;
-        private string SavePath = "D:/ManipuS";
+        private static string ProjectDirectory = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName;
+        private static string SavePath = ProjectDirectory + @"\Screenshots";
+        private static string NanosuitPath = ProjectDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
+        private static string ManipPath = ProjectDirectory + @"\Resources\Models\manipulator\Grip_rigid.obj";
         private Stopwatch[] timers;
+        
+        private Thread load;
 
         // 3D model
         Model Crytek;
@@ -128,9 +133,6 @@ namespace Graphics
             gridX = new Entity(gridX_lines);
             gridY = new Entity(gridY_lines);
 
-            // loading a 3D model
-            Crytek = new Model("D:/nanosuit/nanosuit.obj");
-
             base.OnLoad(e);
         }
 
@@ -150,6 +152,14 @@ namespace Graphics
                 ScreenCapture();
 
             SwapBuffers();
+
+            // execute all unexecuted actions, enqueued while loading a model
+            int count = Dispatcher.ActionsQueue.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var action = Dispatcher.ActionsQueue.Dequeue();
+                action();
+            }
         }
 
 
@@ -270,7 +280,7 @@ namespace Graphics
 
             // attaching shader
             _shader.Use();
-            //_shader.SetBool("use_color", 1);
+            _shader.SetBool("use_color", 1);
             _shader.SetMatrix4("view", _camera.GetViewMatrix());
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
 
@@ -445,10 +455,17 @@ namespace Graphics
             }*/
 
             // 3D model
-            model = Matrix4.Identity;
-            Matrix4.CreateScale(0.2f, out model);
-            _shader.SetMatrix4("model", model);
-            Crytek.Draw(_shader);
+            if (Crytek != null && Dispatcher.ActionsQueue.Count == 0)
+            {
+                _shader.SetBool("use_color", 0);
+
+                model = Matrix4.Identity;
+                Matrix4.CreateScale(0.2f, out model);
+                _shader.SetMatrix4("model", model);
+                Crytek.Draw(_shader);
+            }
+
+            //ImGui.ShowDemoWindow();
 
             base.OnRenderFrame(e);
         }
@@ -465,8 +482,40 @@ namespace Graphics
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
 
+            if (ImGui.BeginMainMenuBar())
+            {
+                if (ImGui.BeginMenu("File"))
+                {
+                    if (ImGui.BeginMenu("Open..."))
+                    {
+                        if (ImGui.MenuItem("nanosuit.obj"))
+                        {
+                            load = new Thread(() => 
+                            {
+                                Crytek = new Model(NanosuitPath);
+                            })
+                            {
+                                Name = "LoadModel",
+                                IsBackground = true
+                            };
+                            load.Start();
+                        }
+
+                        ImGui.EndMenu();
+                    }
+                    if (ImGui.MenuItem("Save as..."))
+                    {
+
+                    }
+
+                    ImGui.EndMenu();
+                }
+
+                ImGui.EndMainMenuBar();
+            }
+
             // manipulators window
-            if (ImGui.Begin("Manipulators",
+            /*if (ImGui.Begin("Manipulators",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
                 ImGuiWindowFlags.NoResize | 
@@ -530,7 +579,7 @@ namespace Graphics
                 }
 
                 ImGui.End();
-            }
+            }*/
 
             // obstacles window
             if (ImGui.Begin("Obstacles",
@@ -798,6 +847,16 @@ namespace Graphics
             base.OnKeyPress(e);
 
             controller.PressChar(e.KeyChar);
+        }
+
+        public static int GenBuffer()
+        {
+            return GL.GenBuffer();
+        }
+
+        public static int GenArray()
+        {
+            return GL.GenVertexArray();
         }
     }
 }

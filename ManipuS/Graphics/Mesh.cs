@@ -16,7 +16,8 @@ namespace Graphics
         public Vector2 TexCoords;
     }
 
-    struct MeshTexture
+    // MeshTexture has to be class; otherwise it could not be passed by reference 
+    class MeshTexture
     {
         public int ID;
         public string Type;
@@ -42,31 +43,34 @@ namespace Graphics
 
         private void SetupMesh()
         {
-            VAO = GL.GenVertexArray();
-            VBO = GL.GenBuffer();
-            EBO = GL.GenBuffer();
+            Dispatcher.ActionsQueue.Enqueue(() =>
+            {
+                VAO = GL.GenVertexArray();
+                VBO = GL.GenBuffer();
+                EBO = GL.GenBuffer();
 
-            GL.BindVertexArray(VAO);
+                GL.BindVertexArray(VAO);
 
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * Marshal.SizeOf(typeof(MeshVertex)), Vertices, BufferUsageHint.StaticDraw);
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+                GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * Marshal.SizeOf(typeof(MeshVertex)), Vertices, BufferUsageHint.StaticDraw);
 
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Length * sizeof(uint), Indices, BufferUsageHint.StaticDraw);
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
+                GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Length * sizeof(uint), Indices, BufferUsageHint.StaticDraw);
 
-            // vertex positions
-            GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), 0);
+                // vertex positions
+                GL.EnableVertexAttribArray(0);
+                GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), 0);
 
-            // vertex normals
-            GL.EnableVertexAttribArray(1);
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), Marshal.OffsetOf<MeshVertex>("Normal"));
+                // vertex normals
+                GL.EnableVertexAttribArray(1);
+                GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), Marshal.OffsetOf<MeshVertex>("Normal"));
 
-            // vertex texture coords
-            GL.EnableVertexAttribArray(2);
-            GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), Marshal.OffsetOf<MeshVertex>("TexCoords"));
+                // vertex texture coords
+                GL.EnableVertexAttribArray(2);
+                GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), Marshal.OffsetOf<MeshVertex>("TexCoords"));
 
-            GL.BindVertexArray(0);
+                GL.BindVertexArray(0);
+            });
         }
 
         public void Draw(Shader shader)

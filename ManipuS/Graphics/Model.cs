@@ -117,14 +117,9 @@ namespace Graphics
                 mat.GetMaterialTexture(type, i, out TextureSlot slot);
 
                 var texLoaded = TexturesLoaded.Find((t) => { return t.Path == slot.FilePath; });
-                if (texLoaded.Equals(default(MeshTexture)))
+                if (texLoaded == null)
                 {
-                    // if texture hasn't been loaded already, load it
-                    MeshTexture texture;
-                    //texture.ID = slot.TextureIndex;  //TODO: in tutorial the texture's ID is obtained through loading from file; which is right?
-                    texture.ID = TextureFromFile(slot.FilePath, Directory);
-                    texture.Type = typeName;
-                    texture.Path = slot.FilePath;
+                    MeshTexture texture = TextureFromFile(slot.FilePath, Directory, typeName);
                     textures.Add(texture);
                     TexturesLoaded.Add(texture);  // add to loaded textures
                 }
@@ -135,12 +130,16 @@ namespace Graphics
             return textures;
         }
 
-        private int TextureFromFile(string filename, string directory)
+        private MeshTexture TextureFromFile(string filename, string directory, string typeName)
         {
-            string resPath = directory + "/" + filename;
+            string resPath = directory + @"\" + filename;
 
-            GL.GenTextures(1, out int textureID);
-            
+            MeshTexture texture = new MeshTexture
+            {
+                Type = typeName,
+                Path = filename
+            };
+
             // loading texture file with StbImage
             var io = new System.IO.FileStream(resPath, System.IO.FileMode.Open);
             var stream = new ImageStreamLoader();
@@ -159,82 +158,27 @@ namespace Graphics
                 else if (nrComponents == ColorComponents.RedGreenBlueAlpha)
                     format = PixelInternalFormat.Rgba;
 
-                GL.BindTexture(TextureTarget.Texture2D, textureID);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, format, width, height, 0, (PixelFormat)format, PixelType.UnsignedByte, resLoad.Data);
-                GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+                // sending necessary actions to dispatcher
+                Dispatcher.ActionsQueue.Enqueue(() =>
+                {
+                    GL.GenTextures(1, out texture.ID);
 
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+                    GL.BindTexture(TextureTarget.Texture2D, texture.ID);
+                    GL.TexImage2D(TextureTarget.Texture2D, 0, format, width, height, 0, (PixelFormat)format, PixelType.UnsignedByte, resLoad.Data);
+                    GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+                });
             }
             else
             {
                 // TODO: throw new exception, although not necessarily - it's already implemented in ImageResult.FromResult
             }
 
-            return textureID;
+            return texture;
         }
-
-        /*private void ProcessNode(AiNode node, AiScene scene)
-        {
-            // process all the node's meshes (if any)
-            for (int i = 0; i < node.NumMeshes; i++)
-            {
-                AiMesh mesh = Marshal.PtrToStructure<AiMesh>(Marshal.PtrToStructure<IntPtr>(scene.Meshes + Marshal.PtrToStructure<int>(node.Meshes + i)));
-                Meshes.Add(ProcessMesh(mesh, scene));
-            }
-
-            // then do the same for each of its children
-            for (int i = 0; i < node.NumChildren; i++)
-            {
-                ProcessNode(Marshal.PtrToStructure<AiNode>(Marshal.PtrToStructure<IntPtr>(node.Children + i)), scene);
-            }
-        }
-
-        private Mesh ProcessMesh(AiMesh mesh, AiScene scene)
-        {
-            var vertices = new List<MeshVertex>();
-            var indices = new List<uint>();
-            var textures = new List<MeshTexture>();
-
-            for (int i = 0; i < mesh.NumVertices; i++)
-            {
-                var vertex = new MeshVertex();
-
-                // process vertex positions, normals and texture coordinates
-                var pos = Marshal.PtrToStructure<Vector3D>(mesh.Vertices + i);
-                vertex.Position = new Vector3(pos.X, pos.Y, pos.Z);
-
-                var norm = Marshal.PtrToStructure<Vector3D>(mesh.Normals + i);
-                vertex.Normal = new Vector3(norm.X, norm.Y, norm.Z);
-
-                if (mesh.TextureCoords[0] != IntPtr.Zero)  // does the mesh contain texture coordinates?
-                {
-                    var tex = Marshal.PtrToStructure<Vector3D>(mesh.TextureCoords[0] + i);
-                    vertex.TexCoords = new Vector2(tex.X, tex.Y);
-                }
-                else
-                    vertex.TexCoords = Vector2.Zero;
-
-                vertices.Add(vertex);
-            }
-
-            // process indices
-
-
-            // process material
-            if (mesh.MaterialIndex >= 0)
-            {
-
-            }
-
-            return new Mesh(vertices.ToArray(), indices.ToArray(), textures.ToArray());
-        }
-
-        private List<MeshTexture> LoadMaterialTextures(AiMaterial mat, TextureType type, string name)
-        {
-            
-        }*/
     }
 }

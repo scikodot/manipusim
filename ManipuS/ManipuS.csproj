@@ -87,6 +87,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Graphics\Camera.cs" />
+    <Compile Include="Graphics\Dispatcher.cs" />
     <Compile Include="Graphics\ImGui\ImGuiController.cs" />
     <Compile Include="Graphics\ImGui\ImGuiShader.cs" />
     <Compile Include="Graphics\ImGui\ImGuiTexture.cs" />
