@@ -26,14 +26,17 @@ namespace Graphics
 
     class Mesh
     {
+        public string Name;
+
         public MeshVertex[] Vertices;
         public int[] Indices;
         public MeshTexture[] Textures;
 
         private int VAO, VBO, EBO;
 
-        public Mesh(MeshVertex[] vertices, int[] indices, MeshTexture[] textures)
+        public Mesh(string name, MeshVertex[] vertices, int[] indices, MeshTexture[] textures)
         {
+            Name = name;
             Vertices = vertices;
             Indices = indices;
             Textures = textures;
@@ -43,6 +46,7 @@ namespace Graphics
 
         private void SetupMesh()
         {
+            // sending necessary actions to dispatcher
             Dispatcher.ActionsQueue.Enqueue(() =>
             {
                 VAO = GL.GenVertexArray();

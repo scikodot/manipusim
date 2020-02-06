@@ -54,7 +54,7 @@ namespace Graphics
             {
                 // displaying entity with the appropriate draw method
                 GL.BindVertexArray(VAO);
-                _shader.SetMatrix4("model", model);
+                _shader.SetMatrix4("model", model, false);
                 draw();
             }
         }
@@ -99,10 +99,12 @@ namespace Graphics
         private static string ProjectDirectory = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName;
         private static string SavePath = ProjectDirectory + @"\Screenshots";
         private static string NanosuitPath = ProjectDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
-        private static string ManipPath = ProjectDirectory + @"\Resources\Models\manipulator\Grip_rigid.obj";
+        private static string ManipPath = ProjectDirectory + @"\Resources\Models\manipulator\Link.obj";
         private Stopwatch[] timers;
         
         private Thread load;
+        private float time = 0;
+        private bool LinksLoaded = false;
 
         // 3D model
         Model Crytek;
@@ -281,8 +283,10 @@ namespace Graphics
             // attaching shader
             _shader.Use();
             _shader.SetBool("use_color", 1);
-            _shader.SetMatrix4("view", _camera.GetViewMatrix());
-            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+            var view = _camera.GetViewMatrix();
+            _shader.SetMatrix4("view", view, false);
+            var proj = _camera.GetProjectionMatrix();
+            _shader.SetMatrix4("projection", proj, false);
 
             Matrix4 model;
 
@@ -455,14 +459,35 @@ namespace Graphics
             }*/
 
             // 3D model
-            if (Crytek != null && Dispatcher.ActionsQueue.Count == 0)
+            if (LinksLoaded && Dispatcher.ActionsQueue.Count == 0)
             {
-                _shader.SetBool("use_color", 0);
+                /*_shader.SetBool("use_color", 0);
 
                 model = Matrix4.Identity;
-                Matrix4.CreateScale(0.2f, out model);
+                //model *= Matrix4.CreateScale(0.2f);
+
+                time += (float)(Math.PI * e.Time);
+                var io = Keyboard.GetState();
+                if (io.IsKeyDown(Key.R))
+                    model *= Matrix4.CreateRotationY(-time);
                 _shader.SetMatrix4("model", model);
-                Crytek.Draw(_shader);
+                Crytek.Draw(_shader);*/
+
+                _shader.SetBool("use_color", 0);
+
+                Manager.Initialize();
+                var links = Manager.Manipulators[0].Links;
+
+                model = Matrix4.Identity;
+                time += (float)(Math.PI / 2 * e.Time);
+                for (int i = 0; i < Manager.LD.Length; i++)
+                {
+                    links[i].DH.theta += time;
+                    var shit = TupleDH.CreateMatrix(links[i].DH);
+                    model *= shit;
+                    _shader.SetMatrix4("model", model, true);
+                    links[i].Model.Draw(_shader);
+                }
             }
 
             //ImGui.ShowDemoWindow();
@@ -492,7 +517,12 @@ namespace Graphics
                         {
                             load = new Thread(() => 
                             {
-                                Crytek = new Model(NanosuitPath);
+                                for (int i = 0; i < Manager.LD.Length; i++)
+                                {
+                                    Manager.LD[i].model = new Model(ManipPath);
+                                }
+                                LinksLoaded = true;
+                                //Crytek = new Model(ManipPath);
                             })
                             {
                                 Name = "LoadModel",
@@ -759,7 +789,7 @@ namespace Graphics
                     try
                     {
                         ThreadsRunning[index] = true;
-                        Manager.Execute(Manager.Manipulators[index]);
+                        //Manager.Execute(Manager.Manipulators[index]);
                         ThreadsRunning[index] = false;
                     }
                     catch (ThreadAbortException e)  // checking for abort query

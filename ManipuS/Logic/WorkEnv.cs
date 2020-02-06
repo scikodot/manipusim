@@ -3,36 +3,42 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using OpenTK;
 using OpenTK.Graphics.OpenGL4;
+using Graphics;
 
 namespace Logic
 {   
     public struct TupleDH
     {
-        public Func<Manipulator, double> theta;
+        public double theta;
         public double d;
         public double alpha;
         public double r;
 
-        public TupleDH(Func<Manipulator, double> theta, double d, double alpha, double r)
+        public TupleDH(double theta, double d, double alpha, double r)
         {
             this.theta = theta;
             this.d = d;
             this.alpha = alpha;
             this.r = r;
         }
+
+        public static Matrix4 CreateMatrix(TupleDH DH)
+        {
+            return Matrix.RotateY((float)DH.theta) *
+                   Matrix.Translate((float)DH.d * Vector3.UnitY) *
+                   Matrix.RotateX((float)DH.alpha) *
+                   Matrix.Translate((float)DH.r * Vector3.UnitX);
+        }
     }
 
-    public struct ManipData
+    public struct LinkData
     {
-        public int N, N_prev;
-        public System.Numerics.Vector3 Base;
-        public float[] l, q;
-        public System.Numerics.Vector2[] q_ranges;
-        public System.Numerics.Vector4[] DH;
-        public System.Numerics.Vector3 Goal;
-
-        public bool ShowTree;
+        public Model model;
+        public float q;
+        public System.Numerics.Vector2 q_ranges;
+        public System.Numerics.Vector4 DH;
     }
 
     public struct ObstData
@@ -55,13 +61,86 @@ namespace Logic
         public float d;
     }
 
+    public enum JointType
+    {
+        Prismatic,  // Translation
+        Revolute,  // Rotation
+        Cylindrical,  // Translation & rotation
+        Spherical,  // Allows three degrees of rotational freedom about the center of the joint. Also known as a ball-and-socket joint
+        Planar  //Allows relative translation on a plane and relative rotation about an axis perpendicular to the plane
+    }
+
+    public class Link
+    {
+        public Model Model;
+
+        private double q;
+        private double[] q_ranges;
+        public TupleDH DH;
+        public Matrix Z, X;
+
+        public Link(Model model, double q_init, double[] q_ranges, System.Numerics.Vector4 DH)
+        {
+            Model = model;
+            q = q_init;
+            this.q_ranges = q_ranges;
+
+            this.DH = new TupleDH(q + DH.X * Math.PI / 180, DH.Y, DH.Z * Math.PI / 180, DH.W);
+
+            CreateMatricesZ();
+            CreateMatricesX();
+        }
+
+        public Link(LinkData data)
+        {
+            Model = data.model;
+            q = data.q;
+            q_ranges = new double[2] { data.q_ranges.X, data.q_ranges.Y };
+            DH = new TupleDH
+            {
+                theta = q + data.DH.X * Math.PI / 180,
+                d = data.DH.Y,
+                alpha = data.DH.Z * Math.PI / 180,
+                r = data.DH.W
+            };
+
+            CreateMatricesZ();
+            CreateMatricesX();
+        }
+
+        private void CreateMatricesZ()
+        {
+            Z = new Matrix(new double[4, 4]
+            {
+                { Math.Cos(DH.theta), 0, -Math.Sin(DH.theta), 0 },
+                { 0, 1, 0, DH.d },
+                { Math.Sin(DH.theta), 0, Math.Cos(DH.theta), 0 },
+                { 0, 0, 0, 1 }
+            });
+        }
+
+        private void CreateMatricesX()
+        {
+            X = new Matrix(new double[4, 4]
+            {
+                { 1, 0, 0, DH.r },
+                { 0, Math.Cos(DH.alpha), -Math.Sin(DH.alpha), 0 },
+                { 0, Math.Sin(DH.alpha), Math.Cos(DH.alpha), 0 },
+                { 0, 0, 0, 1 }
+            });
+        }
+
+        public void Draw()
+        {
+            
+        }
+    }
+
     public class Manipulator
     {
         public Point Base;
-        public double[] l, q;
-        public double[,] q_ranges;
-        public TupleDH[] DH;
-        public List<Matrix> RZ, TZ, RX, TX;
+
+        public Link[] Links;
 
         public Point Goal;
         public List<Point> Path;
@@ -76,37 +155,34 @@ namespace Logic
 
         }
 
-        public Manipulator(Point Base, double[] l, double[] q_init, double[,] q_ranges, TupleDH[] DH, Point Goal)
+        public Manipulator(LinkData[] data)
         {
-            this.Base = Base;
-            this.l = Misc.CopyArray(l);
-            q = Misc.CopyArray(q_init);
-            this.q_ranges = Misc.CopyArray(q_ranges);
+            Links = new Link[data.Length];
+            for (int i = 0; i < data.Length; i++)
+            {
+                Links[i] = new Link(data[i]);
+            }
 
-            this.DH = DH;
-            DH_Init();
-
-            this.Goal = Goal;
-
-            Joints = new List<Point[]> { DKP };
+            States = new Dictionary<string, bool>
+            {
+                { "Goal", false },
+                { "Attractors", false },
+                { "Path", false }
+            };
         }
 
         public Manipulator(Manipulator Source)
         {
-            Base = Source.Base;
-            l = Misc.CopyArray(Source.l);
-            q = Misc.CopyArray(Source.q);
-            q_ranges = Misc.CopyArray(Source.q_ranges);
-
-            DH = Misc.CopyArray(Source.DH);
-            DH_Init();
+            Links = new List<Link>(Source.Links).ToArray();
 
             Goal = Source.Goal;
 
             Joints = new List<Point[]>(Source.Joints);
+
+            States = new Dictionary<string, bool>(Source.States);
         }
 
-        public Manipulator(ManipData data)
+        /*public Manipulator(ManipData data)
         {
             Base = new Point(data.Base.X, data.Base.Y, data.Base.Z);
 
@@ -195,14 +271,12 @@ namespace Logic
                 });
                 TX.Add(tx);
             }
-        }
+        }*/
 
-        public Point GripperPos
+        /*public Point GripperPos
         {
             get
             {
-                DH_Z();
-
                 Matrix R = new Matrix(new double[3, 3]
                 {
                     { 1, 0, 0 },
@@ -215,24 +289,25 @@ namespace Logic
                     { Base.y },
                     { Base.z }
                 });
-                for (int i = 0; i < DH.Length; i++)
+
+                for (int i = 0; i < Links.Length; i++)
                 {
-                    if (DH[i].d != 0)
+                    if (Links[i].DH.d != 0)
                     {
-                        T += R * TZ[i];
+                        T += R * Links[i].TZ;
                     }
-                    if (DH[i].theta(this) != 0)
+                    if (Links[i].DH.theta != 0)
                     {
-                        R *= RZ[i];
+                        R *= Links[i].RZ;
                     }
 
-                    if (DH[i].r != 0)
+                    if (Links[i].DH.r != 0)
                     {
-                        T += R * TX[i];
+                        T += R * Links[i].TX;
                     }
-                    if (DH[i].alpha != 0)
+                    if (Links[i].DH.alpha != 0)
                     {
-                        R *= RX[i];
+                        R *= Links[i].RX;
                     }
                 }
 
@@ -244,9 +319,7 @@ namespace Logic
         {
             get
             {
-                DH_Z();
-
-                Point[] Joints = new Point[DH.Length + 1];
+                Point[] Joints = new Point[Links.Length + 1];
                 Joints[0] = Base;
                 
                 Matrix R = new Matrix(new double[3, 3]
@@ -261,24 +334,24 @@ namespace Logic
                     { Base.y },
                     { Base.z }
                 });
-                for (int i = 1; i < DH.Length + 1; i++)
+                for (int i = 1; i < Links.Length + 1; i++)
                 {
-                    if (DH[i - 1].d != 0)
+                    if (Links[i - 1].DH.d != 0)
                     {
-                        T += R * TZ[i - 1];
+                        T += R * Links[i - 1].TZ;
                     }
-                    if (DH[i - 1].theta(this) != 0)
+                    if (Links[i - 1].DH.theta != 0)
                     {
-                        R *= RZ[i - 1];
+                        R *= Links[i - 1].RZ;
                     }
 
-                    if (DH[i - 1].r != 0)
+                    if (Links[i - 1].DH.r != 0)
                     {
-                        T += R * TX[i - 1];
+                        T += R * Links[i - 1].TX;
                     }
-                    if (DH[i - 1].alpha != 0)
+                    if (Links[i - 1].DH.alpha != 0)
                     {
-                        R *= RX[i - 1];
+                        R *= Links[i - 1].RX;
                     }
 
                     Joints[i] = new Point(T[0, 0], T[1, 0], T[2, 0]);
@@ -286,19 +359,29 @@ namespace Logic
 
                 return Joints;
             }
-        }
+        }*/
 
         public bool InWorkspace(Point point)
         {
-            if (point.Distance - Base.Distance > l.Sum())
+            /*if (point.Distance - Base.Distance > l.Sum())
                 return false;
             else
-                return true;
+                return true;*/
+            return false;
         }
 
         public double DistanceTo(Point p)
         {
-            return new Vector(GripperPos, p).Length;
+            //return new Vector(GripperPos, p).Length;
+            return 0;
+        }
+
+        public void Draw()
+        {
+            foreach (var link in Links)
+            {
+                link.Draw();
+            }
         }
     }
 

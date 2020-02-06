@@ -10,7 +10,7 @@ using StbImageSharp;
 
 namespace Graphics
 {
-    class Model
+    public class Model
     {
         private static List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
 
@@ -106,7 +106,7 @@ namespace Graphics
                 textures.AddRange(specularMaps);
             }
 
-            return new Mesh(vertices.ToArray(), indices.ToArray(), textures.ToArray());
+            return new Mesh(mesh.Name, vertices.ToArray(), indices.ToArray(), textures.ToArray());
         }
 
         private List<MeshTexture> LoadMaterialTextures(Material mat, TextureType type, string typeName)
@@ -140,7 +140,7 @@ namespace Graphics
                 Path = filename
             };
 
-            // loading texture file with StbImage
+            // load texture file with StbImage
             var io = new System.IO.FileStream(resPath, System.IO.FileMode.Open);
             var stream = new ImageStreamLoader();
             var resLoad = stream.Load(io);
@@ -158,15 +158,17 @@ namespace Graphics
                 else if (nrComponents == ColorComponents.RedGreenBlueAlpha)
                     format = PixelInternalFormat.Rgba;
 
-                // sending necessary actions to dispatcher
+                // send necessary actions to dispatcher
                 Dispatcher.ActionsQueue.Enqueue(() =>
                 {
+                    // load and generate the texture
                     GL.GenTextures(1, out texture.ID);
-
+                    
                     GL.BindTexture(TextureTarget.Texture2D, texture.ID);
                     GL.TexImage2D(TextureTarget.Texture2D, 0, format, width, height, 0, (PixelFormat)format, PixelType.UnsignedByte, resLoad.Data);
                     GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
+                    // set the texture wrapping/filtering options (on the currently bound texture object)
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
@@ -177,6 +179,9 @@ namespace Graphics
             {
                 // TODO: throw new exception, although not necessarily - it's already implemented in ImageResult.FromResult
             }
+
+            // explicitly destroy I/O stream object
+            io.Dispose();
 
             return texture;
         }

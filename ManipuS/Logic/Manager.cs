@@ -9,83 +9,28 @@ namespace Logic
         public static Manipulator[] Manipulators;
         public static Obstacle[] Obstacles;
 
-        public static ManipData[] MD =
+        public static LinkData[] LD =
         {
-            new ManipData
+            new LinkData
             {
-                N = 7,
-                Base = new System.Numerics.Vector3(-1.5f, 0, 1.5f),
-                l = new float[10] { 0.2f, 1, 1, 1, 1, 1, 1, 0, 0, 0 },
-                q = new float[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                q_ranges = new System.Numerics.Vector2[10]
-                {
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-90, 90),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180)
-                },
-                DH = new System.Numerics.Vector4[10]
-                {
-                    new System.Numerics.Vector4(0, 0.2f, 90, 0),
-                    new System.Numerics.Vector4(-90, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0)
-                },
-                //Goal = new System.Numerics.Vector3(-2.2f, 0f, -2),
-                Goal = new System.Numerics.Vector3(0f, 0f, -2),
-
-                ShowTree = true
+                q = 0,
+                q_ranges = new System.Numerics.Vector2(-180, 180),
+                DH = new System.Numerics.Vector4(45, 0.2f, 0, 0)
             },
-            new ManipData
+            new LinkData
             {
-                N = 7,
-                Base = new System.Numerics.Vector3(1, 0, -2),
-                l = new float[10] { 0.2f, 2, 2, 2, 0, 0, 0, 0, 0, 0 },
-                q = new float[10] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                q_ranges = new System.Numerics.Vector2[10]
-                {
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-90, 90),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180),
-                    new System.Numerics.Vector2(-180, 180)
-                },
-                DH = new System.Numerics.Vector4[10]
-                {
-                    new System.Numerics.Vector4(0, 0.2f, 90, 0),
-                    new System.Numerics.Vector4(-90, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 1),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0),
-                    new System.Numerics.Vector4(0, 0, 0, 0)
-                },
-                //Goal = new System.Numerics.Vector3(0, 0, 0),
-                Goal = new System.Numerics.Vector3(-2f, -1f, 0f),
-
-                ShowTree = true
+                q = 0,
+                q_ranges = new System.Numerics.Vector2(-180, 180),
+                DH = new System.Numerics.Vector4(0, 1.2f, 45, 0),
+            },
+            new LinkData
+            {
+                q = 0,
+                q_ranges = new System.Numerics.Vector2(-180, 180),
+                DH = new System.Numerics.Vector4(0, 1.2f, 0, 0),
             }
         };
+
         public static ObstData[] OD =
         {
             new ObstData
@@ -145,11 +90,8 @@ namespace Logic
         public static void Initialize()
         {
             // manipulators
-            Manipulators = new Manipulator[MD.Length];
-            for (int i = 0; i < MD.Length; i++)
-            {
-                Manipulators[i] = new Manipulator(MD[i]);
-            }
+            Manipulators = new Manipulator[1];
+            Manipulators[0] = new Manipulator(LD);
 
             // obstacles
             Obstacles = new Obstacle[OD.Length];
@@ -159,7 +101,7 @@ namespace Logic
             }
         }
 
-        public static void Execute(Manipulator manip)
+        /*public static void Execute(Manipulator manip)
         {
             manip.Attractors = new List<Attractor>();
 
@@ -259,6 +201,6 @@ namespace Logic
                 manip.q = configs[i];
                 manip.Joints.Add(manip.DKP);
             }
-        }
+        }*/
     }
 }
