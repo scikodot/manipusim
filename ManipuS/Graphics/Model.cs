@@ -22,10 +22,10 @@ namespace Graphics
             LoadModel(path);
         }
 
-        public void Draw(Shader shader)
+        public void Draw(Shader shader, bool wireframe = false)
         {
             foreach (var mesh in Meshes)
-                mesh.Draw(shader);
+                mesh.Draw(shader, wireframe);
         }
 
         private void LoadModel(string path)

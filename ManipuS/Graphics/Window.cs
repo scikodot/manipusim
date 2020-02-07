@@ -108,6 +108,7 @@ namespace Graphics
 
         // 3D model
         Model Crytek;
+        Shader wireframe;
 
         public Window(int width, int height, string title, GraphicsMode gMode) : base(width, height, gMode, title,
                                     GameWindowFlags.Default,
@@ -123,6 +124,9 @@ namespace Graphics
             _shader = new Shader(@"C:\Users\Dan\source\repos\ManipuS\Shaders\VertexShader.txt",
                 @"C:\Users\Dan\source\repos\ManipuS\Shaders\FragmentShader.txt");
             _shader.Use();
+
+            wireframe = new Shader(@"C:\Users\Dan\source\repos\ManipuS\Shaders\VertexShader.txt",
+                @"C:\Users\Dan\source\repos\ManipuS\Shaders\Wireframe.txt");
 
             // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
@@ -288,6 +292,9 @@ namespace Graphics
             // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader.txt)
             _shader.SetMatrix4("view", _camera.GetViewMatrix(), false);
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
+
+            wireframe.SetMatrix4("view", _camera.GetViewMatrix(), false);
+            wireframe.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
 
             // set general properties
             _shader.SetVector3("viewPos", _camera.Position);
@@ -508,6 +515,10 @@ namespace Graphics
                     model *= shit;
                     _shader.SetMatrix4("model", model, true);
                     links[i].Model.Draw(_shader);
+
+                    wireframe.Use();
+                    wireframe.SetMatrix4("model", model, true);
+                    links[i].Model.Draw(wireframe, true);
                 }
             }
 

@@ -88,41 +88,51 @@ namespace Graphics
             });
         }
 
-        public void Draw(Shader shader)
+        public void Draw(Shader shader, bool wireframe)
         {
-            // set textures
-            int diffuseNr = 1;
-            int specularNr = 1;
-            for (int i = 0; i < Textures.Length; i++)
+            if (!wireframe)
             {
-                GL.ActiveTexture(TextureUnit.Texture0 + i);  //activate proper texture unit before binding
+                // set textures
+                int diffuseNr = 1;
+                int specularNr = 1;
+                for (int i = 0; i < Textures.Length; i++)
+                {
+                    GL.ActiveTexture(TextureUnit.Texture0 + i);  //activate proper texture unit before binding
 
-                // retrieve texture number
-                string number = "";
-                string name = Textures[i].Type;
-                if (name == "texture_diffuse")  // TODO: fix names in shaders
-                    number = diffuseNr++.ToString();
-                else if (name == "texture_specular")
-                    number = specularNr++.ToString();
-                
-                shader.SetInt("material." + name + number, i);
-                GL.BindTexture(TextureTarget.Texture2D, Textures[i].ID);
+                    // retrieve texture number
+                    string number = "";
+                    string name = Textures[i].Type;
+                    if (name == "texture_diffuse")  // TODO: fix names in shaders
+                        number = diffuseNr++.ToString();
+                    else if (name == "texture_specular")
+                        number = specularNr++.ToString();
+
+                    shader.SetInt("material." + name + number, i);
+                    GL.BindTexture(TextureTarget.Texture2D, Textures[i].ID);
+                }
+                GL.ActiveTexture(TextureUnit.Texture0);
+
+                // set colors
+                shader.SetVector3("material.ambientCol", new Vector3(Color.Ambient.R, Color.Ambient.G, Color.Ambient.B));
+                shader.SetVector3("material.diffuseCol", new Vector3(Color.Diffuse.R, Color.Diffuse.G, Color.Diffuse.B));
+                shader.SetVector3("material.specularCol", new Vector3(Color.Specular.R, Color.Specular.G, Color.Specular.B));
+                shader.SetFloat("material.shininess", Color.Shininess);
+
+                // set drawing mode
+                shader.SetBool("material.textured", (uint)(Textures.Length == 0 ? 0 : 1));
+
+                // draw mesh
+                GL.BindVertexArray(VAO);
+                GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.BindVertexArray(0);
             }
-            GL.ActiveTexture(TextureUnit.Texture0);
-
-            // set colors
-            shader.SetVector3("material.ambientCol", new Vector3(Color.Ambient.R, Color.Ambient.G, Color.Ambient.B));
-            shader.SetVector3("material.diffuseCol", new Vector3(Color.Diffuse.R, Color.Diffuse.G, Color.Diffuse.B));
-            shader.SetVector3("material.specularCol", new Vector3(Color.Specular.R, Color.Specular.G, Color.Specular.B));
-            shader.SetFloat("material.shininess", Color.Shininess);
-
-            // set drawing mode
-            shader.SetBool("material.textured", (uint)(Textures.Length == 0 ? 0 : 1));
-
-            // draw mesh
-            GL.BindVertexArray(VAO);
-            GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
-            GL.BindVertexArray(0);
+            else
+            {
+                // draw mesh
+                GL.BindVertexArray(VAO);
+                GL.DrawElements(BeginMode.LineStrip, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.BindVertexArray(0);
+            }
         }
     }
 }
