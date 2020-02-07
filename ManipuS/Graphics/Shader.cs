@@ -162,7 +162,7 @@ namespace Graphics
         /// <param name="data">The data to set</param>
         public void SetInt(string name, int data)
         {
-            if (_uniformLocations.ContainsKey(name))
+            if (_uniformLocations.ContainsKey(name))  // TODO: silencing errors is a bad practice; maybe implement a managed exception?
             {
                 GL.UseProgram(Handle);
                 GL.Uniform1(_uniformLocations[name], data);

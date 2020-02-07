@@ -283,10 +283,30 @@ namespace Graphics
             // attaching shader
             _shader.Use();
             _shader.SetBool("use_color", 1);
-            var view = _camera.GetViewMatrix();
-            _shader.SetMatrix4("view", view, false);
-            var proj = _camera.GetProjectionMatrix();
-            _shader.SetMatrix4("projection", proj, false);
+
+            // set view and projection matrices;
+            // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader.txt)
+            _shader.SetMatrix4("view", _camera.GetViewMatrix(), false);
+            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
+
+            // set general properties
+            _shader.SetVector3("viewPos", _camera.Position);
+
+            // set directional light properties
+            _shader.SetVector3("dirLight[0].direction", new Vector3(1.0f, 0.0f, 0.0f));
+            _shader.SetVector3("dirLight[0].ambient", new Vector3(0.05f, 0.05f, 0.05f));
+            _shader.SetVector3("dirLight[0].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
+            _shader.SetVector3("dirLight[0].specular", new Vector3(0.5f, 0.5f, 0.5f));
+
+            _shader.SetVector3("dirLight[1].direction", new Vector3(0.0f, -1.0f, 0.0f));
+            _shader.SetVector3("dirLight[1].ambient", new Vector3(0.05f, 0.05f, 0.05f));
+            _shader.SetVector3("dirLight[1].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
+            _shader.SetVector3("dirLight[1].specular", new Vector3(0.5f, 0.5f, 0.5f));
+
+            _shader.SetVector3("dirLight[2].direction", new Vector3(0.0f, 0.0f, -1.0f));
+            _shader.SetVector3("dirLight[2].ambient", new Vector3(0.05f, 0.05f, 0.05f));
+            _shader.SetVector3("dirLight[2].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
+            _shader.SetVector3("dirLight[2].specular", new Vector3(0.5f, 0.5f, 0.5f));
 
             Matrix4 model;
 
@@ -482,7 +502,8 @@ namespace Graphics
                 time += (float)(Math.PI / 2 * e.Time);
                 for (int i = 0; i < Manager.LD.Length; i++)
                 {
-                    links[i].DH.theta += time;
+                    if (i == 0)
+                        links[i].DH.theta += time;
                     var shit = TupleDH.CreateMatrix(links[i].DH);
                     model *= shit;
                     _shader.SetMatrix4("model", model, true);

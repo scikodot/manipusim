@@ -15,7 +15,7 @@ namespace Logic
             {
                 q = 0,
                 q_ranges = new System.Numerics.Vector2(-180, 180),
-                DH = new System.Numerics.Vector4(45, 0.2f, 0, 0)
+                DH = new System.Numerics.Vector4(0, 0.2f, 0, 0)
             },
             new LinkData
             {

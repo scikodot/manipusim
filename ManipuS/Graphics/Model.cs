@@ -65,6 +65,7 @@ namespace Graphics
             var vertices = new List<MeshVertex>();
             var indices = new List<int>();
             var textures = new List<MeshTexture>();
+            var color = new MeshColor();
 
             for (int i = 0; i < mesh.VertexCount; i++)
             {
@@ -100,13 +101,27 @@ namespace Graphics
             if (mesh.MaterialIndex >= 0)
             {
                 Material material = scene.Materials[mesh.MaterialIndex];
-                List<MeshTexture> diffuseMaps = LoadMaterialTextures(material, TextureType.Diffuse, "texture_diffuse");
-                textures.AddRange(diffuseMaps);
-                List<MeshTexture> specularMaps = LoadMaterialTextures(material, TextureType.Specular, "texture_specular");
-                textures.AddRange(specularMaps);
+
+                // get all the needed material textures
+                if (material.HasTextureDiffuse)
+                {
+                    List<MeshTexture> diffuseMaps = LoadMaterialTextures(material, TextureType.Diffuse, "texture_diffuse");
+                    textures.AddRange(diffuseMaps);
+                }
+                if (material.HasTextureSpecular)
+                {
+                    List<MeshTexture> specularMaps = LoadMaterialTextures(material, TextureType.Specular, "texture_specular");
+                    textures.AddRange(specularMaps);
+                }
+                
+                // get all the needed material colors (default values if they're not presented)
+                color.Ambient = material.ColorAmbient;
+                color.Diffuse = material.ColorDiffuse;
+                color.Specular = material.ColorSpecular;
+                color.Shininess = material.Shininess;
             }
 
-            return new Mesh(mesh.Name, vertices.ToArray(), indices.ToArray(), textures.ToArray());
+            return new Mesh(mesh.Name, vertices.ToArray(), indices.ToArray(), textures.ToArray(), color);
         }
 
         private List<MeshTexture> LoadMaterialTextures(Material mat, TextureType type, string typeName)
