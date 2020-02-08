@@ -34,6 +34,7 @@ namespace Logic
     public struct JointData
     {
         public Model Model;
+        public float Length;
         public float q;
         public System.Numerics.Vector2 q_ranges;
         public System.Numerics.Vector4 DH;
@@ -71,8 +72,7 @@ namespace Logic
     public class Link
     {
         public Model Model;
-
-        private float Length;
+        public float Length;
 
         public Link(Model model, float length)
         {
@@ -90,6 +90,7 @@ namespace Logic
     public class Joint
     {
         public Model Model;
+        public float Length;
 
         public double q;
         public double[] q_ranges;
@@ -103,6 +104,7 @@ namespace Logic
         public Joint(JointData data)
         {
             Model = data.Model;
+            Length = data.Length;
             q = data.q;
             q_ranges = new double[2] { data.q_ranges.X, data.q_ranges.Y };
         }

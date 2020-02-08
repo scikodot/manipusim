@@ -238,6 +238,95 @@ namespace Logic
             );
         }
 
+        public static Matrix4 RotateCustom(Vector4 point, Vector4 dir, float angle)  // TODO: review; seems like it's messed up
+        {
+            // pre-computing all costly operations
+            float a = point.X, 
+                  b = point.Y, 
+                  c = point.Z;
+
+            var n = dir.Normalized();
+            float u = n.X, 
+                  v = n.Y, 
+                  w = n.Z;
+            float u2 = u * u, 
+                  v2 = v * v, 
+                  w2 = w * w;
+
+            float cos = (float)Math.Cos(angle),
+                  sin = (float)Math.Sin(angle);
+
+            return new Matrix4
+            (
+                new Vector4(cos + u * (1 - cos), 
+                            u * v * (1 - cos) - w * sin, 
+                            u * w * (1 - cos) + v * sin, 
+                            (a * (v2 + w2) - u * (b * v + c * w)) * (1 - cos) + (b * w - c * v) * sin),
+
+                new Vector4(u * v * (1 - cos) + w * sin, 
+                            cos + v * (1 - cos), 
+                            v * w * (1 - cos) - u * sin, 
+                            (b * (u2 + w2) - v * (a * u + c * w)) * (1 - cos) + (c * u - a * w) * sin),
+
+                new Vector4(u * w * (1 - cos) - v * sin, 
+                            v * w * (1 - cos) + u * sin, 
+                            cos + w * (1 - cos), 
+                            (c * (u2 + v2) - w * (a * u + b * v)) * (1 - cos) + (a * v - b * u) * sin),
+
+                new Vector4(0, 0, 0, 1)
+            );
+        }
+
+        public static Matrix4 RotateCustomAnother(Vector4 point, Vector4 dir, float angle)  // TODO: optimize; too many complex operations
+        {
+            float x = point.X,
+                  y = point.Y,
+                  z = point.Z;
+
+            var n = dir.Normalized();
+            float a = n.X,
+                  b = n.Y,
+                  c = n.Z,
+                  d = (float)Math.Sqrt(b * b + c * c);
+
+            float cos = (float)Math.Cos(angle),
+                  sin = (float)Math.Sin(angle);
+
+            Matrix4 T = new Matrix4
+            (
+                new Vector4(1, 0, 0, -x),
+                new Vector4(0, 1, 0, -y),
+                new Vector4(0, 0, 1, -z),
+                new Vector4(0, 0, 0, 1)
+            );
+
+            Matrix4 Rx = new Matrix4
+            (
+                new Vector4(1, 0, 0, 0),
+                new Vector4(0, c / d, -b / d, 0),
+                new Vector4(0, b / d, c / d, 0),
+                new Vector4(0, 0, 0, 1)
+            );
+
+            Matrix4 Ry = new Matrix4
+            (
+                new Vector4(d, 0, -a, 0),
+                new Vector4(0, 1, 0, 0),
+                new Vector4(a, 0, d, 0),
+                new Vector4(0, 0, 0, 1)
+            );
+
+            Matrix4 Rz = new Matrix4
+            (
+                new Vector4(cos, -sin, 0, 0),
+                new Vector4(sin, cos, 0, 0),
+                new Vector4(0, 0, 1, 0),
+                new Vector4(0, 0, 0, 1)
+            );
+
+            return T.Inverted() * Rx.Inverted() * Ry.Inverted() * Rz * Ry * Rx * T;
+        }
+
         public static Matrix Rotation(int axis, double angle)
         {
             double[,] mat = new double[3, 3];

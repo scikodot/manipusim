@@ -511,10 +511,17 @@ namespace Graphics
                 var dh = Manager.Manipulators[0].DH;
 
                 model = Matrix4.Identity;
-                time += (float)(Math.PI / 2 * e.Time);
+                time += (float)(Math.PI / 4 * e.Time);
                 //joints[0].q += time;
-                joints[1].q += time;
+                //joints[1].q += time;
+                //joints[2].q += time;
 
+                Vector4[] axes = new Vector4[Manager.LD.Length];
+                Vector4[] pos = new Vector4[Manager.LD.Length];
+
+                axes[0] = Vector4.UnitY;
+
+                // joints
                 for (int i = 0; i < Manager.LD.Length; i++)
                 {
                     model *= Matrix.RotateY((float)dh[i].theta(joints[i]));
@@ -527,21 +534,59 @@ namespace Graphics
                     lineShader.SetMatrix4("model", model, true);
                     lineShader.SetVector3("color", Vector3.Zero);
                     joints[i].Model.Draw(lineShader, true);
-                    
-                    model *= Matrix.Translate(0.2f * Vector3.UnitY);
 
-                    _shader.Use();
-                    _shader.SetMatrix4("model", model, true);
-                    links[i].Model.Draw(_shader);
-
-                    lineShader.Use();
-                    lineShader.SetMatrix4("model", model, true);
-                    lineShader.SetVector3("color", Vector3.Zero);
-                    links[i].Model.Draw(lineShader, true);
-
-                    model *= Matrix.Translate(1.2f * Vector3.UnitY);
+                    model *= Matrix.Translate((float)dh[i].d * Vector3.UnitY);
                     model *= Matrix.RotateX((float)dh[i].alpha);
+                    model *= Matrix.Translate((float)dh[i].r * Vector3.UnitX);
+
+                    if (i < Manager.LD.Length - 1)
+                    {
+                        axes[i + 1] = model * axes[0];
+                        pos[i + 1] = new Vector4(model.M14, model.M24, model.M34, 1);
+                    }
                 }
+
+                model = Matrix4.Identity;
+
+                // links
+                model *= Matrix.Translate(joints[0].Length / 2 * Vector3.UnitY);
+                var trans = Matrix.RotateCustomAnother(pos[0], axes[0], -(float)dh[0].theta(joints[0]));  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes
+                model = trans * model;
+
+                _shader.Use();
+                _shader.SetMatrix4("model", model, true);
+                links[0].Model.Draw(_shader);
+
+                lineShader.Use();
+                lineShader.SetMatrix4("model", model, true);
+                lineShader.SetVector3("color", Vector3.Zero);
+                links[0].Model.Draw(lineShader, true);
+                
+                model *= Matrix.Translate((float)dh[0].d * Vector3.UnitY);
+                trans = Matrix.RotateCustomAnother(pos[1], axes[1], -(float)(dh[1].theta(joints[1]) + Math.PI / 2));
+                model = trans * model;
+
+                _shader.Use();
+                _shader.SetMatrix4("model", model, true);
+                links[1].Model.Draw(_shader);
+
+                lineShader.Use();
+                lineShader.SetMatrix4("model", model, true);
+                lineShader.SetVector3("color", Vector3.Zero);
+                links[1].Model.Draw(lineShader, true);
+
+                model *= Matrix.Translate((float)dh[1].r * Vector3.UnitY);
+                trans = Matrix.RotateCustomAnother(pos[2], axes[2], (float)dh[2].theta(joints[2]));
+                model = trans * model;
+
+                _shader.Use();
+                _shader.SetMatrix4("model", model, true);
+                links[2].Model.Draw(_shader);
+
+                lineShader.Use();
+                lineShader.SetMatrix4("model", model, true);
+                lineShader.SetVector3("color", Vector3.Zero);
+                links[2].Model.Draw(lineShader, true);
             }
 
             //ImGui.ShowDemoWindow();
