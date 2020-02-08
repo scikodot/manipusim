@@ -11,31 +11,29 @@ namespace Logic
 {   
     public struct TupleDH
     {
-        public double theta;
+        public Func<Joint, double> theta;
         public double d;
         public double alpha;
         public double r;
 
-        public TupleDH(double theta, double d, double alpha, double r)
+        public TupleDH(Func<Joint, double> theta, double d, double alpha, double r)
         {
             this.theta = theta;
             this.d = d;
             this.alpha = alpha;
             this.r = r;
         }
-
-        public static Matrix4 CreateMatrix(TupleDH DH)
-        {
-            return Matrix.RotateY((float)DH.theta) *
-                   Matrix.Translate((float)DH.d * Vector3.UnitY) *
-                   Matrix.RotateX((float)DH.alpha) *
-                   Matrix.Translate((float)DH.r * Vector3.UnitX);
-        }
     }
 
     public struct LinkData
     {
-        public Model model;
+        public Model Model;
+        public float Length;
+    }
+
+    public struct JointData
+    {
+        public Model Model;
         public float q;
         public System.Numerics.Vector2 q_ranges;
         public System.Numerics.Vector4 DH;
@@ -74,65 +72,39 @@ namespace Logic
     {
         public Model Model;
 
-        private double q;
-        private double[] q_ranges;
-        public TupleDH DH;
-        public Matrix Z, X;
+        private float Length;
 
-        public Link(Model model, double q_init, double[] q_ranges, System.Numerics.Vector4 DH)
+        public Link(Model model, float length)
         {
             Model = model;
-            q = q_init;
-            this.q_ranges = q_ranges;
-
-            this.DH = new TupleDH(q + DH.X * Math.PI / 180, DH.Y, DH.Z * Math.PI / 180, DH.W);
-
-            CreateMatricesZ();
-            CreateMatricesX();
+            Length = length;
         }
 
         public Link(LinkData data)
         {
-            Model = data.model;
+            Model = data.Model;
+            Length = data.Length;
+        }
+    }
+
+    public class Joint
+    {
+        public Model Model;
+
+        public double q;
+        public double[] q_ranges;
+
+        public Joint(Model model, float q, float[] q_ranges)
+        {
+            Model = model;
+            
+        }
+
+        public Joint(JointData data)
+        {
+            Model = data.Model;
             q = data.q;
             q_ranges = new double[2] { data.q_ranges.X, data.q_ranges.Y };
-            DH = new TupleDH
-            {
-                theta = q + data.DH.X * Math.PI / 180,
-                d = data.DH.Y,
-                alpha = data.DH.Z * Math.PI / 180,
-                r = data.DH.W
-            };
-
-            CreateMatricesZ();
-            CreateMatricesX();
-        }
-
-        private void CreateMatricesZ()
-        {
-            Z = new Matrix(new double[4, 4]
-            {
-                { Math.Cos(DH.theta), 0, -Math.Sin(DH.theta), 0 },
-                { 0, 1, 0, DH.d },
-                { Math.Sin(DH.theta), 0, Math.Cos(DH.theta), 0 },
-                { 0, 0, 0, 1 }
-            });
-        }
-
-        private void CreateMatricesX()
-        {
-            X = new Matrix(new double[4, 4]
-            {
-                { 1, 0, 0, DH.r },
-                { 0, Math.Cos(DH.alpha), -Math.Sin(DH.alpha), 0 },
-                { 0, Math.Sin(DH.alpha), Math.Cos(DH.alpha), 0 },
-                { 0, 0, 0, 1 }
-            });
-        }
-
-        public void Draw()
-        {
-            
         }
     }
 
@@ -141,27 +113,32 @@ namespace Logic
         public Point Base;
 
         public Link[] Links;
+        public Joint[] Joints;
+        public TupleDH[] DH;
+        public List<Matrix4> TransMatrices;
 
         public Point Goal;
         public List<Point> Path;
-        public List<Point[]> Joints;
         public Tree Tree;
         public List<Attractor> Attractors;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
         public Dictionary<string, bool> States;
 
-        public Manipulator()
+        public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)
         {
-
-        }
-
-        public Manipulator(LinkData[] data)
-        {
-            Links = new Link[data.Length];
-            for (int i = 0; i < data.Length; i++)
+            Links = new Link[links.Length];
+            for (int i = 0; i < links.Length; i++)
             {
-                Links[i] = new Link(data[i]);
+                Links[i] = new Link(links[i]);
             }
+
+            Joints = new Joint[joints.Length];
+            for (int i = 0; i < joints.Length; i++)
+            {
+                Joints[i] = new Joint(joints[i]);
+            }
+
+            this.DH = DH;
 
             States = new Dictionary<string, bool>
             {
@@ -177,9 +154,25 @@ namespace Logic
 
             Goal = Source.Goal;
 
-            Joints = new List<Point[]>(Source.Joints);
-
             States = new Dictionary<string, bool>(Source.States);
+        }
+
+
+        public void DH_Init()
+        {
+            TransMatrices = new List<Matrix4>();
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                TransMatrices.Add(CreateTransMatrix(DH[i], Joints[i]));
+            }
+        }
+
+        public static Matrix4 CreateTransMatrix(TupleDH DH, Joint joint)
+        {
+            return Matrix.RotateY((float)DH.theta(joint)) *
+                   Matrix.Translate((float)DH.d * Vector3.UnitY) *
+                   Matrix.RotateX((float)DH.alpha) *
+                   Matrix.Translate((float)DH.r * Vector3.UnitX);
         }
 
         /*public Manipulator(ManipData data)
@@ -214,13 +207,7 @@ namespace Logic
                 { "Path", false }
             };
         }
-
-        public void DH_Init()
-        {
-            DH_Z();
-            DH_X();
-        }
-
+        
         private void DH_Z()
         {
             RZ = new List<Matrix>();
@@ -374,14 +361,6 @@ namespace Logic
         {
             //return new Vector(GripperPos, p).Length;
             return 0;
-        }
-
-        public void Draw()
-        {
-            foreach (var link in Links)
-            {
-                link.Draw();
-            }
         }
     }
 

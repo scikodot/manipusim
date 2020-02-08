@@ -13,21 +13,34 @@ namespace Logic
         {
             new LinkData
             {
-                q = 0,
-                q_ranges = new System.Numerics.Vector2(-180, 180),
-                DH = new System.Numerics.Vector4(0, 0.2f, 0, 0)
+                Length = 1
             },
             new LinkData
             {
-                q = 0,
-                q_ranges = new System.Numerics.Vector2(-180, 180),
-                DH = new System.Numerics.Vector4(0, 1.2f, 45, 0),
+                Length = 1
             },
             new LinkData
             {
+                Length = 1
+            }
+        };
+
+        public static JointData[] JD =
+        {
+            new JointData
+            {
+                q = 0,
+                q_ranges = new System.Numerics.Vector2(-180, 180)
+            },
+            new JointData
+            {
                 q = 0,
                 q_ranges = new System.Numerics.Vector2(-180, 180),
-                DH = new System.Numerics.Vector4(0, 1.2f, 0, 0),
+            },
+            new JointData
+            {
+                q = 0,
+                q_ranges = new System.Numerics.Vector2(-180, 180),
             }
         };
 
@@ -91,7 +104,12 @@ namespace Logic
         {
             // manipulators
             Manipulators = new Manipulator[1];
-            Manipulators[0] = new Manipulator(LD);
+            Manipulators[0] = new Manipulator(LD, JD, new TupleDH[]
+                {
+                    new TupleDH((j) => { return j.q; }, 1.4f, 90 * Math.PI / 180, 0),
+                    new TupleDH((j) => { return j.q; }, 1.4f, 0, 0),
+                    new TupleDH((j) => { return j.q; }, 1.4f, 0, 0)
+                });
 
             // obstacles
             Obstacles = new Obstacle[OD.Length];

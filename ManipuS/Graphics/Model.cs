@@ -17,6 +17,9 @@ namespace Graphics
         private List<Mesh> Meshes = new List<Mesh>();
         private string Directory;
 
+        public Vector3 Position;
+        public Vector3 Orientation;
+
         public Model(string path)
         {
             LoadModel(path);
@@ -31,7 +34,7 @@ namespace Graphics
         private void LoadModel(string path)
         {
             var importer = new AssimpContext();
-            var scene = importer.ImportFile(path, PostProcessSteps.Triangulate | PostProcessSteps.FlipUVs);
+            var scene = importer.ImportFile(path, PostProcessSteps.Triangulate);  // TODO: Triangulate + FlipUVs
 
             if (scene == null || scene.RootNode == null || (scene.SceneFlags & SceneFlags.Incomplete) == SceneFlags.Incomplete)
             {
