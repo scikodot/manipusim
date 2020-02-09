@@ -234,7 +234,6 @@ C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\System.Numerics.Vectors.xml
 C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.csprojAssemblyReference.cache
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.exe.config
-C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.csproj.CoreCompileInputs.cache
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.csproj.CopyComplete
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.exe
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.pdb
