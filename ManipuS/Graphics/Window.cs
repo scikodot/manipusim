@@ -40,11 +40,11 @@ namespace Graphics
 
                 // configuring all the needed attributes
                 var PosAttrib = shader.GetAttribLocation("aPos");
-                GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
+                GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
                 GL.EnableVertexAttribArray(PosAttrib);
 
                 var ColAttrib = shader.GetAttribLocation("aColor");
-                GL.VertexAttribPointer(ColAttrib, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3 * sizeof(float));
+                GL.VertexAttribPointer(ColAttrib, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
                 GL.EnableVertexAttribArray(ColAttrib);
 
                 GL.BindVertexArray(0);
@@ -65,20 +65,27 @@ namespace Graphics
         private Camera _camera;
 
         // workspace grid
-        private float[] gridX_lines =
+        private float[] transparencyMask =
         {
-            10.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            -10.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+            // mask used to make a floor half-transparent
+            10.0f, 0.0f, 10.0f,     1.0f, 1.0f, 1.0f, 0.2f,
+            -10.0f, 0.0f, 10.0f,    1.0f, 1.0f, 1.0f, 0.2f,
+            -10.0f, 0.0f, -10.0f,   1.0f, 1.0f, 1.0f, 0.2f,
+            10.0f, 0.0f, -10.0f,    1.0f, 1.0f, 1.0f, 0.2f
         };
-
-        private float[] gridY_lines =
+        private float[] gridLines =
         {
-            0.0f, 0.0f, 10.0f, 1.0f, 1.0f, 1.0f,
-            0.0f, 0.0f, -10.0f, 1.0f, 1.0f, 1.0f,
+            // X axis lines
+            10.0f, 0.0f, 0.0f,      1.0f, 1.0f, 1.0f, 1.0f,
+            -10.0f, 0.0f, 0.0f,     1.0f, 1.0f, 1.0f, 1.0f,
+
+            // Y axis lines (Z in GL format)
+            0.0f, 0.0f, 10.0f,      1.0f, 1.0f, 1.0f, 1.0f,
+            0.0f, 0.0f, -10.0f,     1.0f, 1.0f, 1.0f, 1.0f
         };
 
         // all the needed entities
-        Entity gridX, gridY;
+        Entity grid, gridFloor;
         Entity[] obstacles, boundings, lon;
         Entity[] goal, joints, path;
         List<Entity>[] tree;
@@ -96,11 +103,20 @@ namespace Graphics
 
         // misc variables
         private bool Capture = false;
-        private static string ProjectDirectory = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent.Parent.FullName;
-        private static string SavePath = ProjectDirectory + @"\Screenshots";
-        private static string NanosuitPath = ProjectDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
-        private static string ManipPath = ProjectDirectory + @"\Resources\Models\manipulator\Link.obj";
-        private static string JointPath = ProjectDirectory + @"\Resources\Models\manipulator\Joint.obj";
+        private static System.IO.DirectoryInfo projDir = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent;
+        private static System.IO.DirectoryInfo solDir = projDir.Parent;
+
+        private static string ProjectDirectory = projDir.FullName;
+        private static string SolutionDirectory = solDir.FullName;
+
+        private static string VertexShader = ProjectDirectory + @"\Graphics\Shaders\VertexShader.glsl";
+        private static string FragmentShader = ProjectDirectory + @"\Graphics\Shaders\FragmentShader.glsl";
+        private static string LineShader = ProjectDirectory + @"\Graphics\Shaders\LineShader.glsl";
+
+        private static string SavePath = SolutionDirectory + @"\Screenshots";
+        private static string NanosuitPath = SolutionDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
+        private static string ManipPath = SolutionDirectory + @"\Resources\Models\manipulator\Link.obj";
+        private static string JointPath = SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
         private Stopwatch[] timers;
         
         private Thread load;
@@ -122,12 +138,10 @@ namespace Graphics
             controller = new ImGuiController(Width, Height);
             
             // retrieving shaders' files
-            _shader = new Shader(@"C:\Users\Dan\source\repos\ManipuS\Shaders\VertexShader.txt",
-                @"C:\Users\Dan\source\repos\ManipuS\Shaders\FragmentShader.txt");
+            _shader = new Shader(VertexShader, FragmentShader);
             _shader.Use();
 
-            lineShader = new Shader(@"C:\Users\Dan\source\repos\ManipuS\Shaders\VertexShader.txt",
-                @"C:\Users\Dan\source\repos\ManipuS\Shaders\LineShader.txt");
+            lineShader = new Shader(VertexShader, LineShader);
 
             // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
@@ -137,8 +151,8 @@ namespace Graphics
             UpdateThreads();
 
             // workspace grid
-            gridX = new Entity(_shader, gridX_lines);
-            gridY = new Entity(_shader, gridY_lines);
+            grid = new Entity(lineShader, gridLines);
+            gridFloor = new Entity(lineShader, transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
 
             base.OnLoad(e);
         }
@@ -320,47 +334,36 @@ namespace Graphics
 
             Matrix4 model;
 
-            // X axis grid lines
+            // workspace grid
             model = Matrix4.Identity;
-            gridX.Display(lineShader, model, () =>
+            grid.Display(lineShader, model, () =>
             {
                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
             });
             for (int i = 1; i < 11; i++)
             {
-                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitZ * i);
-                gridX.Display(lineShader, model, () =>
-                {
-                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                });
+                model = Matrix4.CreateTranslation(Vector3.UnitZ * i);
+                grid.Display(lineShader, model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
+                model = Matrix4.CreateTranslation(Vector3.UnitZ * -i);
+                grid.Display(lineShader, model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
 
-                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitZ * -i);
-                gridX.Display(lineShader, model, () =>
-                {
-                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                });
+                model = Matrix4.CreateTranslation(Vector3.UnitX * i);
+                grid.Display(lineShader, model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
+                model = Matrix4.CreateTranslation(Vector3.UnitX * -i);
+                grid.Display(lineShader, model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
             }
 
-            // Y axis grid lines
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
             model = Matrix4.Identity;
-            gridY.Display(lineShader, model, () =>
+            gridFloor.Display(lineShader, model, () =>
             {
-                GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
             });
-            for (int i = 1; i < 11; i++)
-            {
-                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitX * i);
-                gridY.Display(lineShader, model, () =>
-                {
-                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                });
 
-                model = Matrix4.Identity * Matrix4.CreateTranslation(Vector3.UnitX * -i);
-                gridY.Display(lineShader, model, () =>
-                {
-                    GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                });
-            }
+            GL.Disable(EnableCap.Blend);
 
             /*// obstacles & colliders
             if (obstacles.Contains(null))
@@ -502,8 +505,9 @@ namespace Graphics
                     model *= Matrix4.CreateRotationY(-time);
                 _shader.SetMatrix4("model", model);
                 Crytek.Draw(_shader);*/
-                
+
                 //_shader.SetBool("use_color", 0);
+                _shader.Use();
 
                 Manager.Initialize();
                 var links = Manager.Manipulators[0].Links;
@@ -526,14 +530,11 @@ namespace Graphics
                 {
                     model *= Matrix.RotateY((float)dh[i].theta(joints[i]));
 
-                    _shader.Use();
                     _shader.SetMatrix4("model", model, true);
                     joints[i].Model.Draw(_shader);
 
-                    lineShader.Use();
-                    lineShader.SetMatrix4("model", model, true);
-                    lineShader.SetVector3("color", Vector3.Zero);
-                    joints[i].Model.Draw(lineShader, true);
+                    _shader.SetMatrix4("model", model, true);
+                    joints[i].Model.Draw(_shader, true);
 
                     model *= Matrix.Translate((float)dh[i].d * Vector3.UnitY);
                     model *= Matrix.RotateX((float)dh[i].alpha);
@@ -553,40 +554,31 @@ namespace Graphics
                 var trans = Matrix.RotateCustomAnother(pos[0], axes[0], -(float)dh[0].theta(joints[0]));  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes
                 model = trans * model;
 
-                _shader.Use();
                 _shader.SetMatrix4("model", model, true);
-                links[0].Model.Draw(_shader);
+                links[0].Model.Draw(_shader);  // TODO: create enum with flags for drawing types, e.g. Solid, Wireframe, AlphaChannel, etc.
 
-                lineShader.Use();
-                lineShader.SetMatrix4("model", model, true);
-                lineShader.SetVector3("color", Vector3.Zero);
-                links[0].Model.Draw(lineShader, true);
+                _shader.SetMatrix4("model", model, true);
+                links[0].Model.Draw(_shader, true);
                 
                 model *= Matrix.Translate((float)dh[0].d * Vector3.UnitY);
                 trans = Matrix.RotateCustomAnother(pos[1], axes[1], -(float)(dh[1].theta(joints[1]) + Math.PI / 2));
                 model = trans * model;
 
-                _shader.Use();
                 _shader.SetMatrix4("model", model, true);
                 links[1].Model.Draw(_shader);
 
-                lineShader.Use();
-                lineShader.SetMatrix4("model", model, true);
-                lineShader.SetVector3("color", Vector3.Zero);
-                links[1].Model.Draw(lineShader, true);
+                _shader.SetMatrix4("model", model, true);
+                links[1].Model.Draw(_shader, true);
 
                 model *= Matrix.Translate((float)dh[1].r * Vector3.UnitY);
                 trans = Matrix.RotateCustomAnother(pos[2], axes[2], (float)dh[2].theta(joints[2]));
                 model = trans * model;
 
-                _shader.Use();
                 _shader.SetMatrix4("model", model, true);
                 links[2].Model.Draw(_shader);
 
-                lineShader.Use();
-                lineShader.SetMatrix4("model", model, true);
-                lineShader.SetVector3("color", Vector3.Zero);
-                links[2].Model.Draw(lineShader, true);
+                _shader.SetMatrix4("model", model, true);
+                links[2].Model.Draw(_shader, true);
             }
 
             //ImGui.ShowDemoWindow();

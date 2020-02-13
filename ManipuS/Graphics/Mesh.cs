@@ -92,6 +92,8 @@ namespace Graphics
         {
             if (!wireframe)
             {
+                shader.SetBool("wireframe", 0);
+
                 // set textures
                 int diffuseNr = 1;
                 int specularNr = 1;
@@ -128,6 +130,8 @@ namespace Graphics
             }
             else
             {
+                shader.SetBool("wireframe", 1);
+
                 // draw mesh
                 GL.BindVertexArray(VAO);
                 GL.DrawElements(BeginMode.LineStrip, Indices.Length, DrawElementsType.UnsignedInt, 0);
