@@ -66,7 +66,7 @@ namespace Logic
         Revolute,  // Rotation
         Cylindrical,  // Translation & rotation
         Spherical,  // Allows three degrees of rotational freedom about the center of the joint. Also known as a ball-and-socket joint
-        Planar  //Allows relative translation on a plane and relative rotation about an axis perpendicular to the plane
+        Planar  // Allows relative translation on a plane and relative rotation about an axis perpendicular to the plane
     }
 
     public class Link
@@ -118,9 +118,11 @@ namespace Logic
         public Joint[] Joints;
         public TupleDH[] DH;
         public List<Matrix4> TransMatrices;
+        public float WorkspaceRadius;
 
         public Point Goal;
         public List<Point> Path;
+        public List<Point[]> Configs;
         public Tree Tree;
         public List<Attractor> Attractors;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
@@ -140,7 +142,11 @@ namespace Logic
                 Joints[i] = new Joint(joints[i]);
             }
 
+            Base = new Point(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
+
             this.DH = DH;
+
+            WorkspaceRadius = Links.Sum((link) => { return link.Length; }) + Joints.Sum((joint) => { return joint.Length; });
 
             States = new Dictionary<string, bool>
             {
@@ -169,12 +175,61 @@ namespace Logic
             }
         }
 
-        public static Matrix4 CreateTransMatrix(TupleDH DH, Joint joint)
+        public static Matrix4 CreateTransMatrix(TupleDH DH, Joint joint)  // TODO: optimize
         {
             return Matrix.RotateY((float)DH.theta(joint)) *
                    Matrix.Translate((float)DH.d * Vector3.UnitY) *
                    Matrix.RotateX((float)DH.alpha) *
                    Matrix.Translate((float)DH.r * Vector3.UnitX);
+        }
+
+        public Point GripperPos 
+        { 
+            get
+            {
+                Matrix4 trans = Matrix4.Identity;
+                for (int i = 0; i < DH.Length; i++)
+                {
+                    trans = CreateTransMatrix(DH[i], Joints[i]) * trans;
+                }
+
+                return new Point(trans.M14, trans.M24, trans.M34);
+            }
+        }
+
+        public Point[] DKP
+        {
+            get
+            {
+                Point[] jointsPos = new Point[Joints.Length + 1];
+                jointsPos[0] = Base;
+
+                Matrix4 trans = Matrix4.Identity;
+                for (int i = 0; i < DH.Length; i++)
+                {
+                    trans = CreateTransMatrix(DH[i], Joints[i]) * trans;
+                    jointsPos[i + 1] = new Point(trans.M14, trans.M24, trans.M34);
+                }
+
+                return jointsPos;
+            }
+        }
+
+        public double[] q
+        {
+            get
+            {
+                double[] q = new double[Joints.Length];
+                for (int i = 0; i < Joints.Length; i++)
+                {
+                    q[i] = Joints[i].q;
+                }
+                return q;
+            }
+            set
+            {
+
+            }
         }
 
         /*public Manipulator(ManipData data)
@@ -262,107 +317,17 @@ namespace Logic
             }
         }*/
 
-        /*public Point GripperPos
-        {
-            get
-            {
-                Matrix R = new Matrix(new double[3, 3]
-                {
-                    { 1, 0, 0 },
-                    { 0, 1, 0 },
-                    { 0, 0, 1 }
-                });
-                Matrix T = new Matrix(new double[3, 1]
-                {
-                    { Base.x },
-                    { Base.y },
-                    { Base.z }
-                });
-
-                for (int i = 0; i < Links.Length; i++)
-                {
-                    if (Links[i].DH.d != 0)
-                    {
-                        T += R * Links[i].TZ;
-                    }
-                    if (Links[i].DH.theta != 0)
-                    {
-                        R *= Links[i].RZ;
-                    }
-
-                    if (Links[i].DH.r != 0)
-                    {
-                        T += R * Links[i].TX;
-                    }
-                    if (Links[i].DH.alpha != 0)
-                    {
-                        R *= Links[i].RX;
-                    }
-                }
-
-                return new Point(T[0, 0], T[1, 0], T[2, 0]);
-            }
-        }
-
-        public Point[] DKP
-        {
-            get
-            {
-                Point[] Joints = new Point[Links.Length + 1];
-                Joints[0] = Base;
-                
-                Matrix R = new Matrix(new double[3, 3]
-                {
-                    { 1, 0, 0 },
-                    { 0, 1, 0 },
-                    { 0, 0, 1 }
-                });
-                Matrix T = new Matrix(new double[3, 1]
-                {
-                    { Base.x },
-                    { Base.y },
-                    { Base.z }
-                });
-                for (int i = 1; i < Links.Length + 1; i++)
-                {
-                    if (Links[i - 1].DH.d != 0)
-                    {
-                        T += R * Links[i - 1].TZ;
-                    }
-                    if (Links[i - 1].DH.theta != 0)
-                    {
-                        R *= Links[i - 1].RZ;
-                    }
-
-                    if (Links[i - 1].DH.r != 0)
-                    {
-                        T += R * Links[i - 1].TX;
-                    }
-                    if (Links[i - 1].DH.alpha != 0)
-                    {
-                        R *= Links[i - 1].RX;
-                    }
-
-                    Joints[i] = new Point(T[0, 0], T[1, 0], T[2, 0]);
-                }
-
-                return Joints;
-            }
-        }*/
-
         public bool InWorkspace(Point point)
         {
-            /*if (point.Distance - Base.Distance > l.Sum())
+            if (point.Distance - Base.Distance > WorkspaceRadius)
                 return false;
             else
-                return true;*/
-            return false;
+                return true;
         }
 
         public double DistanceTo(Point p)
         {
-            //return new Vector(GripperPos, p).Length;
-            return 0;
+            return new Vector(GripperPos, p).Length;
         }
     }
 
@@ -510,7 +475,7 @@ namespace Logic
         {
             for (int i = 0; i < levels; i++)
             {
-                GL.DrawArrays(PrimitiveType.LineLoop, i * (int)pointsNum + 1, (int)pointsNum);
+                GL.DrawArrays(PrimitiveType.LineLoop, i * (int)pointsNum + 1, (int)pointsNum);  // TODO: should be the same concept! replace with indices
             }
         }
 

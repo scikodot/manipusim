@@ -18,17 +18,18 @@ namespace Graphics
         private string Directory;
 
         public Vector3 Position;
-        public Vector3 Orientation;
 
         public Model(string path)
         {
             LoadModel(path);
+
+            Position = Meshes[0].Position;
         }
 
-        public void Draw(Shader shader, bool wireframe = false)
+        public void Draw(Shader shader, MeshMode mode)
         {
             foreach (var mesh in Meshes)
-                mesh.Draw(shader, wireframe);
+                mesh.Draw(shader, mode);
         }
 
         private void LoadModel(string path)

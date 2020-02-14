@@ -21,7 +21,7 @@ namespace Logic
             MaxTime = maxTime;
         }
 
-        /*public bool[] DetectCollisions(Manipulator manip)
+        public bool[] DetectCollisions(Manipulator manip)
         {
             List<Point> joints = manip.DKP.ToList();
             
@@ -66,14 +66,14 @@ namespace Logic
             CollisionDetected:
 
             return collisions;
-        }*/
+        }
     }
 
     class HillClimbing : Algorithm
     {
         public HillClimbing(Obstacle[] obstacles, int paramNum, double precision, double stepSize, int maxTime) : base(obstacles, paramNum, precision, stepSize, maxTime) { }
 
-        /*public Tuple<bool, double, double[], bool[]> Execute(Manipulator agent, Point goal)
+        public Tuple<bool, double, double[], bool[]> Execute(Manipulator agent, Point goal)
         {
             // initial parameters
             double[] qBest = Misc.CopyArray(agent.q);
@@ -88,10 +88,10 @@ namespace Logic
                 for (int i = 0; i < ParamNum; i++)
                 {
                     // checking GC constraints
-                    range = agent.q_ranges[i, 0] - agent.q[i] * 180 / Math.PI;
+                    range = agent.Joints[i].q_ranges[0] - agent.q[i] * 180 / Math.PI;
                     step_neg = range <= -StepSize ? -StepSize : range;
 
-                    range = agent.q_ranges[i, 1] - agent.q[i] * 180 / Math.PI;
+                    range = agent.Joints[i].q_ranges[1] - agent.q[i] * 180 / Math.PI;
                     step_pos = range >= StepSize ? StepSize : range;
 
                     // generating random GCs' offset
@@ -128,6 +128,6 @@ namespace Logic
             Time = 0;
 
             return new Tuple<bool, double, double[], bool[]>(Converged, min_dist, qBest, Collisions);
-        }*/
+        }
     }
 }

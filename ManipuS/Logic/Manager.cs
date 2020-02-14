@@ -9,102 +9,12 @@ namespace Logic
         public static Manipulator[] Manipulators;
         public static Obstacle[] Obstacles;
 
-        public static LinkData[] LD =
-        {
-            new LinkData
-            {
-                Length = 1
-            },
-            new LinkData
-            {
-                Length = 1
-            },
-            new LinkData
-            {
-                Length = 1
-            }
-        };
-
-        public static JointData[] JD =
-        {
-            new JointData
-            {
-                Length = 0.4f,
-                q = 0,
-                q_ranges = new System.Numerics.Vector2(-180, 180)
-            },
-            new JointData
-            {
-                Length = 0.4f,
-                q = 0,
-                q_ranges = new System.Numerics.Vector2(-180, 180),
-            },
-            new JointData
-            {
-                Length = 0.4f,
-                q = 0,
-                q_ranges = new System.Numerics.Vector2(-180, 180),
-            }
-        };
-
-        public static ObstData[] OD =
-        {
-            new ObstData
-            {
-                r = 1,
-                c = new System.Numerics.Vector3(0, 2f, 0),
-                points_num = 2000,
-
-                ShowBounding = true
-            },
-            new ObstData
-            {
-                r = 1,
-                c = new System.Numerics.Vector3(-2.2f, 3.5f, 0),
-                points_num = 2000,
-
-                ShowBounding = true
-            },
-            new ObstData
-            {
-                r = 1,
-                c = new System.Numerics.Vector3(-2.2f, 0f, -1.5f),
-                points_num = 2000,
-
-                ShowBounding = true
-            },
-            new ObstData
-            {
-                r = 2.5f,
-                c = new System.Numerics.Vector3(0, 1f, -6f),
-                points_num = 6000,
-
-                ShowBounding = true
-            },
-            new ObstData
-            {
-                r = 0.75f,
-                c = new System.Numerics.Vector3(-1.6f, 2f, -2f),
-                points_num = 1500,
-
-                ShowBounding = true
-            }
-        };
-
-        public static AlgData AD = new AlgData
-        {
-            AttrNum = 10000,
-
-            Precision = 0.02f,
-            StepSize = 3,
-            MaxTime = 300,
-
-            k = 10000,
-            d = 0.08f
-        };
-
         public static void Initialize()
         {
+            var LD = Dispatcher.WorkspaceBuffer.LinkBuffer;
+            var JD = Dispatcher.WorkspaceBuffer.JointBuffer;
+            var OD = Dispatcher.WorkspaceBuffer.ObstBuffer;
+
             // manipulators
             Manipulators = new Manipulator[1];
             Manipulators[0] = new Manipulator(LD, JD, new TupleDH[]
@@ -122,24 +32,26 @@ namespace Logic
             }
         }
 
-        /*public static void Execute(Manipulator manip)
+        public static void Execute(Manipulator manip)
         {
             manip.Attractors = new List<Attractor>();
 
             Random rng = new Random();
-            double work_radius = manip.l.Sum(), x, y_pos, y, z_pos, z;
+            double work_radius = manip.WorkspaceRadius, x, y_pos, y, z_pos, z;
 
             // adding main attractor
             Point AttrPoint = manip.Goal;
 
             double AttrWeight = manip.DistanceTo(manip.Goal);
 
-            double r = AD.d * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
+            double r = Dispatcher.WorkspaceBuffer.AlgBuffer.d * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
             Point[] AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
 
             manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
 
             manip.States["Goal"] = true;
+
+            var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
             // adding ancillary attractors
             while (manip.Attractors.Count < AD.AttrNum)
@@ -219,9 +131,8 @@ namespace Logic
             // acquiring all the configurations along the path
             for (int i = 0; i < configs.Count; i++)
             {
-                manip.q = configs[i];
-                manip.Joints.Add(manip.DKP);
+                manip.Configs.Add(manip.DKP);
             }
-        }*/
+        }
     }
 }

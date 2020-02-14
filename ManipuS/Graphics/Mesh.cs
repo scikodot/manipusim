@@ -33,6 +33,13 @@ namespace Graphics
         public float Shininess;
     }
 
+    [Flags]
+    public enum MeshMode
+    {
+        Solid = 1,
+        Wireframe = 2
+    }
+
     class Mesh
     {
         public string Name;
@@ -41,6 +48,8 @@ namespace Graphics
         public int[] Indices;
         public MeshTexture[] Textures;
         public MeshColor Color;
+
+        public Vector3 Position;
 
         private int VAO, VBO, EBO;
 
@@ -51,6 +60,13 @@ namespace Graphics
             Indices = indices;
             Textures = textures;
             Color = color;
+
+            Position = new Vector3
+            {
+                X = vertices.Sum((vertex) => { return vertex.Position.X; }),
+                Y = vertices.Sum((vertex) => { return vertex.Position.Y; }),
+                Z = vertices.Sum((vertex) => { return vertex.Position.Z; })
+            };
 
             SetupMesh();
         }
@@ -67,30 +83,30 @@ namespace Graphics
                 GL.BindVertexArray(VAO);
 
                 GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-                GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * Marshal.SizeOf(typeof(MeshVertex)), Vertices, BufferUsageHint.StaticDraw);
+                GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * Marshal.SizeOf<MeshVertex>(), Vertices, BufferUsageHint.StaticDraw);
 
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Length * sizeof(uint), Indices, BufferUsageHint.StaticDraw);
 
                 // vertex positions
                 GL.EnableVertexAttribArray(0);
-                GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), 0);
+                GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), 0);
 
                 // vertex normals
                 GL.EnableVertexAttribArray(1);
-                GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), Marshal.OffsetOf<MeshVertex>("Normal"));
+                GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("Normal"));
 
                 // vertex texture coords
                 GL.EnableVertexAttribArray(2);
-                GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf(typeof(MeshVertex)), Marshal.OffsetOf<MeshVertex>("TexCoords"));
+                GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("TexCoords"));
 
                 GL.BindVertexArray(0);
             });
         }
 
-        public void Draw(Shader shader, bool wireframe)
+        public void Draw(Shader shader, MeshMode mode)
         {
-            if (!wireframe)
+            if ((mode & MeshMode.Solid) == MeshMode.Solid)
             {
                 shader.SetBool("wireframe", 0);
 
@@ -128,14 +144,20 @@ namespace Graphics
                 GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
                 GL.BindVertexArray(0);
             }
-            else
+
+            if ((mode & MeshMode.Wireframe) == MeshMode.Wireframe)
             {
                 shader.SetBool("wireframe", 1);
 
                 // draw mesh
                 GL.BindVertexArray(VAO);
-                GL.DrawElements(BeginMode.LineStrip, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.DrawElements(BeginMode.LineLoop, Indices.Length, DrawElementsType.UnsignedInt, 0);
                 GL.BindVertexArray(0);
+            }
+
+            if (mode == 0)
+            {
+                // TODO: maybe notify the user about drawing nothing?
             }
         }
     }

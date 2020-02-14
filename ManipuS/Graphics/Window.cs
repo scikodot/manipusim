@@ -127,13 +127,15 @@ namespace Graphics
         Model Crytek;
         Shader lineShader;
 
-        public Window(int width, int height, string title, GraphicsMode gMode) : base(width, height, gMode, title,
-                                    GameWindowFlags.Default,
-                                    DisplayDevice.Default,
-                                    4, 6, GraphicsContextFlags.ForwardCompatible) { }
+        public Window(int width, int height, GraphicsMode gMode, string title) : 
+            base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
 
         protected override void OnLoad(EventArgs e)
         {
+            //var unptr = Assimp.Unmanaged.AssimpLibrary.Instance.ImportFile(JointPath, Assimp.PostProcessSteps.None, Assimp.Unmanaged.AssimpLibrary.Instance.CreatePropertyStore());
+            //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
+            //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.TransformUVCoords);
+
             // defining ImGui controller
             controller = new ImGuiController(Width, Height);
             
@@ -174,7 +176,7 @@ namespace Graphics
 
             SwapBuffers();
 
-            // execute all unexecuted actions, enqueued while loading a model
+            // execute all actions, enqueued while loading a model
             int count = Dispatcher.ActionsQueue.Count;
             for (int i = 0; i < count; i++)
             {
@@ -290,7 +292,7 @@ namespace Graphics
             // workspace viewport
             GL.Viewport((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
 
-            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.DepthTest);  // TODO: fix depth test so that it doesn't hide objects behind alpha-fragments
 
             // clearing viewport
             GL.Enable(EnableCap.ScissorTest);
@@ -301,10 +303,9 @@ namespace Graphics
 
             // attaching shader
             _shader.Use();
-            _shader.SetBool("use_color", 1);
 
             // set view and projection matrices;
-            // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader.txt)
+            // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader file)
             _shader.SetMatrix4("view", _camera.GetViewMatrix(), false);
             _shader.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
 
@@ -313,20 +314,16 @@ namespace Graphics
 
             // set directional light properties
             _shader.SetVector3("dirLight[0].direction", new Vector3(1.0f, 0.0f, 0.0f));
-            _shader.SetVector3("dirLight[0].ambient", new Vector3(0.05f, 0.05f, 0.05f));
-            _shader.SetVector3("dirLight[0].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
-            _shader.SetVector3("dirLight[0].specular", new Vector3(0.5f, 0.5f, 0.5f));
-
             _shader.SetVector3("dirLight[1].direction", new Vector3(0.0f, -1.0f, 0.0f));
-            _shader.SetVector3("dirLight[1].ambient", new Vector3(0.05f, 0.05f, 0.05f));
-            _shader.SetVector3("dirLight[1].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
-            _shader.SetVector3("dirLight[1].specular", new Vector3(0.5f, 0.5f, 0.5f));
-
             _shader.SetVector3("dirLight[2].direction", new Vector3(0.0f, 0.0f, -1.0f));
-            _shader.SetVector3("dirLight[2].ambient", new Vector3(0.05f, 0.05f, 0.05f));
-            _shader.SetVector3("dirLight[2].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
-            _shader.SetVector3("dirLight[2].specular", new Vector3(0.5f, 0.5f, 0.5f));
+            for (int i = 0; i < 3; i++)
+            {
+                _shader.SetVector3($"dirLight[{i}].ambient", new Vector3(0.05f, 0.05f, 0.05f));
+                _shader.SetVector3($"dirLight[{i}].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
+                _shader.SetVector3($"dirLight[{i}].specular", new Vector3(0.5f, 0.5f, 0.5f));
+            }
 
+            // setup line shader
             lineShader.Use();
             lineShader.SetMatrix4("view", _camera.GetViewMatrix(), false);
             lineShader.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
@@ -354,16 +351,16 @@ namespace Graphics
                 grid.Display(lineShader, model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
             }
 
-            GL.Enable(EnableCap.Blend);
-            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
             model = Matrix4.Identity;
             gridFloor.Display(lineShader, model, () =>
             {
-                GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
-            });
+                GL.Enable(EnableCap.Blend);
+                GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            GL.Disable(EnableCap.Blend);
+                GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
+
+                GL.Disable(EnableCap.Blend);
+            });
 
             /*// obstacles & colliders
             if (obstacles.Contains(null))
@@ -517,33 +514,40 @@ namespace Graphics
                 model = Matrix4.Identity;
                 time += (float)(Math.PI / 4 * e.Time);
                 //joints[0].q += time;
-                //joints[1].q += time;
+                joints[1].q += time;
                 //joints[2].q += time;
 
-                Vector4[] axes = new Vector4[Manager.LD.Length];
-                Vector4[] pos = new Vector4[Manager.LD.Length];
+                var linksCount = Dispatcher.WorkspaceBuffer.LinkBuffer.Length;
+
+                Vector4[] axes = new Vector4[linksCount];
+                Vector4[] pos = new Vector4[linksCount];
 
                 axes[0] = Vector4.UnitY;
+                pos[0] = new Vector4(Vector3.Zero, 1);
 
                 // joints
-                for (int i = 0; i < Manager.LD.Length; i++)
+                for (int i = 0; i < linksCount; i++)  // TODO: all the manipulator structure logic should be incapsulated (elsewhere), so that it could be drawn with one-liner
                 {
                     model *= Matrix.RotateY((float)dh[i].theta(joints[i]));
 
                     _shader.SetMatrix4("model", model, true);
-                    joints[i].Model.Draw(_shader);
-
-                    _shader.SetMatrix4("model", model, true);
-                    joints[i].Model.Draw(_shader, true);
+                    joints[i].Model.Position = new Vector3(model * new Vector4(joints[0].Model.Position, 1.0f));
+                    joints[i].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
 
                     model *= Matrix.Translate((float)dh[i].d * Vector3.UnitY);
                     model *= Matrix.RotateX((float)dh[i].alpha);
                     model *= Matrix.Translate((float)dh[i].r * Vector3.UnitX);
 
-                    if (i < Manager.LD.Length - 1)
+                    if (i < linksCount - 1)
                     {
                         axes[i + 1] = model * axes[0];
                         pos[i + 1] = new Vector4(model.M14, model.M24, model.M34, 1);
+                    }
+                    else
+                    {
+                        // obtain gripper position
+                        var grip = new Vector3(model * new Vector4(joints[0].Model.Position, 1.0f));  // TODO: too big error! (~2nd order) optimize
+                        Manager.Manipulators[0].GripperPos = new Point(grip.X, grip.Y, grip.Z);
                     }
                 }
 
@@ -553,32 +557,24 @@ namespace Graphics
                 model *= Matrix.Translate(joints[0].Length / 2 * Vector3.UnitY);
                 var trans = Matrix.RotateCustomAnother(pos[0], axes[0], -(float)dh[0].theta(joints[0]));  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes
                 model = trans * model;
+                model *= Matrix4.CreateScale(new Vector3(0.75f, 1, 0.75f));
 
                 _shader.SetMatrix4("model", model, true);
-                links[0].Model.Draw(_shader);  // TODO: create enum with flags for drawing types, e.g. Solid, Wireframe, AlphaChannel, etc.
-
-                _shader.SetMatrix4("model", model, true);
-                links[0].Model.Draw(_shader, true);
+                links[0].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
                 
                 model *= Matrix.Translate((float)dh[0].d * Vector3.UnitY);
                 trans = Matrix.RotateCustomAnother(pos[1], axes[1], -(float)(dh[1].theta(joints[1]) + Math.PI / 2));
                 model = trans * model;
 
                 _shader.SetMatrix4("model", model, true);
-                links[1].Model.Draw(_shader);
-
-                _shader.SetMatrix4("model", model, true);
-                links[1].Model.Draw(_shader, true);
+                links[1].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
 
                 model *= Matrix.Translate((float)dh[1].r * Vector3.UnitY);
-                trans = Matrix.RotateCustomAnother(pos[2], axes[2], (float)dh[2].theta(joints[2]));
+                trans = Matrix.RotateCustomAnother(pos[2], axes[2], -(float)dh[2].theta(joints[2]));
                 model = trans * model;
 
                 _shader.SetMatrix4("model", model, true);
-                links[2].Model.Draw(_shader);
-
-                _shader.SetMatrix4("model", model, true);
-                links[2].Model.Draw(_shader, true);
+                links[2].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
             }
 
             //ImGui.ShowDemoWindow();
@@ -608,10 +604,10 @@ namespace Graphics
                         {
                             load = new Thread(() => 
                             {
-                                for (int i = 0; i < Manager.LD.Length; i++)
+                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.LinkBuffer.Length; i++)
                                 {
-                                    Manager.JD[i].Model = new Model(JointPath);
-                                    Manager.LD[i].Model = new Model(ManipPath);
+                                    Dispatcher.WorkspaceBuffer.JointBuffer[i].Model = new Model(JointPath);
+                                    Dispatcher.WorkspaceBuffer.LinkBuffer[i].Model = new Model(ManipPath);
                                 }
                                 ManipLoaded = true;
                                 //Crytek = new Model(ManipPath);
@@ -713,16 +709,14 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.25 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                var OD = Manager.OD;
-
                 for (int i = 0; i < Manager.Obstacles.Length; i++)
                 {
                     if (ImGui.TreeNode($"Obst {i}"))
                     {
-                        ImGui.Checkbox("Show collider", ref OD[i].ShowBounding);
-                        ImGui.InputFloat("Radius", ref OD[i].r);
-                        ImGui.InputFloat3("Center", ref OD[i].c);
-                        ImGui.InputInt("Points number", ref OD[i].points_num);
+                        ImGui.Checkbox("Show collider", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding);
+                        ImGui.InputFloat("Radius", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].r);
+                        ImGui.InputFloat3("Center", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].c);
+                        ImGui.InputInt("Points number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].points_num);
 
                         ImGui.TreePop();
                     }
@@ -741,18 +735,18 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.5 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                ImGui.InputInt("Attractors number", ref Manager.AD.AttrNum);
+                ImGui.InputInt("Attractors number", ref Dispatcher.WorkspaceBuffer.AlgBuffer.AttrNum);
                 ImGui.NewLine();
                 ImGui.Text("Inverse kinematics solver:");
                 ImGui.PushID(0);
-                ImGui.InputInt("Iterations", ref Manager.AD.MaxTime);
-                ImGui.InputFloat("Precision", ref Manager.AD.Precision);
-                ImGui.InputFloat("Step size (deg)", ref Manager.AD.StepSize);
+                ImGui.InputInt("Iterations", ref Dispatcher.WorkspaceBuffer.AlgBuffer.MaxTime);
+                ImGui.InputFloat("Precision", ref Dispatcher.WorkspaceBuffer.AlgBuffer.Precision);
+                ImGui.InputFloat("Step size (deg)", ref Dispatcher.WorkspaceBuffer.AlgBuffer.StepSize);
                 ImGui.NewLine();
                 ImGui.PushID(1);
                 ImGui.Text("RRT path planner:");
-                ImGui.InputInt("Iterations", ref Manager.AD.k);
-                ImGui.InputFloat("Step size", ref Manager.AD.d);
+                ImGui.InputInt("Iterations", ref Dispatcher.WorkspaceBuffer.AlgBuffer.k);
+                ImGui.InputFloat("Step size", ref Dispatcher.WorkspaceBuffer.AlgBuffer.d);
 
                 ImGui.End();
             }
@@ -824,6 +818,9 @@ namespace Graphics
 
                 // save path for captured screenshot
                 ImGui.InputText("Save path", ref SavePath, 100);
+
+                if (Manager.Manipulators[0].GripperPos != null)
+                    ImGui.Text(string.Format("{0:F2}, {1:F2}, {2:F2}", Manager.Manipulators[0].GripperPos.x, Manager.Manipulators[0].GripperPos.y, Manager.Manipulators[0].GripperPos.z));
 
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));

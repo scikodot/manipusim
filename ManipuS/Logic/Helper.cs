@@ -2,132 +2,422 @@
 using System.Collections.Generic;
 using OpenTK;
 
+public class Point
+{
+    public double x, y, z;
+
+    public Point(double x, double y, double z)
+    {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public double Distance
+    {
+        get { return Math.Sqrt(x * x + y * y + z * z); }
+    }
+
+    public double DistanceTo(Point p)
+    {
+        return Math.Sqrt(Math.Pow(p.x - x, 2) + Math.Pow(p.y - y, 2) + Math.Pow(p.z - z, 2));
+    }
+
+    public static Point Zero
+    {
+        get
+        {
+            return new Point(0, 0, 0);
+        }
+    }
+
+    public static Point operator +(Point p1, Point p2) => new Point(p2.x + p1.x, p2.y + p1.y, p2.z + p1.z);
+    public static Point operator -(Point p1, Point p2) => new Point(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
+    public static Point operator +(Point p, Vector v) => new Point(p.x + v.x, p.y + v.y, p.z + v.z);
+    public static Point operator -(Point p, Vector v) => new Point(p.x - v.x, p.y - v.y, p.z - v.z);
+    public static Point operator /(Point p, double s) => new Point(p.x / s, p.y / s, p.z / s);
+    public static Point operator *(Matrix m, Point p) =>
+        new Point
+        (
+            m[0, 0] * p.x + m[0, 1] * p.y + m[0, 2] * p.z,
+            m[1, 0] * p.x + m[1, 1] * p.y + m[1, 2] * p.z,
+            m[2, 0] * p.x + m[2, 1] * p.y + m[2, 2] * p.z
+        );
+}
+
+public class Vector
+{
+    public double x, y, z;
+
+    public Vector(double x, double y, double z)
+    {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    public Vector(Point p)
+    {
+        x = p.x;
+        y = p.y;
+        z = p.z;
+    }
+
+    public Vector(Point p1, Point p2)
+    {
+        x = p2.x - p1.x;
+        y = p2.y - p1.y;
+        z = p2.z - p1.z;
+    }
+
+    public double Length
+    {
+        get
+        {
+            return Math.Sqrt(x * x + y * y + z * z);
+        }
+    }
+
+    public double Angle
+    {
+        get
+        {
+            return Math.Atan2(y, x) > 0 ? Math.Atan2(y, x) : Math.Atan2(y, x) + 2 * Math.PI;
+        }
+        set
+        {
+            var len = Length;
+            x = Math.Cos(value) * len;
+            y = Math.Sin(value) * len;
+        }
+    }
+
+    public Vector Normalized
+    {
+        get
+        {
+            return new Vector(x / Length, y / Length, z / Length);
+        }
+    }
+
+    public static Vector Zero
+    {
+        get
+        {
+            return new Vector(0, 0, 0);
+        }
+    }
+
+    public static double AngleBetween(Vector v1, Vector v2)
+    {
+        return Math.Acos((v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) / (v1.Length * v2.Length));
+    }
+
+    public static Vector operator +(Vector v1, Vector v2) => new Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+    public static Vector operator -(Vector v1, Vector v2) => new Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+    public static Vector operator -(Vector v) => new Vector(-v.x, -v.y, -v.z);
+    public static Vector operator *(Vector v, double s) => new Vector(v.x * s, v.y * s, v.z * s);
+    public static Vector operator *(Matrix m, Vector v) =>
+        new Vector
+        (
+            m[0, 0] * v.x + m[0, 1] * v.y + m[0, 2] * v.z,
+            m[1, 0] * v.x + m[1, 1] * v.y + m[1, 2] * v.z,
+            m[2, 0] * v.x + m[2, 1] * v.y + m[2, 2] * v.z
+        );
+}
+
+public class Matrix
+{
+    double[,] Data;
+
+    public Matrix(double[,] Data)
+    {
+        this.Data = Data;
+    }
+
+    public static Matrix Identity(int size)
+    {
+        double[,] mat = new double[size, size];
+        for (int i = 0; i < size; i++)
+        {
+            for (int j = 0; j < size; j++)
+            {
+                if (i == j)
+                    mat[i, j] = 1;
+                else
+                    mat[i, j] = 0;
+            }
+        }
+
+        return new Matrix(mat);
+    }
+
+    public static Matrix4 Translate(Vector3 axis)
+    {
+        return new Matrix4
+        (
+            new Vector4(1, 0, 0, axis.X),
+            new Vector4(0, 1, 0, axis.Y),
+            new Vector4(0, 0, 1, axis.Z),
+            new Vector4(0, 0, 0, 1)
+        );
+    }
+
+    public static Matrix4 RotateX(float angle)
+    {
+        return new Matrix4
+        (
+            new Vector4(1, 0, 0, 0),
+            new Vector4(0, (float)Math.Cos(angle), (float)-Math.Sin(angle), 0),
+            new Vector4(0, (float)Math.Sin(angle), (float)Math.Cos(angle), 0),
+            new Vector4(0, 0, 0, 1)
+        );
+    }
+
+    public static Matrix4 RotateY(float angle)
+    {
+        return new Matrix4
+        (
+            new Vector4((float)Math.Cos(angle), 0, (float)-Math.Sin(angle), 0),
+            new Vector4(0, 1, 0, 0),
+            new Vector4((float)Math.Sin(angle), 0, (float)Math.Cos(angle), 0),
+            new Vector4(0, 0, 0, 1)
+        );
+    }
+
+    public static Matrix4 RotateZ(float angle)
+    {
+        return new Matrix4
+        (
+            new Vector4((float)Math.Cos(angle), (float)-Math.Sin(angle), 0, 0),
+            new Vector4((float)Math.Sin(angle), (float)Math.Cos(angle), 0, 0),
+            new Vector4(0, 0, 1, 0),
+            new Vector4(0, 0, 0, 1)
+        );
+    }
+
+    public static Matrix4 RotateCustom(Vector4 point, Vector4 dir, float angle)  // TODO: review; seems like it's messed up
+    {
+        // pre-computing all costly operations
+        float a = point.X,
+              b = point.Y,
+              c = point.Z;
+
+        var n = dir.Normalized();
+        float u = n.X,
+              v = n.Y,
+              w = n.Z;
+        float u2 = u * u,
+              v2 = v * v,
+              w2 = w * w;
+
+        float cos = (float)Math.Cos(angle),
+              sin = (float)Math.Sin(angle);
+
+        return new Matrix4
+        (
+            new Vector4(cos + u * (1 - cos),
+                        u * v * (1 - cos) - w * sin,
+                        u * w * (1 - cos) + v * sin,
+                        (a * (v2 + w2) - u * (b * v + c * w)) * (1 - cos) + (b * w - c * v) * sin),
+
+            new Vector4(u * v * (1 - cos) + w * sin,
+                        cos + v * (1 - cos),
+                        v * w * (1 - cos) - u * sin,
+                        (b * (u2 + w2) - v * (a * u + c * w)) * (1 - cos) + (c * u - a * w) * sin),
+
+            new Vector4(u * w * (1 - cos) - v * sin,
+                        v * w * (1 - cos) + u * sin,
+                        cos + w * (1 - cos),
+                        (c * (u2 + v2) - w * (a * u + b * v)) * (1 - cos) + (a * v - b * u) * sin),
+
+            new Vector4(0, 0, 0, 1)
+        );
+    }
+
+    public static Matrix4 RotateCustomAnother(Vector4 point, Vector4 dir, float angle)  // TODO: optimize; too many complex operations
+    {
+        float x = point.X,
+              y = point.Y,
+              z = point.Z;
+
+        var n = dir.Normalized();
+        float a = n.X,
+              b = n.Y,
+              c = n.Z,
+              d = (float)Math.Sqrt(b * b + c * c);
+
+        float cos = (float)Math.Cos(angle),
+              sin = (float)Math.Sin(angle);
+
+        Matrix4 T = new Matrix4
+        (
+            new Vector4(1, 0, 0, -x),
+            new Vector4(0, 1, 0, -y),
+            new Vector4(0, 0, 1, -z),
+            new Vector4(0, 0, 0, 1)
+        );
+
+        Matrix4 Rx = new Matrix4
+        (
+            new Vector4(1, 0, 0, 0),
+            new Vector4(0, c / d, -b / d, 0),
+            new Vector4(0, b / d, c / d, 0),
+            new Vector4(0, 0, 0, 1)
+        );
+
+        Matrix4 Ry = new Matrix4
+        (
+            new Vector4(d, 0, -a, 0),
+            new Vector4(0, 1, 0, 0),
+            new Vector4(a, 0, d, 0),
+            new Vector4(0, 0, 0, 1)
+        );
+
+        Matrix4 Rz = new Matrix4
+        (
+            new Vector4(cos, -sin, 0, 0),
+            new Vector4(sin, cos, 0, 0),
+            new Vector4(0, 0, 1, 0),
+            new Vector4(0, 0, 0, 1)
+        );
+
+        return T.Inverted() * Rx.Inverted() * Ry.Inverted() * Rz * Ry * Rx * T;
+    }
+
+    public static Matrix Rotation(int axis, double angle)
+    {
+        double[,] mat = new double[3, 3];
+        switch (axis)
+        {
+            case 0:
+                mat = new double[3, 3]
+                {
+                        { 1, 0, 0 },
+                        { 0, Math.Cos(angle), -Math.Sin(angle) },
+                        { 0, Math.Sin(angle), Math.Cos(angle) }
+                };
+                break;
+            case 1:
+                mat = new double[3, 3]
+                {
+                        { Math.Cos(angle), 0, -Math.Sin(angle) },
+                        { 0, 1, 0 },
+                        { Math.Sin(angle), 0, Math.Cos(angle) }
+                };
+                break;
+            case 2:
+                mat = new double[3, 3]
+                {
+                        { Math.Cos(angle), -Math.Sin(angle), 0 },
+                        { Math.Sin(angle), Math.Cos(angle), 0 },
+                        { 0, 0, 1 }
+                };
+                break;
+        }
+
+        return new Matrix(mat);
+    }
+
+    public double this[int r, int c]
+    {
+        get
+        {
+            if (r < 0 || r > Data.GetLength(0))
+                throw new Exception("Row index out of range!");
+            else if (c < 0 || c > Data.GetLength(1))
+                throw new Exception("Column index out of range!");
+            else
+                return Data[r, c];
+        }
+        set
+        {
+            Data[r, c] = value;
+        }
+    }
+
+    public static Matrix operator +(Matrix m1, Matrix m2)
+    {
+        int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
+            r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
+
+        double[,] mat;
+        if (c1 != c2 || r1 != r2)
+            throw new Exception("Matrices dimensions mismatch!");
+        else
+        {
+            mat = new double[r1, c1];
+            for (int i = 0; i < r1; i++)
+            {
+                for (int j = 0; j < c1; j++)
+                {
+                    mat[i, j] = m1[i, j] + m2[i, j];
+                }
+            }
+        }
+
+        return new Matrix(mat);
+    }
+
+    public static Matrix operator *(Matrix m1, Matrix m2)
+    {
+        int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
+            r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
+
+        double[,] mat;
+        if (c1 != r2)
+            throw new Exception("Matrices dimensions mismatch!");
+        else
+        {
+            mat = new double[r1, c2];
+            for (int i = 0; i < r1; i++)
+            {
+                for (int j = 0; j < c2; j++)
+                {
+                    double t = 0;
+                    for (int k = 0; k < c1; k++)
+                    {
+                        t += m1[i, k] * m2[k, j];
+                    }
+                    mat[i, j] = t;
+                }
+            }
+        }
+
+        return new Matrix(mat);
+    }
+
+    public static Matrix4 operator *(Matrix4 m1, Matrix m2)
+    {
+        int r1 = 4, c1 = 4,
+            r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
+
+        Matrix4 mat;
+        if (c1 != r2)
+            throw new Exception("Matrices dimensions mismatch!");
+        else
+        {
+            mat = new Matrix4();
+            for (int i = 0; i < r1; i++)
+            {
+                for (int j = 0; j < c2; j++)
+                {
+                    double t = 0;
+                    for (int k = 0; k < c1; k++)
+                    {
+                        t += m1[i, k] * m2[k, j];
+                    }
+                    mat[i, j] = (float)t;
+                }
+            }
+        }
+
+        return mat;
+    }
+}
+
 namespace Logic
 {
-    public class Point
-    {
-        public double x, y, z;
-
-        public Point(double x, double y, double z)
-        {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-
-        public double Distance
-        {
-            get { return Math.Sqrt(x * x + y * y + z * z); }
-        }
-
-        public double DistanceTo(Point p)
-        {
-            return Math.Sqrt(Math.Pow(p.x - x, 2) + Math.Pow(p.y - y, 2) + Math.Pow(p.z - z, 2));
-        }
-
-        public static Point Zero
-        {
-            get
-            {
-                return new Point(0, 0, 0);
-            }
-        }
-
-        public static Point operator +(Point p1, Point p2) => new Point(p2.x + p1.x, p2.y + p1.y, p2.z + p1.z);
-        public static Point operator -(Point p1, Point p2) => new Point(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
-        public static Point operator +(Point p, Vector v) => new Point(p.x + v.x, p.y + v.y, p.z + v.z);
-        public static Point operator -(Point p, Vector v) => new Point(p.x - v.x, p.y - v.y, p.z - v.z);
-        public static Point operator /(Point p, double s) => new Point(p.x / s, p.y / s, p.z / s);
-        public static Point operator *(Matrix m, Point p) =>
-            new Point
-            (
-                m[0, 0] * p.x + m[0, 1] * p.y + m[0, 2] * p.z,
-                m[1, 0] * p.x + m[1, 1] * p.y + m[1, 2] * p.z,
-                m[2, 0] * p.x + m[2, 1] * p.y + m[2, 2] * p.z
-            );
-    }
-
-    public class Vector
-    {
-        public double x, y, z;
-
-        public Vector(double x, double y, double z)
-        {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
-
-        public Vector(Point p)
-        {
-            x = p.x;
-            y = p.y;
-            z = p.z;
-        }
-
-        public Vector(Point p1, Point p2)
-        {
-            x = p2.x - p1.x;
-            y = p2.y - p1.y;
-            z = p2.z - p1.z;
-        }
-
-        public double Length
-        {
-            get
-            {
-                return Math.Sqrt(x * x + y * y + z * z);
-            }
-        }
-
-        public double Angle
-        {
-            get
-            {
-                return Math.Atan2(y, x) > 0 ? Math.Atan2(y, x) : Math.Atan2(y, x) + 2 * Math.PI;
-            }
-            set
-            {
-                var len = Length;
-                x = Math.Cos(value) * len;
-                y = Math.Sin(value) * len;
-            }
-        }
-
-        public Vector Normalized
-        {
-            get
-            {
-                return new Vector(x / Length, y / Length, z / Length);
-            }
-        }
-
-        public static Vector Zero
-        {
-            get
-            {
-                return new Vector(0, 0, 0);
-            }
-        }
-
-        public static double AngleBetween(Vector v1, Vector v2)
-        {
-            return Math.Acos((v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) / (v1.Length * v2.Length));
-        }
-
-        public static Vector operator +(Vector v1, Vector v2) => new Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
-        public static Vector operator -(Vector v1, Vector v2) => new Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
-        public static Vector operator -(Vector v) => new Vector(-v.x, -v.y, -v.z);
-        public static Vector operator *(Vector v, double s) => new Vector(v.x * s, v.y * s, v.z * s);
-        public static Vector operator *(Matrix m, Vector v) =>
-            new Vector
-            (
-                m[0, 0] * v.x + m[0, 1] * v.y + m[0, 2] * v.z,
-                m[1, 0] * v.x + m[1, 1] * v.y + m[1, 2] * v.z,
-                m[2, 0] * v.x + m[2, 1] * v.y + m[2, 2] * v.z
-            );
-    }
-
     public class Segment
     {
         public Point p1, p2;
@@ -167,297 +457,6 @@ namespace Logic
             return pos;
         }
     }
-
-    public class Matrix
-    {
-        double[,] Data;
-
-        public Matrix(double[,] Data)
-        {
-            this.Data = Data;
-        }
-
-        public static Matrix Identity(int size)
-        {
-            double[,] mat = new double[size, size];
-            for (int i = 0; i < size; i++)
-            {
-                for (int j = 0; j < size; j++)
-                {
-                    if (i == j)
-                        mat[i, j] = 1;
-                    else
-                        mat[i, j] = 0;
-                }
-            }
-
-            return new Matrix(mat);
-        }
-
-        public static Matrix4 Translate(Vector3 axis)
-        {
-            return new Matrix4
-            (
-                new Vector4(1, 0, 0, axis.X),
-                new Vector4(0, 1, 0, axis.Y),
-                new Vector4(0, 0, 1, axis.Z),
-                new Vector4(0, 0, 0, 1)
-            );
-        }
-
-        public static Matrix4 RotateX(float angle)
-        {
-            return new Matrix4
-            (
-                new Vector4(1, 0, 0, 0),
-                new Vector4(0, (float)Math.Cos(angle), (float)-Math.Sin(angle), 0),
-                new Vector4(0, (float)Math.Sin(angle), (float)Math.Cos(angle), 0),
-                new Vector4(0, 0, 0, 1)
-            );
-        }
-
-        public static Matrix4 RotateY(float angle)
-        {
-            return new Matrix4
-            (
-                new Vector4((float)Math.Cos(angle), 0, (float)-Math.Sin(angle), 0),
-                new Vector4(0, 1, 0, 0),
-                new Vector4((float)Math.Sin(angle), 0, (float)Math.Cos(angle), 0),
-                new Vector4(0, 0, 0, 1)
-            );
-        }
-
-        public static Matrix4 RotateZ(float angle)
-        {
-            return new Matrix4
-            (
-                new Vector4((float)Math.Cos(angle), (float)-Math.Sin(angle), 0, 0),
-                new Vector4((float)Math.Sin(angle), (float)Math.Cos(angle), 0, 0),
-                new Vector4(0, 0, 1, 0),
-                new Vector4(0, 0, 0, 1)
-            );
-        }
-
-        public static Matrix4 RotateCustom(Vector4 point, Vector4 dir, float angle)  // TODO: review; seems like it's messed up
-        {
-            // pre-computing all costly operations
-            float a = point.X, 
-                  b = point.Y, 
-                  c = point.Z;
-
-            var n = dir.Normalized();
-            float u = n.X, 
-                  v = n.Y, 
-                  w = n.Z;
-            float u2 = u * u, 
-                  v2 = v * v, 
-                  w2 = w * w;
-
-            float cos = (float)Math.Cos(angle),
-                  sin = (float)Math.Sin(angle);
-
-            return new Matrix4
-            (
-                new Vector4(cos + u * (1 - cos), 
-                            u * v * (1 - cos) - w * sin, 
-                            u * w * (1 - cos) + v * sin, 
-                            (a * (v2 + w2) - u * (b * v + c * w)) * (1 - cos) + (b * w - c * v) * sin),
-
-                new Vector4(u * v * (1 - cos) + w * sin, 
-                            cos + v * (1 - cos), 
-                            v * w * (1 - cos) - u * sin, 
-                            (b * (u2 + w2) - v * (a * u + c * w)) * (1 - cos) + (c * u - a * w) * sin),
-
-                new Vector4(u * w * (1 - cos) - v * sin, 
-                            v * w * (1 - cos) + u * sin, 
-                            cos + w * (1 - cos), 
-                            (c * (u2 + v2) - w * (a * u + b * v)) * (1 - cos) + (a * v - b * u) * sin),
-
-                new Vector4(0, 0, 0, 1)
-            );
-        }
-
-        public static Matrix4 RotateCustomAnother(Vector4 point, Vector4 dir, float angle)  // TODO: optimize; too many complex operations
-        {
-            float x = point.X,
-                  y = point.Y,
-                  z = point.Z;
-
-            var n = dir.Normalized();
-            float a = n.X,
-                  b = n.Y,
-                  c = n.Z,
-                  d = (float)Math.Sqrt(b * b + c * c);
-
-            float cos = (float)Math.Cos(angle),
-                  sin = (float)Math.Sin(angle);
-
-            Matrix4 T = new Matrix4
-            (
-                new Vector4(1, 0, 0, -x),
-                new Vector4(0, 1, 0, -y),
-                new Vector4(0, 0, 1, -z),
-                new Vector4(0, 0, 0, 1)
-            );
-
-            Matrix4 Rx = new Matrix4
-            (
-                new Vector4(1, 0, 0, 0),
-                new Vector4(0, c / d, -b / d, 0),
-                new Vector4(0, b / d, c / d, 0),
-                new Vector4(0, 0, 0, 1)
-            );
-
-            Matrix4 Ry = new Matrix4
-            (
-                new Vector4(d, 0, -a, 0),
-                new Vector4(0, 1, 0, 0),
-                new Vector4(a, 0, d, 0),
-                new Vector4(0, 0, 0, 1)
-            );
-
-            Matrix4 Rz = new Matrix4
-            (
-                new Vector4(cos, -sin, 0, 0),
-                new Vector4(sin, cos, 0, 0),
-                new Vector4(0, 0, 1, 0),
-                new Vector4(0, 0, 0, 1)
-            );
-
-            return T.Inverted() * Rx.Inverted() * Ry.Inverted() * Rz * Ry * Rx * T;
-        }
-
-        public static Matrix Rotation(int axis, double angle)
-        {
-            double[,] mat = new double[3, 3];
-            switch (axis)
-            {
-                case 0:
-                    mat = new double[3, 3]
-                    {
-                        { 1, 0, 0 },
-                        { 0, Math.Cos(angle), -Math.Sin(angle) },
-                        { 0, Math.Sin(angle), Math.Cos(angle) }
-                    };
-                    break;
-                case 1:
-                    mat = new double[3, 3]
-                    {
-                        { Math.Cos(angle), 0, -Math.Sin(angle) },
-                        { 0, 1, 0 },
-                        { Math.Sin(angle), 0, Math.Cos(angle) }
-                    };
-                    break;
-                case 2:
-                    mat = new double[3, 3]
-                    {
-                        { Math.Cos(angle), -Math.Sin(angle), 0 },
-                        { Math.Sin(angle), Math.Cos(angle), 0 },
-                        { 0, 0, 1 }
-                    };
-                    break;
-            }
-
-            return new Matrix(mat);
-        }
-
-        public double this[int r, int c]
-        {
-            get
-            {
-                if (r < 0 || r > Data.GetLength(0))
-                    throw new Exception("Row index out of range!");
-                else if (c < 0 || c > Data.GetLength(1))
-                    throw new Exception("Column index out of range!");
-                else
-                    return Data[r, c];
-            }
-            set
-            {
-                Data[r, c] = value;
-            }
-        }
-
-        public static Matrix operator +(Matrix m1, Matrix m2)
-        {
-            int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
-                r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
-
-            double[,] mat;
-            if (c1 != c2 || r1 != r2)
-                throw new Exception("Matrices dimensions mismatch!");
-            else
-            {
-                mat = new double[r1, c1];
-                for (int i = 0; i < r1; i++)
-                {
-                    for (int j = 0; j < c1; j++)
-                    {
-                        mat[i, j] = m1[i, j] + m2[i, j];
-                    }
-                }
-            }
-
-            return new Matrix(mat);
-        }
-
-        public static Matrix operator *(Matrix m1, Matrix m2)
-        {
-            int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
-                r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
-
-            double[,] mat;
-            if (c1 != r2)
-                throw new Exception("Matrices dimensions mismatch!");
-            else
-            {
-                mat = new double[r1, c2];
-                for (int i = 0; i < r1; i++)
-                {
-                    for (int j = 0; j < c2; j++)
-                    {
-                        double t = 0;
-                        for (int k = 0; k < c1; k++)
-                        {
-                            t += m1[i, k] * m2[k, j];
-                        }
-                        mat[i, j] = t;
-                    }
-                }
-            }
-
-            return new Matrix(mat);
-        }
-
-        public static Matrix4 operator *(Matrix4 m1, Matrix m2)
-        {
-            int r1 = 4, c1 = 4,
-                r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
-
-            Matrix4 mat;
-            if (c1 != r2)
-                throw new Exception("Matrices dimensions mismatch!");
-            else
-            {
-                mat = new Matrix4();
-                for (int i = 0; i < r1; i++)
-                {
-                    for (int j = 0; j < c2; j++)
-                    {
-                        double t = 0;
-                        for (int k = 0; k < c1; k++)
-                        {
-                            t += m1[i, k] * m2[k, j];
-                        }
-                        mat[i, j] = (float)t;
-                    }
-                }
-            }
-
-            return mat;
-        }
-    }
-
     public class Tree
     {
         public class Node
@@ -621,7 +620,7 @@ namespace Logic
         }
     }
 
-    public class Attractor
+    public class Attractor  // TODO: maybe struct would be better?
     {
         public Point Center;
         public double Weight;

@@ -38,7 +38,7 @@ namespace Graphics
             desHeight = (int)(desHeight / scale);
 
             GraphicsMode mode = new GraphicsMode(new ColorFormat(24), 16, 8, 4, new ColorFormat(32), 2, false);
-            using (var window = new Window(desWidth, desHeight, "ManipuS", mode))
+            using (var window = new Window(desWidth, desHeight, mode, "ManipuS"))
             {
                 window.Run(60.0);
             }
