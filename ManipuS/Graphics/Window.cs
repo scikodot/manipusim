@@ -365,25 +365,25 @@ namespace Graphics
             });
 
             // obstacles & colliders
-            if (Manager.Manipulators != null)
+            if (ManipLoaded)
             {
                 if (obstacles.Contains(null))
                 {
                     for (int i = 0; i < obstacles.Length; i++)
                     {
-                        obstacles[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Data, Vector3.One));
+                        obstacles[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Data, Vector4.One));
 
                         switch (Manager.Obstacles[i].Collider.Shape)
                         {
                             case ColliderShape.Box:
-                                boundings[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, Vector3.UnitY), new uint[]
+                                boundings[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), new uint[]
                                 {
-                                0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
+                                    0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
                                 });
                                 break;
                             case ColliderShape.Sphere:
-                                boundings[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, Vector3.UnitY));
-                                lon[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, Vector3.UnitY), ((Sphere)Manager.Obstacles[i].Collider).indicesLongitude);
+                                boundings[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)));
+                                lon[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), ((Sphere)Manager.Obstacles[i].Collider).indicesLongitude);
                                 break;
                         }
                     }
@@ -417,7 +417,7 @@ namespace Graphics
                         {
                             List<Point> MainAttr = new List<Point> { manip.Attractors[0].Center };
                             MainAttr.AddRange(manip.Attractors[0].Area);
-                            goal[j] = new Entity(lineShader, GL_Convert(MainAttr.ToArray(), new Vector3(1, 1, 0)));
+                            goal[j] = new Entity(lineShader, GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
                         }
                     }
                     else
@@ -439,7 +439,7 @@ namespace Graphics
                         {
                             for (int i = 0; i < manip.Tree.Buffer.Count; i++)
                             {
-                                tree[j].Add(new Entity(lineShader, GL_Convert(new Point[] { manip.Tree.Buffer[i].p, manip.Tree.Buffer[i].Parent.p }, Vector3.Zero)));
+                                tree[j].Add(new Entity(lineShader, GL_Convert(new Point[] { manip.Tree.Buffer[i].p, manip.Tree.Buffer[i].Parent.p }, new Vector4(Vector3.Zero, 1.0f))));
                             }
                             manip.Tree.Buffer.Clear();
                         }
@@ -464,7 +464,7 @@ namespace Graphics
                         if (path[j] == null)
                         {
                             if (manip.States["Path"])
-                                path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), Vector3.UnitX));
+                                path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
                         }
                         else
                         {
@@ -479,7 +479,7 @@ namespace Graphics
                     }
 
                     // current manipulator configuration
-                    if (manip.Configs.Count != 0)
+                    if (manip.Configs != null && manip.Configs.Count != 0)
                     {
                         manip.q = manip.Configs[ConfigsCount[j] < manip.Configs.Count - 1 ? ConfigsCount[j]++ : ConfigsCount[j]];
                     }
@@ -689,21 +689,29 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.25 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                for (int i = 0; i < Manager.Obstacles.Length; i++)
+                if (Manager.Obstacles != null)
                 {
-                    if (ImGui.TreeNode($"Obst {i}"))
+                    for (int i = 0; i < Manager.Obstacles.Length; i++)
                     {
-                        ImGui.Checkbox("Show collider", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding);
-                        ImGui.InputFloat("Radius", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].r);
-                        ImGui.InputFloat3("Center", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].c);
-                        ImGui.InputInt("Points number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].points_num);
+                        if (ImGui.TreeNode($"Obst {i}"))
+                        {
+                            ImGui.Checkbox("Show collider", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding);
+                            ImGui.InputFloat("Radius", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].r);
+                            ImGui.InputFloat3("Center", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].c);
+                            ImGui.InputInt("Points number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].points_num);
 
-                        ImGui.TreePop();
+                            ImGui.TreePop();
+                        }
                     }
                 }
+                else
+                {
+                    ImGui.Text("No obstacles in the scene.");
+                }                
 
                 ImGui.End();
             }
+            
 
             // algorithm window
             if (ImGui.Begin("Algorithm",
@@ -798,9 +806,6 @@ namespace Graphics
 
                 // save path for captured screenshot
                 ImGui.InputText("Save path", ref SavePath, 100);
-
-                if (Manager.Manipulators[0].GripperPos != null)
-                    ImGui.Text(string.Format("{0:F2}, {1:F2}, {2:F2}", Manager.Manipulators[0].GripperPos.x, Manager.Manipulators[0].GripperPos.y, Manager.Manipulators[0].GripperPos.z));
 
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));
@@ -923,19 +928,20 @@ namespace Graphics
             Capture = false;
         }
 
-        protected float[] GL_Convert(Point[] data, Vector3 color)
+        protected float[] GL_Convert(Point[] data, Vector4 color)
         {
             // converting program data to OpenGL buffer format
-            float[] res = new float[data.Length * 6];
+            float[] res = new float[data.Length * 7];
 
             for (int i = 0; i < data.Length; i++)
             {
-                res[6 * i] = (float)data[i].x;
-                res[6 * i + 1] = (float)data[i].y;
-                res[6 * i + 2] = (float)data[i].z;
-                res[6 * i + 3] = color.X;
-                res[6 * i + 4] = color.Y;
-                res[6 * i + 5] = color.Z;
+                res[7 * i] = (float)data[i].x;
+                res[7 * i + 1] = (float)data[i].y;
+                res[7 * i + 2] = (float)data[i].z;
+                res[7 * i + 3] = color.X;
+                res[7 * i + 4] = color.Y;
+                res[7 * i + 5] = color.Z;
+                res[7 * i + 6] = color.W;
             }
 
             return res;

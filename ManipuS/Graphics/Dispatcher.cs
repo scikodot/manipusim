@@ -28,7 +28,7 @@ static class Dispatcher
                 {
                     Length = 1
                 }
-            };
+        };
 
         public static JointData[] JointBuffer =
         {
@@ -56,11 +56,11 @@ static class Dispatcher
 
                     ShowTree = true
                 }
-            };
+        };
 
         public static ObstData[] ObstBuffer =
         {
-                new ObstData
+                /*new ObstData
                 {
                     r = 1,
                     c = new System.Numerics.Vector3(0, 2f, 0),
@@ -99,8 +99,8 @@ static class Dispatcher
                     points_num = 1500,
 
                     ShowBounding = true
-                }
-            };
+                }*/
+        };
 
         public static AlgData AlgBuffer = new AlgData
         {

@@ -147,6 +147,7 @@ namespace Logic
             Base = new Point(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
 
             this.DH = DH;
+            DH_Init();
 
             WorkspaceRadius = Links.Sum((link) => { return link.Length; }) + Joints.Sum((joint) => { return joint.Length; });
 
@@ -166,6 +167,7 @@ namespace Logic
             Base = source.Base;  // TODO: review referencing
 
             DH = Misc.CopyArray(source.DH);
+            DH_Init();
 
             WorkspaceRadius = source.WorkspaceRadius;
 
@@ -184,7 +186,7 @@ namespace Logic
             }
         }
 
-        public static Matrix4 CreateTransMatrix(TupleDH DH, Joint joint)  // TODO: optimize
+        public static Matrix4 CreateTransMatrix(TupleDH DH, Joint joint)  // TODO: optimize AND review, it seems to be broken as well
         {
             return Matrix.RotateY((float)DH.theta(joint)) *
                    Matrix.Translate((float)DH.d * Vector3.UnitY) *
