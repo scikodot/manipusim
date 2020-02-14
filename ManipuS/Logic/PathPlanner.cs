@@ -6,7 +6,7 @@ namespace Logic
 {
     class PathPlanner
     {
-        /*public static void RRT(Random rng, Manipulator agent, Obstacle[] obstacles, HillClimbing solver, int k, double d)
+        public static void RRT(Random rng, Manipulator agent, Obstacle[] obstacles, HillClimbing solver, int k, double d)
         {
             Manipulator Contestant = new Manipulator(agent);
 
@@ -87,6 +87,6 @@ namespace Logic
                 if (AttractorsLoc[0].InliersCount != 0)
                     break;
             }
-        }*/
+        }
     }
 }

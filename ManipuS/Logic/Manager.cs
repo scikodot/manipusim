@@ -23,6 +23,8 @@ namespace Logic
                     new TupleDH((j) => { return j.q - 90 * Math.PI / 180; }, 0, 0, JD[1].Length + LD[1].Length),
                     new TupleDH((j) => { return j.q; }, 0, 0, JD[2].Length + LD[2].Length)
                 });
+            Manipulators[0].Goal = new Point(0, 0, 2.5f);
+            Manipulators[0].States["Goal"] = true;
 
             // obstacles
             Obstacles = new Obstacle[OD.Length];
@@ -48,8 +50,6 @@ namespace Logic
             Point[] AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
 
             manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
-
-            manip.States["Goal"] = true;
 
             var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
@@ -129,10 +129,7 @@ namespace Logic
             manip.States["Path"] = true;
 
             // acquiring all the configurations along the path
-            for (int i = 0; i < configs.Count; i++)
-            {
-                manip.Configs.Add(manip.DKP);
-            }
+            manip.Configs = new List<double[]>(configs);
         }
     }
 }

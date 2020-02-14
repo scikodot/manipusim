@@ -38,6 +38,8 @@ namespace Logic
         public float q;
         public System.Numerics.Vector2 q_ranges;
         public System.Numerics.Vector4 DH;
+
+        public bool ShowTree;
     }
 
     public struct ObstData
@@ -122,7 +124,7 @@ namespace Logic
 
         public Point Goal;
         public List<Point> Path;
-        public List<Point[]> Configs;
+        public List<double[]> Configs;
         public Tree Tree;
         public List<Attractor> Attractors;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
@@ -156,20 +158,27 @@ namespace Logic
             };
         }
 
-        public Manipulator(Manipulator Source)
+        public Manipulator(Manipulator source)
         {
-            Links = new List<Link>(Source.Links).ToArray();
+            Links = Misc.CopyArray(source.Links);
+            Joints = Misc.CopyArray(source.Joints);
 
-            Goal = Source.Goal;
+            Base = source.Base;  // TODO: review referencing
 
-            States = new Dictionary<string, bool>(Source.States);
+            DH = Misc.CopyArray(source.DH);
+
+            WorkspaceRadius = source.WorkspaceRadius;
+
+            Goal = source.Goal;
+
+            States = new Dictionary<string, bool>(source.States);
         }
 
 
         public void DH_Init()
         {
             TransMatrices = new List<Matrix4>();
-            for (int i = 0; i < Joints.Length; i++)
+            for (int i = 0; i < DH.Length; i++)
             {
                 TransMatrices.Add(CreateTransMatrix(DH[i], Joints[i]));
             }
@@ -190,10 +199,10 @@ namespace Logic
                 Matrix4 trans = Matrix4.Identity;
                 for (int i = 0; i < DH.Length; i++)
                 {
-                    trans = CreateTransMatrix(DH[i], Joints[i]) * trans;
+                    trans = TransMatrices[i] * trans;
                 }
 
-                return new Point(trans.M14, trans.M24, trans.M34);
+                return new Point(trans.M14, trans.M24, trans.M34);  // TODO: too big error! (~2nd order) optimize
             }
         }
 
@@ -207,7 +216,7 @@ namespace Logic
                 Matrix4 trans = Matrix4.Identity;
                 for (int i = 0; i < DH.Length; i++)
                 {
-                    trans = CreateTransMatrix(DH[i], Joints[i]) * trans;
+                    trans = TransMatrices[i] * trans;
                     jointsPos[i + 1] = new Point(trans.M14, trans.M24, trans.M34);
                 }
 
@@ -228,7 +237,10 @@ namespace Logic
             }
             set
             {
-
+                for (int i = 0; i < Joints.Length; i++)
+                {
+                    Joints[i].q = value[i];
+                }
             }
         }
 
