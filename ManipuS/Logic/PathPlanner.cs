@@ -43,11 +43,11 @@ namespace Logic
                 Point p = new Point(x, y, z) + AttractorsLoc[index].Center;
 
                 // finding the closest node to the generated point
-                Tree.Node min_node = agent.Tree.Min(p);
+                Tree.Node minNode = agent.Tree.Min(p);
 
                 // creating offset vector to new node
-                Vector v = new Vector(min_node.p, p);
-                Point p_n = min_node.p + v.Normalized * d;
+                Vector v = new Vector(minNode.p, p);
+                Point p_n = minNode.p + v.Normalized * d;
 
                 // checking for collisions of the new node
                 bool collision = false;
@@ -63,12 +63,12 @@ namespace Logic
                 if (!collision)
                 {
                     // solving IKP for new node
-                    Contestant.q = Misc.CopyArray(min_node.q);
+                    Contestant.q = Misc.CopyArray(minNode.q);
                     var res = solver.Execute(Contestant, p_n);
                     if (res.Item1 && !res.Item4.Contains(true))
                     {
                         // adding node to the tree
-                        Tree.Node node = new Tree.Node(min_node, p_n, Contestant.q);
+                        Tree.Node node = new Tree.Node(minNode, p_n, Contestant.q);
                         agent.Tree.AddNode(node);
                         if (p_n.DistanceTo(AttractorsLoc[index].Center) < AttractorsLoc[index].Radius)
                         {

@@ -104,14 +104,14 @@ static class Dispatcher
 
         public static AlgData AlgBuffer = new AlgData
         {
-            AttrNum = 10000,
+            AttrNum = 10,
 
             Precision = 0.02f,
-            StepSize = 3,
+            StepSize = 2,
             MaxTime = 300,
 
             k = 10000,
-            d = 0.08f
+            d = 0.04f
         };
     }
 }

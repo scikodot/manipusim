@@ -71,7 +71,7 @@ namespace Logic
         Planar  // Allows relative translation on a plane and relative rotation about an axis perpendicular to the plane
     }
 
-    public class Link
+    public struct Link
     {
         public Model Model;
         public float Length;
@@ -89,19 +89,13 @@ namespace Logic
         }
     }
 
-    public class Joint
+    public struct Joint
     {
         public Model Model;
         public float Length;
 
         public double q;
         public double[] q_ranges;
-
-        public Joint(Model model, float q, float[] q_ranges)
-        {
-            Model = model;
-            
-        }
 
         public Joint(JointData data)
         {
@@ -147,7 +141,7 @@ namespace Logic
             Base = new Point(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
 
             this.DH = DH;
-            DH_Init();
+            DHInit();
 
             WorkspaceRadius = Links.Sum((link) => { return link.Length; }) + Joints.Sum((joint) => { return joint.Length; });
 
@@ -167,7 +161,7 @@ namespace Logic
             Base = source.Base;  // TODO: review referencing
 
             DH = Misc.CopyArray(source.DH);
-            DH_Init();
+            DHInit();
 
             WorkspaceRadius = source.WorkspaceRadius;
 
@@ -177,7 +171,7 @@ namespace Logic
         }
 
 
-        public void DH_Init()
+        public void DHInit()
         {
             TransMatrices = new List<Matrix4>();
             for (int i = 0; i < DH.Length; i++)
@@ -198,13 +192,21 @@ namespace Logic
         { 
             get
             {
-                Matrix4 trans = Matrix4.Identity;
+                DHInit();
+
+                Matrix4 pos = new Matrix4
+                (
+                    new Vector4(1, 0, 0, (float)Base.x),
+                    new Vector4(0, 1, 0, (float)Base.y),
+                    new Vector4(0, 0, 1, (float)Base.z),
+                    new Vector4(0, 0, 0, 1)
+                );
                 for (int i = 0; i < DH.Length; i++)
                 {
-                    trans = TransMatrices[i] * trans;
+                    pos *= TransMatrices[i];
                 }
 
-                return new Point(trans.M14, trans.M24, trans.M34);  // TODO: too big error! (~2nd order) optimize
+                return new Point(pos.M14, pos.M24, pos.M34);  // TODO: too big error (~2nd order)! optimize
             }
         }
 
@@ -212,14 +214,22 @@ namespace Logic
         {
             get
             {
+                DHInit();
+
                 Point[] jointsPos = new Point[Joints.Length + 1];
                 jointsPos[0] = Base;
 
-                Matrix4 trans = Matrix4.Identity;
+                Matrix4 pos = new Matrix4
+                (
+                    new Vector4(1, 0, 0, (float)Base.x),
+                    new Vector4(0, 1, 0, (float)Base.y),
+                    new Vector4(0, 0, 1, (float)Base.z),
+                    new Vector4(0, 0, 0, 1)
+                );
                 for (int i = 0; i < DH.Length; i++)
                 {
-                    trans = TransMatrices[i] * trans;
-                    jointsPos[i + 1] = new Point(trans.M14, trans.M24, trans.M34);
+                    pos *= TransMatrices[i];
+                    jointsPos[i + 1] = new Point(pos.M14, pos.M24, pos.M34);
                 }
 
                 return jointsPos;

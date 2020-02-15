@@ -196,7 +196,7 @@ public class Matrix
         );
     }
 
-    public static Matrix4 RotateCustom(Vector4 point, Vector4 dir, float angle)  // TODO: review; seems like it's messed up
+    public static Matrix4 RotateCustom(Vector4 point, Vector4 dir, float angle)
     {
         // pre-computing all costly operations
         float a = point.X,
@@ -283,6 +283,7 @@ public class Matrix
         );
 
         return T.Inverted() * Rx.Inverted() * Ry.Inverted() * Rz * Ry * Rx * T;
+        //return T * Rx * Ry * Rz * Ry.Inverted() * Rx.Inverted() * T.Inverted();
     }
 
     public static Matrix Rotation(int axis, double angle)
