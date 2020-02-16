@@ -152,6 +152,39 @@ public class Matrix
         return new Matrix(mat);
     }
 
+    /*public static Matrix TranslateD(Vector3d axis)
+    {
+        return new Matrix(new double[4, 4]
+        {
+            { 1, 0, 0, axis.X },
+            { 0, 1, 0, axis.Y },
+            { 0, 0, 1, axis.Z },
+            { 0, 0, 0, 1 }
+        });
+    }
+
+    public static Matrix RotateXD(double angle)
+    {
+        return new Matrix(new double[4, 4]
+        {
+            { 1, 0, 0, 0 },
+            { 0, Math.Cos(angle), -Math.Sin(angle), 0 },
+            { 0, Math.Sin(angle), Math.Cos(angle), 0 },
+            { 0, 0, 0, 1 }
+        });
+    }
+
+    public static Matrix RotateYD(double angle)
+    {
+        return new Matrix(new double[4, 4]
+        {
+            { Math.Cos(angle), 0, -Math.Sin(angle), 0 },
+            { 0, 1, 0, 0 },
+            { Math.Sin(angle), 0, Math.Cos(angle), 0 },
+            { 0, 0, 0, 1 }
+        });
+    }*/
+
     public static Matrix4 Translate(Vector3 axis)
     {
         return new Matrix4
@@ -387,34 +420,6 @@ public class Matrix
 
         return new Matrix(mat);
     }
-
-    public static Matrix4 operator *(Matrix4 m1, Matrix m2)
-    {
-        int r1 = 4, c1 = 4,
-            r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
-
-        Matrix4 mat;
-        if (c1 != r2)
-            throw new Exception("Matrices dimensions mismatch!");
-        else
-        {
-            mat = new Matrix4();
-            for (int i = 0; i < r1; i++)
-            {
-                for (int j = 0; j < c2; j++)
-                {
-                    double t = 0;
-                    for (int k = 0; k < c1; k++)
-                    {
-                        t += m1[i, k] * m2[k, j];
-                    }
-                    mat[i, j] = (float)t;
-                }
-            }
-        }
-
-        return mat;
-    }
 }
 
 namespace Logic
@@ -496,6 +501,11 @@ namespace Logic
             Layers[0].Add(root);
             Count = 1;
             LayersAdded = 0;
+        }
+
+        public Tree(Tree tree)
+        {
+
         }
 
         public Node Root

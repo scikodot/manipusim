@@ -120,8 +120,8 @@ namespace Logic
         public List<Point> Path;
         public List<double[]> Configs;
         public Tree Tree;
-        public List<Attractor> Attractors;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
+        public List<Attractor> Attractors;
         public Dictionary<string, bool> States;
 
         public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)
@@ -165,7 +165,7 @@ namespace Logic
 
             WorkspaceRadius = source.WorkspaceRadius;
 
-            Goal = source.Goal;
+            Goal = source.Goal;  // TODO: review referencing
 
             States = new Dictionary<string, bool>(source.States);
         }
@@ -180,7 +180,7 @@ namespace Logic
             }
         }
 
-        public static Matrix4 CreateTransMatrix(TupleDH DH, Joint joint)  // TODO: optimize AND review, it seems to be broken as well
+        public static Matrix4 CreateTransMatrix(TupleDH DH, Joint joint)  // TODO: optimize
         {
             return Matrix.RotateY((float)DH.theta(joint)) *
                    Matrix.Translate((float)DH.d * Vector3.UnitY) *
@@ -188,8 +188,8 @@ namespace Logic
                    Matrix.Translate((float)DH.r * Vector3.UnitX);
         }
 
-        public Point GripperPos 
-        { 
+        public Point GripperPos
+        {
             get
             {
                 DHInit();
@@ -201,12 +201,13 @@ namespace Logic
                     new Vector4(0, 0, 1, (float)Base.z),
                     new Vector4(0, 0, 0, 1)
                 );
+
                 for (int i = 0; i < DH.Length; i++)
                 {
                     pos *= TransMatrices[i];
                 }
 
-                return new Point(pos.M14, pos.M24, pos.M34);  // TODO: too big error (~2nd order)! optimize
+                return new Point(pos[0, 3], pos[1, 3], pos[2, 3]);  // TODO: too big error (~2nd order)! optimize
             }
         }
 
@@ -226,15 +227,66 @@ namespace Logic
                     new Vector4(0, 0, 1, (float)Base.z),
                     new Vector4(0, 0, 0, 1)
                 );
+
                 for (int i = 0; i < DH.Length; i++)
                 {
                     pos *= TransMatrices[i];
-                    jointsPos[i + 1] = new Point(pos.M14, pos.M24, pos.M34);
+                    jointsPos[i + 1] = new Point(pos[0, 3], pos[1, 3], pos[2, 3]);
                 }
 
                 return jointsPos;
             }
         }
+
+        /*public Point GripperPos 
+        { 
+            get
+            {
+                DHInit();
+
+                Matrix pos = new Matrix(new double[4, 4]
+                {
+                    { 1, 0, 0, Base.x },
+                    { 0, 1, 0, Base.y },
+                    { 0, 0, 1, Base.z },
+                    { 0, 0, 0, 1 }
+                });
+
+                for (int i = 0; i < DH.Length; i++)
+                {
+                    pos *= TransMatrices[i];
+                }
+
+                return new Point(pos[0, 3], pos[1, 3], pos[2, 3]);  // TODO: too big error (~2nd order)! optimize
+            }
+        }
+
+        public Point[] DKP
+        {
+            get
+            {
+                DHInit();
+
+                Point[] jointsPos = new Point[Joints.Length + 1];
+                jointsPos[0] = Base;
+
+                Matrix pos = new Matrix(new double[4, 4]
+                {
+                    { 1, 0, 0, Base.x },
+                    { 0, 1, 0, Base.y },
+                    { 0, 0, 1, Base.z },
+                    { 0, 0, 0, 1 }
+                });
+
+                for (int i = 0; i < DH.Length; i++)
+                {
+                    pos *= TransMatrices[i];
+                    jointsPos[i + 1] = new Point(pos[0, 3], pos[1, 3], pos[2, 3]);
+                }
+
+                return jointsPos;
+            }
+        }*/
 
         public double[] q
         {

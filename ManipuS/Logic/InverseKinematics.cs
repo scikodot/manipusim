@@ -78,36 +78,36 @@ namespace Logic
             // initial parameters
             double[] qBest = Misc.CopyArray(agent.q);
             double dist = agent.DistanceTo(goal), init_dist = dist, k = 1;
-            double min_dist = double.PositiveInfinity;
+            double minDist = double.PositiveInfinity;
             bool Converged = false;
             
             double[] dq = new double[ParamNum];
-            double range = 0, step_neg = 0, step_pos = 0;
+            double range = 0, stepNeg = 0, stepPos = 0;
             while (Time++ < MaxTime)
             {
                 for (int i = 0; i < ParamNum; i++)
                 {
                     // checking GC constraints
                     range = agent.Joints[i].q_ranges[0] - agent.q[i] * 180 / Math.PI;
-                    step_neg = range <= -StepSize ? -StepSize : range;
+                    stepNeg = range <= -StepSize ? -StepSize : range;
 
                     range = agent.Joints[i].q_ranges[1] - agent.q[i] * 180 / Math.PI;
-                    step_pos = range >= StepSize ? StepSize : range;
+                    stepPos = range >= StepSize ? StepSize : range;
 
                     // generating random GCs' offset
-                    dq[i] = (step_neg + Rng.NextDouble() * (step_pos - step_neg)) * Math.PI / 180;
+                    dq[i] = (stepNeg + Rng.NextDouble() * (stepPos - stepNeg)) * Math.PI / 180;
                     dq[i] *= k;
                 }
 
                 // retrieving score of the new configuration
                 agent.q = qBest.Zip(dq, (t, s) => { return t + s; }).ToArray();
-                double dist_new = agent.DistanceTo(goal);
+                double distNew = agent.DistanceTo(goal);
 
-                if (dist_new < dist)
+                if (distNew < dist)
                 {
                     // updating agent's configuration if it's better than the previos one
                     qBest = Misc.CopyArray(agent.q);
-                    min_dist = dist = dist_new;
+                    minDist = dist = distNew;
                     k = dist / init_dist;
                 }
 
@@ -127,7 +127,7 @@ namespace Logic
             // resetting timer
             Time = 0;
 
-            return new Tuple<bool, double, double[], bool[]>(Converged, min_dist, qBest, Collisions);
+            return new Tuple<bool, double, double[], bool[]>(Converged, minDist, qBest, Collisions);
         }
     }
 }

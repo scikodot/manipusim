@@ -356,12 +356,14 @@ namespace Graphics
             model = Matrix4.Identity;
             gridFloor.Display(model, () =>
             {
+                GL.Disable(EnableCap.DepthTest);
                 GL.Enable(EnableCap.Blend);
                 GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
                 GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
 
                 GL.Disable(EnableCap.Blend);
+                GL.Enable(EnableCap.DepthTest);
             });
 
             // obstacles & colliders
@@ -492,6 +494,11 @@ namespace Graphics
                         var dh = Manager.Manipulators[0].DH;
                         var linksCount = Dispatcher.WorkspaceBuffer.LinkBuffer.Length;
 
+                        /*time += (float)(Math.PI / 2 * e.Time);
+                        joints[0].q = time;
+                        joints[1].q = time;
+                        joints[2].q = time;*/
+
                         model = Matrix4.Identity;
 
                         Vector4[] axes = new Vector4[linksCount];
@@ -525,8 +532,8 @@ namespace Graphics
                         model = Matrix4.Identity;
 
                         // links
-                        /*model *= Matrix.Translate(joints[0].Length / 2 * Vector3.UnitY);
-                        var trans = Matrix.RotateCustom(pos[0], axes[0], -(float)dh[0].theta(joints[0]));  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes
+                        model *= Matrix.Translate(joints[0].Length / 2 * Vector3.UnitY);
+                        var trans = Matrix.RotateCustomAnother(pos[0], axes[0], -(float)dh[0].theta(joints[0]));  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes
                         model = trans * model;  // the order of multiplication is reversed, because the trans matrix transforms the operand (model) itself; it does not contribute in total transformation like other matrices do
                         model *= Matrix4.CreateScale(new Vector3(0.75f, 1, 0.75f));
 
@@ -534,18 +541,18 @@ namespace Graphics
                         links[0].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
 
                         model *= Matrix.Translate((float)dh[0].d * Vector3.UnitY);
-                        trans = Matrix.RotateCustom(pos[1], axes[1], -(float)(dh[1].theta(joints[1]) + Math.PI / 2));
+                        trans = Matrix.RotateCustomAnother(pos[1], axes[1], -(float)(dh[1].theta(joints[1]) + Math.PI / 2));
                         model = trans * model;
 
                         _shader.SetMatrix4("model", model, true);
                         links[1].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
 
                         model *= Matrix.Translate((float)dh[1].r * Vector3.UnitY);
-                        trans = Matrix.RotateCustom(pos[2], axes[2], -(float)dh[2].theta(joints[2]));
+                        trans = Matrix.RotateCustomAnother(pos[2], axes[2], -(float)dh[2].theta(joints[2]));
                         model = trans * model;
 
                         _shader.SetMatrix4("model", model, true);
-                        links[2].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);*/
+                        links[2].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
                     }
                 }
             }

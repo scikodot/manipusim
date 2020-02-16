@@ -104,7 +104,7 @@ static class Dispatcher
 
         public static AlgData AlgBuffer = new AlgData
         {
-            AttrNum = 10,
+            AttrNum = 10000,
 
             Precision = 0.02f,
             StepSize = 2,
