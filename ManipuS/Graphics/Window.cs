@@ -71,10 +71,10 @@ namespace Graphics
         private float[] transparencyMask =
         {
             // mask used to make a floor half-transparent
-            10.0f, 0.0f, 10.0f,     1.0f, 1.0f, 1.0f, 0.2f,
-            -10.0f, 0.0f, 10.0f,    1.0f, 1.0f, 1.0f, 0.2f,
-            -10.0f, 0.0f, -10.0f,   1.0f, 1.0f, 1.0f, 0.2f,
-            10.0f, 0.0f, -10.0f,    1.0f, 1.0f, 1.0f, 0.2f
+            10.0f, 0.0f, 10.0f,     1.0f, 1.0f, 1.0f, 0.5f,
+            -10.0f, 0.0f, 10.0f,    1.0f, 1.0f, 1.0f, 0.5f,
+            -10.0f, 0.0f, -10.0f,   1.0f, 1.0f, 1.0f, 0.5f,
+            10.0f, 0.0f, -10.0f,    1.0f, 1.0f, 1.0f, 0.5f
         };
         private float[] gridLines =
         {
@@ -333,38 +333,7 @@ namespace Graphics
 
             Matrix4 model;
 
-            // workspace grid
-            model = Matrix4.Identity;
-            grid.Display(model, () =>
-            {
-                GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
-            });
-            for (int i = 1; i < 11; i++)
-            {
-                model = Matrix4.CreateTranslation(Vector3.UnitZ * i);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
-                model = Matrix4.CreateTranslation(Vector3.UnitZ * -i);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
-
-                model = Matrix4.CreateTranslation(Vector3.UnitX * i);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
-                model = Matrix4.CreateTranslation(Vector3.UnitX * -i);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
-            }
-
-            model = Matrix4.Identity;
-            gridFloor.Display(model, () =>
-            {
-                GL.Disable(EnableCap.DepthTest);
-                GL.Enable(EnableCap.Blend);
-                GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
-                GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
-
-                GL.Disable(EnableCap.Blend);
-                GL.Enable(EnableCap.DepthTest);
-            });
+            
 
             // obstacles & colliders
             if (ManipLoaded)
@@ -556,6 +525,49 @@ namespace Graphics
                     }
                 }
             }
+
+            // workspace grid
+            model = Matrix4.Identity;
+            grid.Display(model, () =>
+            {
+                GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
+            });
+            for (int i = 1; i < 11; i++)
+            {
+                model = Matrix4.CreateTranslation(Vector3.UnitZ * i);
+                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
+                model = Matrix4.CreateTranslation(Vector3.UnitZ * -i);
+                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
+
+                model = Matrix4.CreateTranslation(Vector3.UnitX * i);
+                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
+                model = Matrix4.CreateTranslation(Vector3.UnitX * -i);
+                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
+            }
+
+            model = Matrix4.Identity;
+            gridFloor.Display(model, () =>
+            {
+                // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
+                //
+                // the blending function is determined as follows:
+                // Color = SourceColor * SourceFactor + DestColor * DestFactor,
+                // where
+                //     SourceColor - color of the currently rendering fragment,
+                //     SourceFactor - its factor,
+                //     DestColor - color of the already rendered fragment (the one in the color buffer),
+                //     DestFactor - its factor.
+                //
+                // so, to render transparent floor, we take SourceFactor as source's alpha (floor's alpha) and DestFactor as the remainder of the source's alpha
+                // (the visible amount of the opaque object behind the floor)
+                GL.Enable(EnableCap.Blend);
+                GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+                GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
+
+                GL.Disable(EnableCap.Blend);
+            });
 
             //ImGui.ShowDemoWindow();
 
