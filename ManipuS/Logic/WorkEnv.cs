@@ -95,14 +95,14 @@ namespace Logic
         public float Length;
 
         public double q;
-        public double[] q_ranges;
+        public double[] qRanges;
 
         public Joint(JointData data)
         {
             Model = data.Model;
             Length = data.Length;
             q = data.q;
-            q_ranges = new double[2] { data.q_ranges.X, data.q_ranges.Y };
+            qRanges = new double[2] { data.q_ranges.X, data.q_ranges.Y };
         }
     }
 
@@ -153,7 +153,7 @@ namespace Logic
             };
         }
 
-        public Manipulator(Manipulator source)
+        public Manipulator(Manipulator source)  // TODO: make a m.CreateCopy() method, not a constructor! that's much better
         {
             Links = Misc.CopyArray(source.Links);
             Joints = Misc.CopyArray(source.Joints);

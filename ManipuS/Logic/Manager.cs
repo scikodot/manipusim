@@ -92,7 +92,7 @@ namespace Logic
             manip.States["Attractors"] = true;
 
             // generating random tree
-            PathPlanner.RRT(rng, manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d);
+            PathPlanner.RRT(manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d);
 
             // retrieving resultant path along with respective configurations
             Tree.Node start = manip.Tree.Min(manip.Goal), node_curr = start;

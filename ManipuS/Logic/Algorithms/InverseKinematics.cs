@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Logic
 {
-    class Algorithm
+    class Algorithm  // TODO: should be marked as abstract or virtual
     {
         public static Random Rng;
         public Obstacle[] Obstacles;
@@ -88,10 +88,10 @@ namespace Logic
                 for (int i = 0; i < ParamNum; i++)
                 {
                     // checking GC constraints
-                    range = agent.Joints[i].q_ranges[0] - agent.q[i] * 180 / Math.PI;
+                    range = agent.Joints[i].qRanges[0] - agent.q[i] * 180 / Math.PI;
                     stepNeg = range <= -StepSize ? -StepSize : range;
 
-                    range = agent.Joints[i].q_ranges[1] - agent.q[i] * 180 / Math.PI;
+                    range = agent.Joints[i].qRanges[1] - agent.q[i] * 180 / Math.PI;
                     stepPos = range >= StepSize ? StepSize : range;
 
                     // generating random GCs' offset

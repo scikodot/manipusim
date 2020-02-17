@@ -92,6 +92,7 @@ namespace Graphics
         Entity[] obstacles, boundings, lon;
         Entity[] goal, configs, path;
         List<Entity>[] tree;
+        Entity cloud, traj;
         
         // variables for mouse state processing
         private bool _firstMove = true;
@@ -467,6 +468,53 @@ namespace Graphics
                         joints[0].q = time;
                         joints[1].q = time;
                         joints[2].q = time;*/
+
+                        model = Matrix4.Identity;
+                        if (cloud == null)
+                        {
+                            var rng = new Random();
+                            var data = new List<Point>();
+                            while (data.Count < 1000)
+                            {
+                                joints[0].q += (-10 + 20 * rng.NextDouble()) * Math.PI / 180;
+                                joints[1].q += (-10 + 20 * rng.NextDouble()) * Math.PI / 180;
+                                joints[2].q += (-10 + 20 * rng.NextDouble()) * Math.PI / 180;
+
+                                var shit = Manager.Manipulators[0].GripperPos;
+                                foreach (var point in data)
+                                {
+                                    if (shit.DistanceTo(point) < 0.2)
+                                        goto Break;
+                                }
+                                data.Add(shit);
+                            Break:
+                                var a = 2;
+                            }
+                            cloud = new Entity(lineShader, GL_Convert(data.ToArray(), Vector4.UnitW));
+
+                            var path = new List<Point>();
+                            for (int i = 0; i < 50; i++)
+                            {
+                                var index = rng.Next(0, data.Count);
+                                path.Add(data[index]);
+                            }
+                            traj = new Entity(lineShader, GL_Convert(path.ToArray(), new Vector4(1, 0, 0, 1)));
+
+                            joints[0].q = joints[1].q = joints[2].q = 0;
+                        }
+                        else
+                        {
+                            cloud.Display(model, () =>
+                            {
+                                GL.PointSize(3);
+                                GL.DrawArrays(PrimitiveType.Points, 0, 1000);
+                            });
+
+                            traj.Display(model, () =>
+                            {
+                                GL.DrawArrays(PrimitiveType.LineStrip, 0, 50);
+                            });
+                        }
 
                         model = Matrix4.Identity;
 

@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace Logic
 {
-    class PathPlanner
+    static partial class PathPlanner
     {
-        public static void RRT(Random rng, Manipulator agent, Obstacle[] obstacles, HillClimbing solver, int k, double d)
+        public static void RRT(Manipulator agent, Obstacle[] obstacles, HillClimbing solver, int k, double d)  // TODO: all algorithms should be placed in separate files!
         {
             Manipulator Contestant = new Manipulator(agent);
 
@@ -22,7 +22,7 @@ namespace Logic
             for (int i = 0; i < k; i++)
             {
                 // generating normally distributed value with Box-Muller transform
-                double num = Misc.BoxMullerTransform(rng, Attractors[0].Weight, Attractors[Attractors.Count - 1].Weight / 3);
+                double num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, Attractors[Attractors.Count - 1].Weight / 3);
 
                 // extracting the first relevant attractor
                 Attractor attr = Attractors.Find((t) => { return t.Weight > num; });
@@ -36,11 +36,11 @@ namespace Logic
                 double radius = Attractors[index].Radius, x, y_pos, y, z_pos, z;
 
                 // generating point of attraction (inside the attractor's field) for tree
-                x = -radius + rng.NextDouble() * 2 * radius;
+                x = -radius + Rng.NextDouble() * 2 * radius;
                 y_pos = Math.Sqrt(radius * radius - x * x);
-                y = -y_pos + rng.NextDouble() * 2 * y_pos;
+                y = -y_pos + Rng.NextDouble() * 2 * y_pos;
                 z_pos = Math.Sqrt(radius * radius - x * x - y * y);
-                z = -z_pos + rng.NextDouble() * 2 * z_pos;
+                z = -z_pos + Rng.NextDouble() * 2 * z_pos;
 
                 Point p = new Point(x, y, z) + Attractors[index].Center;
 

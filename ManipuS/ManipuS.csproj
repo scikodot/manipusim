@@ -94,10 +94,12 @@
     <Compile Include="Graphics\ImGui\ImGuiTexture.cs" />
     <Compile Include="Graphics\Mesh.cs" />
     <Compile Include="Graphics\Model.cs" />
-    <Compile Include="Logic\PathPlanner.cs" />
+    <Compile Include="Logic\Algorithms\PathPlanning\GeneticAlgorithm.cs" />
+    <Compile Include="Logic\Algorithms\PathPlanning\_initPartial.cs" />
+    <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />
     <Compile Include="Logic\WorkEnv.cs" />
-    <Compile Include="Logic\InverseKinematics.cs" />
+    <Compile Include="Logic\Algorithms\InverseKinematics.cs" />
     <Compile Include="Logic\Manager.cs" />
     <Compile Include="Logic\Helper.cs" />
     <Compile Include="Program.cs" />
