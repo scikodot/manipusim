@@ -10,23 +10,43 @@ namespace Logic
     internal class Chromosome<T>
     {
         public int ParamNum;
+        public int PointsNum;
         public T[] Genes;
 
-        public Chromosome(int param_num)
+        public Chromosome(int pointsNum, int paramNum)
         {
-            ParamNum = param_num;
-            Genes = new T[ParamNum];
+            PointsNum = pointsNum;
+            ParamNum = paramNum;
+            Genes = new T[PointsNum * ParamNum];
         }
 
-        public Chromosome(T[] genes)
+        /*public Chromosome(T[] genes)
         {
             ParamNum = genes.Length;
             Genes = genes;
-        }
+        }*/
 
         public T GetParam(int num)
         {
             return Genes[num];
+        }
+
+        public T[] GetParamSpecific(int point)
+        {
+            T[] _params = new T[ParamNum];
+            for (int i = 0; i < ParamNum; i++)
+                _params[i] = GetParam(i + point * ParamNum);
+
+            return _params;
+        }
+
+        public S[] GetParamSpecific<S>(int point, Func<T, S> func)
+        {
+            S[] _params = new S[ParamNum];
+            for (int i = 0; i < ParamNum; i++)
+                _params[i] = func(GetParam(i + point * ParamNum));
+
+            return _params;
         }
 
         public T[] GetParamAll()
@@ -51,35 +71,44 @@ namespace Logic
 
     static partial class PathPlanner
     {
-        public static float[][] GeneticAlgorithm(Manipulator agent, Point goal, double precision, int paramNum, int genSize, double mutationProb, int maxTime, Func<double, double> decode)
+        public static Point[] GeneticAlgorithm(Manipulator agent, Point goal, double precision, int paramNum, int genSize, double mutationProb, int maxTime, Func<double, double> decode)
         {
             var chs = new Chromosome<double>[genSize];
             var fit = new double[genSize];
 
+            int pointsNum = 50;
             for (int i = 0; i < genSize; i++)
             {
-                chs[i] = new Chromosome<double>(paramNum);
-                for (int j = 0; j < paramNum; j++)
-                    chs[i].Genes[j] = agent.Joints[i].qRanges[0] + (agent.Joints[i].qRanges[1] - agent.Joints[i].qRanges[0]) * Rng.NextDouble();
+                chs[i] = new Chromosome<double>(pointsNum, paramNum);
+                for (int j = 0; j < pointsNum; j++)
+                {
+                    for (int k = 0; k < paramNum; k++)
+                        chs[i].Genes[k + j * paramNum] = -1 + 2 * Rng.NextDouble();  //agent.Joints[k].qRanges[0] + (agent.Joints[k].qRanges[1] - agent.Joints[k].qRanges[0]) * Rng.NextDouble();
+                }
             }
 
             Chromosome<double> dominant = null;
-            double min = double.PositiveInfinity;
+            double max = double.PositiveInfinity;
             bool converged = false;
+            int time = 0;
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            int time = 0;
             while (time++ < maxTime)
             {
+                if (time % 100 == 0)
+                {
+                    
+                }
+
                 // fitting
                 FitnessFunction(agent, goal, chs, fit, decode);
-                Array.ConvertAll(fit, (t) => { return Math.Abs(t); });
+                //Array.ConvertAll(fit, (t) => { return Math.Abs(t); });
 
                 // qualification
-                min = fit.Min();
-                if (min < precision)
+                max = fit.Max();
+                if (max > precision)
                 {
-                    dominant = chs[Array.IndexOf(fit, min)];
+                    dominant = chs[Array.IndexOf(fit, max)];
                     converged = true;
                     break;
                 }
@@ -88,7 +117,7 @@ namespace Logic
                 RouletteWheelSelection(chs, fit);
 
                 // mutation
-                Mutation(chs, mutationProb, t => t + -0.1 + 0.2 * Rng.NextDouble());
+                Mutation(chs, mutationProb, t => t + -0.2 + 0.4 * Rng.NextDouble());
 
                 // crossover
                 Crossover(chs);
@@ -99,11 +128,18 @@ namespace Logic
             // if the dominant chromosome wasn't found, consider last result the best result
             if (dominant == null)
             {
-                dominant = chs[Array.IndexOf(fit, min)];
+                dominant = chs[Array.IndexOf(fit, max)];
             }
 
-            //  chromosome
-            double[] dq = dominant.GetParamAll(decode);
+            // chromosome
+            var points = new Point[chs[0].PointsNum];
+            Manipulator AgentNext = new Manipulator(agent);
+            for (int i = 0; i < chs[0].PointsNum; i++)
+            {
+                double[] dq = dominant.GetParamSpecific(i, decode);
+                AgentNext.q = AgentNext.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
+                points[i] = AgentNext.GripperPos;
+            }
 
             //detect all collisions
             /*Manipulator AgentNext = new Manipulator(agent)
@@ -112,7 +148,7 @@ namespace Logic
             };
             bool[] Collisions = DetectCollisions(AgentNext);*/
 
-            return null;
+            return points;
         }
 
         private static void FitnessFunction<T>(Manipulator agent, Point goal, Chromosome<T>[] Chs, double[] Fit, Func<T, double> decode)
@@ -120,19 +156,37 @@ namespace Logic
             Manipulator Contestant = new Manipulator(agent);
             for (int i = 0; i < Chs.Length; i++)
             {
-                // extract parameters' values from chromosome
-                double[] dq = Chs[i].GetParamAll(decode);
-                Contestant.q = agent.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
+                Fit[i] = 0;
 
-                // apply fitness functions to the given chromosome
-                Fit[i] = Contestant.DistanceTo(goal);
+                Contestant.q = Misc.CopyArray(agent.q);
+                Point contPrevPos = agent.GripperPos;
+
+                // extract parameters' values from chromosome
+                for (int j = 0; j < Chs[i].PointsNum; j++)
+                {
+                    double[] dq = Chs[i].GetParamSpecific(j, decode);
+                    Contestant.q = Contestant.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
+
+                    // apply fitness functions to the given chromosome's point
+                    double desDist = 0.1;
+                    Point prevPos = contPrevPos;
+                    Point currPos = Contestant.GripperPos;
+
+                    double currDist = currPos.DistanceTo(prevPos);
+                    if (currDist <= desDist)
+                        Fit[i] += currDist / desDist;
+                    else
+                        Fit[i] += desDist / currDist;
+
+                    contPrevPos = Contestant.GripperPos;
+                }
             }
         }
 
         private static void RouletteWheelSelection<T>(Chromosome<T>[] Chs, double[] Fit)
         {
             Chromosome<T>[] selection = new Chromosome<T>[Chs.Length];
-            double total = 0;
+            /*double total = 0;
             for (int i = 0; i < Chs.Length; i++)
             {
                 total += 1 / Fit[i];
@@ -140,7 +194,13 @@ namespace Logic
 
             double[] sectors = new double[Chs.Length];
             for (int i = 0; i < Chs.Length; i++)
-                sectors[i] = (1 / Fit[i]) / total * 100;
+                sectors[i] = (1 / Fit[i]) / total * 100;*/
+
+            double total = Fit.Sum();
+
+            double[] sectors = new double[Chs.Length];
+            for (int i = 0; i < Chs.Length; i++)
+                sectors[i] = Fit[i] / total * 100;
 
             // randomly select crossing chromosomes according to their weights
             for (int i = 0; i < Chs.Length; i++)
@@ -166,10 +226,13 @@ namespace Logic
             // randomly choose among chromosomes the mutating ones
             foreach (Chromosome<T> chr in chs)
             {
-                for (int i = 0; i < chr.ParamNum; i++)
+                if (Rng.NextDouble() < mutationProb)
                 {
-                    if (Rng.NextDouble() < mutationProb)
-                        chr.Genes[i] = mutate(chr.Genes[i]);
+                    for (int i = 0; i < chr.PointsNum * chr.ParamNum; i++)
+                    {
+                        if (Rng.NextDouble() < mutationProb)
+                            chr.Genes[i] = mutate(chr.Genes[i]);
+                    }
                 }
             }
         }
@@ -196,24 +259,33 @@ namespace Logic
             // crossover
             for (int i = 0; i < pairs.Length / 2; i++)
             {
-                int point = Rng.Next(0, Chs[0].ParamNum - 1);
-                T[] Ch1 = new T[Chs[0].ParamNum], Ch2 = new T[Chs[0].ParamNum];
-                for (int j = 0; j < Chs[0].ParamNum; j++)
+                int point = Rng.Next(0, Chs[0].PointsNum - 1);
+                Chromosome<T> Ch1 = new Chromosome<T>(Chs[0].PointsNum, Chs[0].ParamNum), 
+                              Ch2 = new Chromosome<T>(Chs[0].PointsNum, Chs[0].ParamNum);
+                for (int j = 0; j < Chs[0].PointsNum; j++)
                 {
                     if (j <= point)
                     {
-                        Ch1[j] = Chs[pairs[2 * i]].Genes[j];
-                        Ch2[j] = Chs[pairs[2 * i + 1]].Genes[j];
+                        for (int k = 0; k < Chs[0].ParamNum; k++)
+                        {
+                            int index = k + j * Chs[0].ParamNum;
+                            Ch1.Genes[index] = Chs[pairs[2 * i]].Genes[index];
+                            Ch2.Genes[index] = Chs[pairs[2 * i + 1]].Genes[index];
+                        }
                     }
                     else
                     {
-                        Ch1[j] = Chs[pairs[2 * i + 1]].Genes[j];
-                        Ch2[j] = Chs[pairs[2 * i]].Genes[j];
+                        for (int k = 0; k < Chs[0].ParamNum; k++)
+                        {
+                            int index = k + j * Chs[0].ParamNum;
+                            Ch1.Genes[index] = Chs[pairs[2 * i + 1]].Genes[index];
+                            Ch2.Genes[index] = Chs[pairs[2 * i]].Genes[index];
+                        }
                     }
                 }
 
-                crossed[2 * i] = new Chromosome<T>(Ch1);
-                crossed[2 * i + 1] = new Chromosome<T>(Ch2);
+                crossed[2 * i] = Ch1;
+                crossed[2 * i + 1] = Ch2;
             }
 
             crossed.CopyTo(Chs, 0);

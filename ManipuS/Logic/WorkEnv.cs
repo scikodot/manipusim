@@ -121,7 +121,8 @@ namespace Logic
         public List<double[]> Configs;
         public Tree Tree;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
-        public List<Attractor> Attractors;
+        public List<Attractor> GoodAttractors, BadAttractors;
+        public Point[] points;
         public Dictionary<string, bool> States;
 
         public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)

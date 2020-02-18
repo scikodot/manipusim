@@ -31,11 +31,13 @@ namespace Logic
             {
                 Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Point(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].points_num, new Random()), ColliderShape.Sphere);
             }
-        }
 
-        public static void Execute(Manipulator manip)
-        {
-            manip.Attractors = new List<Attractor>();
+            var manip = Manipulators[0];
+            manip.points = PathPlanner.GeneticAlgorithm(manip, manip.Goal, 45, manip.Joints.Length, 50, 0.3, 1000, t => t * Math.PI / 180);
+
+            /*var manip = Manipulators[0];
+            manip.GoodAttractors = new List<Attractor>();
+            manip.BadAttractors = new List<Attractor>();
 
             Random rng = new Random();
             double work_radius = manip.WorkspaceRadius, x, y_pos, y, z_pos, z;
@@ -48,13 +50,13 @@ namespace Logic
             double r = Dispatcher.WorkspaceBuffer.AlgBuffer.d * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
             Point[] AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
 
-            manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
+            manip.GoodAttractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
             manip.States["Goal"] = true;
 
             var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
             // adding ancillary attractors
-            while (manip.Attractors.Count < AD.AttrNum)
+            while (manip.GoodAttractors.Count < AD.AttrNum)
             {
                 // generating attractor point
                 x = -work_radius + rng.NextDouble() * 2 * work_radius;
@@ -75,21 +77,30 @@ namespace Logic
                         break;
                     }
                 }
-                
+
+                // adding attractor to the list
+                AttrPoint = p;
+
+                AttrWeight = manip.DistanceTo(p) + manip.Goal.DistanceTo(p);
+
+                r = AD.d * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
+                AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
+
                 if (!collision)
                 {
-                    // adding attractor to the list
-                    AttrPoint = p;
-
-                    AttrWeight = manip.DistanceTo(p) + manip.Goal.DistanceTo(p);
-
-                    r = AD.d * Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
-                    AttrArea = Primitives.Sphere(r, AttrPoint, 64, new Random());
-
-                    manip.Attractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
+                    manip.GoodAttractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
+                }
+                else
+                {
+                    manip.BadAttractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
                 }
             }
-            manip.States["Attractors"] = true;
+            manip.States["Attractors"] = true;*/
+        }
+
+        public static void Execute(Manipulator manip)
+        {
+            var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
             // generating random tree
             PathPlanner.RRT(manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d);

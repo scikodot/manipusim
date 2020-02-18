@@ -14,7 +14,7 @@ namespace Logic
             agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));
 
             // sorting attractors for easier work
-            var Attractors = new List<Attractor>(agent.Attractors);
+            var Attractors = new List<Attractor>(agent.GoodAttractors);
             Attractors.Sort((t, s) => { return t.Weight <= s.Weight ? (t.Weight < s.Weight ? -1 : 0) : 1; });
 
             var a = Attractors[0];

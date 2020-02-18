@@ -92,7 +92,7 @@ namespace Graphics
         Entity[] obstacles, boundings, lon;
         Entity[] goal, configs, path;
         List<Entity>[] tree;
-        Entity cloud, traj;
+        Entity cloud, traj, attrGood, attrBad;
         
         // variables for mouse state processing
         private bool _firstMove = true;
@@ -387,8 +387,8 @@ namespace Graphics
                     {
                         if (manip.States["Goal"])
                         {
-                            List<Point> MainAttr = new List<Point> { manip.Attractors[0].Center };
-                            MainAttr.AddRange(manip.Attractors[0].Area);
+                            List<Point> MainAttr = new List<Point> { manip.GoodAttractors[0].Center };
+                            MainAttr.AddRange(manip.GoodAttractors[0].Area);
                             goal[j] = new Entity(lineShader, GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
                         }
                     }
@@ -400,7 +400,7 @@ namespace Graphics
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
                             GL.PointSize(1);
-                            GL.DrawArrays(PrimitiveType.Points, 1, manip.Attractors[0].Area.Length);
+                            GL.DrawArrays(PrimitiveType.Points, 1, manip.GoodAttractors[0].Area.Length);
                         });
                     }
 
@@ -470,15 +470,28 @@ namespace Graphics
                         joints[2].q = time;*/
 
                         model = Matrix4.Identity;
+                        if (traj == null)
+                        {
+                            traj = new Entity(lineShader, GL_Convert(manip.points, new Vector4(1, 0, 0, 1)));
+                        }
+                        else
+                        {
+                            traj.Display(model, () =>
+                            {
+                                GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.points.Length);
+                            });
+                        }
+
+                        /*model = Matrix4.Identity;
                         if (cloud == null)
                         {
                             var rng = new Random();
                             var data = new List<Point>();
                             while (data.Count < 1000)
                             {
-                                joints[0].q += (-10 + 20 * rng.NextDouble()) * Math.PI / 180;
-                                joints[1].q += (-10 + 20 * rng.NextDouble()) * Math.PI / 180;
-                                joints[2].q += (-10 + 20 * rng.NextDouble()) * Math.PI / 180;
+                                joints[0].q += (joints[0].qRanges[0] + (joints[0].qRanges[1] - joints[0].qRanges[0]) * rng.NextDouble()) * Math.PI / 180;
+                                joints[1].q += (joints[1].qRanges[0] + (joints[1].qRanges[1] - joints[1].qRanges[0]) * rng.NextDouble()) * Math.PI / 180;
+                                joints[2].q += (joints[2].qRanges[0] + (joints[2].qRanges[1] - joints[2].qRanges[0]) * rng.NextDouble()) * Math.PI / 180;
 
                                 var shit = Manager.Manipulators[0].GripperPos;
                                 foreach (var point in data)
@@ -514,7 +527,39 @@ namespace Graphics
                             {
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 50);
                             });
+                        }*/
+
+                        /*model = Matrix4.Identity;
+                        if (attrGood == null)
+                        {
+                            var points = new Point[manip.GoodAttractors.Count];
+                            for (int i = 0; i < points.Length; i++)
+                            {
+                                points[i] = manip.GoodAttractors[i].Center;
+                            }
+
+                            attrGood = new Entity(lineShader, GL_Convert(points, Vector4.UnitW));
+
+                            points = new Point[manip.BadAttractors.Count];
+                            for (int i = 0; i < points.Length; i++)
+                            {
+                                points[i] = manip.BadAttractors[i].Center;
+                            }
+
+                            attrBad = new Entity(lineShader, GL_Convert(points, new Vector4(1, 0, 0, 1)));
                         }
+                        else
+                        {
+                            attrGood.Display(model, () =>
+                            {
+                                GL.PointSize(3);
+                                GL.DrawArrays(PrimitiveType.Points, 0, manip.GoodAttractors.Count);
+                            });
+                            attrBad.Display(model, () =>
+                            {
+                                GL.DrawArrays(PrimitiveType.Points, 0, manip.BadAttractors.Count);
+                            });
+                        }*/
 
                         model = Matrix4.Identity;
 
