@@ -443,9 +443,9 @@ namespace Graphics
                             model = Matrix4.Identity;
                             path[j].Display(model, () =>
                             {
-                                GL.Disable(EnableCap.DepthTest);  // disabling depth test to let the path vertices overlap the tree
+                                //GL.Disable(EnableCap.DepthTest);  // disabling depth test to let the path vertices overlap the tree
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.Path.Count);
-                                GL.Enable(EnableCap.DepthTest);
+                                //GL.Enable(EnableCap.DepthTest);
                             });
                         }
                     }
@@ -470,16 +470,19 @@ namespace Graphics
                         joints[2].q = time;*/
 
                         model = Matrix4.Identity;
-                        if (traj == null)
+                        if (manip.points != null)
                         {
-                            traj = new Entity(lineShader, GL_Convert(manip.points, new Vector4(1, 0, 0, 1)));
-                        }
-                        else
-                        {
-                            traj.Display(model, () =>
+                            if (traj == null)
                             {
-                                GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.points.Length);
-                            });
+                                traj = new Entity(lineShader, GL_Convert(manip.points, new Vector4(1, 0, 0, 1)));
+                            }
+                            else
+                            {
+                                traj.Display(model, () =>
+                                {
+                                    GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.points.Length);
+                                });
+                            }
                         }
 
                         /*model = Matrix4.Identity;

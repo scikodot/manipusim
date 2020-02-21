@@ -60,15 +60,15 @@ static class Dispatcher
 
         public static ObstData[] ObstBuffer =
         {
-                /*new ObstData
+                new ObstData
                 {
-                    r = 1,
-                    c = new System.Numerics.Vector3(0, 2f, 0),
+                    r = 0.5f,
+                    c = new System.Numerics.Vector3(0, 2f, 1f),
                     points_num = 2000,
 
                     ShowBounding = true
-                },
-                new ObstData
+                }
+                /*new ObstData
                 {
                     r = 1,
                     c = new System.Numerics.Vector3(-2.2f, 3.5f, 0),

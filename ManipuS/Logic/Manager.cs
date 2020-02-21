@@ -33,9 +33,6 @@ namespace Logic
             }
 
             var manip = Manipulators[0];
-            manip.points = PathPlanner.GeneticAlgorithm(manip, manip.Goal, 45, manip.Joints.Length, 50, 0.3, 1000, t => t * Math.PI / 180);
-
-            /*var manip = Manipulators[0];
             manip.GoodAttractors = new List<Attractor>();
             manip.BadAttractors = new List<Attractor>();
 
@@ -95,7 +92,7 @@ namespace Logic
                     manip.BadAttractors.Add(new Attractor(AttrPoint, AttrWeight, AttrArea, r));
                 }
             }
-            manip.States["Attractors"] = true;*/
+            manip.States["Attractors"] = true;
         }
 
         public static void Execute(Manipulator manip)
@@ -103,44 +100,14 @@ namespace Logic
             var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
             // generating random tree
-            PathPlanner.RRT(manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d);
+            var resRRT = PathPlanner.RRT(manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d, false);
 
-            // retrieving resultant path along with respective configurations
-            Tree.Node start = manip.Tree.Min(manip.Goal), node_curr = start;
-            List<Point> path = new List<Point>();
-            List<double[]> configs = new List<double[]>();
-            for (int i = start.Layer; i >= 0; i--)
-            {
-                if (node_curr.Layer == i)
-                {
-                    path.Add(node_curr.p);
-                    configs.Add(node_curr.q);
-                    if (node_curr.Parent != null)
-                    {
-                        int pointsNum = node_curr.Layer - node_curr.Parent.Layer - 1;
-                        if (pointsNum > 0)
-                        {
-                            Tree.Node[] nodes = Tree.Discretize(node_curr, node_curr.Parent, pointsNum);
-                            foreach (var node in nodes)
-                            {
-                                configs.Add(node.q);
-                            }
-                        }
-                    }
+            var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 0.99, manip.Joints.Length, 10, 0.1, 10000, t => t * Math.PI / 180);
 
-                    node_curr = node_curr.Parent;
-                }
-            }
-
-            // reverting path so that it goes from root to goal
-            path.Reverse();
-            configs.Reverse();
-
-            manip.Path = path;
+            // acquiring all the points and configurations along the path
+            manip.Path = resGA.Item1;
             manip.States["Path"] = true;
-
-            // acquiring all the configurations along the path
-            manip.Configs = new List<double[]>(configs);
+            manip.Configs = resGA.Item2;
         }
     }
 }

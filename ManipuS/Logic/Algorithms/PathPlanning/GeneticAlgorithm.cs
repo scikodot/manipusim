@@ -11,13 +11,17 @@ namespace Logic
     {
         public int ParamNum;
         public int PointsNum;
-        public T[] Genes;
+        public T[][] Genes;
 
         public Chromosome(int pointsNum, int paramNum)
         {
             PointsNum = pointsNum;
             ParamNum = paramNum;
-            Genes = new T[PointsNum * ParamNum];
+            Genes = new T[PointsNum][];
+            for (int i = 0; i < PointsNum; i++)
+            {
+                Genes[i] = new T[ParamNum];
+            }
         }
 
         /*public Chromosome(T[] genes)
@@ -26,30 +30,26 @@ namespace Logic
             Genes = genes;
         }*/
 
-        public T GetParam(int num)
+        public T GetParam(int point, int param)
         {
-            return Genes[num];
+            return Genes[point][param];
         }
 
-        public T[] GetParamSpecific(int point)
+        public T[] GetGene(int point)
         {
-            T[] _params = new T[ParamNum];
-            for (int i = 0; i < ParamNum; i++)
-                _params[i] = GetParam(i + point * ParamNum);
-
-            return _params;
+            return Genes[point];
         }
 
-        public S[] GetParamSpecific<S>(int point, Func<T, S> func)
+        public S[] GetGene<S>(int point, Func<T, S> func)
         {
             S[] _params = new S[ParamNum];
             for (int i = 0; i < ParamNum; i++)
-                _params[i] = func(GetParam(i + point * ParamNum));
+                _params[i] = func(GetParam(point, i));
 
             return _params;
         }
 
-        public T[] GetParamAll()
+        /*public T[] GetParamAll()
         {
             return Genes;
         }
@@ -66,29 +66,61 @@ namespace Logic
         public string StrRep()
         {
             return string.Join("", Genes);
-        }
+        }*/
     }
 
     static partial class PathPlanner
     {
-        public static Point[] GeneticAlgorithm(Manipulator agent, Point goal, double precision, int paramNum, int genSize, double mutationProb, int maxTime, Func<double, double> decode)
+        public static (List<Point>, List<double[]>) GeneticAlgorithm(Manipulator agent, Obstacle[] obstacles, Point goal, double[][] initConfigs, double precision, int paramNum, int genSize, double mutationProb, int maxTime, Func<double, double> decode)
         {
+            double[][] initSolution = new double[initConfigs.Length - 1][];
+            Array.Copy(initConfigs, 1, initSolution, 0, initConfigs.Length - 1);
+
             var chs = new Chromosome<double>[genSize];
             var fit = new double[genSize];
 
-            int pointsNum = 50;
+            int pointsNum = initSolution.Length;
             for (int i = 0; i < genSize; i++)
             {
                 chs[i] = new Chromosome<double>(pointsNum, paramNum);
+                var param = Rng.Next(0, paramNum);
+                var offset = -10 + 20 * Rng.NextDouble();
                 for (int j = 0; j < pointsNum; j++)
                 {
                     for (int k = 0; k < paramNum; k++)
-                        chs[i].Genes[k + j * paramNum] = -1 + 2 * Rng.NextDouble();  //agent.Joints[k].qRanges[0] + (agent.Joints[k].qRanges[1] - agent.Joints[k].qRanges[0]) * Rng.NextDouble();
+                    {
+                        chs[i].Genes[j][k] = initSolution[j][k] * 180 / Math.PI;
+                        if (k == param)
+                            chs[i].Genes[j][k] += offset;
+                    }
+                    
+                    /*for (int k = 0; k < paramNum; k++)
+                        chs[i].Genes[j][k] = (initSolution[j][k] * 180 / Math.PI) + offset;  //agent.Joints[k].qRanges[0] + (agent.Joints[k].qRanges[1] - agent.Joints[k].qRanges[0]) * Rng.NextDouble();
+
+                    /*if (j == 0)
+                        chs[i].Genes[j] = chs[i].Genes[j].Zip(agent.q, (t, s) => t + s).ToArray();
+                    else
+                        chs[i].Genes[j] = chs[i].Genes[j].Zip(chs[i].Genes[j - 1], (t, s) => t + s).ToArray();*/
+
+                    //chs[i].Genes[j] = Array.ConvertAll(Misc.CopyArray(configs[j]), (t) => t * 180 / Math.PI);
                 }
+
+                /*if (i == 0)
+                {
+                    Manipulator temp = new Manipulator(agent);
+                    List<Point> points = new List<Point>();
+                    for (int j = 0; j < chs[i].PointsNum; j++)
+                    {
+                        var config = chs[i].GetGene(j, decode);
+                        temp.q = Misc.CopyArray(config);
+                        points.Add(temp.GripperPos);
+                    }
+                    agent.points = points.ToArray();
+                }*/
             }
 
             Chromosome<double> dominant = null;
-            double max = double.PositiveInfinity;
+            double max = 0;
             bool converged = false;
             int time = 0;
             Stopwatch sw = new Stopwatch();
@@ -101,12 +133,14 @@ namespace Logic
                 }
 
                 // fitting
-                FitnessFunction(agent, goal, chs, fit, decode);
+                FitnessFunction(agent, obstacles, goal, chs, fit, decode);
                 //Array.ConvertAll(fit, (t) => { return Math.Abs(t); });
 
                 // qualification
                 max = fit.Max();
-                if (max > precision)
+                Console.SetCursorPosition(0, 10);
+                Console.WriteLine($"Max fit: {max}");
+                if (max > precision * pointsNum * 100)
                 {
                     dominant = chs[Array.IndexOf(fit, max)];
                     converged = true;
@@ -117,10 +151,11 @@ namespace Logic
                 RouletteWheelSelection(chs, fit);
 
                 // mutation
-                Mutation(chs, mutationProb, t => t + -0.2 + 0.4 * Rng.NextDouble());
+                var mutationStrength = -5 + 10 * Rng.NextDouble();
+                Mutation(chs, mutationProb, t => t + mutationStrength);
 
                 // crossover
-                Crossover(chs);
+                Crossover(chs, fit);
             }
             sw.Stop();
             Console.WriteLine("GA Time: {0}; Real time: {1}", time, sw.ElapsedTicks / 10);
@@ -132,93 +167,159 @@ namespace Logic
             }
 
             // chromosome
-            var points = new Point[chs[0].PointsNum];
+            List<Point> path = new List<Point>();
+            List<double[]> configs = new List<double[]>();
             Manipulator AgentNext = new Manipulator(agent);
-            for (int i = 0; i < chs[0].PointsNum; i++)
+            configs.Add(AgentNext.q);
+            path.Add(AgentNext.GripperPos);
+            for (int i = 0; i < pointsNum; i++)
             {
-                double[] dq = dominant.GetParamSpecific(i, decode);
-                AgentNext.q = AgentNext.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
-                points[i] = AgentNext.GripperPos;
+                var config = dominant.GetGene(i, decode);
+                AgentNext.q = Misc.CopyArray(config);
+                configs.Add(config);
+                path.Add(AgentNext.GripperPos);
             }
 
-            //detect all collisions
+            // detect all collisions
             /*Manipulator AgentNext = new Manipulator(agent)
             {
                 q = agent.q.Zip(dq, (t, s) => { return t + s; }).ToArray()
             };
             bool[] Collisions = DetectCollisions(AgentNext);*/
 
-            return points;
+            return (path, configs);
         }
 
-        private static void FitnessFunction<T>(Manipulator agent, Point goal, Chromosome<T>[] Chs, double[] Fit, Func<T, double> decode)
+        private static void FitnessFunction<T>(Manipulator agent, Obstacle[] obstacles, Point goal, Chromosome<T>[] chs, double[] fit, Func<T, double> decode)
         {
             Manipulator Contestant = new Manipulator(agent);
-            for (int i = 0; i < Chs.Length; i++)
+            //Vector goalVec = new Vector(goal);
+            for (int i = 0; i < chs.Length; i++)
             {
-                Fit[i] = 0;
+                fit[i] = 0;
 
                 Contestant.q = Misc.CopyArray(agent.q);
-                Point contPrevPos = agent.GripperPos;
+                //Point contPrevPos = agent.GripperPos;
 
+                //double desDist = 0.1, currDist;
+                //Vector vec;
                 // extract parameters' values from chromosome
-                for (int j = 0; j < Chs[i].PointsNum; j++)
+                for (int j = 0; j < chs[i].PointsNum; j++)
                 {
-                    double[] dq = Chs[i].GetParamSpecific(j, decode);
-                    Contestant.q = Contestant.q.Zip(dq, (t, s) => { return t + s; }).ToArray();
+                    Contestant.q = Misc.CopyArray(chs[i].GetGene(j, decode));
 
                     // apply fitness functions to the given chromosome's point
-                    double desDist = 0.1;
-                    Point prevPos = contPrevPos;
+                    //Point prevPos = contPrevPos;
                     Point currPos = Contestant.GripperPos;
 
-                    double currDist = currPos.DistanceTo(prevPos);
-                    if (currDist <= desDist)
-                        Fit[i] += currDist / desDist;
-                    else
-                        Fit[i] += desDist / currDist;
+                    foreach (var obst in obstacles)
+                    {
+                        if (obst.Contains(currPos))
+                        {
+                            fit[i] += 100 * Math.Pow(currPos.DistanceTo(((Sphere)obst.Collider).Center) / ((Sphere)obst.Collider).Radius, 4);
+                        }
+                        else
+                        {
+                            fit[i] += 100;
+                        }
+                    }
 
-                    contPrevPos = Contestant.GripperPos;
+                    /*currDist = currPos.DistanceTo(prevPos);
+                    if (currDist <= desDist)
+                        fit[i] += currDist / desDist;
+                    else
+                        fit[i] += desDist / currDist;*/
+                    //fit[i] += currPos.DistanceTo(prevPos);
+                    //vec = new Vector(prevPos, currPos);
+                    //fit[i] += Math.Abs(Math.Acos((vec.x * goalVec.x + vec.y * goalVec.y + vec.z * goalVec.z) / (vec.Length * goalVec.Length))) * 180 / Math.PI;
+
+                    //contPrevPos = Contestant.GripperPos;
                 }
+
+                /*currDist = goal.DistanceTo(contPrevPos);
+                if (currDist <= desDist)
+                    fit[i] += currDist / desDist;
+                else
+                    fit[i] += desDist / currDist;*/
+                //fit[i] += goal.DistanceTo(contPrevPos);
+                //vec = new Vector(contPrevPos, goal);
+                //fit[i] += Math.Abs(Math.Acos((vec.x * goalVec.x + vec.y * goalVec.y + vec.z * goalVec.z) / (vec.Length * goalVec.Length))) * 180 / Math.PI;
             }
         }
 
-        private static void RouletteWheelSelection<T>(Chromosome<T>[] Chs, double[] Fit)
+        private static void RouletteWheelSelection<T>(Chromosome<T>[] chs, double[] fit)  // TODO: add different selection types, preferably by normal distribution (because for dense generations roulette wheel gives almost uniform distribution)
         {
-            Chromosome<T>[] selection = new Chromosome<T>[Chs.Length];
+            Chromosome<T>[] selection = new Chromosome<T>[chs.Length];
+
             /*double total = 0;
-            for (int i = 0; i < Chs.Length; i++)
+            for (int i = 0; i < chs.Length; i++)
             {
-                total += 1 / Fit[i];
+                total += 1 / fit[i];
             }
 
-            double[] sectors = new double[Chs.Length];
-            for (int i = 0; i < Chs.Length; i++)
-                sectors[i] = (1 / Fit[i]) / total * 100;*/
+            double[] sectors = new double[chs.Length];
+            for (int i = 0; i < chs.Length; i++)
+                sectors[i] = (1 / fit[i]) / total * 100;
 
-            double total = Fit.Sum();
+            double total = fit.Sum();
 
-            double[] sectors = new double[Chs.Length];
-            for (int i = 0; i < Chs.Length; i++)
-                sectors[i] = Fit[i] / total * 100;
+            double[] sectors = new double[chs.Length];
+            for (int i = 0; i < chs.Length; i++)
+                sectors[i] = fit[i] / total * 100;
 
             // randomly select crossing chromosomes according to their weights
-            for (int i = 0; i < Chs.Length; i++)
+            for (int i = 0; i < chs.Length; i++)
             {
                 double num = Rng.NextDouble() * 100, seek = 0;
 
-                for (int j = 0; j < Chs.Length; j++)
+                for (int j = 0; j < chs.Length; j++)
                 {
                     seek += sectors[j];
                     if (num < seek)
                     {
-                        selection[i] = Chs[j];
+                        selection[i] = chs[j];
                         break;
                     }
                 }
+            }*/
+
+            var fitList = fit
+                .Select((x, i) => new KeyValuePair<int, double>(i, x))
+                .OrderBy(x => x.Value)
+                .ToList();
+            var fitValues = fitList.Select(x => x.Value).ToList();
+            var fitKeys = fitList.Select(x => x.Key).ToList();
+            var min = fitValues[0];
+            var max = fitValues[fitValues.Count - 1];
+            double num;
+            int index = 0;
+            for (int i = 0; i < chs.Length; i++)
+            {
+                /*num = Misc.BoxMullerTransform(Rng, min, (max - min) / 3);
+                if (num <= min)
+                    index = fitKeys[0];
+                else if (num >= max)
+                    index = fitKeys[fitValues.Count - 1];
+                else
+                    index = fitKeys[fitValues.FindIndex(x => x < num)];*/
+
+                num = Misc.BoxMullerTransform(Rng, max, (max - min) / 3);
+                if (num <= min)
+                    index = fitKeys[0];
+                else if (num >= max)
+                {
+                    var diff = num - max;
+                    num = max - diff;
+                    index = fitKeys[fitValues.FindIndex(x => x > num)];
+                }
+                    //index = fitKeys[fitValues.Count - 1];
+                else
+                    index = fitKeys[fitValues.FindIndex(x => x > num)];
+
+                selection[i] = chs[index];
             }
 
-            selection.CopyTo(Chs, 0);
+            selection.CopyTo(chs, 0);
         }
 
         private static void Mutation<T>(Chromosome<T>[] chs, double mutationProb, Func<T, T> mutate)
@@ -228,22 +329,22 @@ namespace Logic
             {
                 if (Rng.NextDouble() < mutationProb)
                 {
-                    for (int i = 0; i < chr.PointsNum * chr.ParamNum; i++)
+                    var param = Rng.Next(0, chr.ParamNum);
+                    for (int i = 0; i < chr.PointsNum; i++)
                     {
-                        if (Rng.NextDouble() < mutationProb)
-                            chr.Genes[i] = mutate(chr.Genes[i]);
+                        chr.Genes[i][param] = mutate(chr.Genes[i][param]);
                     }
                 }
             }
         }
 
-        private static void Crossover<T>(Chromosome<T>[] Chs)  // TODO: add different crossover types
+        private static void Crossover(Chromosome<double>[] chs, double[] fit)  // TODO: add different crossover types
         {
-            Chromosome<T>[] crossed = new Chromosome<T>[Chs.Length];
+            Chromosome<double>[] crossed = new Chromosome<double>[chs.Length];
 
             // form pairs
-            int[] pairs = new int[Chs.Length];
-            for (int i = 0; i < Chs.Length; i++)
+            int[] pairs = new int[chs.Length];
+            for (int i = 0; i < chs.Length; i++)
                 pairs[i] = i;
 
             // shuffle array of pairs to make them random
@@ -256,39 +357,66 @@ namespace Logic
                 pairs[k] = t;
             }
 
+            double G1, G2, W1, W2;
             // crossover
             for (int i = 0; i < pairs.Length / 2; i++)
             {
-                int point = Rng.Next(0, Chs[0].PointsNum - 1);
-                Chromosome<T> Ch1 = new Chromosome<T>(Chs[0].PointsNum, Chs[0].ParamNum), 
-                              Ch2 = new Chromosome<T>(Chs[0].PointsNum, Chs[0].ParamNum);
-                for (int j = 0; j < Chs[0].PointsNum; j++)
+                int point = Rng.Next(0, chs[0].PointsNum - 1);
+                Chromosome<double> ch1 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum), 
+                                   ch2 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum);
+                /*for (int j = 0; j < chs[0].PointsNum; j++)
                 {
                     if (j <= point)
                     {
-                        for (int k = 0; k < Chs[0].ParamNum; k++)
-                        {
-                            int index = k + j * Chs[0].ParamNum;
-                            Ch1.Genes[index] = Chs[pairs[2 * i]].Genes[index];
-                            Ch2.Genes[index] = Chs[pairs[2 * i + 1]].Genes[index];
-                        }
+                        ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
+                        ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
                     }
                     else
                     {
-                        for (int k = 0; k < Chs[0].ParamNum; k++)
+                        ch1.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+                        ch2.Genes[j] = chs[pairs[2 * i]].Genes[j];
+                    }
+                }*/
+
+                W1 = fit[pairs[2 * i]];
+                W2 = fit[pairs[2 * i + 1]];
+                for (int j = 0; j < chs[0].PointsNum; j++)
+                {
+                    if (j <= point)
+                    {
+                        ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
+                        ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+                    }
+                    else
+                    {
+                        for (int k = 0; k < chs[0].ParamNum; k++)
                         {
-                            int index = k + j * Chs[0].ParamNum;
-                            Ch1.Genes[index] = Chs[pairs[2 * i + 1]].Genes[index];
-                            Ch2.Genes[index] = Chs[pairs[2 * i]].Genes[index];
+                            G1 = chs[pairs[2 * i]].Genes[j][k];
+                            G2 = chs[pairs[2 * i + 1]].Genes[j][k];
+                            ch1.Genes[j][k] = (G1 * W1 + G2 * W2) / (W1 + W2);
+                            ch2.Genes[j][k] = (G1 * W2 + G2 * W1) / (W1 + W2);
                         }
                     }
                 }
 
-                crossed[2 * i] = Ch1;
-                crossed[2 * i + 1] = Ch2;
+                /*W1 = fit[pairs[2 * i]];
+                W2 = fit[pairs[2 * i + 1]];
+                for (int j = 0; j < chs[0].PointsNum; j++)
+                {
+                    for (int k = 0; k < chs[0].ParamNum; k++)
+                    {
+                        G1 = chs[pairs[2 * i]].Genes[j][k];
+                        G2 = chs[pairs[2 * i + 1]].Genes[j][k];
+                        ch1.Genes[j][k] = (G1 * W1 + G2 * W2) / (W1 + W2);
+                        ch2.Genes[j][k] = (G1 * W2 + G2 * W1) / (W1 + W2);
+                    }
+                }*/
+
+                crossed[2 * i] = ch1;
+                crossed[2 * i + 1] = ch2;
             }
 
-            crossed.CopyTo(Chs, 0);
+            crossed.CopyTo(chs, 0);
         }
     }
 }
