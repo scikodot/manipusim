@@ -48,30 +48,11 @@ namespace Logic
 
             return _params;
         }
-
-        /*public T[] GetParamAll()
-        {
-            return Genes;
-        }
-
-        public S[] GetParamAll<S>(Func<T, S> func)
-        {
-            S[] _params = new S[ParamNum];
-            for (int i = 0; i < ParamNum; i++)
-                _params[i] = func(GetParam(i));
-
-            return _params;
-        }
-
-        public string StrRep()
-        {
-            return string.Join("", Genes);
-        }*/
     }
 
     static partial class PathPlanner
     {
-        public static (List<Point>, List<double[]>) GeneticAlgorithm(Manipulator agent, Obstacle[] obstacles, Point goal, double[][] initConfigs, double precision, int paramNum, int genSize, double mutationProb, int maxTime, Func<double, double> decode)
+        public static (List<Point>, List<double[]>) GeneticAlgorithm(Manipulator agent, Obstacle[] obstacles, Point goal, double[][] initConfigs, double precision, int paramNum, int genSize, double crossoverProb, double mutationProb, int maxTime, Func<double, double> decode)
         {
             double[][] initSolution = new double[initConfigs.Length - 1][];
             Array.Copy(initConfigs, 1, initSolution, 0, initConfigs.Length - 1);
@@ -93,16 +74,6 @@ namespace Logic
                         if (k == param)
                             chs[i].Genes[j][k] += offset;
                     }
-                    
-                    /*for (int k = 0; k < paramNum; k++)
-                        chs[i].Genes[j][k] = (initSolution[j][k] * 180 / Math.PI) + offset;  //agent.Joints[k].qRanges[0] + (agent.Joints[k].qRanges[1] - agent.Joints[k].qRanges[0]) * Rng.NextDouble();
-
-                    /*if (j == 0)
-                        chs[i].Genes[j] = chs[i].Genes[j].Zip(agent.q, (t, s) => t + s).ToArray();
-                    else
-                        chs[i].Genes[j] = chs[i].Genes[j].Zip(chs[i].Genes[j - 1], (t, s) => t + s).ToArray();*/
-
-                    //chs[i].Genes[j] = Array.ConvertAll(Misc.CopyArray(configs[j]), (t) => t * 180 / Math.PI);
                 }
 
                 /*if (i == 0)
@@ -148,14 +119,14 @@ namespace Logic
                 }
 
                 // selection
-                RouletteWheelSelection(chs, fit);
+                RouletteWheelSelection(chs, fit, SelectionMode.NormalDistribution, OptimizationMode.Maximum);
 
                 // mutation
                 var mutationStrength = -5 + 10 * Rng.NextDouble();
                 Mutation(chs, mutationProb, t => t + mutationStrength);
 
                 // crossover
-                Crossover(chs, fit);
+                Crossover(chs, fit, crossoverProb, CrossoverMode.WeightedMean);
             }
             sw.Stop();
             Console.WriteLine("GA Time: {0}; Real time: {1}", time, sw.ElapsedTicks / 10);
@@ -188,6 +159,12 @@ namespace Logic
             bool[] Collisions = DetectCollisions(AgentNext);*/
 
             return (path, configs);
+        }
+
+        enum OptimizationMode
+        {
+            Maximum,
+            Minimum
         }
 
         private static void FitnessFunction<T>(Manipulator agent, Obstacle[] obstacles, Point goal, Chromosome<T>[] chs, double[] fit, Func<T, double> decode)
@@ -247,76 +224,105 @@ namespace Logic
             }
         }
 
-        private static void RouletteWheelSelection<T>(Chromosome<T>[] chs, double[] fit)  // TODO: add different selection types, preferably by normal distribution (because for dense generations roulette wheel gives almost uniform distribution)
+        enum SelectionMode
+        {
+            RouletteWheel,
+            NormalDistribution
+        }
+
+        private static void RouletteWheelSelection<T>(Chromosome<T>[] chs, double[] fit, SelectionMode selectMode, OptimizationMode optimizeMode)
         {
             Chromosome<T>[] selection = new Chromosome<T>[chs.Length];
 
-            /*double total = 0;
-            for (int i = 0; i < chs.Length; i++)
+            // select chromosomes with the specified mode
+            switch (selectMode)
             {
-                total += 1 / fit[i];
-            }
-
-            double[] sectors = new double[chs.Length];
-            for (int i = 0; i < chs.Length; i++)
-                sectors[i] = (1 / fit[i]) / total * 100;
-
-            double total = fit.Sum();
-
-            double[] sectors = new double[chs.Length];
-            for (int i = 0; i < chs.Length; i++)
-                sectors[i] = fit[i] / total * 100;
-
-            // randomly select crossing chromosomes according to their weights
-            for (int i = 0; i < chs.Length; i++)
-            {
-                double num = Rng.NextDouble() * 100, seek = 0;
-
-                for (int j = 0; j < chs.Length; j++)
-                {
-                    seek += sectors[j];
-                    if (num < seek)
+                case SelectionMode.RouletteWheel:
+                    double[] sectors = new double[chs.Length];
+                    double total;
+                    switch (optimizeMode)
                     {
-                        selection[i] = chs[j];
-                        break;
+                        case OptimizationMode.Maximum:
+                            total = fit.Sum();
+                            for (int i = 0; i < chs.Length; i++)
+                                sectors[i] = fit[i] / total * 100;
+                            break;
+                        case OptimizationMode.Minimum:
+                            total = fit.Sum((x) => 1 / x);
+                            for (int i = 0; i < chs.Length; i++)
+                                sectors[i] = (1 / fit[i]) / total * 100;
+                            break;
                     }
-                }
-            }*/
 
-            var fitList = fit
-                .Select((x, i) => new KeyValuePair<int, double>(i, x))
-                .OrderBy(x => x.Value)
-                .ToList();
-            var fitValues = fitList.Select(x => x.Value).ToList();
-            var fitKeys = fitList.Select(x => x.Key).ToList();
-            var min = fitValues[0];
-            var max = fitValues[fitValues.Count - 1];
-            double num;
-            int index = 0;
-            for (int i = 0; i < chs.Length; i++)
-            {
-                /*num = Misc.BoxMullerTransform(Rng, min, (max - min) / 3);
-                if (num <= min)
-                    index = fitKeys[0];
-                else if (num >= max)
-                    index = fitKeys[fitValues.Count - 1];
-                else
-                    index = fitKeys[fitValues.FindIndex(x => x < num)];*/
+                    // randomly select crossing chromosomes according to their weights
+                    for (int i = 0; i < chs.Length; i++)
+                    {
+                        double point = Rng.NextDouble() * 100, seek = 0;
 
-                num = Misc.BoxMullerTransform(Rng, max, (max - min) / 3);
-                if (num <= min)
-                    index = fitKeys[0];
-                else if (num >= max)
-                {
-                    var diff = num - max;
-                    num = max - diff;
-                    index = fitKeys[fitValues.FindIndex(x => x > num)];
-                }
-                    //index = fitKeys[fitValues.Count - 1];
-                else
-                    index = fitKeys[fitValues.FindIndex(x => x > num)];
+                        for (int j = 0; j < chs.Length; j++)
+                        {
+                            seek += sectors[j];
+                            if (point < seek)
+                            {
+                                selection[i] = chs[j];
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                case SelectionMode.NormalDistribution:
+                    var fitList = fit
+                        .Select((x, i) => new KeyValuePair<int, double>(i, x))
+                        .OrderBy(x => x.Value)
+                        .ToList();
+                    var fitValues = fitList.Select(x => x.Value).ToList();
+                    var fitKeys = fitList.Select(x => x.Key).ToList();
+                    var min = fitValues[0];
+                    var max = fitValues[fitValues.Count - 1];
+                    double num;
+                    int index = 0;
 
-                selection[i] = chs[index];
+                    switch (optimizeMode)
+                    {
+                        case OptimizationMode.Maximum:
+                            for (int i = 0; i < chs.Length; i++)
+                            {
+                                num = Misc.BoxMullerTransform(Rng, max, (max - min) / 3);
+
+                                if (num <= min)
+                                    index = fitKeys[0];
+                                else if (num >= max)
+                                {
+                                    var diff = num - max;
+                                    num = max - diff;
+                                    index = fitKeys[fitValues.FindIndex(x => x > num)];
+                                }
+                                else
+                                    index = fitKeys[fitValues.FindIndex(x => x > num)];
+
+                                selection[i] = chs[index];
+                            }
+                            break;
+                        case OptimizationMode.Minimum:
+                            for (int i = 0; i < chs.Length; i++)
+                            {
+                                num = Misc.BoxMullerTransform(Rng, min, (max - min) / 3);
+                                if (num <= min)
+                                {
+                                    var diff = num - min;
+                                    num = min - diff;
+                                    index = fitKeys[fitValues.FindIndex(x => x < num)];
+                                }
+                                else if (num >= max)
+                                    index = fitKeys[fitValues.Count - 1];
+                                else
+                                    index = fitKeys[fitValues.FindIndex(x => x < num)];
+
+                                selection[i] = chs[index];
+                            }
+                            break;
+                    }
+                    break;
             }
 
             selection.CopyTo(chs, 0);
@@ -329,6 +335,7 @@ namespace Logic
             {
                 if (Rng.NextDouble() < mutationProb)
                 {
+                    // slightly change randomly chosen parameter for all the points of the chromosome
                     var param = Rng.Next(0, chr.ParamNum);
                     for (int i = 0; i < chr.PointsNum; i++)
                     {
@@ -338,9 +345,15 @@ namespace Logic
             }
         }
 
-        private static void Crossover(Chromosome<double>[] chs, double[] fit)  // TODO: add different crossover types
+        enum CrossoverMode
         {
-            Chromosome<double>[] crossed = new Chromosome<double>[chs.Length];
+            CrissCross,
+            WeightedMean
+        }
+
+        private static void Crossover(Chromosome<double>[] chs, double[] fit, double crossoverProb, CrossoverMode mode)  // TODO: add generic types; add crossover probability Pc
+        {
+            var crossed = new Chromosome<double>[chs.Length];
 
             // form pairs
             int[] pairs = new int[chs.Length];
@@ -357,63 +370,82 @@ namespace Logic
                 pairs[k] = t;
             }
 
-            double G1, G2, W1, W2;
-            // crossover
-            for (int i = 0; i < pairs.Length / 2; i++)
+            // crossover with the specified mode according to probability
+            switch (mode)
             {
-                int point = Rng.Next(0, chs[0].PointsNum - 1);
-                Chromosome<double> ch1 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum), 
-                                   ch2 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum);
-                /*for (int j = 0; j < chs[0].PointsNum; j++)
-                {
-                    if (j <= point)
+                case CrossoverMode.CrissCross:
+                    for (int i = 0; i < pairs.Length / 2; i++)
                     {
-                        ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
-                        ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
-                    }
-                    else
-                    {
-                        ch1.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
-                        ch2.Genes[j] = chs[pairs[2 * i]].Genes[j];
-                    }
-                }*/
-
-                W1 = fit[pairs[2 * i]];
-                W2 = fit[pairs[2 * i + 1]];
-                for (int j = 0; j < chs[0].PointsNum; j++)
-                {
-                    if (j <= point)
-                    {
-                        ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
-                        ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
-                    }
-                    else
-                    {
-                        for (int k = 0; k < chs[0].ParamNum; k++)
+                        if (Rng.NextDouble() < crossoverProb)
                         {
-                            G1 = chs[pairs[2 * i]].Genes[j][k];
-                            G2 = chs[pairs[2 * i + 1]].Genes[j][k];
-                            ch1.Genes[j][k] = (G1 * W1 + G2 * W2) / (W1 + W2);
-                            ch2.Genes[j][k] = (G1 * W2 + G2 * W1) / (W1 + W2);
+                            int point = Rng.Next(0, chs[0].PointsNum - 1);
+                            Chromosome<double> ch1 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum),
+                                               ch2 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum);
+                            for (int j = 0; j < chs[0].PointsNum; j++)
+                            {
+                                if (j <= point)
+                                {
+                                    ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
+                                    ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+                                }
+                                else
+                                {
+                                    ch1.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+                                    ch2.Genes[j] = chs[pairs[2 * i]].Genes[j];
+                                }
+                            }
+
+                            crossed[2 * i] = ch1;
+                            crossed[2 * i + 1] = ch2;
+                        }
+                        else
+                        {
+                            crossed[2 * i] = chs[pairs[2 * i]];
+                            crossed[2 * i + 1] = chs[pairs[2 * i + 1]];
                         }
                     }
-                }
-
-                /*W1 = fit[pairs[2 * i]];
-                W2 = fit[pairs[2 * i + 1]];
-                for (int j = 0; j < chs[0].PointsNum; j++)
-                {
-                    for (int k = 0; k < chs[0].ParamNum; k++)
+                    break;
+                case CrossoverMode.WeightedMean:
+                    double G1, G2, W1, W2;
+                    for (int i = 0; i < pairs.Length / 2; i++)
                     {
-                        G1 = chs[pairs[2 * i]].Genes[j][k];
-                        G2 = chs[pairs[2 * i + 1]].Genes[j][k];
-                        ch1.Genes[j][k] = (G1 * W1 + G2 * W2) / (W1 + W2);
-                        ch2.Genes[j][k] = (G1 * W2 + G2 * W1) / (W1 + W2);
-                    }
-                }*/
+                        if (Rng.NextDouble() < crossoverProb)
+                        {
+                            int point = Rng.Next(0, chs[0].PointsNum - 1);
+                            Chromosome<double> ch1 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum),
+                                               ch2 = new Chromosome<double>(chs[0].PointsNum, chs[0].ParamNum);
 
-                crossed[2 * i] = ch1;
-                crossed[2 * i + 1] = ch2;
+                            W1 = fit[pairs[2 * i]];
+                            W2 = fit[pairs[2 * i + 1]];
+                            for (int j = 0; j < chs[0].PointsNum; j++)
+                            {
+                                if (j <= point)
+                                {
+                                    ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
+                                    ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+                                }
+                                else
+                                {
+                                    for (int k = 0; k < chs[0].ParamNum; k++)
+                                    {
+                                        G1 = chs[pairs[2 * i]].Genes[j][k];
+                                        G2 = chs[pairs[2 * i + 1]].Genes[j][k];
+                                        ch1.Genes[j][k] = (G1 * W1 + G2 * W2) / (W1 + W2);
+                                        ch2.Genes[j][k] = (G1 * W2 + G2 * W1) / (W1 + W2);
+                                    }
+                                }
+                            }
+
+                            crossed[2 * i] = ch1;
+                            crossed[2 * i + 1] = ch2;
+                        }
+                        else
+                        {
+                            crossed[2 * i] = chs[pairs[2 * i]];
+                            crossed[2 * i + 1] = chs[pairs[2 * i + 1]];
+                        }
+                    }
+                    break;
             }
 
             crossed.CopyTo(chs, 0);
