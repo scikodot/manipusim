@@ -240,3 +240,4 @@ C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.pdb
 C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\AssimpNet.dll
 C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\AssimpNet.xml
 C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\StbImageSharp.dll
+C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Debug\ManipuS.csproj.CoreCompileInputs.cache

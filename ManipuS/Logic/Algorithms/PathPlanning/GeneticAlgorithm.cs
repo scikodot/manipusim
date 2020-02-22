@@ -52,7 +52,12 @@ namespace Logic
 
     static partial class PathPlanner
     {
-        public static (List<Point>, List<double[]>) GeneticAlgorithm(Manipulator agent, Obstacle[] obstacles, Point goal, double[][] initConfigs, double precision, int paramNum, int genSize, double crossoverProb, double mutationProb, int maxTime, Func<double, double> decode)
+        public static (List<Point>, List<double[]>) GeneticAlgorithm(Manipulator agent, Obstacle[] obstacles, Point goal, double[][] initConfigs, 
+            double precision, int paramNum, int genSize, double crossoverProb, double mutationProb, int maxTime, 
+            OptimizationCriterion criteria, 
+            SelectionMode selectMode, 
+            CrossoverMode crossMode, 
+            Func<double, double> decode)
         {
             double[][] initSolution = new double[initConfigs.Length - 1][];
             Array.Copy(initConfigs, 1, initSolution, 0, initConfigs.Length - 1);
@@ -104,7 +109,7 @@ namespace Logic
                 }
 
                 // fitting
-                FitnessFunction(agent, obstacles, goal, chs, fit, decode);
+                FitnessFunction(agent, obstacles, goal, chs, fit, criteria, decode);
                 //Array.ConvertAll(fit, (t) => { return Math.Abs(t); });
 
                 // qualification
@@ -119,14 +124,14 @@ namespace Logic
                 }
 
                 // selection
-                RouletteWheelSelection(chs, fit, SelectionMode.NormalDistribution, OptimizationMode.Maximum);
+                RouletteWheelSelection(chs, fit, selectMode, OptimizationMode.Maximum);
 
                 // mutation
                 var mutationStrength = -5 + 10 * Rng.NextDouble();
                 Mutation(chs, mutationProb, t => t + mutationStrength);
 
                 // crossover
-                Crossover(chs, fit, crossoverProb, CrossoverMode.WeightedMean);
+                Crossover(chs, fit, crossoverProb, crossMode);
             }
             sw.Stop();
             Console.WriteLine("GA Time: {0}; Real time: {1}", time, sw.ElapsedTicks / 10);
@@ -161,13 +166,22 @@ namespace Logic
             return (path, configs);
         }
 
-        enum OptimizationMode
+        public enum OptimizationMode
         {
             Maximum,
             Minimum
         }
 
-        private static void FitnessFunction<T>(Manipulator agent, Obstacle[] obstacles, Point goal, Chromosome<T>[] chs, double[] fit, Func<T, double> decode)
+        [Flags]
+        public enum OptimizationCriterion
+        {
+            GoalConvergence = 0,
+            CollisionFree = 1,
+            PathLength = 2,
+            PathSmoothness = 4
+        }
+
+        private static void FitnessFunction<T>(Manipulator agent, Obstacle[] obstacles, Point goal, Chromosome<T>[] chs, double[] fit, OptimizationCriterion criterion, Func<T, double> decode)
         {
             Manipulator Contestant = new Manipulator(agent);
             //Vector goalVec = new Vector(goal);
@@ -184,22 +198,40 @@ namespace Logic
                 for (int j = 0; j < chs[i].PointsNum; j++)
                 {
                     Contestant.q = Misc.CopyArray(chs[i].GetGene(j, decode));
-
-                    // apply fitness functions to the given chromosome's point
                     //Point prevPos = contPrevPos;
                     Point currPos = Contestant.GripperPos;
 
-                    foreach (var obst in obstacles)
+                    // apply fitness functions to the given chromosome's point
+                    int critCount = 1;
+                    double pointWeight = 0;
+
+                    // TODO: apply goal convergence!
+
+                    if ((criterion & OptimizationCriterion.CollisionFree) == OptimizationCriterion.CollisionFree)
                     {
-                        if (obst.Contains(currPos))
+                        foreach (var obst in obstacles)
                         {
-                            fit[i] += 100 * Math.Pow(currPos.DistanceTo(((Sphere)obst.Collider).Center) / ((Sphere)obst.Collider).Radius, 4);
-                        }
-                        else
-                        {
-                            fit[i] += 100;
+                            if (obst.Contains(currPos))
+                            {
+                                pointWeight += 100 * Math.Pow(currPos.DistanceTo(((Sphere)obst.Collider).Center) / ((Sphere)obst.Collider).Radius, 4);
+                            }
+                            else
+                            {
+                                pointWeight += 100;
+                            }
                         }
                     }
+                    if ((criterion & OptimizationCriterion.PathLength) == OptimizationCriterion.PathLength)
+                    {
+
+                    }
+                    if ((criterion & OptimizationCriterion.PathSmoothness) == OptimizationCriterion.PathSmoothness)
+                    {
+
+                    }
+
+                    // take median of all criteria weights
+                    fit[i] += pointWeight / critCount;
 
                     /*currDist = currPos.DistanceTo(prevPos);
                     if (currDist <= desDist)
@@ -224,7 +256,7 @@ namespace Logic
             }
         }
 
-        enum SelectionMode
+        public enum SelectionMode
         {
             RouletteWheel,
             NormalDistribution
@@ -345,13 +377,13 @@ namespace Logic
             }
         }
 
-        enum CrossoverMode
+        public enum CrossoverMode
         {
             CrissCross,
             WeightedMean
         }
 
-        private static void Crossover(Chromosome<double>[] chs, double[] fit, double crossoverProb, CrossoverMode mode)  // TODO: add generic types; add crossover probability Pc
+        private static void Crossover(Chromosome<double>[] chs, double[] fit, double crossoverProb, CrossoverMode crossMode)  // TODO: add generic types; add crossover probability Pc
         {
             var crossed = new Chromosome<double>[chs.Length];
 
@@ -371,7 +403,7 @@ namespace Logic
             }
 
             // crossover with the specified mode according to probability
-            switch (mode)
+            switch (crossMode)
             {
                 case CrossoverMode.CrissCross:
                     for (int i = 0; i < pairs.Length / 2; i++)

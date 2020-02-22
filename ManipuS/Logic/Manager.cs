@@ -102,7 +102,12 @@ namespace Logic
             // generating random tree
             var resRRT = PathPlanner.RRT(manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d, false);
 
-            var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 0.99, manip.Joints.Length, 10, 0.95, 0.1, 10000, t => t * Math.PI / 180);
+            var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
+                0.99, manip.Joints.Length, 10, 0.95, 0.1, 10000, 
+                PathPlanner.OptimizationCriterion.CollisionFree, 
+                PathPlanner.SelectionMode.NormalDistribution, 
+                PathPlanner.CrossoverMode.WeightedMean, 
+                t => t * Math.PI / 180);
 
             // acquiring all the points and configurations along the path
             manip.Path = resGA.Item1;
