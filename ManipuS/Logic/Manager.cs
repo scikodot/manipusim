@@ -102,17 +102,30 @@ namespace Logic
             // generating random tree
             var resRRT = PathPlanner.RRT(manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d, false);
 
-            var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
-                0.99, manip.Joints.Length, 10, 0.95, 0.1, 10000, 
+            /*var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
+                0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000, 
                 PathPlanner.OptimizationCriterion.CollisionFree, 
                 PathPlanner.SelectionMode.NormalDistribution, 
                 PathPlanner.CrossoverMode.WeightedMean, 
+                t => t * Math.PI / 180);*/
+
+            var input = new (Point, double[])[resRRT.Item1.Count];
+            for (int i = 0; i < input.Length; i++)
+            {
+                input[i].Item1 = resRRT.Item1[i];
+                input[i].Item2 = resRRT.Item2[i];
+            }
+            var resGA = PathPlanner.GeneticAlgorithmD(manip, Obstacles, manip.Goal, input,
+                0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000,
+                PathPlanner.OptimizationCriterion.CollisionFree,
+                PathPlanner.SelectionMode.NormalDistribution,
+                PathPlanner.CrossoverMode.WeightedMean,
                 t => t * Math.PI / 180);
 
             // acquiring all the points and configurations along the path
-            manip.Path = resGA.Item1;
+            /*manip.Path = resGA.Item1;
             manip.States["Path"] = true;
-            manip.Configs = resGA.Item2;
+            manip.Configs = resGA.Item2;*/
         }
     }
 }

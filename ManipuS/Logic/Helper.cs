@@ -35,6 +35,7 @@ public class Point
     public static Point operator -(Point p1, Point p2) => new Point(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
     public static Point operator +(Point p, Vector v) => new Point(p.x + v.x, p.y + v.y, p.z + v.z);
     public static Point operator -(Point p, Vector v) => new Point(p.x - v.x, p.y - v.y, p.z - v.z);
+    public static Point operator *(Point p, double s) => new Point(p.x * s, p.y * s, p.z * s);
     public static Point operator /(Point p, double s) => new Point(p.x / s, p.y / s, p.z / s);
     public static Point operator *(Matrix m, Point p) =>
         new Point

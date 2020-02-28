@@ -95,6 +95,7 @@
     <Compile Include="Graphics\Mesh.cs" />
     <Compile Include="Graphics\Model.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\GeneticAlgorithm.cs" />
+    <Compile Include="Logic\Algorithms\PathPlanning\GeneticAlgorithmD.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\_initPartial.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />

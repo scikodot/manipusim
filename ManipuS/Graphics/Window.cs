@@ -129,7 +129,7 @@ namespace Graphics
 
         // 3D model
         Model Crytek;
-        Shader lineShader;
+        static Shader lineShader;
 
         public Window(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
@@ -457,7 +457,7 @@ namespace Graphics
                     }
 
                     // draw manipulator configuration if its model is loaded properly
-                    if (ManipLoaded && Dispatcher.ActionsQueue.Count == 0)
+                    if (ManipLoaded) //&& Dispatcher.ActionsQueue.Count == 0)
                     {
                         var links = Manager.Manipulators[0].Links;
                         var joints = Manager.Manipulators[0].Joints;
@@ -472,17 +472,11 @@ namespace Graphics
                         model = Matrix4.Identity;
                         if (manip.points != null)
                         {
-                            if (traj == null)
+                            traj = new Entity(lineShader, GL_Convert(manip.points, new Vector4(1, 0, 0, 1)));
+                            traj.Display(model, () =>
                             {
-                                traj = new Entity(lineShader, GL_Convert(manip.points, new Vector4(1, 0, 0, 1)));
-                            }
-                            else
-                            {
-                                traj.Display(model, () =>
-                                {
-                                    GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.points.Length);
-                                });
-                            }
+                                GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.points.Length);
+                            });
                         }
 
                         /*model = Matrix4.Identity;
@@ -1043,7 +1037,7 @@ namespace Graphics
             Capture = false;
         }
 
-        protected float[] GL_Convert(Point[] data, Vector4 color)
+        static protected float[] GL_Convert(Point[] data, Vector4 color)
         {
             // converting program data to OpenGL buffer format
             float[] res = new float[data.Length * 7];
