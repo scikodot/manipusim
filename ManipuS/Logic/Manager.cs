@@ -100,7 +100,8 @@ namespace Logic
             var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
             // generating random tree
-            var resRRT = PathPlanner.RRT(manip, Obstacles, new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime), AD.k, AD.d, false);
+            var solver = new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime);
+            var resRRT = PathPlanner.RRT(manip, Obstacles, solver, AD.k, AD.d, false);
 
             /*var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
                 0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000, 
@@ -115,17 +116,19 @@ namespace Logic
                 input[i].Item1 = resRRT.Item1[i];
                 input[i].Item2 = resRRT.Item2[i];
             }
-            var resGA = PathPlanner.GeneticAlgorithmD(manip, Obstacles, manip.Goal, input,
-                0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000,
+
+            var jac = new Jacobian(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime);
+            var resGA = PathPlanner.GeneticAlgorithmD(manip, Obstacles, manip.Goal, jac, 
+                input, 0.99, manip.Joints.Length, 4, 0.95, 0.1, 10000,
                 PathPlanner.OptimizationCriterion.CollisionFree,
                 PathPlanner.SelectionMode.NormalDistribution,
                 PathPlanner.CrossoverMode.WeightedMean,
                 t => t * Math.PI / 180);
 
             // acquiring all the points and configurations along the path
-            /*manip.Path = resGA.Item1;
+            manip.Path = resGA.Item1;
             manip.States["Path"] = true;
-            manip.Configs = resGA.Item2;*/
+            manip.Configs = resGA.Item2;
         }
     }
 }

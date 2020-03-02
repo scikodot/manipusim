@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using Logic;
 
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
 static class Dispatcher
 {
+    public static Stopwatch Timer = new Stopwatch();
+
     // actions that main thread has to execute
     public static Queue<Action> ActionsQueue = new Queue<Action>();
 

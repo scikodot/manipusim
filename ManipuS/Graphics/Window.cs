@@ -464,10 +464,10 @@ namespace Graphics
                         var dh = Manager.Manipulators[0].DH;
                         var linksCount = Dispatcher.WorkspaceBuffer.LinkBuffer.Length;
 
-                        /*time += (float)(Math.PI / 2 * e.Time);
-                        joints[0].q = time;
-                        joints[1].q = time;
-                        joints[2].q = time;*/
+                        //time += (float)(Math.PI / 2 * e.Time);
+                        //joints[0].q = time;
+                        //joints[1].q = time;
+                        //joints[2].q = time;
 
                         model = Matrix4.Identity;
                         if (manip.points != null)
@@ -590,6 +590,7 @@ namespace Graphics
 
                         model = Matrix4.Identity;
 
+                        // TODO: replace matrices with quaternions!
                         // links
                         model *= Matrix.Translate(joints[0].Length / 2 * Vector3.UnitY);
                         var trans = Matrix.RotateCustomAnother(pos[0], axes[0], -(float)dh[0].theta(joints[0]));  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes

@@ -127,9 +127,67 @@ public class Vector
         );
 }
 
-public class Matrix
+public class VectorN  // TODO: merge with Vector class, so that it represents an arbitrary vector of dimensionality n
 {
-    double[,] Data;
+    public double[] Data;
+
+    public VectorN(int size)
+    {
+        Data = new double[size];
+    }
+
+    public VectorN(double[] data)
+    {
+        Data = data;
+    }
+
+    public static VectorN operator *(VectorN v, double s)
+    {
+        for (int i = 0; i < v.Data.Length; i++)
+        {
+            v.Data[i] *= s;
+        }
+
+        return v;
+    }
+
+    public static VectorN operator +(VectorN v1, VectorN v2)
+    {
+        double[] data = new double[v1.Data.Length];
+        for (int i = 0; i < v1.Data.Length; i++)
+        {
+            data[i] = v1[i] + v2[i];
+        }
+
+        return new VectorN(data);
+    }
+    public static VectorN operator *(Matrix m, VectorN v)
+    {
+        double[] data = new double[m.Data.GetLength(0)];
+        for (int i = 0; i < m.Data.GetLength(0); i++)
+        {
+            for (int j = 0; j < m.Data.GetLength(1); j++)
+            {
+                data[i] += m[i, j] * v[j];
+            }
+        }
+
+        return new VectorN(data);
+    }
+
+    public double this[int i]
+    {
+        get
+        {
+            return Data[i];
+        }
+    }
+}
+
+public class Matrix  // TODO: this class should not be deleted, but instead only used for non-uniform matrices (i.e. of an arbitrary size); or else mirror all OpenTK matrices into this class
+                     // TODO: check why this class is much slower than OpenTK's one (note: GetLength is O(1), so it should not affect anything)
+{
+    public double[,] Data;
 
     public Matrix(double[,] Data)
     {
@@ -186,6 +244,22 @@ public class Matrix
         });
     }*/
 
+    public static Matrix Transpose(Matrix mat)
+    {
+        var r = mat.Data.GetLength(0);
+        var c = mat.Data.GetLength(1);
+        double[,] data = new double[c, r];
+        for (int i = 0; i < r; i++)
+        {
+            for (int j = 0; j < c; j++)
+            {
+                data[j, i] = mat[i, j];
+            }
+        }
+
+        return new Matrix(data);
+    }
+
     public static Matrix4 Translate(Vector3 axis)
     {
         return new Matrix4
@@ -226,45 +300,6 @@ public class Matrix
             new Vector4((float)Math.Cos(angle), (float)-Math.Sin(angle), 0, 0),
             new Vector4((float)Math.Sin(angle), (float)Math.Cos(angle), 0, 0),
             new Vector4(0, 0, 1, 0),
-            new Vector4(0, 0, 0, 1)
-        );
-    }
-
-    public static Matrix4 RotateCustom(Vector4 point, Vector4 dir, float angle)
-    {
-        // pre-computing all costly operations
-        float a = point.X,
-              b = point.Y,
-              c = point.Z;
-
-        var n = dir.Normalized();
-        float u = n.X,
-              v = n.Y,
-              w = n.Z;
-        float u2 = u * u,
-              v2 = v * v,
-              w2 = w * w;
-
-        float cos = (float)Math.Cos(angle),
-              sin = (float)Math.Sin(angle);
-
-        return new Matrix4
-        (
-            new Vector4(cos + u * (1 - cos),
-                        u * v * (1 - cos) - w * sin,
-                        u * w * (1 - cos) + v * sin,
-                        (a * (v2 + w2) - u * (b * v + c * w)) * (1 - cos) + (b * w - c * v) * sin),
-
-            new Vector4(u * v * (1 - cos) + w * sin,
-                        cos + v * (1 - cos),
-                        v * w * (1 - cos) - u * sin,
-                        (b * (u2 + w2) - v * (a * u + c * w)) * (1 - cos) + (c * u - a * w) * sin),
-
-            new Vector4(u * w * (1 - cos) - v * sin,
-                        v * w * (1 - cos) + u * sin,
-                        cos + w * (1 - cos),
-                        (c * (u2 + v2) - w * (a * u + b * v)) * (1 - cos) + (a * v - b * u) * sin),
-
             new Vector4(0, 0, 0, 1)
         );
     }

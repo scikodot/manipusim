@@ -46,8 +46,8 @@ namespace Logic
 
     static partial class PathPlanner
     {
-        public static (List<Point>, List<double[]>) GeneticAlgorithmD(Manipulator agent, Obstacle[] obstacles, Point goal, (Point, double[])[] initSolution,
-            double precision, int paramNum, int genSize, double crossoverProb, double mutationProb, int maxTime,
+        public static (List<Point>, List<double[]>) GeneticAlgorithmD(Manipulator agent, Obstacle[] obstacles, Point goal, Jacobian solver, 
+            (Point, double[])[] initSolution, double precision, int paramNum, int genSize, double crossoverProb, double mutationProb, int maxTime,
             OptimizationCriterion criteria,
             SelectionMode selectMode,
             CrossoverMode crossMode,
@@ -94,8 +94,7 @@ namespace Logic
             double max = 0;
             bool converged = false;
             int time = 0;
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
+            Dispatcher.Timer.Start();
             while (time++ < maxTime)
             {
                 if (time % 100 == 0)
@@ -104,7 +103,7 @@ namespace Logic
                 }
 
                 // fitting
-                FitnessFunctionD(agent, obstacles, goal, chs, fit, criteria, decode);
+                FitnessFunctionD(agent, obstacles, goal, solver, chs, fit, criteria, decode);
 
                 // qualification
                 max = fit.Max();
@@ -115,6 +114,7 @@ namespace Logic
                 Console.SetCursorPosition(0, 10);
                 Console.WriteLine($"Goal fit: {pointsNum * 100}");
                 Console.WriteLine($"Max  fit: {max}");
+                Console.WriteLine("GA Time: {0}; Real time: {1}", time, Dispatcher.Timer.ElapsedTicks / 10);
                 //if (max > precision * pointsNum * 100)
                 if (max >= pointsNum * 100)
                 {
@@ -132,8 +132,7 @@ namespace Logic
                 // crossover
                 CrossoverD(chs, fit, crossoverProb, crossMode);
             }
-            sw.Stop();
-            Console.WriteLine("GA Time: {0}; Real time: {1}", time, sw.ElapsedTicks / 10);
+            Dispatcher.Timer.Reset();
 
             // if the dominant chromosome wasn't found, consider last result the best result
             if (dominant == null)
@@ -141,19 +140,35 @@ namespace Logic
                 dominant = chs[Array.IndexOf(fit, max)];
             }
 
+            Manipulator contestant = new Manipulator(agent);
+            Dispatcher.Timer.Start();
+            for (int i = 0; i < dominant.PointsNum; i++)
+            {
+                if (i == 0)
+                {
+                    dominant.Genes[i].Item2 = Misc.CopyArray(agent.q);
+                }
+                else
+                {
+                    contestant.q = Misc.CopyArray(dominant.Genes[i - 1].Item2);
+                    var res = solver.Execute(contestant, dominant.Genes[i].Item1);
+
+                    // assign config to continue checking other points
+                    dominant.Genes[i].Item2 = Misc.CopyArray(contestant.q);
+                }
+            }
+            Dispatcher.Timer.Stop();
+            Console.WriteLine("Fit real time: {0}", Dispatcher.Timer.ElapsedTicks / 10);
+            Dispatcher.Timer.Reset();
+
             // chromosome
-            /*List<Point> path = new List<Point>();
+            List<Point> path = new List<Point>();
             List<double[]> configs = new List<double[]>();
-            Manipulator AgentNext = new Manipulator(agent);
-            configs.Add(AgentNext.q);
-            path.Add(AgentNext.GripperPos);
             for (int i = 0; i < pointsNum; i++)
             {
-                var config = dominant.GetGene(i, decode);
-                AgentNext.q = Misc.CopyArray(config);
-                configs.Add(config);
-                path.Add(AgentNext.GripperPos);
-            }*/
+                path.Add(dominant.Genes[i].Item1);
+                configs.Add(dominant.Genes[i].Item2);
+            }
 
             // detect all collisions
             /*Manipulator AgentNext = new Manipulator(agent)
@@ -162,17 +177,18 @@ namespace Logic
             };
             bool[] Collisions = DetectCollisions(AgentNext);*/
 
-            //return (path, configs);
-            return (null, null);
+            return (path, configs);
         }
 
-        private static void FitnessFunctionD<T>(Manipulator agent, Obstacle[] obstacles, Point goal, ChromosomeD[] chs, double[] fit, OptimizationCriterion criterion, Func<T, double> decode)
+        private static void FitnessFunctionD<T>(Manipulator agent, Obstacle[] obstacles, Point goal, Jacobian solver, 
+            ChromosomeD[] chs, double[] fit, OptimizationCriterion criterion, Func<T, double> decode)
         {
-            Manipulator Contestant = new Manipulator(agent);
+            Manipulator contestant = new Manipulator(agent);
             for (int i = 0; i < chs.Length; i++)
             {
                 fit[i] = 0;
 
+                contestant.q = Misc.CopyArray(agent.q);
                 // extract parameters' values from chromosome
                 for (int j = 0; j < chs[i].PointsNum; j++)
                 {
@@ -182,8 +198,33 @@ namespace Logic
                     int critCount = 0;
                     double pointWeight = 0;
 
+                    /*if (j == 0)
+                    {
+                        chs[i].Genes[j].Item2 = Misc.CopyArray(agent.q);
+                        pointWeight += 100;
+                    }
+                    else
+                    {
+                        for (int k = 0; k < 1; k++)
+                        {
+                            contestant.q = Misc.CopyArray(chs[i].Genes[j - 1].Item2);
+                            var res = solver.Execute(contestant, chs[i].Genes[j].Item1);
+
+                            // assign config to continue checking other points
+                            chs[i].Genes[j].Item2 = Misc.CopyArray(contestant.q);
+
+                            if (res.Item1 && !res.Item4.Contains(true))
+                            {
+                                pointWeight += 100;
+                                break;
+                            }
+                        }
+                    }
+                    critCount++;*/
+
                     if ((criterion & OptimizationCriterion.CollisionFree) == OptimizationCriterion.CollisionFree)
                     {
+                        // TODO: instead of weighting, add "pulling-out", i.e. translating point along the common vector with the obst center; much better
                         foreach (var obst in obstacles)
                         {
                             if (obst.Contains(currPos))
@@ -203,7 +244,7 @@ namespace Logic
                     }
                     if ((criterion & OptimizationCriterion.PathSmoothness) == OptimizationCriterion.PathSmoothness)
                     {
-
+                        
                     }
 
                     // take median of all criteria weights
@@ -336,6 +377,10 @@ namespace Logic
                     for (int i = 1; i < chr.PointsNum - 1; i++)
                     {
                         chr.Genes[i].Item1 += dir * nd(i);
+
+                        // pull vertex to its neighbour to retain desired step distance
+                        vec = new Vector(chr.Genes[i].Item1, chr.Genes[i - 1].Item1);
+                        chr.Genes[i].Item1 += vec.Normalized * (vec.Length - 0.04);
                     }
                 }
             }
