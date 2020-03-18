@@ -12,56 +12,56 @@ using Logic;
 
 namespace Graphics
 {
-    public class Window : GameWindow
+    public class Entity
     {
-        public class Entity
+        public int VAO, VBO, EBO;
+        public Shader Shader;
+
+        public Entity(Shader shader, float[] data, uint[] indices = null)
         {
-            public int VAO, VBO, EBO;
-            public Shader Shader;
+            Shader = shader;
 
-            public Entity(Shader shader, float[] data, uint[] indices = null)
+            // generating array/buffer objects
+            VAO = GL.GenVertexArray();
+            VBO = GL.GenBuffer();
+
+            GL.BindVertexArray(VAO);
+
+            // binding vertex data to buffer
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
+
+            // binding indices data to buffer, if presented
+            if (indices != null)
             {
-                Shader = shader;
-
-                // generating array/buffer objects
-                VAO = GL.GenVertexArray();
-                VBO = GL.GenBuffer();
-
-                GL.BindVertexArray(VAO);
-
-                // binding vertex data to buffer
-                GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-                GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
-
-                // binding indices data to buffer, if presented
-                if (indices != null)
-                {
-                    EBO = GL.GenBuffer();
-                    GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-                    GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
-                }
-
-                // configuring all the needed attributes
-                var PosAttrib = Shader.GetAttribLocation("aPos");
-                GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
-                GL.EnableVertexAttribArray(PosAttrib);
-
-                var ColAttrib = Shader.GetAttribLocation("aColor");
-                GL.VertexAttribPointer(ColAttrib, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
-                GL.EnableVertexAttribArray(ColAttrib);
-
-                GL.BindVertexArray(0);
+                EBO = GL.GenBuffer();
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
+                GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
             }
 
-            public void Display(Matrix4 model, Action draw)
-            {
-                // displaying entity with the appropriate draw method
-                GL.BindVertexArray(VAO);
-                Shader.SetMatrix4("model", model, false);
-                draw();
-            }
+            // configuring all the needed attributes
+            var PosAttrib = Shader.GetAttribLocation("aPos");
+            GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(PosAttrib);
+
+            var ColAttrib = Shader.GetAttribLocation("aColor");
+            GL.VertexAttribPointer(ColAttrib, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
+            GL.EnableVertexAttribArray(ColAttrib);
+
+            GL.BindVertexArray(0);
         }
 
+        public void Display(Matrix4 model, Action draw)
+        {
+            // displaying entity with the appropriate draw method
+            GL.BindVertexArray(VAO);
+            Shader.SetMatrix4("model", model, false);
+            draw();
+        }
+    }
+
+    public class Window : GameWindow
+    {
         // main graphics objects
         private static Shader _shader;
         private ImGuiController controller;
@@ -125,6 +125,7 @@ namespace Graphics
         
         private Thread load;
         private float time = 0;
+        private bool forward;
         private bool ManipLoaded = false;
 
         // 3D model
@@ -334,11 +335,9 @@ namespace Graphics
 
             Matrix4 model;
 
-            
-
-            // obstacles & colliders
             if (ManipLoaded)
             {
+                // obstacles & colliders
                 if (obstacles.Contains(null))
                 {
                     for (int i = 0; i < obstacles.Length; i++)
@@ -362,9 +361,26 @@ namespace Graphics
                 }
                 else
                 {
-                    model = Matrix4.Identity;
+                    float dt;
+                    if (forward)
+                    {
+                        dt = (float)e.Time;
+                        if (time > 1)
+                            forward = false;
+                    }
+                    else
+                    {
+                        dt = -(float)e.Time;
+                        if (time < -1)
+                            forward = true;
+                    }
+                    time += dt;
+                    
+                    model = Matrix4.Identity * Matrix4.CreateTranslation(time, 0, 0);
                     for (int i = 0; i < obstacles.Length; i++)
                     {
+                        Manager.Obstacles[i].Move(new Vector(1, 0, 0), dt);
+
                         obstacles[i].Display(model, () =>
                         {
                             GL.DrawArrays(PrimitiveType.Points, 0, Manager.Obstacles[i].Data.Length);
@@ -404,7 +420,7 @@ namespace Graphics
                         });
                     }
 
-                    // random tree
+                    /*// random tree
                     if (manip.Tree != null)
                     {
                         if (manip.Tree.Buffer.Count != 0)
@@ -426,6 +442,22 @@ namespace Graphics
                             {
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                             });
+                        }
+                    }*/
+
+                    if (manip.Tree != null && Dispatcher.WorkspaceBuffer.JointBuffer[j].ShowTree)
+                    {
+                        model = Matrix4.Identity;
+                        for (int i = 0; i < manip.Tree.Layers.Count; i++)
+                        {
+                            for (int k = 0; k < manip.Tree.Layers[i].Count; k++)
+                            {
+                                if (manip.Tree.Layers[i][k].Entity != null)
+                                    manip.Tree.Layers[i][k].Entity.Display(model, () =>
+                                    {
+                                        GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
+                                    });
+                            }
                         }
                     }
 
@@ -1055,6 +1087,12 @@ namespace Graphics
             }
 
             return res;
+        }
+
+        // some specific methods for better drawing organization
+        public static Entity CreateTreeBranch(Point p1, Point p2)
+        {
+            return new Entity(lineShader, GL_Convert(new Point[] { p1, p2 }, new Vector4(Vector3.Zero, 1.0f)));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

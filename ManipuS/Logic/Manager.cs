@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Logic.InverseKinematics;
+using Logic.PathPlanning;
 
 namespace Logic
 {
@@ -99,9 +101,38 @@ namespace Logic
         {
             var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
+            /*// generating random tree
+            var solver = new HillClimbing(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
+            var planner = new RRT(Obstacles, solver, AD.k, true, AD.d);
+            PathPlanner pp = planner;
+            var resRRT = pp.Execute(manip, null);
+
+            // acquiring all the points and configurations along the path
+            manip.Path = resRRT.Item1;
+            manip.States["Path"] = true;
+            manip.Configs = resRRT.Item2;*/
+
             // generating random tree
-            var solver = new HillClimbing(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime);
-            var resRRT = PathPlanner.RRT(manip, Obstacles, solver, AD.k, AD.d, false);
+            var solver = new HillClimbing(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
+            var planner = new DynamicRRT(Obstacles, solver, AD.k, true, AD.d, AD.k / 100);
+            PathPlanner pp = planner;
+            var resRRT = pp.Execute(manip, null);
+
+            // acquiring all the points and configurations along the path
+            manip.Path = resRRT.Item1;
+            manip.States["Path"] = true;
+            manip.Configs = resRRT.Item2;
+
+            List<List<int>> lst = new List<List<int>>
+            {
+                new List<int> { 0, 1, 2 }
+            };
+
+            List<int>[] lst2 = new List<int>[lst.Count];
+            lst.CopyTo(lst2);
+
+            lst.Add(new List<int> { 3, 4, 5 });
+            lst[0].Add(10);
 
             /*var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
                 0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000, 
@@ -110,7 +141,7 @@ namespace Logic
                 PathPlanner.CrossoverMode.WeightedMean, 
                 t => t * Math.PI / 180);*/
 
-            var input = new (Point, double[])[resRRT.Item1.Count];
+            /*var input = new (Point, double[])[resRRT.Item1.Count];
             for (int i = 0; i < input.Length; i++)
             {
                 input[i].Item1 = resRRT.Item1[i];
@@ -128,7 +159,7 @@ namespace Logic
             // acquiring all the points and configurations along the path
             manip.Path = resGA.Item1;
             manip.States["Path"] = true;
-            manip.Configs = resGA.Item2;
+            manip.Configs = resGA.Item2;*/
         }
     }
 }

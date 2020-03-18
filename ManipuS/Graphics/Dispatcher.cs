@@ -9,6 +9,7 @@ using Logic;
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
 static class Dispatcher
 {
+    public static Random Rng = new Random();
     public static Stopwatch Timer = new Stopwatch();
 
     // actions that main thread has to execute

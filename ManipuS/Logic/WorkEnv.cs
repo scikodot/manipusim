@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 using Graphics;
+using Logic.PathPlanning;
 
 namespace Logic
 {   
@@ -603,6 +604,16 @@ namespace Logic
             }
 
             return false;
+        }
+
+        public void Move(Vector direction, float distance)
+        {
+            //for (int i = 0; i < Data.Length; i++)
+            //{
+            //    Data[i] += direction.Normalized * distance;
+            //}
+
+            Collider.Center += direction.Normalized * distance;
         }
     }
 }

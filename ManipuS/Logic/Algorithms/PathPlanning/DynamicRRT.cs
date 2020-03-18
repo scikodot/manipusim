@@ -5,13 +5,15 @@ using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
-    class RRT : PathPlanner
+    class DynamicRRT : PathPlanner
     {
         private float d;
+        private int period;
 
-        public RRT(Obstacle[] obstacles, IKSolver solver, int maxTime, bool collisionCheck, float d) : base(obstacles, solver, maxTime, collisionCheck)
+        public DynamicRRT(Obstacle[] obstacles, IKSolver solver, int maxTime, bool collisionCheck, float d, int period) : base(obstacles, solver, maxTime, collisionCheck)
         {
             this.d = d;
+            this.period = period;
         }
 
         public override (List<Point>, List<double[]>) Execute(Manipulator agent, Point goal)
@@ -27,6 +29,9 @@ namespace Logic.PathPlanning
 
             for (int i = 0; i < MaxTime; i++)
             {
+                if (i % period == 0 && i != 0)
+                    Trim(agent.Tree);
+
                 // generating normally distributed value with Box-Muller transform
                 double num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
 
@@ -89,14 +94,12 @@ namespace Logic.PathPlanning
                             else
                                 Attractors[index].InliersCount++;
                         }
-
-                        agent.Tree.Buffer.Add(node);
                     }
                 }
 
                 // stopping in case the main attractor has been hit
-                if (Attractors[0].InliersCount != 0)
-                    break;
+                //if (Attractors[0].InliersCount != 0)
+                //    break;
             }
 
             // retrieving resultant path along with respective configurations
@@ -131,6 +134,26 @@ namespace Logic.PathPlanning
             configs.Reverse();
 
             return (path, configs);
+        }
+
+        private void Trim(Tree tree)
+        {
+            for (int i = tree.Layers.Count - 1; i > 0; i--)
+            {
+                for (int j = 0; j < tree.Layers[i].Count; j++)
+                {
+                    foreach (var obst in Obstacles)
+                    {
+                        if (obst.Contains(tree.Layers[i][j].p))  // TODO: add collision check with manipulator
+                        {
+                            tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
+                            tree.RemoveNode(tree.Layers[i][j]);
+                            j--;
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 }
