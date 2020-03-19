@@ -30,7 +30,7 @@ namespace Logic.PathPlanning
             for (int i = 0; i < MaxTime; i++)
             {
                 if (i % period == 0 && i != 0)
-                    Trim(agent.Tree);
+                    Trim(agent.Tree, Contestant);
 
                 // generating normally distributed value with Box-Muller transform
                 double num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
@@ -136,21 +136,33 @@ namespace Logic.PathPlanning
             return (path, configs);
         }
 
-        private void Trim(Tree tree)
+        private void Trim(Tree tree, Manipulator contestant)
         {
             for (int i = tree.Layers.Count - 1; i > 0; i--)
             {
-                for (int j = 0; j < tree.Layers[i].Count; j++)
+                for (int j = tree.Layers[i].Count - 1; j >= 0; j--)
                 {
+                    // check node point for collisions
+                    bool nodeRemoved = false;
                     foreach (var obst in Obstacles)
                     {
-                        if (obst.Contains(tree.Layers[i][j].p))  // TODO: add collision check with manipulator
+                        if (obst.Contains(tree.Layers[i][j].p))
                         {
                             tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
                             tree.RemoveNode(tree.Layers[i][j]);
-                            j--;
+                            nodeRemoved = true;
                             break;
                         }
+                    }
+                    if (nodeRemoved)
+                        continue;
+
+                    // check node config for collisions
+                    contestant.q = tree.Layers[i][j].q;
+                    if (Solver.DetectCollisions(contestant, Obstacles).Contains(true))
+                    {
+                        tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
+                        tree.RemoveNode(tree.Layers[i][j]);
                     }
                 }
             }

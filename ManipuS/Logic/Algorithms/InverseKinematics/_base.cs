@@ -18,7 +18,7 @@ namespace Logic.InverseKinematics
             MaxTime = maxTime;
         }
 
-        protected bool[] DetectCollisions(Manipulator manip, Obstacle[] obstacles)
+        public bool[] DetectCollisions(Manipulator manip, Obstacle[] obstacles)
         {
             List<Point> joints = manip.DKP.ToList();
 

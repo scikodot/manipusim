@@ -5,10 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Logic;
+using System.Threading;
 
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
 static class Dispatcher
 {
+    public static ManualResetEvent ThreadHandle = new ManualResetEvent(true);
     public static Random Rng = new Random();
     public static Stopwatch Timer = new Stopwatch();
 

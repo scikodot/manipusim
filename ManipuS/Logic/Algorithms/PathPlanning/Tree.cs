@@ -30,7 +30,8 @@ namespace Logic.PathPlanning
         }
 
         public List<List<Node>> Layers;  // TODO: create indexer, make layers private
-        public List<Node> Buffer;
+        public List<Node> AddBuffer;
+        public List<Node> DelBuffer;
         public int Count, LayersAdded;
 
         public Tree(Node root)
@@ -39,7 +40,8 @@ namespace Logic.PathPlanning
             {
                 new List<Node>()
             };
-            Buffer = new List<Node>();
+            AddBuffer = new List<Node>();
+            DelBuffer = new List<Node>();
 
             Layers[0].Add(root);
             Count = 1;
@@ -62,15 +64,21 @@ namespace Logic.PathPlanning
             LayersAdded++;
         }
 
-        public void RemoveLayer()
+        public void RemoveLayer(int layer)
         {
-            int LayerCount = Layers[Layers.Count - 1].Count;
-            Layers.RemoveAt(Layers.Count - 1);
-            Count -= LayerCount;
+            for (int i = Layers.Count - 1; i >= layer; i--)
+            {
+                int layerCount = Layers[i].Count;
+                Layers.RemoveAt(i);
+                Count -= layerCount;
+            }
         }
 
         public void RemoveNode(Node n)
         {
+            // waiting for thread to unlock
+            Dispatcher.ThreadHandle.WaitOne();
+
             // delete node from layer
             Layers[n.Layer].Remove(n);
 
@@ -78,15 +86,19 @@ namespace Logic.PathPlanning
             foreach (var node in n.Childs)
                 RemoveNode(node);
 
+            // delete current layer, if empty, with its successors
+            if (Layers[n.Layer].Count == 0)
+                RemoveLayer(n.Layer);
+
             Count--;
+
+            DelBuffer.Add(n);
         }
 
         public void AddNode(Node n)
         {
-            Dispatcher.ActionsQueue.Enqueue(() =>
-            {
-                n.Entity = Window.CreateTreeBranch(n.p, n.Parent.p);
-            });
+            // waiting for thread to unlock
+            Dispatcher.ThreadHandle.WaitOne();
 
             if (n.Layer == Layers.Count)
                 AddLayer();
@@ -96,7 +108,7 @@ namespace Logic.PathPlanning
             Layers[n.Layer].Add(n);
             Count++;
 
-            //Buffer.Add(n);
+            AddBuffer.Add(n);
         }
 
         public Node Min(Point p)

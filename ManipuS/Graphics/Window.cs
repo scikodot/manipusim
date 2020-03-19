@@ -9,6 +9,8 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
 using ImGuiNET;
 using Logic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Graphics
 {
@@ -91,9 +93,10 @@ namespace Graphics
         Entity grid, gridFloor;
         Entity[] obstacles, boundings, lon;
         Entity[] goal, configs, path;
-        List<Entity>[] tree;
         Entity cloud, traj, attrGood, attrBad;
-        
+
+        HashSet<Logic.PathPlanning.Tree.Node>[] tree;
+
         // variables for mouse state processing
         private bool _firstMove = true;
         private Vector2 _lastPos;
@@ -420,44 +423,38 @@ namespace Graphics
                         });
                     }
 
-                    /*// random tree
+                    // random tree
                     if (manip.Tree != null)
                     {
-                        if (manip.Tree.Buffer.Count != 0)
-                        {
-                            for (int i = 0; i < manip.Tree.Buffer.Count; i++)
-                            {
-                                tree[j].Add(new Entity(lineShader, GL_Convert(new Point[] { manip.Tree.Buffer[i].p, manip.Tree.Buffer[i].Parent.p }, new Vector4(Vector3.Zero, 1.0f))));
-                            }
-                            manip.Tree.Buffer.Clear();
-                        }
+                        // block the manager thread while updating tree
+                        Dispatcher.ThreadHandle.Reset();
+
+                        // add all elements from addition buffer to the hash set
+                        var add = new List<Logic.PathPlanning.Tree.Node>(manip.Tree.AddBuffer);
+                        tree[j].UnionWith(add);
+                        manip.Tree.AddBuffer.Clear();
+
+                        // delete all elements contained in deletion buffer from the hash set
+                        var del = new List<Logic.PathPlanning.Tree.Node>(manip.Tree.DelBuffer);
+                        tree[j].ExceptWith(del);
+                        manip.Tree.DelBuffer.Clear();
+
+                        // unblock the manager thread to continue calculations
+                        Dispatcher.ThreadHandle.Set();
                     }
 
                     if (Dispatcher.WorkspaceBuffer.JointBuffer[j].ShowTree)
                     {
                         model = Matrix4.Identity;
-                        for (int i = 0; i < tree[j].Count; i++)
+                        foreach (var node in tree[j])
                         {
-                            tree[j][i].Display(model, () =>
+                            if (node.Entity == null)
+                                node.Entity = CreateTreeBranch(node.p, node.Parent.p);
+
+                            node.Entity.Display(model, () =>
                             {
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                             });
-                        }
-                    }*/
-
-                    if (manip.Tree != null && Dispatcher.WorkspaceBuffer.JointBuffer[j].ShowTree)
-                    {
-                        model = Matrix4.Identity;
-                        for (int i = 0; i < manip.Tree.Layers.Count; i++)
-                        {
-                            for (int k = 0; k < manip.Tree.Layers[i].Count; k++)
-                            {
-                                if (manip.Tree.Layers[i][k].Entity != null)
-                                    manip.Tree.Layers[i][k].Entity.Display(model, () =>
-                                    {
-                                        GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                                    });
-                            }
                         }
                     }
 
@@ -976,10 +973,11 @@ namespace Graphics
             goal = new Entity[manip_length];
             configs = new Entity[manip_length];
             path = new Entity[manip_length];
-            tree = new List<Entity>[manip_length];
+            //tree = new List<Entity>[manip_length];
+            tree = new HashSet<Logic.PathPlanning.Tree.Node>[manip_length];
             for (int i = 0; i < tree.Length; i++)
             {
-                tree[i] = new List<Entity>();
+                tree[i] = new HashSet<Logic.PathPlanning.Tree.Node>();  //new List<Entity>();
             }
 
             ConfigsCount = new int[manip_length];

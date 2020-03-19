@@ -123,17 +123,6 @@ namespace Logic
             manip.States["Path"] = true;
             manip.Configs = resRRT.Item2;
 
-            List<List<int>> lst = new List<List<int>>
-            {
-                new List<int> { 0, 1, 2 }
-            };
-
-            List<int>[] lst2 = new List<int>[lst.Count];
-            lst.CopyTo(lst2);
-
-            lst.Add(new List<int> { 3, 4, 5 });
-            lst[0].Add(10);
-
             /*var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
                 0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000, 
                 PathPlanner.OptimizationCriterion.CollisionFree, 
