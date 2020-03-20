@@ -458,7 +458,21 @@ namespace Graphics
                         }
                     }
 
-                    // checking if the thread has finished
+                    // path
+                    if (manip.States["Path"] && manip.Path != null)
+                    {
+                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
+
+                        model = Matrix4.Identity;
+                        path[j].Display(model, () =>
+                        {
+                            GL.Disable(EnableCap.DepthTest);  // disabling depth test to let the path vertices overlap the tree
+                            GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.Path.Count);
+                            GL.Enable(EnableCap.DepthTest);
+                        });
+                    }
+
+                    /*// checking if the thread has finished
                     if (!threads[j].IsAlive)
                     {
                         // path
@@ -477,17 +491,19 @@ namespace Graphics
                                 //GL.Enable(EnableCap.DepthTest);
                             });
                         }
-                    }
+                    }*/
 
-                    // current manipulator configuration
+                    /*// current manipulator configuration
                     if (manip.Configs != null && manip.Configs.Count != 0)
                     {
                         manip.q = manip.Configs[ConfigsCount[j] < manip.Configs.Count - 1 ? ConfigsCount[j]++ : ConfigsCount[j]];
-                    }
+                    }*/
 
                     // draw manipulator configuration if its model is loaded properly
                     if (ManipLoaded) //&& Dispatcher.ActionsQueue.Count == 0)
                     {
+                        Dispatcher.UpdateConfig.Reset();
+
                         var links = Manager.Manipulators[0].Links;
                         var joints = Manager.Manipulators[0].Joints;
                         var dh = Manager.Manipulators[0].DH;
@@ -642,6 +658,8 @@ namespace Graphics
 
                         _shader.SetMatrix4("model", model, true);
                         links[2].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
+
+                        Dispatcher.UpdateConfig.Set();
                     }
                 }
             }
@@ -989,7 +1007,7 @@ namespace Graphics
             }
         }
 
-        protected void UpdateThreads()
+        protected void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
         {
             // enabling/disabling specific threads for calculating paths for manipulators
             threads = new Thread[Manager.Manipulators.Length];

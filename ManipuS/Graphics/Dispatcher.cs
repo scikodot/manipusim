@@ -11,6 +11,8 @@ using System.Threading;
 static class Dispatcher
 {
     public static ManualResetEvent ThreadHandle = new ManualResetEvent(true);
+    public static ManualResetEvent UpdateConfig = new ManualResetEvent(false);
+
     public static Random Rng = new Random();
     public static Stopwatch Timer = new Stopwatch();
 

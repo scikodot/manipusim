@@ -112,7 +112,7 @@ namespace Logic
             manip.States["Path"] = true;
             manip.Configs = resRRT.Item2;*/
 
-            // generating random tree
+            /*// generating random tree
             var solver = new HillClimbing(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
             var planner = new DynamicRRT(Obstacles, solver, AD.k, true, AD.d, AD.k / 100);
             PathPlanner pp = planner;
@@ -121,7 +121,11 @@ namespace Logic
             // acquiring all the points and configurations along the path
             manip.Path = resRRT.Item1;
             manip.States["Path"] = true;
-            manip.Configs = resRRT.Item2;
+            manip.Configs = resRRT.Item2;*/
+
+            var solver = new Jacobian(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
+            var planner = new DynamicRRT(Obstacles, solver, AD.k, true, AD.d, AD.k / 100);
+            planner.Start(manip, null);
 
             /*var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
                 0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000, 

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Logic.InverseKinematics;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Logic.PathPlanning
 {
@@ -14,6 +16,108 @@ namespace Logic.PathPlanning
         {
             this.d = d;
             this.period = period;
+        }
+
+        public void Start(Manipulator agent, Point goal)
+        {
+            var res = Execute(agent, goal);
+
+            agent.Path = res.Item1;
+            agent.States["Path"] = true;
+            agent.Configs = res.Item2;
+
+            var contestant = new Manipulator(agent);
+            List<List<Point>> paths = new List<List<Point>>();
+            for (int i = 0; i < agent.Path.Count; i++)
+            {
+                contestant.q = Misc.CopyArray(agent.Configs[i]);
+                paths.Add(contestant.DKP.ToList());
+            }
+
+            var control = Task.Run(() => Control(agent, goal, paths));
+        }
+
+        public void Control(Manipulator agent, Point goal, List<List<Point>> paths)
+        {
+            var contestant = new Manipulator(agent);
+
+            var gripperPos = 0;
+            while (gripperPos < agent.Configs.Count)
+            {
+                for (int i = gripperPos + 1; i < agent.Path.Count; i++)
+                {
+                    for (int j = paths[i].Count - 1; j > 0; j--)
+                    {
+                        foreach (var obst in Obstacles)
+                        {
+                            if (obst.Contains(paths[i][j]))
+                            {
+                                Deform(agent, obst, paths, i, j);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // wait for window to draw current config so that we can update it
+                Dispatcher.UpdateConfig.WaitOne();
+                agent.q = agent.Configs[gripperPos < agent.Configs.Count - 1 ? gripperPos++ : gripperPos];
+                Dispatcher.UpdateConfig.Reset();
+            }
+        }
+
+        public void Deform(Manipulator agent, Obstacle obstacle, List<List<Point>> paths, int point, int joint)
+        {
+            Vector vec = new Vector(obstacle.Collider.Center, paths[point][joint]);
+            Vector n = vec.Normalized;
+            Vector dx = n * (obstacle.Collider as Sphere).Radius - vec;
+
+            Point pNew = paths[point][joint] + dx;
+            var contestant = new Manipulator(agent)
+            {
+                q = Misc.CopyArray(agent.Configs[point])
+            };
+            double[] cNew = contestant.q.Zip(Solver.Execute(contestant, pNew, joint).Item3, (t, s) => t + s).ToArray();
+            contestant.q = Misc.CopyArray(cNew);
+            List<Point> dkpNew = contestant.DKP.ToList();
+
+            Point pPrev = null, pNext = null;
+            double[] cPrev = null, cNext = null;
+            List<Point> dkpPrev = null, dkpNext = null;
+            if (pNew.DistanceTo(paths[point - 1][joint]) >= 2 * d)
+            {
+                pPrev = (pNew + paths[point - 1][joint]) / 2;
+                contestant.q = Misc.CopyArray(agent.Configs[point]);
+                cPrev = contestant.q.Zip(Solver.Execute(contestant, pPrev, joint).Item3, (t, s) => t + s).ToArray();
+                contestant.q = Misc.CopyArray(cPrev);
+                dkpPrev = contestant.DKP.ToList();
+            }
+            if (pNew.DistanceTo(paths[point + 1][joint]) >= 2 * d)
+            {
+                pNext = (pNew + paths[point + 1][joint]) / 2;
+                contestant.q = Misc.CopyArray(agent.Configs[point]);
+                cNext = contestant.q.Zip(Solver.Execute(contestant, pNext, joint).Item3, (t, s) => t + s).ToArray();
+                contestant.q = Misc.CopyArray(cNext);
+                dkpNext = contestant.DKP.ToList();
+            }
+
+            if (pPrev != null)
+            {
+                paths.Insert(point, dkpPrev);
+                agent.Path.Insert(point, dkpPrev[agent.Joints.Length]);
+                agent.Configs.Insert(point++, cPrev);
+            }
+
+            paths[point] = dkpNew;
+            agent.Path[point] = dkpNew[agent.Joints.Length];
+            agent.Configs[point] = cNew;
+
+            if (pNext != null)
+            {
+                agent.Path.Insert(++point, dkpNext[agent.Joints.Length]);
+                agent.Configs.Insert(point, cNext);
+                paths.Insert(point, dkpNext);
+            }
         }
 
         public override (List<Point>, List<double[]>) Execute(Manipulator agent, Point goal)
@@ -80,7 +184,7 @@ namespace Logic.PathPlanning
                 {
                     // solving IKP for new node
                     Contestant.q = Misc.CopyArray(minNode.q);
-                    var res = Solver.Execute(Contestant, pNew);
+                    var res = Solver.Execute(Contestant, pNew, Contestant.Joints.Length);
                     if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
                     {
                         // adding node to the tree
@@ -98,8 +202,8 @@ namespace Logic.PathPlanning
                 }
 
                 // stopping in case the main attractor has been hit
-                //if (Attractors[0].InliersCount != 0)
-                //    break;
+                if (Attractors[0].InliersCount != 0)
+                    break;
             }
 
             // retrieving resultant path along with respective configurations

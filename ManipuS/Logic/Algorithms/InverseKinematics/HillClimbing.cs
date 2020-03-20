@@ -8,11 +8,11 @@ namespace Logic.InverseKinematics
         public HillClimbing(Obstacle[] obstacles, double precision, double stepSize, int maxTime) : 
             base(obstacles, precision, stepSize, maxTime) { }
 
-        public override (bool, double, double[], bool[]) Execute(Manipulator agent, Point goal)
+        public override (bool, double, double[], bool[]) Execute(Manipulator agent, Point goal, int joint)
         {
             // initial parameters
             double[] qBest = Misc.CopyArray(agent.q);
-            double dist = agent.DistanceTo(goal), init_dist = dist, k = 1;
+            double dist = agent.DKP[joint].DistanceTo(goal), init_dist = dist, k = 1;
             double minDist = double.PositiveInfinity;
             bool Converged = false;
 
@@ -22,7 +22,7 @@ namespace Logic.InverseKinematics
             Dispatcher.Timer.Start();
             while (time++ < MaxTime)
             {
-                for (int i = 0; i < agent.Joints.Length; i++)
+                for (int i = 0; i < joint; i++)
                 {
                     // checking GC constraints
                     range = agent.Joints[i].qRanges[0] - agent.q[i] * 180 / Math.PI;
@@ -38,7 +38,7 @@ namespace Logic.InverseKinematics
 
                 // retrieving score of the new configuration
                 agent.q = qBest.Zip(dq, (t, s) => { return t + s; }).ToArray();
-                double distNew = agent.DistanceTo(goal);
+                double distNew = agent.DKP[joint].DistanceTo(goal);
 
                 if (distNew < dist)
                 {
