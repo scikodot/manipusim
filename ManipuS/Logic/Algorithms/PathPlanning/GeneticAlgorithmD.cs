@@ -133,7 +133,7 @@
 //            Dispatcher.Timer.Reset();
 
 //            // if the dominant chromosome wasn't found, consider last result the best result
-//            if (dominant == null)
+//            if (dominant == null)  // TODO: at this point fit and chs arrays do not correlate, because chs was changed!
 //            {
 //                dominant = chs[Array.IndexOf(fit, max)];
 //            }

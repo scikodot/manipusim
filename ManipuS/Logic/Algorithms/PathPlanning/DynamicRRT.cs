@@ -185,6 +185,7 @@ namespace Logic.PathPlanning
                     // solving IKP for new node
                     Contestant.q = Misc.CopyArray(minNode.q);
                     var res = Solver.Execute(Contestant, pNew, Contestant.Joints.Length);
+                    var pos = Contestant.GripperPos;
                     if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
                     {
                         // adding node to the tree

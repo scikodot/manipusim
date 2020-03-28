@@ -35,7 +35,7 @@ namespace Logic.InverseKinematics
                 Vector4 initAxis = Vector4.UnitY;
                 for (int i = 0; i < joint; i++)  // TODO: all the manipulator structure logic should be incapsulated (elsewhere)
                 {
-                    model *= Matrix.RotateY((float)dh[i].theta(joints[i]));
+                    model *= Matrix.RotateY((float)dh[i].theta);
                     model *= Matrix.Translate((float)dh[i].d * Vector3.UnitY);
                     model *= Matrix.RotateX((float)dh[i].alpha);
                     model *= Matrix.Translate((float)dh[i].r * Vector3.UnitX);

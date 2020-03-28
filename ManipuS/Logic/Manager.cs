@@ -21,9 +21,9 @@ namespace Logic
             Manipulators = new Manipulator[1];
             Manipulators[0] = new Manipulator(LD, JD, new TupleDH[]
                 {
-                    new TupleDH((j) => { return j.q; }, JD[0].Length + LD[0].Length, 90 * Math.PI / 180, 0),
-                    new TupleDH((j) => { return j.q - 90 * Math.PI / 180; }, 0, 0, JD[1].Length + LD[1].Length),
-                    new TupleDH((j) => { return j.q; }, 0, 0, JD[2].Length + LD[2].Length)
+                    new TupleDH(0, JD[0].Length + LD[0].Length, 90 * Math.PI / 180, 0),
+                    new TupleDH(-90 * Math.PI / 180, 0, 0, JD[1].Length + LD[1].Length),
+                    new TupleDH(0, 0, 0, JD[2].Length + LD[2].Length)
                 });
             Manipulators[0].Goal = new Point(0, 0.5, 2.5);
 

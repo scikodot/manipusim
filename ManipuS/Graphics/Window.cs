@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace Graphics
 {
-    public class Entity
+    /*public class Entity
     {
         public int VAO, VBO, EBO;
         public Shader Shader;
@@ -60,7 +60,7 @@ namespace Graphics
             Shader.SetMatrix4("model", model, false);
             draw();
         }
-    }
+    }*/
 
     public class Window : GameWindow
     {
@@ -166,7 +166,6 @@ namespace Graphics
             base.OnLoad(e);
         }
 
-
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             controller.Update(this, (float)e.Time);
@@ -179,7 +178,10 @@ namespace Graphics
 
             // capture screen after render if queried
             if (Capture)
-                ScreenCapture();
+            {
+                Utils.ScreenCapture(this, SavePath);
+                Capture = false;
+            }
 
             SwapBuffers();
 
@@ -423,6 +425,19 @@ namespace Graphics
                         });
                     }
 
+                    // path
+                    if (manip.States["Path"] && manip.Path != null)
+                    {
+                        int count = manip.Path.Count;
+                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
+
+                        model = Matrix4.Identity;
+                        path[j].Display(model, () =>
+                        {
+                            GL.DrawArrays(PrimitiveType.LineStrip, 0, count);
+                        });
+                    }
+
                     // random tree
                     if (manip.Tree != null)
                     {
@@ -458,208 +473,10 @@ namespace Graphics
                         }
                     }
 
-                    // path
-                    if (manip.States["Path"] && manip.Path != null)
-                    {
-                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
-
-                        model = Matrix4.Identity;
-                        path[j].Display(model, () =>
-                        {
-                            GL.Disable(EnableCap.DepthTest);  // disabling depth test to let the path vertices overlap the tree
-                            GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.Path.Count);
-                            GL.Enable(EnableCap.DepthTest);
-                        });
-                    }
-
-                    /*// checking if the thread has finished
-                    if (!threads[j].IsAlive)
-                    {
-                        // path
-                        if (path[j] == null)
-                        {
-                            if (manip.States["Path"])
-                                path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
-                        }
-                        else
-                        {
-                            model = Matrix4.Identity;
-                            path[j].Display(model, () =>
-                            {
-                                //GL.Disable(EnableCap.DepthTest);  // disabling depth test to let the path vertices overlap the tree
-                                GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.Path.Count);
-                                //GL.Enable(EnableCap.DepthTest);
-                            });
-                        }
-                    }*/
-
-                    /*// current manipulator configuration
-                    if (manip.Configs != null && manip.Configs.Count != 0)
-                    {
-                        manip.q = manip.Configs[ConfigsCount[j] < manip.Configs.Count - 1 ? ConfigsCount[j]++ : ConfigsCount[j]];
-                    }*/
-
                     // draw manipulator configuration if its model is loaded properly
-                    if (ManipLoaded) //&& Dispatcher.ActionsQueue.Count == 0)
+                    if (ManipLoaded)
                     {
-                        Dispatcher.UpdateConfig.Reset();
-
-                        var links = Manager.Manipulators[0].Links;
-                        var joints = Manager.Manipulators[0].Joints;
-                        var dh = Manager.Manipulators[0].DH;
-                        var linksCount = Dispatcher.WorkspaceBuffer.LinkBuffer.Length;
-
-                        //time += (float)(Math.PI / 2 * e.Time);
-                        //joints[0].q = time;
-                        //joints[1].q = time;
-                        //joints[2].q = time;
-
-                        model = Matrix4.Identity;
-                        if (manip.points != null)
-                        {
-                            traj = new Entity(lineShader, GL_Convert(manip.points, new Vector4(1, 0, 0, 1)));
-                            traj.Display(model, () =>
-                            {
-                                GL.DrawArrays(PrimitiveType.LineStrip, 0, manip.points.Length);
-                            });
-                        }
-
-                        /*model = Matrix4.Identity;
-                        if (cloud == null)
-                        {
-                            var rng = new Random();
-                            var data = new List<Point>();
-                            while (data.Count < 1000)
-                            {
-                                joints[0].q += (joints[0].qRanges[0] + (joints[0].qRanges[1] - joints[0].qRanges[0]) * rng.NextDouble()) * Math.PI / 180;
-                                joints[1].q += (joints[1].qRanges[0] + (joints[1].qRanges[1] - joints[1].qRanges[0]) * rng.NextDouble()) * Math.PI / 180;
-                                joints[2].q += (joints[2].qRanges[0] + (joints[2].qRanges[1] - joints[2].qRanges[0]) * rng.NextDouble()) * Math.PI / 180;
-
-                                var shit = Manager.Manipulators[0].GripperPos;
-                                foreach (var point in data)
-                                {
-                                    if (shit.DistanceTo(point) < 0.2)
-                                        goto Break;
-                                }
-                                data.Add(shit);
-                            Break:
-                                var a = 2;
-                            }
-                            cloud = new Entity(lineShader, GL_Convert(data.ToArray(), Vector4.UnitW));
-
-                            var path = new List<Point>();
-                            for (int i = 0; i < 50; i++)
-                            {
-                                var index = rng.Next(0, data.Count);
-                                path.Add(data[index]);
-                            }
-                            traj = new Entity(lineShader, GL_Convert(path.ToArray(), new Vector4(1, 0, 0, 1)));
-
-                            joints[0].q = joints[1].q = joints[2].q = 0;
-                        }
-                        else
-                        {
-                            cloud.Display(model, () =>
-                            {
-                                GL.PointSize(3);
-                                GL.DrawArrays(PrimitiveType.Points, 0, 1000);
-                            });
-
-                            traj.Display(model, () =>
-                            {
-                                GL.DrawArrays(PrimitiveType.LineStrip, 0, 50);
-                            });
-                        }*/
-
-                        /*model = Matrix4.Identity;
-                        if (attrGood == null)
-                        {
-                            var points = new Point[manip.GoodAttractors.Count];
-                            for (int i = 0; i < points.Length; i++)
-                            {
-                                points[i] = manip.GoodAttractors[i].Center;
-                            }
-
-                            attrGood = new Entity(lineShader, GL_Convert(points, Vector4.UnitW));
-
-                            points = new Point[manip.BadAttractors.Count];
-                            for (int i = 0; i < points.Length; i++)
-                            {
-                                points[i] = manip.BadAttractors[i].Center;
-                            }
-
-                            attrBad = new Entity(lineShader, GL_Convert(points, new Vector4(1, 0, 0, 1)));
-                        }
-                        else
-                        {
-                            attrGood.Display(model, () =>
-                            {
-                                GL.PointSize(3);
-                                GL.DrawArrays(PrimitiveType.Points, 0, manip.GoodAttractors.Count);
-                            });
-                            attrBad.Display(model, () =>
-                            {
-                                GL.DrawArrays(PrimitiveType.Points, 0, manip.BadAttractors.Count);
-                            });
-                        }*/
-
-                        model = Matrix4.Identity;
-
-                        Vector4[] axes = new Vector4[linksCount];
-                        Vector4[] pos = new Vector4[linksCount];
-
-                        axes[0] = Vector4.UnitY;
-                        pos[0] = new Vector4(Vector3.Zero, 1);
-
-                        _shader.Use();
-
-                        // joints
-                        for (int i = 0; i < linksCount; i++)  // TODO: all the manipulator structure logic should be incapsulated (elsewhere), so that it could be drawn with one-liner
-                        {
-                            model *= Matrix.RotateY((float)dh[i].theta(joints[i]));
-
-                            _shader.SetMatrix4("model", model, true);
-                            joints[i].Model.Position = new Vector3(model * new Vector4(joints[0].Model.Position, 1.0f));
-                            joints[i].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
-
-                            model *= Matrix.Translate((float)dh[i].d * Vector3.UnitY);
-                            model *= Matrix.RotateX((float)dh[i].alpha);
-                            model *= Matrix.Translate((float)dh[i].r * Vector3.UnitX);
-
-                            if (i < linksCount - 1)
-                            {
-                                axes[i + 1] = model * axes[0];
-                                pos[i + 1] = new Vector4(model.M14, model.M24, model.M34, 1);
-                            }
-                        }
-
-                        model = Matrix4.Identity;
-
-                        // TODO: replace matrices with quaternions!
-                        // links
-                        model *= Matrix.Translate(joints[0].Length / 2 * Vector3.UnitY);
-                        var trans = Matrix.RotateCustomAnother(pos[0], axes[0], -(float)dh[0].theta(joints[0]));  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes
-                        model = trans * model;  // the order of multiplication is reversed, because the trans matrix transforms the operand (model) itself; it does not contribute in total transformation like other matrices do
-                        model *= Matrix4.CreateScale(new Vector3(0.75f, 1, 0.75f));
-
-                        _shader.SetMatrix4("model", model, true);
-                        links[0].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
-
-                        model *= Matrix.Translate((float)dh[0].d * Vector3.UnitY);
-                        trans = Matrix.RotateCustomAnother(pos[1], axes[1], -(float)(dh[1].theta(joints[1]) + Math.PI / 2));
-                        model = trans * model;
-
-                        _shader.SetMatrix4("model", model, true);
-                        links[1].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
-
-                        model *= Matrix.Translate((float)dh[1].r * Vector3.UnitY);
-                        trans = Matrix.RotateCustomAnother(pos[2], axes[2], -(float)dh[2].theta(joints[2]));
-                        model = trans * model;
-
-                        _shader.SetMatrix4("model", model, true);
-                        links[2].Model.Draw(_shader, MeshMode.Solid | MeshMode.Wireframe);
-
-                        Dispatcher.UpdateConfig.Set();
+                        manip.Draw(_shader);
                     }
                 }
             }
@@ -732,7 +549,7 @@ namespace Graphics
                     {
                         if (ImGui.MenuItem("nanosuit.obj"))
                         {
-                            load = new Thread(() => 
+                            /*load = new Thread(() => 
                             {
                                 for (int i = 0; i < Dispatcher.WorkspaceBuffer.LinkBuffer.Length; i++)
                                 {
@@ -753,7 +570,25 @@ namespace Graphics
                                 Name = "LoadModel",
                                 IsBackground = true
                             };
-                            load.Start();
+                            load.Start();*/
+                            Dispatcher.ActiveTasks.Add(Task.Run(() =>
+                            {
+                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.LinkBuffer.Length; i++)
+                                {
+                                    Dispatcher.WorkspaceBuffer.JointBuffer[i].Model = new Model(JointPath);
+                                    Dispatcher.WorkspaceBuffer.LinkBuffer[i].Model = new Model(LinkPath);
+                                }
+
+                                // wait for loading process to finish
+                                while (Dispatcher.ActionsQueue.Count != 0) { }  // TODO: remove redundant checks for ActionsQueue in this file (because ManipLoaded == true only when ActionsQueue.Count == 0)
+                                // TODO: better to put WaitHandle here instead of emptiness check
+
+                                // update workspace with newly loaded model
+                                UpdateWorkspace();
+                                UpdateThreads();
+                                ManipLoaded = true;
+                                //Crytek = new Model(ManipPath);
+                            }));
                         }
 
                         ImGui.EndMenu();

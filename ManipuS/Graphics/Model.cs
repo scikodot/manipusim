@@ -161,8 +161,7 @@ namespace Graphics
 
             // load texture file with StbImage
             var io = new System.IO.FileStream(resPath, System.IO.FileMode.Open);
-            var stream = new ImageStreamLoader();
-            var resLoad = stream.Load(io);
+            var resLoad = ImageResult.FromStream(io);
 
             int width = resLoad.Width, height = resLoad.Height;
             ColorComponents nrComponents = resLoad.SourceComp;

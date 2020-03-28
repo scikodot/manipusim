@@ -10,6 +10,8 @@ using System.Threading;
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
 static class Dispatcher
 {
+    public static List<Task> ActiveTasks = new List<Task>();
+
     public static ManualResetEvent ThreadHandle = new ManualResetEvent(true);
     public static ManualResetEvent UpdateConfig = new ManualResetEvent(false);
 
