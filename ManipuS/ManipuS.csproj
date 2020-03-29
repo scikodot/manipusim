@@ -94,7 +94,7 @@
     <Compile Include="Graphics\ImGui\ImGuiTexture.cs" />
     <Compile Include="Graphics\Mesh.cs" />
     <Compile Include="Graphics\Model.cs" />
-    <Compile Include="Graphics\Utils\Class1.cs" />
+    <Compile Include="Graphics\Utils\Utils.cs" />
     <Compile Include="Graphics\Utils\Entity.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\_base.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\HillClimbing.cs" />
@@ -106,6 +106,7 @@
     <Compile Include="Logic\Algorithms\PathPlanning\_base.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />
+    <Compile Include="Logic\DualQuaternion.cs" />
     <Compile Include="Logic\Manipulator.cs" />
     <Compile Include="Logic\Obstacle.cs" />
     <Compile Include="Logic\Manager.cs" />

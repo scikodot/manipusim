@@ -133,7 +133,7 @@ namespace Logic
         public Link[] Links;
         public Joint[] Joints;
         public TupleDH[] DH;
-        public List<Matrix4> TransMatrices;
+        public List<Matrix4> TransMatrices;  // TODO: use quaternions instead of matrices for D-H transformations
         public float WorkspaceRadius;
 
         public Point Goal;
@@ -230,8 +230,6 @@ namespace Logic
         {
             get
             {
-                UpdateTransMatrices();
-
                 Matrix4 pos = new Matrix4
                 (
                     new Vector4(1, 0, 0, (float)Base.x),
@@ -253,8 +251,6 @@ namespace Logic
         {
             get
             {
-                UpdateTransMatrices();
-
                 Point[] jointsPos = new Point[Joints.Length + 1];
                 jointsPos[0] = Base;
 
@@ -293,6 +289,8 @@ namespace Logic
                 {
                     Joints[i].q = value[i];
                 }
+
+                UpdateTransMatrices();
             }
         }
 
@@ -313,13 +311,6 @@ namespace Logic
         {
             Dispatcher.UpdateConfig.Reset();
 
-            //time += (float)(Math.PI / 2 * e.Time);
-            //joints[0].q = time;
-            //joints[1].q = time;
-            //joints[2].q = time;
-
-            var model = Matrix4.Identity;
-
             Vector4[] axes = new Vector4[Links.Length];
             Vector4[] pos = new Vector4[Links.Length];
 
@@ -328,18 +319,26 @@ namespace Logic
 
             shader.Use();
 
+            //joints[0].q = time;
+            //Joints[1].q += 0.016;
+            //joints[2].q = time;
+
+            Matrix4 model;
+            var quat = DualQuaternion.Default;
+
             // joints
-            for (int i = 0; i < Links.Length; i++)  // TODO: all the manipulator structure logic should be incapsulated (elsewhere), so that it could be drawn with one-liner
+            for (int i = 0; i < Links.Length; i++)
             {
-                model *= Matrix.RotateY((float)DH[i].theta);
+                quat *= new DualQuaternion(Vector3.UnitY, -(float)DH[i].theta);
+                model = quat.Matrix;
 
                 shader.SetMatrix4("model", model, true);
                 Joints[i].Model.Position = new Vector3(model * new Vector4(Joints[0].Model.Position, 1.0f));
                 Joints[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-                model *= Matrix.Translate((float)DH[i].d * Vector3.UnitY);
-                model *= Matrix.RotateX((float)DH[i].alpha);
-                model *= Matrix.Translate((float)DH[i].r * Vector3.UnitX);
+                quat *= new DualQuaternion((float)DH[i].d * Vector3.UnitY);
+                quat *= new DualQuaternion(Vector3.UnitX, (float)DH[i].alpha, (float)DH[i].r * Vector3.UnitX);
+                model = quat.Matrix;
 
                 if (i < Links.Length - 1)
                 {
@@ -348,28 +347,33 @@ namespace Logic
                 }
             }
 
-            model = Matrix4.Identity;
+            quat = DualQuaternion.Default;
 
-            // TODO: replace matrices with quaternions!
             // links
-            model *= Matrix.Translate(Joints[0].Length / 2 * Vector3.UnitY);
-            var trans = Matrix.RotateCustomAnother(pos[0], axes[0], -(float)DH[0].theta);  // rotate link about custom axis; useful when dealing with complex (arbitrary) joints' actuation axes
-            model = trans * model;  // the order of multiplication is reversed, because the trans matrix transforms the operand (model) itself; it does not contribute in total transformation like other matrices do
-            model *= Matrix4.CreateScale(new Vector3(0.75f, 1, 0.75f));
+            quat *= new DualQuaternion(Joints[0].Length / 2 * Vector3.UnitY);
+
+            // the order of multiplication is reversed, because the trans quat transforms the operand (quat) itself; it does not contribute in total transformation like other quats do
+            var trans_quat = new DualQuaternion(axes[0].Xyz, pos[0].Xyz, -(float)DH[0].theta);
+            quat = trans_quat * quat;
+            model = quat.Matrix;
 
             shader.SetMatrix4("model", model, true);
             Links[0].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            model *= Matrix.Translate((float)DH[0].d * Vector3.UnitY);
-            trans = Matrix.RotateCustomAnother(pos[1], axes[1], -(float)(DH[1].theta + Math.PI / 2));
-            model = trans * model;
+            quat *= new DualQuaternion((float)DH[0].d * Vector3.UnitY);
+
+            trans_quat = new DualQuaternion(axes[1].Xyz, pos[1].Xyz, -(float)(DH[1].theta + Math.PI / 2));
+            quat = trans_quat * quat;
+            model = quat.Matrix;
 
             shader.SetMatrix4("model", model, true);
             Links[1].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            model *= Matrix.Translate((float)DH[1].r * Vector3.UnitY);
-            trans = Matrix.RotateCustomAnother(pos[2], axes[2], -(float)DH[2].theta);
-            model = trans * model;
+            quat *= new DualQuaternion((float)DH[1].r * Vector3.UnitY);
+
+            trans_quat = new DualQuaternion(axes[2].Xyz, pos[2].Xyz, -(float)DH[2].theta);
+            quat = trans_quat * quat;
+            model = quat.Matrix;
 
             shader.SetMatrix4("model", model, true);
             Links[2].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
