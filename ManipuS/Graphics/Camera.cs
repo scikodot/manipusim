@@ -12,7 +12,7 @@ namespace Graphics
     // Check out the web version if you don't know why we are doing a specific thing or want to know more about the code
     public class Camera
     {
-        // Those vectors are directions pointing outwards from the camera to define how it rotated
+        // Those vectors are directions Vector3ing outwards from the camera to define how it rotated
         private Vector3 _front = -Vector3.UnitZ;
         private Vector3 _up = Vector3.UnitY;
         private Vector3 _right = Vector3.UnitX;
@@ -84,7 +84,7 @@ namespace Graphics
             return Matrix4.LookAt(Position, Position + _front, _up);
         }
 
-        // Get the projection matrix using the same method we have used up until this point
+        // Get the projection matrix using the same method we have used up until this Vector3
         public Matrix4 GetProjectionMatrix()
         {
             return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);

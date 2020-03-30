@@ -25,16 +25,16 @@ namespace Graphics
             bitmap.Save(savepath + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
         }
 
-        public static float[] GL_Convert(Point[] data, Vector4 color)
+        public static float[] GL_Convert(Vector3[] data, Vector4 color)
         {
             // converting program data to OpenGL buffer format
             float[] res = new float[data.Length * 7];
 
             for (int i = 0; i < data.Length; i++)
             {
-                res[7 * i] = (float)data[i].x;
-                res[7 * i + 1] = (float)data[i].y;
-                res[7 * i + 2] = (float)data[i].z;
+                res[7 * i] = data[i].X;
+                res[7 * i + 1] = data[i].Y;
+                res[7 * i + 2] = data[i].Z;
                 res[7 * i + 3] = color.X;
                 res[7 * i + 4] = color.Y;
                 res[7 * i + 5] = color.Z;

@@ -14,7 +14,7 @@
 //            this.d = d;
 //        }
 
-//        public override (List<Point>, List<double[]>) Execute(Manipulator agent, Point goal)
+//        public override (List<Vector3>, List<float[]>) Execute(Manipulator agent, Vector3 goal)
 //        {
 //            Manipulator Contestant = new Manipulator(agent);
 
@@ -28,7 +28,7 @@
 //            for (int i = 0; i < MaxTime; i++)
 //            {
 //                // generating normally distributed value with Box-Muller transform
-//                double num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
+//                float num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
 
 //                // extracting the first relevant attractor
 //                Attractor attr = Attractors.Find((t) => { return t.Weight > num; });
@@ -39,23 +39,23 @@
 //                else
 //                    index = Attractors.IndexOf(attr);
 
-//                double radius = Attractors[index].Radius, x, y_pos, y, z_pos, z;
+//                float radius = Attractors[index].Radius, x, y_pos, y, z_pos, z;
 
-//                // generating point of attraction (inside the attractor's field) for tree
-//                x = -radius + Rng.NextDouble() * 2 * radius;
+//                // generating Vector3 of attraction (inside the attractor's field) for tree
+//                x = -radius + Rng.Nextfloat() * 2 * radius;
 //                y_pos = Math.Sqrt(radius * radius - x * x);
-//                y = -y_pos + Rng.NextDouble() * 2 * y_pos;
+//                y = -y_pos + Rng.Nextfloat() * 2 * y_pos;
 //                z_pos = Math.Sqrt(radius * radius - x * x - y * y);
-//                z = -z_pos + Rng.NextDouble() * 2 * z_pos;
+//                z = -z_pos + Rng.Nextfloat() * 2 * z_pos;
 
-//                Point p = new Point(x, y, z) + Attractors[index].Center;
+//                Vector3 p = new Vector3(x, y, z) + Attractors[index].Center;
 
-//                // finding the closest node to the generated point
+//                // finding the closest node to the generated Vector3
 //                Tree.Node minNode = agent.Tree.Min(p);
 
 //                // creating offset vector to new node
 //                Vector v = new Vector(minNode.p, p);
-//                Point pNew = minNode.p + v.Normalized * d;
+//                Vector3 pNew = minNode.p + v.Normalized * d;
 
 //                // checking for collisions of the new node
 //                bool collision = false;
@@ -101,8 +101,8 @@
 
 //            // retrieving resultant path along with respective configurations
 //            Tree.Node start = agent.Tree.Min(agent.Goal), node_curr = start;
-//            List<Point> path = new List<Point>();
-//            List<double[]> configs = new List<double[]>();
+//            List<Vector3> path = new List<Vector3>();
+//            List<float[]> configs = new List<float[]>();
 //            for (int i = start.Layer; i >= 0; i--)
 //            {
 //                if (node_curr.Layer == i)
@@ -111,10 +111,10 @@
 //                    configs.Add(node_curr.q);
 //                    if (node_curr.Parent != null)
 //                    {
-//                        int pointsNum = node_curr.Layer - node_curr.Parent.Layer - 1;
-//                        if (pointsNum > 0)
+//                        int Vector3sNum = node_curr.Layer - node_curr.Parent.Layer - 1;
+//                        if (Vector3sNum > 0)
 //                        {
-//                            Tree.Node[] nodes = Tree.Discretize(node_curr, node_curr.Parent, pointsNum);
+//                            Tree.Node[] nodes = Tree.Discretize(node_curr, node_curr.Parent, Vector3sNum);
 //                            foreach (var node in nodes)
 //                            {
 //                                configs.Add(node.q);

@@ -18,7 +18,7 @@ namespace Logic.PathPlanning
             this.period = period;
         }
 
-        public void Start(Manipulator agent, Point goal)
+        public void Start(Manipulator agent, Vector3 goal)
         {
             var res = Execute(agent, goal);
 
@@ -27,7 +27,7 @@ namespace Logic.PathPlanning
             agent.Configs = res.Item2;
 
             var contestant = new Manipulator(agent);
-            List<List<Point>> paths = new List<List<Point>>();
+            List<List<Vector3>> paths = new List<List<Vector3>>();
             for (int i = 0; i < agent.Path.Count; i++)
             {
                 contestant.q = Misc.CopyArray(agent.Configs[i]);
@@ -37,7 +37,7 @@ namespace Logic.PathPlanning
             var control = Task.Run(() => Control(agent, goal, paths));
         }
 
-        public void Control(Manipulator agent, Point goal, List<List<Point>> paths)
+        public void Control(Manipulator agent, Vector3 goal, List<List<Vector3>> paths)
         {
             var contestant = new Manipulator(agent);
 
@@ -66,24 +66,24 @@ namespace Logic.PathPlanning
             }
         }
 
-        public void Deform(Manipulator agent, Obstacle obstacle, List<List<Point>> paths, int point, int joint)
+        public void Deform(Manipulator agent, Obstacle obstacle, List<List<Vector3>> paths, int point, int joint)
         {
-            Vector vec = new Vector(obstacle.Collider.Center, paths[point][joint]);
-            Vector n = vec.Normalized;
-            Vector dx = n * (obstacle.Collider as Sphere).Radius - vec;
+            Vector3 vec = new Vector3(obstacle.Collider.Center, paths[point][joint]);
+            Vector3 n = vec.Normalized;
+            Vector3 dx = n * (obstacle.Collider as Sphere).Radius - vec;
 
-            Point pNew = paths[point][joint] + dx;
+            Vector3 pNew = paths[point][joint] + dx;
             var contestant = new Manipulator(agent)
             {
                 q = Misc.CopyArray(agent.Configs[point])
             };
-            double[] cNew = contestant.q.Zip(Solver.Execute(contestant, pNew, joint).Item3, (t, s) => t + s).ToArray();
+            float[] cNew = contestant.q.Zip(Solver.Execute(contestant, pNew, joint).Item3, (t, s) => t + s).ToArray();
             contestant.q = Misc.CopyArray(cNew);
-            List<Point> dkpNew = contestant.DKP.ToList();
+            List<Vector3> dkpNew = contestant.DKP.ToList();
 
-            Point pPrev = null, pNext = null;
-            double[] cPrev = null, cNext = null;
-            List<Point> dkpPrev = null, dkpNext = null;
+            Vector3 pPrev = default, pNext = default;
+            float[] cPrev = null, cNext = null;
+            List<Vector3> dkpPrev = null, dkpNext = null;
             if (pNew.DistanceTo(paths[point - 1][joint]) >= 2 * d)
             {
                 pPrev = (pNew + paths[point - 1][joint]) / 2;
@@ -101,7 +101,7 @@ namespace Logic.PathPlanning
                 dkpNext = contestant.DKP.ToList();
             }
 
-            if (pPrev != null)
+            if (pPrev != Vector3.Zero)
             {
                 paths.Insert(point, dkpPrev);
                 agent.Path.Insert(point, dkpPrev[agent.Joints.Length]);
@@ -112,7 +112,7 @@ namespace Logic.PathPlanning
             agent.Path[point] = dkpNew[agent.Joints.Length];
             agent.Configs[point] = cNew;
 
-            if (pNext != null)
+            if (pNext != Vector3.Zero)
             {
                 agent.Path.Insert(++point, dkpNext[agent.Joints.Length]);
                 agent.Configs.Insert(point, cNext);
@@ -120,7 +120,7 @@ namespace Logic.PathPlanning
             }
         }
 
-        public override (List<Point>, List<double[]>) Execute(Manipulator agent, Point goal)
+        public override (List<Vector3>, List<float[]>) Execute(Manipulator agent, Vector3 goal)
         {
             Manipulator Contestant = new Manipulator(agent);
 
@@ -137,7 +137,7 @@ namespace Logic.PathPlanning
                     Trim(agent.Tree, Contestant);
 
                 // generating normally distributed value with Box-Muller transform
-                double num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
+                float num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
 
                 // extracting the first relevant attractor
                 Attractor attr = Attractors.Find((t) => { return t.Weight > num; });
@@ -148,23 +148,23 @@ namespace Logic.PathPlanning
                 else
                     index = Attractors.IndexOf(attr);
 
-                double radius = Attractors[index].Radius, x, y_pos, y, z_pos, z;
+                float radius = Attractors[index].Radius, x, y_pos, y, z_pos, z;
 
-                // generating point of attraction (inside the attractor's field) for tree
-                x = -radius + Rng.NextDouble() * 2 * radius;
-                y_pos = Math.Sqrt(radius * radius - x * x);
-                y = -y_pos + Rng.NextDouble() * 2 * y_pos;
-                z_pos = Math.Sqrt(radius * radius - x * x - y * y);
-                z = -z_pos + Rng.NextDouble() * 2 * z_pos;
+                // generating Vector3 of attraction (inside the attractor's field) for tree
+                x = -radius + (float)Rng.NextDouble() * 2 * radius;
+                y_pos = (float)Math.Sqrt(radius * radius - x * x);
+                y = -y_pos + (float)Rng.NextDouble() * 2 * y_pos;
+                z_pos = (float)Math.Sqrt(radius * radius - x * x - y * y);
+                z = -z_pos + (float)Rng.NextDouble() * 2 * z_pos;
 
-                Point p = new Point(x, y, z) + Attractors[index].Center;
+                Vector3 p = new Vector3(x, y, z) + Attractors[index].Center;
 
-                // finding the closest node to the generated point
+                // finding the closest node to the generated Vector3
                 Tree.Node minNode = agent.Tree.Min(p);
 
                 // creating offset vector to new node
-                Vector v = new Vector(minNode.p, p);
-                Point pNew = minNode.p + v.Normalized * d;
+                Vector3 v = new Vector3(minNode.p, p);
+                Vector3 pNew = minNode.p + v.Normalized * d;
 
                 // checking for collisions of the new node
                 bool collision = false;
@@ -209,8 +209,8 @@ namespace Logic.PathPlanning
 
             // retrieving resultant path along with respective configurations
             Tree.Node start = agent.Tree.Min(agent.Goal), node_curr = start;
-            List<Point> path = new List<Point>();
-            List<double[]> configs = new List<double[]>();
+            List<Vector3> path = new List<Vector3>();
+            List<float[]> configs = new List<float[]>();
             for (int i = start.Layer; i >= 0; i--)
             {
                 if (node_curr.Layer == i)
@@ -219,10 +219,10 @@ namespace Logic.PathPlanning
                     configs.Add(node_curr.q);
                     if (node_curr.Parent != null)
                     {
-                        int pointsNum = node_curr.Layer - node_curr.Parent.Layer - 1;
-                        if (pointsNum > 0)
+                        int Vector3sNum = node_curr.Layer - node_curr.Parent.Layer - 1;
+                        if (Vector3sNum > 0)
                         {
-                            Tree.Node[] nodes = Tree.Discretize(node_curr, node_curr.Parent, pointsNum);
+                            Tree.Node[] nodes = Tree.Discretize(node_curr, node_curr.Parent, Vector3sNum);
                             foreach (var node in nodes)
                             {
                                 configs.Add(node.q);
@@ -247,7 +247,7 @@ namespace Logic.PathPlanning
             {
                 for (int j = tree.Layers[i].Count - 1; j >= 0; j--)
                 {
-                    // check node point for collisions
+                    // check node Vector3 for collisions
                     bool nodeRemoved = false;
                     foreach (var obst in Obstacles)
                     {

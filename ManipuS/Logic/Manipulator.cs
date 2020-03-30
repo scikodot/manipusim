@@ -12,17 +12,17 @@ namespace Logic
     public struct TupleDH
     {
         public Joint joint;
-        public double theta
+        public float theta
         {
             get { return joint.q + thetaOffset; }
         }
 
-        public double thetaOffset;
-        public double d;
-        public double alpha;
-        public double r;
+        public float thetaOffset;
+        public float d;
+        public float alpha;
+        public float r;
 
-        public TupleDH(double thetaOffset, double d, double alpha, double r)
+        public TupleDH(float thetaOffset, float d, float alpha, float r)
         {
             joint = null;  // TODO: probably better to use class?
 
@@ -59,7 +59,7 @@ namespace Logic
     {
         public float r;
         public System.Numerics.Vector3 c;
-        public int points_num;
+        public int Vector3s_num;
 
         public bool ShowBounding;
     }
@@ -107,8 +107,8 @@ namespace Logic
         public Model Model;
         public float Length;
 
-        public double q;
-        public double[] qRanges;
+        public float q;
+        public float[] qRanges;
 
         public Joint() { }
 
@@ -117,7 +117,7 @@ namespace Logic
             Model = data.Model;
             Length = data.Length;
             q = data.q;
-            qRanges = new double[2] { data.q_ranges.X, data.q_ranges.Y };
+            qRanges = new float[2] { data.q_ranges.X, data.q_ranges.Y };
         }
 
         public Joint Copy(bool deep = false)
@@ -128,7 +128,7 @@ namespace Logic
 
     public class Manipulator
     {
-        public Point Base;
+        public Vector3 Base;
 
         public Link[] Links;
         public Joint[] Joints;
@@ -136,13 +136,13 @@ namespace Logic
         public List<Matrix4> TransMatrices;  // TODO: use quaternions instead of matrices for D-H transformations
         public float WorkspaceRadius;
 
-        public Point Goal;
-        public List<Point> Path;
-        public List<double[]> Configs;
+        public Vector3 Goal;
+        public List<Vector3> Path;
+        public List<float[]> Configs;
         public Tree Tree;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
         public List<Attractor> GoodAttractors, BadAttractors;
-        public Point[] points;
+        public Vector3[] Vector3s;
         public Dictionary<string, bool> States;
 
         public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)
@@ -159,7 +159,7 @@ namespace Logic
                 Joints[i] = new Joint(joints[i]);
             }
 
-            Base = new Point(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
+            Base = new Vector3(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
 
             this.DH = DH;
             for (int i = 0; i < DH.Length; i++)
@@ -226,15 +226,15 @@ namespace Logic
             );
         }
 
-        public Point GripperPos
+        public Vector3 GripperPos
         {
             get
             {
                 Matrix4 pos = new Matrix4
                 (
-                    new Vector4(1, 0, 0, (float)Base.x),
-                    new Vector4(0, 1, 0, (float)Base.y),
-                    new Vector4(0, 0, 1, (float)Base.z),
+                    new Vector4(1, 0, 0, Base.X),
+                    new Vector4(0, 1, 0, Base.Y),
+                    new Vector4(0, 0, 1, Base.Z),
                     new Vector4(0, 0, 0, 1)
                 );
 
@@ -243,40 +243,40 @@ namespace Logic
                     pos *= TransMatrices[i];
                 }
 
-                return new Point(pos[0, 3], pos[1, 3], pos[2, 3]);  // TODO: too big error (~2nd order)! optimize
+                return new Vector3(pos[0, 3], pos[1, 3], pos[2, 3]);  // TODO: too big error (~2nd order)! optimize
             }
         }
 
-        public Point[] DKP
+        public Vector3[] DKP
         {
             get
             {
-                Point[] jointsPos = new Point[Joints.Length + 1];
+                Vector3[] jointsPos = new Vector3[Joints.Length + 1];
                 jointsPos[0] = Base;
 
                 Matrix4 pos = new Matrix4
                 (
-                    new Vector4(1, 0, 0, (float)Base.x),
-                    new Vector4(0, 1, 0, (float)Base.y),
-                    new Vector4(0, 0, 1, (float)Base.z),
+                    new Vector4(1, 0, 0, Base.X),
+                    new Vector4(0, 1, 0, Base.Y),
+                    new Vector4(0, 0, 1, Base.Z),
                     new Vector4(0, 0, 0, 1)
                 );
 
                 for (int i = 0; i < DH.Length; i++)
                 {
                     pos *= TransMatrices[i];
-                    jointsPos[i + 1] = new Point(pos[0, 3], pos[1, 3], pos[2, 3]);
+                    jointsPos[i + 1] = new Vector3(pos[0, 3], pos[1, 3], pos[2, 3]);
                 }
 
                 return jointsPos;
             }
         }
 
-        public double[] q
+        public float[] q
         {
             get
             {
-                double[] q = new double[Joints.Length];
+                float[] q = new float[Joints.Length];
                 for (int i = 0; i < Joints.Length; i++)
                 {
                     q[i] = Joints[i].q;
@@ -294,17 +294,17 @@ namespace Logic
             }
         }
 
-        public bool InWorkspace(Point point)
+        public bool InWorkspace(Vector3 point)
         {
-            if (point.Distance - Base.Distance > WorkspaceRadius)
+            if (point.DistanceTo(Vector3.Zero) - point.DistanceTo(Vector3.Zero) > WorkspaceRadius)
                 return false;
             else
                 return true;
         }
 
-        public double DistanceTo(Point p)
+        public float DistanceTo(Vector3 p)
         {
-            return new Vector(GripperPos, p).Length;
+            return new Vector3(GripperPos, p).Length;
         }
 
         public void Draw(Shader shader)
@@ -333,7 +333,7 @@ namespace Logic
                 model = quat.Matrix;
 
                 shader.SetMatrix4("model", model, true);
-                Joints[i].Model.Position = new Vector3(model * new Vector4(Joints[0].Model.Position, 1.0f));
+                Joints[i].Model.Position = (Vector3)(model * new Vector4(Joints[0].Model.Position, 1.0f));
                 Joints[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
                 quat *= new DualQuaternion((float)DH[i].d * Vector3.UnitY);

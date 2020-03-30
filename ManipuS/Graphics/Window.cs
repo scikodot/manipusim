@@ -12,6 +12,8 @@ using Logic;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Vector3 = Logic.Vector3;
+
 namespace Graphics
 {
     /*public class Entity
@@ -43,11 +45,11 @@ namespace Graphics
 
             // configuring all the needed attributes
             var PosAttrib = Shader.GetAttribLocation("aPos");
-            GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
+            GL.VertexAttribVector3er(PosAttrib, 3, VertexAttribVector3erType.Float, false, 7 * sizeof(float), 0);
             GL.EnableVertexAttribArray(PosAttrib);
 
             var ColAttrib = Shader.GetAttribLocation("aColor");
-            GL.VertexAttribPointer(ColAttrib, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
+            GL.VertexAttribVector3er(ColAttrib, 4, VertexAttribVector3erType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
             GL.EnableVertexAttribArray(ColAttrib);
 
             GL.BindVertexArray(0);
@@ -384,7 +386,7 @@ namespace Graphics
                     model = Matrix4.Identity * Matrix4.CreateTranslation(time, 0, 0);
                     for (int i = 0; i < obstacles.Length; i++)
                     {
-                        Manager.Obstacles[i].Move(new Vector(1, 0, 0), dt);
+                        Manager.Obstacles[i].Move(Vector3.UnitX, dt);
 
                         obstacles[i].Display(model, () =>
                         {
@@ -408,7 +410,7 @@ namespace Graphics
                     {
                         if (manip.States["Goal"])
                         {
-                            List<Point> MainAttr = new List<Point> { manip.GoodAttractors[0].Center };
+                            List<Vector3> MainAttr = new List<Vector3> { manip.GoodAttractors[0].Center };
                             MainAttr.AddRange(manip.GoodAttractors[0].Area);
                             goal[j] = new Entity(lineShader, GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
                         }
@@ -690,7 +692,7 @@ namespace Graphics
                             ImGui.Checkbox("Show collider", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding);
                             ImGui.InputFloat("Radius", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].r);
                             ImGui.InputFloat3("Center", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].c);
-                            ImGui.InputInt("Points number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].points_num);
+                            ImGui.InputInt("Vector3s number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].Vector3s_num);
 
                             ImGui.TreePop();
                         }
@@ -921,16 +923,16 @@ namespace Graphics
             Capture = false;
         }
 
-        static protected float[] GL_Convert(Point[] data, Vector4 color)
+        static protected float[] GL_Convert(Vector3[] data, Vector4 color)
         {
             // converting program data to OpenGL buffer format
             float[] res = new float[data.Length * 7];
 
             for (int i = 0; i < data.Length; i++)
             {
-                res[7 * i] = (float)data[i].x;
-                res[7 * i + 1] = (float)data[i].y;
-                res[7 * i + 2] = (float)data[i].z;
+                res[7 * i] = data[i].X;
+                res[7 * i + 1] = data[i].Y;
+                res[7 * i + 2] = data[i].Z;
                 res[7 * i + 3] = color.X;
                 res[7 * i + 4] = color.Y;
                 res[7 * i + 5] = color.Z;
@@ -941,9 +943,9 @@ namespace Graphics
         }
 
         // some specific methods for better drawing organization
-        public static Entity CreateTreeBranch(Point p1, Point p2)
+        public static Entity CreateTreeBranch(Vector3 p1, Vector3 p2)
         {
-            return new Entity(lineShader, GL_Convert(new Point[] { p1, p2 }, new Vector4(Vector3.Zero, 1.0f)));
+            return new Entity(lineShader, GL_Convert(new Vector3[] { p1, p2 }, new Vector4(Vector3.Zero, 1.0f)));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

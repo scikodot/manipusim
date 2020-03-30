@@ -7,10 +7,10 @@ namespace Logic.InverseKinematics
     class IKSolver
     {
         protected Obstacle[] Obstacles;
-        protected double Precision, StepSize;
+        protected float Precision, StepSize;
         protected int MaxTime;
 
-        protected IKSolver(Obstacle[] obstacles, double precision, double stepSize, int maxTime)
+        protected IKSolver(Obstacle[] obstacles, float precision, float stepSize, int maxTime)
         {
             Obstacles = obstacles;
             Precision = precision;
@@ -20,7 +20,7 @@ namespace Logic.InverseKinematics
 
         public bool[] DetectCollisions(Manipulator manip, Obstacle[] obstacles)
         {
-            List<Point> joints = manip.DKP.ToList();
+            List<Vector3> joints = manip.DKP.ToList();
 
             // removing duplicates
             for (int i = 0; i < joints.Count - 1; i++)
@@ -30,18 +30,18 @@ namespace Logic.InverseKinematics
             }
 
             // representing manipulator as a sequence of actuators
-            List<Point> actuators = new List<Point>();
+            List<Vector3> actuators = new List<Vector3>();
             int actuatorsNum = 50;
             for (int i = 0; i < joints.Count - 1; i++)
             {
                 actuators.Add(joints[i]);
                 for (int j = 0; j < actuatorsNum; j++)
                 {
-                    actuators.Add(new Point
+                    actuators.Add(new Vector3
                     (
-                        joints[i].x + (j + 1) * (joints[i + 1].x - joints[i].x) / (actuatorsNum + 1),
-                        joints[i].y + (j + 1) * (joints[i + 1].y - joints[i].y) / (actuatorsNum + 1),
-                        joints[i].z + (j + 1) * (joints[i + 1].z - joints[i].z) / (actuatorsNum + 1)
+                        joints[i].X + (j + 1) * (joints[i + 1].X - joints[i].X) / (actuatorsNum + 1),
+                        joints[i].Y + (j + 1) * (joints[i + 1].Y - joints[i].Y) / (actuatorsNum + 1),
+                        joints[i].Z + (j + 1) * (joints[i + 1].Z - joints[i].Z) / (actuatorsNum + 1)
                     ));
                 }
             }
@@ -65,7 +65,7 @@ namespace Logic.InverseKinematics
             return collisions;
         }
 
-        public virtual (bool, double, double[], bool[]) Execute(Manipulator agent, Point goal, int joint)
+        public virtual (bool, float, float[], bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
         {
             return default;
         }

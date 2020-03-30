@@ -2,76 +2,32 @@
 using System.Collections.Generic;
 using OpenTK;
 
-public class Point
+/*public class Vector
 {
-    public double x, y, z;
+    public float x, y, z;
 
-    public Point(double x, double y, double z)
+    public Vector(float x, float y, float z)
     {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public double Distance
-    {
-        get { return Math.Sqrt(x * x + y * y + z * z); }
-    }
-
-    public double DistanceTo(Point p)
-    {
-        return Math.Sqrt(Math.Pow(p.x - x, 2) + Math.Pow(p.y - y, 2) + Math.Pow(p.z - z, 2));
-    }
-
-    public static Point Zero
-    {
-        get
-        {
-            return new Point(0, 0, 0);
-        }
-    }
-
-    public static Point operator +(Point p1, Point p2) => new Point(p2.x + p1.x, p2.y + p1.y, p2.z + p1.z);
-    public static Point operator -(Point p1, Point p2) => new Point(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);
-    public static Point operator +(Point p, Vector v) => new Point(p.x + v.x, p.y + v.y, p.z + v.z);
-    public static Point operator -(Point p, Vector v) => new Point(p.x - v.x, p.y - v.y, p.z - v.z);
-    public static Point operator *(Point p, double s) => new Point(p.x * s, p.y * s, p.z * s);
-    public static Point operator /(Point p, double s) => new Point(p.x / s, p.y / s, p.z / s);
-    public static Point operator *(Matrix m, Point p) =>
-        new Point
-        (
-            m[0, 0] * p.x + m[0, 1] * p.y + m[0, 2] * p.z,
-            m[1, 0] * p.x + m[1, 1] * p.y + m[1, 2] * p.z,
-            m[2, 0] * p.x + m[2, 1] * p.y + m[2, 2] * p.z
-        );
-}
-
-public class Vector
-{
-    public double x, y, z;
-
-    public Vector(double x, double y, double z)
-    {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-
-    public Vector(Point p)
+    public Vector(Vector3 p)
     {
         x = p.x;
         y = p.y;
         z = p.z;
     }
 
-    public Vector(Point p1, Point p2)
+    public Vector(Vector3 p1, Vector3 p2)
     {
         x = p2.x - p1.x;
         y = p2.y - p1.y;
         z = p2.z - p1.z;
     }
 
-    public double Length
+    public float Length
     {
         get
         {
@@ -79,7 +35,7 @@ public class Vector
         }
     }
 
-    public double Angle
+    public float Angle
     {
         get
         {
@@ -109,7 +65,7 @@ public class Vector
         }
     }
 
-    public static double AngleBetween(Vector v1, Vector v2)
+    public static float AngleBetween(Vector v1, Vector v2)
     {
         return Math.Acos((v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) / (v1.Length * v2.Length));
     }
@@ -117,7 +73,7 @@ public class Vector
     public static Vector operator +(Vector v1, Vector v2) => new Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
     public static Vector operator -(Vector v1, Vector v2) => new Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
     public static Vector operator -(Vector v) => new Vector(-v.x, -v.y, -v.z);
-    public static Vector operator *(Vector v, double s) => new Vector(v.x * s, v.y * s, v.z * s);
+    public static Vector operator *(Vector v, float s) => new Vector(v.x * s, v.y * s, v.z * s);
     public static Vector operator *(Matrix m, Vector v) =>
         new Vector
         (
@@ -129,19 +85,19 @@ public class Vector
 
 public class VectorN  // TODO: merge with Vector class, so that it represents an arbitrary vector of dimensionality n
 {
-    public double[] Data;
+    public float[] Data;
 
     public VectorN(int size)
     {
-        Data = new double[size];
+        Data = new float[size];
     }
 
-    public VectorN(double[] data)
+    public VectorN(float[] data)
     {
         Data = data;
     }
 
-    public static VectorN operator *(VectorN v, double s)
+    public static VectorN operator *(VectorN v, float s)
     {
         for (int i = 0; i < v.Data.Length; i++)
         {
@@ -153,7 +109,7 @@ public class VectorN  // TODO: merge with Vector class, so that it represents an
 
     public static VectorN operator +(VectorN v1, VectorN v2)
     {
-        double[] data = new double[v1.Data.Length];
+        float[] data = new float[v1.Data.Length];
         for (int i = 0; i < v1.Data.Length; i++)
         {
             data[i] = v1[i] + v2[i];
@@ -161,9 +117,10 @@ public class VectorN  // TODO: merge with Vector class, so that it represents an
 
         return new VectorN(data);
     }
+
     public static VectorN operator *(Matrix m, VectorN v)
     {
-        double[] data = new double[m.Data.GetLength(0)];
+        float[] data = new float[m.Data.GetLength(0)];
         for (int i = 0; i < m.Data.GetLength(0); i++)
         {
             for (int j = 0; j < m.Data.GetLength(1); j++)
@@ -175,28 +132,28 @@ public class VectorN  // TODO: merge with Vector class, so that it represents an
         return new VectorN(data);
     }
 
-    public double this[int i]
+    public float this[int i]
     {
         get
         {
             return Data[i];
         }
     }
-}
+}*/
 
 public class Matrix  // TODO: this class should not be deleted, but instead only used for non-uniform matrices (i.e. of an arbitrary size); or else mirror all OpenTK matrices into this class
                      // TODO: check why this class is much slower than OpenTK's one (note: GetLength is O(1), so it should not affect anything)
 {
-    public double[,] Data;
+    public float[,] Data;
 
-    public Matrix(double[,] Data)
+    public Matrix(float[,] Data)
     {
         this.Data = Data;
     }
 
     public static Matrix Identity(int size)
     {
-        double[,] mat = new double[size, size];
+        float[,] mat = new float[size, size];
         for (int i = 0; i < size; i++)
         {
             for (int j = 0; j < size; j++)
@@ -213,7 +170,7 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
 
     /*public static Matrix TranslateD(Vector3d axis)
     {
-        return new Matrix(new double[4, 4]
+        return new Matrix(new float[4, 4]
         {
             { 1, 0, 0, axis.X },
             { 0, 1, 0, axis.Y },
@@ -222,9 +179,9 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         });
     }
 
-    public static Matrix RotateXD(double angle)
+    public static Matrix RotateXD(float angle)
     {
-        return new Matrix(new double[4, 4]
+        return new Matrix(new float[4, 4]
         {
             { 1, 0, 0, 0 },
             { 0, Math.Cos(angle), -Math.Sin(angle), 0 },
@@ -233,9 +190,9 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         });
     }
 
-    public static Matrix RotateYD(double angle)
+    public static Matrix RotateYD(float angle)
     {
-        return new Matrix(new double[4, 4]
+        return new Matrix(new float[4, 4]
         {
             { Math.Cos(angle), 0, -Math.Sin(angle), 0 },
             { 0, 1, 0, 0 },
@@ -248,7 +205,7 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
     {
         var r = mat.Data.GetLength(0);
         var c = mat.Data.GetLength(1);
-        double[,] data = new double[c, r];
+        float[,] data = new float[c, r];
         for (int i = 0; i < r; i++)
         {
             for (int j = 0; j < c; j++)
@@ -304,11 +261,11 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         );
     }
 
-    public static Matrix4 RotateCustomAnother(Vector4 point, Vector4 dir, float angle)  // TODO: optimize; too many complex operations
+    public static Matrix4 RotateCustomAnother(Vector4 Vector3, Vector4 dir, float angle)  // TODO: optimize; too many complex operations
     {
-        float x = point.X,
-              y = point.Y,
-              z = point.Z;
+        float x = Vector3.X,
+              y = Vector3.Y,
+              z = Vector3.Z;
 
         var n = dir.Normalized();
         float a = n.X,
@@ -355,32 +312,32 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         //return T * Rx * Ry * Rz * Ry.Inverted() * Rx.Inverted() * T.Inverted();
     }
 
-    public static Matrix Rotation(int axis, double angle)
+    public static Matrix Rotation(int axis, float angle)
     {
-        double[,] mat = new double[3, 3];
+        float[,] mat = new float[3, 3];
         switch (axis)
         {
             case 0:
-                mat = new double[3, 3]
+                mat = new float[3, 3]
                 {
                         { 1, 0, 0 },
-                        { 0, Math.Cos(angle), -Math.Sin(angle) },
-                        { 0, Math.Sin(angle), Math.Cos(angle) }
+                        { 0, (float)Math.Cos(angle), (float)-Math.Sin(angle) },
+                        { 0, (float)Math.Sin(angle), (float)Math.Cos(angle) }
                 };
                 break;
             case 1:
-                mat = new double[3, 3]
+                mat = new float[3, 3]
                 {
-                        { Math.Cos(angle), 0, -Math.Sin(angle) },
+                        { (float)Math.Cos(angle), 0, (float)-Math.Sin(angle) },
                         { 0, 1, 0 },
-                        { Math.Sin(angle), 0, Math.Cos(angle) }
+                        { (float)Math.Sin(angle), 0, (float)Math.Cos(angle) }
                 };
                 break;
             case 2:
-                mat = new double[3, 3]
+                mat = new float[3, 3]
                 {
-                        { Math.Cos(angle), -Math.Sin(angle), 0 },
-                        { Math.Sin(angle), Math.Cos(angle), 0 },
+                        { (float)Math.Cos(angle), (float)-Math.Sin(angle), 0 },
+                        { (float)Math.Sin(angle), (float)Math.Cos(angle), 0 },
                         { 0, 0, 1 }
                 };
                 break;
@@ -389,7 +346,7 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         return new Matrix(mat);
     }
 
-    public double this[int r, int c]
+    public float this[int r, int c]
     {
         get
         {
@@ -411,12 +368,12 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
             r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
 
-        double[,] mat;
+        float[,] mat;
         if (c1 != c2 || r1 != r2)
             throw new Exception("Matrices dimensions mismatch!");
         else
         {
-            mat = new double[r1, c1];
+            mat = new float[r1, c1];
             for (int i = 0; i < r1; i++)
             {
                 for (int j = 0; j < c1; j++)
@@ -434,17 +391,17 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         int r1 = m1.Data.GetLength(0), c1 = m1.Data.GetLength(1),
             r2 = m2.Data.GetLength(0), c2 = m2.Data.GetLength(1);
 
-        double[,] mat;
+        float[,] mat;
         if (c1 != r2)
             throw new Exception("Matrices dimensions mismatch!");
         else
         {
-            mat = new double[r1, c2];
+            mat = new float[r1, c2];
             for (int i = 0; i < r1; i++)
             {
                 for (int j = 0; j < c2; j++)
                 {
-                    double t = 0;
+                    float t = 0;
                     for (int k = 0; k < c1; k++)
                     {
                         t += m1[i, k] * m2[k, j];
@@ -462,38 +419,38 @@ namespace Logic
 {
     public class Segment
     {
-        public Point p1, p2;
-        public double minX, maxX, minY, maxY;
+        public Vector3 p1, p2;
+        public float minX, maxX, minY, maxY;
 
-        public Segment(Point point1, Point point2)
+        public Segment(Vector3 Vector31, Vector3 Vector32)
         {
-            p1 = point1;
-            p2 = point2;
+            p1 = Vector31;
+            p2 = Vector32;
 
-            minX = Math.Min(p1.x, p2.x);
-            maxX = Math.Max(p1.x, p2.x);
-            minY = Math.Min(p1.y, p2.y);
-            maxY = Math.Max(p1.y, p2.y);
+            minX = Math.Min(p1.X, p2.X);
+            maxX = Math.Max(p1.X, p2.X);
+            minY = Math.Min(p1.Y, p2.Y);
+            maxY = Math.Max(p1.Y, p2.Y);
         }
 
-        public bool Contains(Point p)
+        public bool Contains(Vector3 p)
         {
-            if (p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY)
+            if (p.X >= minX && p.X <= maxX && p.Y >= minY && p.Y <= maxY)
                 return true;
             else
                 return false;
         }
 
-        public Point[] Discretize(int segments)
+        public Vector3[] Discretize(int segments)
         {
-            Point[] pos = new Point[segments + 1];
+            Vector3[] pos = new Vector3[segments + 1];
             for (int j = 0; j < segments + 1; j++)
             {
-                pos[j] = new Point
+                pos[j] = new Vector3
                 (
-                    p1.x + j * (p2.x - p1.x) / segments,
-                    p1.y + j * (p2.y - p1.y) / segments,
-                    p1.z + j * (p2.z - p1.z) / segments
+                    p1.X + j * (p2.X - p1.X) / segments,
+                    p1.Y + j * (p2.Y - p1.Y) / segments,
+                    p1.Z + j * (p2.Z - p1.Z) / segments
                 );
             }
             return pos;
@@ -502,13 +459,13 @@ namespace Logic
 
     public class Attractor  // TODO: maybe struct would be better?
     {
-        public Point Center;
-        public double Weight;
-        public Point[] Area;
-        public double Radius;
-        public double InliersCount;
+        public Vector3 Center;
+        public float Weight;
+        public Vector3[] Area;
+        public float Radius;
+        public float InliersCount;
 
-        public Attractor(Point center, double weight, Point[] area, double radius)
+        public Attractor(Vector3 center, float weight, Vector3[] area, float radius)
         {
             Center = center;
             Weight = weight;
@@ -520,14 +477,9 @@ namespace Logic
 
     public static class Misc
     {
-        public static double[] ToRad(double[] degrees)
-        {
-            return Array.ConvertAll(degrees, (t) => { return t * Math.PI / 180; });
-        }
-
         public static float[] ToRad(float[] degrees)
         {
-            return Array.ConvertAll(degrees, (t) => { return (float)(t * Math.PI / 180); });
+            return Array.ConvertAll(degrees, x => x * (float)Math.PI / 180);
         }
 
         public static T[] CopyArray<T>(T[] source)
@@ -544,34 +496,34 @@ namespace Logic
             return destination;
         }
 
-        public static double BoxMullerTransform(Random rng, double mu, double sigma)
+        public static float BoxMullerTransform(Random rng, float mu, float sigma)
         {
-            double phi = 0, r = 0;
+            float phi = 0, r = 0;
             while (phi == 0)
-                phi = rng.NextDouble();
+                phi = (float)rng.NextDouble();
             while (r == 0)
-                r = rng.NextDouble();
+                r = (float)rng.NextDouble();
 
-            double z = Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r));
+            float z = (float)(Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r)));
             return mu + sigma * z;
         }
     }
 
     public static class Primitives
     {
-        public static Point[] Sphere(double r, Point c, int points_num, Random rng)
+        public static Vector3[] Sphere(float r, Vector3 c, int Vector3s_num, Random rng)
         {
-            Point[] sphere = new Point[points_num];
-            double x, y_pos, y, z_pos, z;
-            for (int i = 0; i < points_num; i++)
+            Vector3[] sphere = new Vector3[Vector3s_num];
+            float x, y_pos, y, z_pos, z;
+            for (int i = 0; i < Vector3s_num; i++)
             {
-                x = -r + rng.NextDouble() * 2 * r;
-                y_pos = Math.Sqrt(r * r - x * x);
-                y = -y_pos + rng.NextDouble() * 2 * y_pos;
-                z_pos = Math.Sqrt(r * r - x * x - y * y);
+                x = -r + (float)rng.NextDouble() * 2 * r;
+                y_pos = (float)Math.Sqrt(r * r - x * x);
+                y = -y_pos + (float)rng.NextDouble() * 2 * y_pos;
+                z_pos = (float)Math.Sqrt(r * r - x * x - y * y);
                 z = rng.Next(0, 2) == 0 ? -z_pos : z_pos;
 
-                sphere[i] = new Point(x, y, z) + c;
+                sphere[i] = new Vector3(x, y, z) + c;
             }
 
             return sphere;

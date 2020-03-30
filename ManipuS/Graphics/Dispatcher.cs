@@ -74,7 +74,7 @@ static class Dispatcher
                 {
                     r = 0.5f,
                     c = new System.Numerics.Vector3(0, 2f, 1f),
-                    points_num = 2000,
+                    Vector3s_num = 2000,
 
                     ShowBounding = true
                 }
@@ -82,7 +82,7 @@ static class Dispatcher
                 {
                     r = 1,
                     c = new System.Numerics.Vector3(-2.2f, 3.5f, 0),
-                    points_num = 2000,
+                    Vector3s_num = 2000,
 
                     ShowBounding = true
                 },
@@ -90,7 +90,7 @@ static class Dispatcher
                 {
                     r = 1,
                     c = new System.Numerics.Vector3(-2.2f, 0f, -1.5f),
-                    points_num = 2000,
+                    Vector3s_num = 2000,
 
                     ShowBounding = true
                 },
@@ -98,7 +98,7 @@ static class Dispatcher
                 {
                     r = 2.5f,
                     c = new System.Numerics.Vector3(0, 1f, -6f),
-                    points_num = 6000,
+                    Vector3s_num = 6000,
 
                     ShowBounding = true
                 },
@@ -106,7 +106,7 @@ static class Dispatcher
                 {
                     r = 0.75f,
                     c = new System.Numerics.Vector3(-1.6f, 2f, -2f),
-                    points_num = 1500,
+                    Vector3s_num = 1500,
 
                     ShowBounding = true
                 }*/

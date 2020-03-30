@@ -40,6 +40,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -49,6 +50,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AssimpNet, Version=4.1.0.0, Culture=neutral, PublicKeyToken=0d51b391f59f42a6, processorArchitecture=MSIL">
@@ -106,8 +108,11 @@
     <Compile Include="Logic\Algorithms\PathPlanning\_base.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />
-    <Compile Include="Logic\DualQuaternion.cs" />
+    <Compile Include="Logic\Math\DualQuaternion.cs" />
     <Compile Include="Logic\Manipulator.cs" />
+    <Compile Include="Logic\Math\Quaternion.cs" />
+    <Compile Include="Logic\Math\Vector.cs" />
+    <Compile Include="Logic\Math\Vector3.cs" />
     <Compile Include="Logic\Obstacle.cs" />
     <Compile Include="Logic\Manager.cs" />
     <Compile Include="Logic\Helper.cs" />

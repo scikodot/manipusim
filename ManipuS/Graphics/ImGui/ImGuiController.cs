@@ -201,9 +201,9 @@ void main()
             io.MouseDown[1] = MouseState.RightButton == ButtonState.Pressed;
             io.MouseDown[2] = MouseState.MiddleButton == ButtonState.Pressed;
 
-            var screenPoint = new System.Drawing.Point(MouseState.X, MouseState.Y);
-            var point = wnd.PointToClient(screenPoint);
-            io.MousePos = new System.Numerics.Vector2(point.X, point.Y);
+            var screenVector3 = new System.Drawing.Point(MouseState.X, MouseState.Y);
+            var Vector3 = wnd.PointToClient(screenVector3);
+            io.MousePos = new System.Numerics.Vector2(Vector3.X, Vector3.Y);
 
             io.MouseWheel = MouseState.Scroll.Y - PrevMouseState.Scroll.Y;
             io.MouseWheelH = MouseState.Scroll.X - PrevMouseState.Scroll.X;
