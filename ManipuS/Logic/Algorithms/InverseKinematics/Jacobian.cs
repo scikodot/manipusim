@@ -11,7 +11,7 @@ namespace Logic.InverseKinematics
 
         public override (bool, float, float[], bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
         {
-            Vector offset = new Vector(agent.Joints.Length);
+            /*Vector offset = new Vector(agent.Joints.Length);
             for (int j = 0; j < 10; j++)
             {
                 var grip = agent.DKP[joint];
@@ -81,7 +81,7 @@ namespace Logic.InverseKinematics
 
                 if (j == 9)
                     return (true, dist, offset.Components, collisions);
-            }
+            }*/
 
             return default;
         }

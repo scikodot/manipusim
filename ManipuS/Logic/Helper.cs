@@ -2,146 +2,7 @@
 using System.Collections.Generic;
 using OpenTK;
 
-/*public class Vector
-{
-    public float x, y, z;
-
-    public Vector(float x, float y, float z)
-    {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-
-    public Vector(Vector3 p)
-    {
-        x = p.x;
-        y = p.y;
-        z = p.z;
-    }
-
-    public Vector(Vector3 p1, Vector3 p2)
-    {
-        x = p2.x - p1.x;
-        y = p2.y - p1.y;
-        z = p2.z - p1.z;
-    }
-
-    public float Length
-    {
-        get
-        {
-            return Math.Sqrt(x * x + y * y + z * z);
-        }
-    }
-
-    public float Angle
-    {
-        get
-        {
-            return Math.Atan2(y, x) > 0 ? Math.Atan2(y, x) : Math.Atan2(y, x) + 2 * Math.PI;
-        }
-        set
-        {
-            var len = Length;
-            x = Math.Cos(value) * len;
-            y = Math.Sin(value) * len;
-        }
-    }
-
-    public Vector Normalized
-    {
-        get
-        {
-            return new Vector(x / Length, y / Length, z / Length);
-        }
-    }
-
-    public static Vector Zero
-    {
-        get
-        {
-            return new Vector(0, 0, 0);
-        }
-    }
-
-    public static float AngleBetween(Vector v1, Vector v2)
-    {
-        return Math.Acos((v1.x * v2.x + v1.y * v2.y + v1.z * v2.z) / (v1.Length * v2.Length));
-    }
-
-    public static Vector operator +(Vector v1, Vector v2) => new Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
-    public static Vector operator -(Vector v1, Vector v2) => new Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
-    public static Vector operator -(Vector v) => new Vector(-v.x, -v.y, -v.z);
-    public static Vector operator *(Vector v, float s) => new Vector(v.x * s, v.y * s, v.z * s);
-    public static Vector operator *(Matrix m, Vector v) =>
-        new Vector
-        (
-            m[0, 0] * v.x + m[0, 1] * v.y + m[0, 2] * v.z,
-            m[1, 0] * v.x + m[1, 1] * v.y + m[1, 2] * v.z,
-            m[2, 0] * v.x + m[2, 1] * v.y + m[2, 2] * v.z
-        );
-}
-
-public class VectorN  // TODO: merge with Vector class, so that it represents an arbitrary vector of dimensionality n
-{
-    public float[] Data;
-
-    public VectorN(int size)
-    {
-        Data = new float[size];
-    }
-
-    public VectorN(float[] data)
-    {
-        Data = data;
-    }
-
-    public static VectorN operator *(VectorN v, float s)
-    {
-        for (int i = 0; i < v.Data.Length; i++)
-        {
-            v.Data[i] *= s;
-        }
-
-        return v;
-    }
-
-    public static VectorN operator +(VectorN v1, VectorN v2)
-    {
-        float[] data = new float[v1.Data.Length];
-        for (int i = 0; i < v1.Data.Length; i++)
-        {
-            data[i] = v1[i] + v2[i];
-        }
-
-        return new VectorN(data);
-    }
-
-    public static VectorN operator *(Matrix m, VectorN v)
-    {
-        float[] data = new float[m.Data.GetLength(0)];
-        for (int i = 0; i < m.Data.GetLength(0); i++)
-        {
-            for (int j = 0; j < m.Data.GetLength(1); j++)
-            {
-                data[i] += m[i, j] * v[j];
-            }
-        }
-
-        return new VectorN(data);
-    }
-
-    public float this[int i]
-    {
-        get
-        {
-            return Data[i];
-        }
-    }
-}*/
-
-public class Matrix  // TODO: this class should not be deleted, but instead only used for non-uniform matrices (i.e. of an arbitrary size); or else mirror all OpenTK matrices into this class
+/*public class Matrix  // TODO: this class should not be deleted, but instead only used for non-uniform matrices (i.e. of an arbitrary size); or else mirror all OpenTK matrices into this class
                      // TODO: check why this class is much slower than OpenTK's one (note: GetLength is O(1), so it should not affect anything)
 {
     public float[,] Data;
@@ -168,7 +29,7 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
         return new Matrix(mat);
     }
 
-    /*public static Matrix TranslateD(Vector3d axis)
+    public static Matrix TranslateD(Vector3d axis)
     {
         return new Matrix(new float[4, 4]
         {
@@ -199,7 +60,7 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
             { Math.Sin(angle), 0, Math.Cos(angle), 0 },
             { 0, 0, 0, 1 }
         });
-    }*/
+    }
 
     public static Matrix Transpose(Matrix mat)
     {
@@ -413,7 +274,7 @@ public class Matrix  // TODO: this class should not be deleted, but instead only
 
         return new Matrix(mat);
     }
-}
+}*/
 
 namespace Logic
 {

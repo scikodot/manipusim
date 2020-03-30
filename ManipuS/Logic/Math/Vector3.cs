@@ -95,6 +95,7 @@ namespace Logic
         public static implicit operator Vector3(OpenTK.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
         public static explicit operator Vector3(OpenTK.Vector4 v) => new Vector3(v.X, v.Y, v.Z);
 
-        public override string ToString() => string.Format("{0}, {1}, {2}", X, Y, Z);
+        private static readonly string ListSeparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
+        public override string ToString() => string.Format("({0:#.###}{3} {1:#.###}{3} {2:#.###})", X, Y, Z, ListSeparator);
     }
 }

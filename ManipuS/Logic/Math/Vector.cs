@@ -5,9 +5,11 @@ namespace Logic
 {
     public struct Vector
     {
-        public float[] Components { get; private set; }
+        private float[] Components { get; set; }
 
         public float this[int index] => Components[index];
+
+        public int Size => Components.Length;
 
         public float Length => (float)Math.Sqrt(Components.Sum(x => x * x));
 
@@ -20,14 +22,19 @@ namespace Logic
             Components = new float[size];
         }
 
-        public Vector(float[] components)
+        public Vector(params float[] components)
         {
-            this.Components = components;
+            Components = components;
         }
 
         public void Expand(int size)
         {
             Components = Components.Concat(new float[size]).ToArray();
+        }
+
+        public static float Dot(Vector v1, Vector v2)
+        {
+            return v1.Components.Zip(v2.Components, (x, y) => x * y).Sum();
         }
 
         public static Vector operator +(Vector v1, Vector v2)
@@ -52,18 +59,16 @@ namespace Logic
 
         public static Vector operator *(Matrix m, Vector v)  // TODO: optimize
         {
-            float[] data = new float[m.Data.GetLength(0)];
-            for (int i = 0; i < m.Data.GetLength(0); i++)
+            float[] components = new float[m.RowsNumber];
+            for (int i = 0; i < components.Length; i++)
             {
-                for (int j = 0; j < m.Data.GetLength(1); j++)
-                {
-                    data[i] += m[i, j] * v[j];
-                }
+                components[i] = Dot(m.Rows[i], v);
             }
 
-            return new Vector(data);
+            return new Vector(components);
         }
 
-        public override string ToString() => string.Format("[{0:2F}" + (Components.Length > 5 ? ", ...]" : "]"), string.Join(",", Components.Take(5)));
+        private static readonly string ListSeparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
+        public override string ToString() => string.Format("({0})", string.Join($"{ListSeparator} ", Components.Select(x => string.Format("{0:#.###}", x))));
     }
 }
