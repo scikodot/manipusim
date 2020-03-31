@@ -5,7 +5,7 @@ namespace Logic
 {
     public struct Vector
     {
-        private float[] Components { get; set; }
+        public float[] Components { get; private set; }
 
         public float this[int index] => Components[index];
 
@@ -47,16 +47,6 @@ namespace Logic
             return new Vector(v1.Components.Zip(v2.Components, (x, y) => x - y).ToArray());
         }
 
-        public static Vector operator *(Vector v, float s)
-        {
-            return new Vector(Array.ConvertAll(v.Components, x => x * s));
-        }
-
-        public static Vector operator /(Vector v, float s)
-        {
-            return new Vector(Array.ConvertAll(v.Components, x => x / s));
-        }
-
         public static Vector operator *(Matrix m, Vector v)  // TODO: optimize
         {
             float[] components = new float[m.RowsNumber];
@@ -68,7 +58,22 @@ namespace Logic
             return new Vector(components);
         }
 
+        public static Vector operator *(Vector v, float s)
+        {
+            return new Vector(Array.ConvertAll(v.Components, x => x * s));
+        }
+
+        public static Vector operator *(float s, Vector v)
+        {
+            return new Vector(Array.ConvertAll(v.Components, x => x * s));
+        }
+
+        public static Vector operator /(Vector v, float s)
+        {
+            return new Vector(Array.ConvertAll(v.Components, x => x / s));
+        }
+
         private static readonly string ListSeparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
-        public override string ToString() => string.Format("({0})", string.Join($"{ListSeparator} ", Components.Select(x => string.Format("{0:#.###}", x))));
+        public override string ToString() => string.Format("({0})", string.Join($"{ListSeparator} ", Components.Select(x => string.Format("{0:0.###}", x))));
     }
 }

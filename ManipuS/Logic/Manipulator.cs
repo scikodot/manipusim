@@ -213,10 +213,10 @@ namespace Logic
         {
             float cosT = (float)Math.Cos(DH.theta);
             float sinT = (float)Math.Sin(DH.theta);
-            float d = (float)DH.d;
+            float d = DH.d;
             float cosA = (float)Math.Cos(DH.alpha);
             float sinA = (float)Math.Sin(DH.alpha);
-            float r = (float)DH.r;
+            float r = DH.r;
 
             return new Matrix4(
                 new Vector4(cosT, -sinA * sinT, -sinT * cosA, r * cosT),
@@ -243,7 +243,7 @@ namespace Logic
                     pos *= TransMatrices[i];
                 }
 
-                return new Vector3(pos[0, 3], pos[1, 3], pos[2, 3]);  // TODO: too big error (~2nd order)! optimize
+                return pos.Column3.SubVector3;  // TODO: too big error (~2nd order)! optimize
             }
         }
 
@@ -265,7 +265,7 @@ namespace Logic
                 for (int i = 0; i < DH.Length; i++)
                 {
                     pos *= TransMatrices[i];
-                    jointsPos[i + 1] = new Vector3(pos[0, 3], pos[1, 3], pos[2, 3]);
+                    jointsPos[i + 1] = pos.Column3.SubVector3;
                 }
 
                 return jointsPos;
@@ -311,11 +311,11 @@ namespace Logic
         {
             Dispatcher.UpdateConfig.Reset();
 
-            Vector4[] axes = new Vector4[Links.Length];
-            Vector4[] pos = new Vector4[Links.Length];
+            Vector3[] axes = new Vector3[Links.Length];
+            Vector3[] pos = new Vector3[Links.Length];
 
-            axes[0] = Vector4.UnitY;
-            pos[0] = new Vector4(Vector3.Zero, 1);
+            axes[0] = Vector3.UnitY;
+            pos[0] = Vector3.Zero;
 
             shader.Use();
 
@@ -329,21 +329,21 @@ namespace Logic
             // joints
             for (int i = 0; i < Links.Length; i++)
             {
-                quat *= new DualQuaternion(Vector3.UnitY, -(float)DH[i].theta);
-                model = quat.Matrix;
+                quat *= new DualQuaternion(Vector3.UnitY, -DH[i].theta);
+                model = quat.Matrix();  // TODO: Matrix() allows transposing, hence there's a possibility to remove post-transpose (see below)
 
-                shader.SetMatrix4("model", model, true);
-                Joints[i].Model.Position = (Vector3)(model * new Vector4(Joints[0].Model.Position, 1.0f));
+                shader.SetMatrix4("model", model, true);  // TODO: possible to get rid of tranpose?
+                Joints[i].Model.Position = model * Joints[0].Model.Position;
                 Joints[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-                quat *= new DualQuaternion((float)DH[i].d * Vector3.UnitY);
-                quat *= new DualQuaternion(Vector3.UnitX, (float)DH[i].alpha, (float)DH[i].r * Vector3.UnitX);
-                model = quat.Matrix;
+                quat *= new DualQuaternion(DH[i].d * Vector3.UnitY);
+                quat *= new DualQuaternion(Vector3.UnitX, DH[i].alpha, DH[i].r * Vector3.UnitX);
+                model = quat.Matrix();
 
                 if (i < Links.Length - 1)
                 {
-                    axes[i + 1] = model * axes[0];
-                    pos[i + 1] = new Vector4(model.M14, model.M24, model.M34, 1);
+                    axes[i + 1] = model.Rotation * axes[0];
+                    pos[i + 1] = model.Translation;
                 }
             }
 
@@ -353,29 +353,29 @@ namespace Logic
             quat *= new DualQuaternion(Joints[0].Length / 2 * Vector3.UnitY);
 
             // the order of multiplication is reversed, because the trans quat transforms the operand (quat) itself; it does not contribute in total transformation like other quats do
-            var trans_quat = new DualQuaternion(axes[0].Xyz, pos[0].Xyz, -(float)DH[0].theta);
+            var trans_quat = new DualQuaternion(axes[0], pos[0], -DH[0].theta);
             quat = trans_quat * quat;
-            model = quat.Matrix;
+            model = quat.Matrix(true);
 
-            shader.SetMatrix4("model", model, true);
+            shader.SetMatrix4("model", model, false);  // TODO: make tranposing optional
             Links[0].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            quat *= new DualQuaternion((float)DH[0].d * Vector3.UnitY);
+            quat *= new DualQuaternion(DH[0].d * Vector3.UnitY);
 
-            trans_quat = new DualQuaternion(axes[1].Xyz, pos[1].Xyz, -(float)(DH[1].theta + Math.PI / 2));
+            trans_quat = new DualQuaternion(axes[1], pos[1], -(DH[1].theta + (float)Math.PI / 2));
             quat = trans_quat * quat;
-            model = quat.Matrix;
+            model = quat.Matrix(true);
 
-            shader.SetMatrix4("model", model, true);
+            shader.SetMatrix4("model", model, false);
             Links[1].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            quat *= new DualQuaternion((float)DH[1].r * Vector3.UnitY);
+            quat *= new DualQuaternion(DH[1].r * Vector3.UnitY);
 
-            trans_quat = new DualQuaternion(axes[2].Xyz, pos[2].Xyz, -(float)DH[2].theta);
+            trans_quat = new DualQuaternion(axes[2], pos[2], -DH[2].theta);
             quat = trans_quat * quat;
-            model = quat.Matrix;
+            model = quat.Matrix(true);
 
-            shader.SetMatrix4("model", model, true);
+            shader.SetMatrix4("model", model, false);
             Links[2].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
             Dispatcher.UpdateConfig.Set();

@@ -13,6 +13,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Vector3 = Logic.Vector3;
+using Vector4 = OpenTK.Vector4;
+using Matrix4 = OpenTK.Matrix4;
 
 namespace Graphics
 {
@@ -383,7 +385,7 @@ namespace Graphics
                     }
                     time += dt;
                     
-                    model = Matrix4.Identity * Matrix4.CreateTranslation(time, 0, 0);
+                    model = Matrix4.CreateTranslation(new Vector3(time, 0, 0));
                     for (int i = 0; i < obstacles.Length; i++)
                     {
                         Manager.Obstacles[i].Move(Vector3.UnitX, dt);
@@ -431,7 +433,7 @@ namespace Graphics
                     if (manip.States["Path"] && manip.Path != null)
                     {
                         int count = manip.Path.Count;
-                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
+                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));  // TODO: array changes size while executing this method; maintain thread sync!!
 
                         model = Matrix4.Identity;
                         path[j].Display(model, () =>

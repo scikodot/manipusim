@@ -81,7 +81,7 @@ namespace Logic.PathPlanning
             contestant.q = Misc.CopyArray(cNew);
             List<Vector3> dkpNew = contestant.DKP.ToList();
 
-            Vector3 pPrev = default, pNext = default;
+            Vector3 pPrev = Vector3.Null, pNext = Vector3.Null;
             float[] cPrev = null, cNext = null;
             List<Vector3> dkpPrev = null, dkpNext = null;
             if (pNew.DistanceTo(paths[point - 1][joint]) >= 2 * d)
@@ -101,7 +101,7 @@ namespace Logic.PathPlanning
                 dkpNext = contestant.DKP.ToList();
             }
 
-            if (pPrev != Vector3.Zero)
+            if (pPrev != Vector3.Null)
             {
                 paths.Insert(point, dkpPrev);
                 agent.Path.Insert(point, dkpPrev[agent.Joints.Length]);
@@ -112,7 +112,7 @@ namespace Logic.PathPlanning
             agent.Path[point] = dkpNew[agent.Joints.Length];
             agent.Configs[point] = cNew;
 
-            if (pNext != Vector3.Zero)
+            if (pNext != Vector3.Null)
             {
                 agent.Path.Insert(++point, dkpNext[agent.Joints.Length]);
                 agent.Configs.Insert(point, cNext);

@@ -17,7 +17,7 @@ namespace Graphics
         private List<Mesh> Meshes = new List<Mesh>();
         private string Directory;
 
-        public Vector3 Position;
+        public Logic.Vector3 Position;  // TODO: need to refactor namespaces; ambiguous references, etc.
 
         public Model(string path)
         {

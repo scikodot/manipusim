@@ -43,11 +43,11 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        public void Display(Matrix4 model, Action draw)
+        public void Display(Matrix4 model, Action draw, bool transpose = false)
         {
             // displaying entity with the appropriate draw method
             GL.BindVertexArray(VAO);
-            Shader.SetMatrix4("model", model, false);
+            Shader.SetMatrix4("model", model, transpose);
             draw();
         }
     }

@@ -8,6 +8,8 @@ namespace Logic
         public float Y { get; }
         public float Z { get; }
 
+        public static Vector3 Null => new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+
         public static Vector3 Zero => new Vector3(0, 0, 0);
 
         public static Vector3 UnitX => new Vector3(1, 0, 0);
@@ -66,6 +68,24 @@ namespace Logic
             return new Vector3(v1.X - v2.X, v1.Y - v2.Y, v1.Z - v2.Z);
         }
 
+        public static Vector3 operator *(Matrix3 m, Vector3 v)
+        {
+            return new Vector3(
+                Dot(m.Row0, v),
+                Dot(m.Row1, v),
+                Dot(m.Row2, v)
+            );
+        }
+
+        public static Vector3 operator *(Matrix4 m, Vector3 v)
+        {
+            return new Vector3(
+                Dot(m.Row0.SubVector3, v) + m.Row0.W,
+                Dot(m.Row1.SubVector3, v) + m.Row1.W,
+                Dot(m.Row2.SubVector3, v) + m.Row2.W
+            );
+        }
+
         public static Vector3 operator *(Vector3 v, float s)
         {
             return new Vector3(v.X * s, v.Y * s, v.Z * s);
@@ -83,19 +103,36 @@ namespace Logic
 
         public static bool operator ==(Vector3 v1, Vector3 v2)
         {
-            return (v1.X == v2.X && v1.Y == v2.Y && v1.Z == v2.Z) ? true : false;
+            return v1.Equals(v2);
         }
 
         public static bool operator !=(Vector3 v1, Vector3 v2)
         {
-            return (v1.X == v2.X && v1.Y == v2.Y && v1.Z == v2.Z) ? false : true;
+            return !v1.Equals(v2);
         }
 
         public static implicit operator OpenTK.Vector3(Vector3 v) => new OpenTK.Vector3(v.X, v.Y, v.Z);
         public static implicit operator Vector3(OpenTK.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
-        public static explicit operator Vector3(OpenTK.Vector4 v) => new Vector3(v.X, v.Y, v.Z);
+        //public static explicit operator OpenTK.Vector4(Vector3 v) => new OpenTK.Vector4(v.X, v.Y, v.Z, 1);
+        //public static explicit operator Vector3(OpenTK.Vector4 v) => new Vector3(v.X, v.Y, v.Z);
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Vector3))
+                return false;
+
+            return Equals((Vector3)obj);
+        }
+
+        public bool Equals(Vector3 other)
+        {
+            return
+                X == other.X &&
+                Y == other.Y &&
+                Z == other.Z;
+        }
 
         private static readonly string ListSeparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
-        public override string ToString() => string.Format("({0:#.###}{3} {1:#.###}{3} {2:#.###})", X, Y, Z, ListSeparator);
+        public override string ToString() => string.Format("({0:0.###}{3} {1:0.###}{3} {2:0.###})", X, Y, Z, ListSeparator);
     }
 }

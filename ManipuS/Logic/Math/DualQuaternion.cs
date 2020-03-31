@@ -14,37 +14,12 @@ namespace Logic
 
         public float Length => (this * Conjugate).Real.W;
 
-        public Matrix4 Matrix
+        public DualQuaternion Normalized
         {
             get
             {
-                float w = Real.W, w2 = Real.W * Real.W;
-                float x = Real.X, x2 = Real.X * Real.X;
-                float y = Real.Y, y2 = Real.Y * Real.Y;
-                float z = Real.Z, z2 = Real.Z * Real.Z;
-
-                var rxx = w2 + x2 - y2 - z2;
-                var rxy = 2 * x * y - 2 * w * z;
-                var rxz = 2 * x * z + 2 * w * y;
-                var ryx = 2 * x * y + 2 * w * z;
-                var ryy = w2 - x2 + y2 - z2;
-                var ryz = 2 * y * z - 2 * w * x;
-                var rzx = 2 * x * z - 2 * w * y;
-                var rzy = 2 * y * z + 2 * w * x;
-                var rzz = w2 - x2 - y2 + z2;
-
-                var dualNew = Dual * Real.Conjugate;
-
-                var tx = 2 * dualNew.X;
-                var ty = 2 * dualNew.Y;
-                var tz = 2 * dualNew.Z;
-
-                return new Matrix4(
-                    new Vector4(rxx, rxy, rxz, tx),
-                    new Vector4(ryx, ryy, ryz, ty),
-                    new Vector4(rzx, rzy, rzz, tz),
-                    new Vector4(0, 0, 0, 1)
-                );
+                var fact = 1 / Real.Length;
+                return new DualQuaternion(Real * fact, Dual * fact);
             }
         }
 
@@ -102,6 +77,45 @@ namespace Logic
             Dual = res.Dual;
         }
 
+        public Matrix4 Matrix(bool transpose = false)
+        {
+            float w = Real.W, w2 = Real.W * Real.W;
+            float x = Real.X, x2 = Real.X * Real.X;
+            float y = Real.Y, y2 = Real.Y * Real.Y;
+            float z = Real.Z, z2 = Real.Z * Real.Z;
+
+            var rxx = w2 + x2 - y2 - z2;
+            var rxy = 2 * x * y - 2 * w * z;
+            var rxz = 2 * x * z + 2 * w * y;
+            var ryx = 2 * x * y + 2 * w * z;
+            var ryy = w2 - x2 + y2 - z2;
+            var ryz = 2 * y * z - 2 * w * x;
+            var rzx = 2 * x * z - 2 * w * y;
+            var rzy = 2 * y * z + 2 * w * x;
+            var rzz = w2 - x2 - y2 + z2;
+
+            var dualNew = Dual * Real.Conjugate;
+
+            var tx = 2 * dualNew.X;
+            var ty = 2 * dualNew.Y;
+            var tz = 2 * dualNew.Z;
+
+            if (transpose)
+                return new Matrix4(
+                    new Vector4(rxx, ryx, rzx, 0),
+                    new Vector4(rxy, ryy, rzy, 0),
+                    new Vector4(rxz, ryz, rzz, 0),
+                    new Vector4(tx, ty, tz, 1)
+                );
+            else
+                return new Matrix4(
+                    new Vector4(rxx, rxy, rxz, tx),
+                    new Vector4(ryx, ryy, ryz, ty),
+                    new Vector4(rzx, rzy, rzz, tz),
+                    new Vector4(0, 0, 0, 1)
+                );
+        }
+
         public static DualQuaternion operator +(DualQuaternion q1, DualQuaternion q2)
         {
             return new DualQuaternion(q1.Real + q2.Real, q1.Dual + q2.Dual);
@@ -115,12 +129,6 @@ namespace Logic
         public static DualQuaternion operator *(DualQuaternion q1, DualQuaternion q2)
         {
             return new DualQuaternion(q1.Real * q2.Real, q1.Real * q2.Dual + q1.Dual * q2.Real);
-        }
-
-        public DualQuaternion Normalized()
-        {
-            var fact = 1 / Real.Length;
-            return new DualQuaternion(Real * fact, Dual * fact);
         }
 
         public override string ToString() => string.Format("R: [{0}], D: [{1}]", Real, Dual);
