@@ -1,45 +1,44 @@
 ﻿using System;
-using OpenTK;
 
 namespace Logic
 {
-    public struct DualQuaternion
+    public struct DualQuat
     {
         public Quaternion Real;
         public Quaternion Dual;
 
-        public static DualQuaternion Zero => new DualQuaternion(Quaternion.Zero, Quaternion.Null);
+        public static DualQuat Zero => new DualQuat(Quaternion.Zero, Quaternion.Null);
 
         public float Length => (this * Conjugate).Real.W;
 
-        public DualQuaternion Normalized
+        public DualQuat Normalized
         {
             get
             {
                 var fact = 1 / Real.Length;
-                return new DualQuaternion(Real * fact, Dual * fact);
+                return new DualQuat(Real * fact, Dual * fact);
             }
         }
 
-        public DualQuaternion Conjugate => new DualQuaternion(Real.Conjugate, Dual.Conjugate);
+        public DualQuat Conjugate => new DualQuat(Real.Conjugate, Dual.Conjugate);
 
         public Quaternion Rotation => Real;
 
         public Vector3 Translation => 2 * (Dual * Real.Conjugate).XYZ;
 
-        private DualQuaternion(Quaternion real, Quaternion dual)
+        private DualQuat(Quaternion real, Quaternion dual)
         {
             Real = real;
             Dual = dual;
         }
 
-        public DualQuaternion(Vector3 offset)
+        public DualQuat(Vector3 offset)
         {
             Real = Quaternion.Zero;
             Dual = new Quaternion(offset / 2, 0);
         }
 
-        public DualQuaternion(Vector3 axis, float angle)
+        public DualQuat(Vector3 axis, float angle)
         {
             axis = axis.Normalized;
             var cos = (float)Math.Cos(angle / 2);
@@ -49,7 +48,7 @@ namespace Logic
             Dual = Quaternion.Null;
         }
 
-        public DualQuaternion(Vector3 axis, float angle, Vector3 offset)
+        public DualQuat(Vector3 axis, float angle, Vector3 offset)
         {
             axis = axis.Normalized;
             var cos = (float)Math.Cos(angle / 2);
@@ -59,29 +58,29 @@ namespace Logic
             Dual = new Quaternion(offset / 2, 0) * Real;
         }
 
-        public DualQuaternion(Vector3 axis, Vector3 Vector3, float angle)
+        public DualQuat(Vector3 axis, Vector3 Vector3, float angle)
         {
             axis = axis.Normalized;
-            var qR = new DualQuaternion(axis, angle);
-            var qT = new DualQuaternion(Vector3);
+            var qR = new DualQuat(axis, angle);
+            var qT = new DualQuat(Vector3);
             var res = qT * qR * qT.Conjugate;
 
             Real = res.Real;
             Dual = res.Dual;
         }
 
-        public DualQuaternion(Vector3 axis, Vector3 point, float angle, Vector3 offset)
+        public DualQuat(Vector3 axis, Vector3 point, float angle, Vector3 offset)
         {
             axis = axis.Normalized;
-            var qR = new DualQuaternion(axis, angle, offset);
-            var qT = new DualQuaternion(point);
+            var qR = new DualQuat(axis, angle, offset);
+            var qT = new DualQuat(point);
             var res = qT * qR * qT.Conjugate;
 
             Real = res.Real;
             Dual = res.Dual;
         }
 
-        public Matrix4 Matrix(bool transpose = false)
+        public Matrix4 ToMatrix(bool transpose = false)
         {
             float w = Real.W, w2 = Real.W * Real.W;
             float x = Real.X, x2 = Real.X * Real.X;
@@ -120,19 +119,19 @@ namespace Logic
                 );
         }
 
-        public static DualQuaternion operator +(DualQuaternion q1, DualQuaternion q2)
+        public static DualQuat operator +(DualQuat q1, DualQuat q2)
         {
-            return new DualQuaternion(q1.Real + q2.Real, q1.Dual + q2.Dual);
+            return new DualQuat(q1.Real + q2.Real, q1.Dual + q2.Dual);
         }
 
-        public static DualQuaternion operator -(DualQuaternion q1, DualQuaternion q2)
+        public static DualQuat operator -(DualQuat q1, DualQuat q2)
         {
-            return new DualQuaternion(q1.Real - q2.Real, q1.Dual - q2.Dual);
+            return new DualQuat(q1.Real - q2.Real, q1.Dual - q2.Dual);
         }
 
-        public static DualQuaternion operator *(DualQuaternion q1, DualQuaternion q2)
+        public static DualQuat operator *(DualQuat q1, DualQuat q2)
         {
-            return new DualQuaternion(q1.Real * q2.Real, q1.Real * q2.Dual + q1.Dual * q2.Real);
+            return new DualQuat(q1.Real * q2.Real, q1.Real * q2.Dual + q1.Dual * q2.Real);
         }
 
         public override string ToString() => string.Format("R: [{0}], D: [{1}]", Real, Dual);

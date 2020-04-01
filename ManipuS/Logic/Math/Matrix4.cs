@@ -20,11 +20,11 @@ namespace Logic
 
         public static Matrix4 Identity => new Matrix4(Vector4.UnitX, Vector4.UnitY, Vector4.UnitZ, Vector4.UnitW);
 
-        public Matrix3 SubMatrix3 => new Matrix3(Row0.SubVector3, Row1.SubVector3, Row2.SubVector3);
+        public Matrix3 SubMatrix3 => new Matrix3(Row0.XYZ, Row1.XYZ, Row2.XYZ);
 
         public Matrix3 Rotation => SubMatrix3;
 
-        public Vector3 Translation => Column3.SubVector3;
+        public Vector3 Translation => Column3.XYZ;
 
         public Matrix4(Vector4 row0, Vector4 row1, Vector4 row2, Vector4 row3)
         {

@@ -108,8 +108,9 @@
     <Compile Include="Logic\Algorithms\PathPlanning\_base.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />
-    <Compile Include="Logic\Math\DualQuaternion.cs" />
+    <Compile Include="Logic\Math\DualQuat.cs" />
     <Compile Include="Logic\Manipulator.cs" />
+    <Compile Include="Logic\Math\ImpDualQuat.cs" />
     <Compile Include="Logic\Math\Matrix.cs" />
     <Compile Include="Logic\Math\Matrix3.cs" />
     <Compile Include="Logic\Math\Matrix4.cs" />

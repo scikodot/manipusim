@@ -13,43 +13,20 @@ namespace Logic.InverseKinematics
             Vector offset = new Vector(agent.Joints.Length);
             for (int j = 0; j < 10; j++)
             {
-                var grip = agent.DKP[joint];
-                Vector3 gPos = new Vector3(grip.X, grip.Y, grip.Z);
-                Vector3 tPos = new Vector3(goal.X, goal.Y, goal.Z);
-                Vector3 error = tPos - gPos;
-
-                // get all joints parameters (positions/axes)
-                var joints = agent.Joints;
-                var dh = agent.DH;
-                //var jointsCount = agent.Joints.Length;
-
-                Matrix4 model = Matrix4.Identity;
-
-                Vector3[] jAxes = new Vector3[joint];
-                Vector3[] jPos = new Vector3[joint];
-
-                jAxes[0] = Vector3.UnitY;
-                jPos[0] = Vector3.Zero;
-
-                for (int i = 0; i < joint; i++)  // TODO: all the manipulator structure logic should be incapsulated (elsewhere)
-                {
-                    model *= Matrix4.CreateRotationY(dh[i].theta);
-                    model *= Matrix4.CreateTranslation(dh[i].d * Vector3.UnitY);
-                    model *= Matrix4.CreateRotationX(dh[i].alpha);
-                    model *= Matrix4.CreateTranslation(dh[i].r * Vector3.UnitX);
-
-                    if (i < joint - 1)
-                    {
-                        jAxes[i + 1] = model.Rotation * jAxes[0];
-                        jPos[i + 1] = model.Translation;  // TODO: is it safe?
-                    }
-                }
+                Vector3 grip = agent.DKP[joint];
+                Vector3 error = goal - grip;
 
                 Vector[] data = new Vector[joint];
                 for (int i = 0; i < joint; i++)
                 {
-                    var elem = Vector3.Cross(jAxes[i], gPos - jPos[i]);
-                    data[i] = new Vector(elem.X, elem.Y, elem.Z, jAxes[i].X, jAxes[i].Y, jAxes[i].Z);
+                    var elem = Vector3.Cross(agent.Joints[i].Axis, grip - agent.Joints[i].Position);
+                    data[i] = new Vector(
+                        elem.X, 
+                        elem.Y, 
+                        elem.Z, 
+                        agent.Joints[i].Position.X, 
+                        agent.Joints[i].Position.Y, 
+                        agent.Joints[i].Position.Z);
                 }
 
                 // get transpose of the Jacobian

@@ -110,7 +110,7 @@ namespace Logic
         public float q;
         public float[] qRanges;
 
-        public DualQuaternion State;
+        public ImpDualQuat State;
 
         public Vector3 Position { get; set; }  // TODO: implement
         public Vector3 Axis { get; set; }
@@ -125,10 +125,10 @@ namespace Logic
             qRanges = new float[2] { data.q_ranges.X, data.q_ranges.Y };
         }
 
-        public void UpdateState(DualQuaternion transform)
-        {
-            State *= transform;
-        }
+        //public void UpdateState(ImpDualQuat transform)
+        //{
+        //    State *= transform;
+        //}
 
         public Joint Copy(bool deep = false)
         {
@@ -178,7 +178,7 @@ namespace Logic
             {
                 DH[i].joint = Joints[i];
             }
-            UpdateTransMatrices();
+            UpdateState();
 
             WorkspaceRadius = Links.Sum((link) => { return link.Length; }) + Joints.Sum((joint) => { return joint.Length; });
 
@@ -202,7 +202,7 @@ namespace Logic
             {
                 DH[i].joint = Joints[i];
             }
-            UpdateTransMatrices();
+            UpdateState();
 
             WorkspaceRadius = source.WorkspaceRadius;
 
@@ -215,38 +215,40 @@ namespace Logic
         }
 
 
-        public void UpdateTransMatrices()  // TODO: use method UpdateState() instead to update all manip components (joint positions, joint axes, etc.)
-        {
-            TransMatrices = new List<Matrix4>();
-            for (int i = 0; i < DH.Length; i++)
-            {
-                TransMatrices.Add(CreateTransMatrix(DH[i]));
-            }
-        }
+        //public void UpdateTransMatrices()  // TODO: use method UpdateState() instead to update all manip components (joint positions, joint axes, etc.)
+        //{
+        //    TransMatrices = new List<Matrix4>();
+        //    for (int i = 0; i < DH.Length; i++)
+        //    {
+        //        TransMatrices.Add(CreateTransMatrix(DH[i]));
+        //    }
+        //}
 
         public void UpdateState()
         {
-            Vector3[] axes = new Vector3[Links.Length];
-            Vector3[] pos = new Vector3[Links.Length];
+            Joints[0].Axis = Vector3.UnitY;
+            Joints[0].Position = Vector3.Zero;
 
-            axes[0] = Vector3.UnitY;
-            pos[0] = Vector3.Zero;
+            var quat = ImpDualQuat.Zero;
 
-            var quat = DualQuaternion.Zero;
-
-            for (int i = 0; i < Links.Length; i++)
+            for (int i = 0; i < Joints.Length; i++)
             {
-                quat *= new DualQuaternion(Vector3.UnitY, -DH[i].theta);
+                quat *= new ImpDualQuat(Vector3.UnitY, -DH[i].theta);
 
+                Joints[i].State = quat;
+                Joints[i].Model.Position = quat.Translation;
 
+                quat *= new ImpDualQuat(DH[i].d * Vector3.UnitY);
+                quat *= new ImpDualQuat(Vector3.UnitX, DH[i].alpha, DH[i].r * Vector3.UnitX);
 
-                quat *= new DualQuaternion(DH[i].d * Vector3.UnitY);
-                quat *= new DualQuaternion(Vector3.UnitX, DH[i].alpha, DH[i].r * Vector3.UnitX);
-
-                if (i < Links.Length - 1)
+                if (i < Joints.Length - 1)
                 {
-                    //axes[i + 1] = model.Rotation * axes[0];
-                    //pos[i + 1] = model.Translation;
+                    Joints[i + 1].Axis = quat.Rotate(Joints[0].Axis);
+                    Joints[i + 1].Position = quat.Translation;
+                }
+                else
+                {
+                    GripperPos = quat.Translation;
                 }
             }
         }
@@ -268,49 +270,15 @@ namespace Logic
             );
         }
 
-        public Vector3 GripperPos
-        {
-            get
-            {
-                Matrix4 pos = new Matrix4
-                (
-                    new Vector4(1, 0, 0, Base.X),
-                    new Vector4(0, 1, 0, Base.Y),
-                    new Vector4(0, 0, 1, Base.Z),
-                    new Vector4(0, 0, 0, 1)
-                );
-
-                for (int i = 0; i < DH.Length; i++)
-                {
-                    pos *= TransMatrices[i];
-                }
-
-                return pos.Column3.SubVector3;  // TODO: too big error (~2nd order)! optimize
-            }
-        }
+        public Vector3 GripperPos { get; set; }
 
         public Vector3[] DKP
         {
             get
             {
-                Vector3[] jointsPos = new Vector3[Joints.Length + 1];
-                jointsPos[0] = Base;
-
-                Matrix4 pos = new Matrix4
-                (
-                    new Vector4(1, 0, 0, Base.X),
-                    new Vector4(0, 1, 0, Base.Y),
-                    new Vector4(0, 0, 1, Base.Z),
-                    new Vector4(0, 0, 0, 1)
-                );
-
-                for (int i = 0; i < DH.Length; i++)
-                {
-                    pos *= TransMatrices[i];
-                    jointsPos[i + 1] = pos.Column3.SubVector3;
-                }
-
-                return jointsPos;
+                List<Vector3> jointsPos = Joints.Select(x => x.Position).ToList();
+                jointsPos.Add(GripperPos);  // TODO: gripper should be a part of Joints and treated similarly, even if it cannot rotate or anything
+                return jointsPos.ToArray();
             }
         }
 
@@ -319,12 +287,6 @@ namespace Logic
             get
             {
                 return Joints.Select(x => x.q).ToArray();
-                //float[] q = new float[Joints.Length];
-                //for (int i = 0; i < Joints.Length; i++)
-                //{
-                //    q[i] = Joints[i].q;
-                //}
-                //return q;
             }
             set
             {
@@ -333,7 +295,7 @@ namespace Logic
                     Joints[i].q = value[i];
                 }
 
-                UpdateTransMatrices();
+                UpdateState();
             }
         }
 
@@ -357,71 +319,48 @@ namespace Logic
             if (Configs != null)
                 q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
 
-            Vector3[] axes = new Vector3[Links.Length];
-            Vector3[] pos = new Vector3[Links.Length];
-
-            axes[0] = Vector3.UnitY;
-            pos[0] = Vector3.Zero;
-
             shader.Use();
 
-            //joints[0].q = time;
-            //Joints[1].q += 0.016;
-            //joints[2].q = time;
-
             Matrix4 model;
-            var quat = DualQuaternion.Zero;
 
             // joints
-            for (int i = 0; i < Links.Length; i++)
+            for (int i = 0; i < Joints.Length; i++)
             {
-                quat *= new DualQuaternion(Vector3.UnitY, -DH[i].theta);
-                model = quat.Matrix();  // TODO: Matrix() allows transposing, hence there's a possibility to remove post-transpose (see below)
+                model = Joints[i].State.ToMatrix(true);
 
-                shader.SetMatrix4("model", model, true);  // TODO: possible to get rid of tranpose?
-                Joints[i].Model.Position = model * Joints[0].Model.Position;
+                shader.SetMatrix4("model", model);
                 Joints[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
-
-                quat *= new DualQuaternion(DH[i].d * Vector3.UnitY);
-                quat *= new DualQuaternion(Vector3.UnitX, DH[i].alpha, DH[i].r * Vector3.UnitX);
-                model = quat.Matrix();
-
-                if (i < Links.Length - 1)
-                {
-                    axes[i + 1] = model.Rotation * axes[0];
-                    pos[i + 1] = model.Translation;
-                }
             }
 
-            quat = DualQuaternion.Zero;
+            var quat = ImpDualQuat.Zero;
 
             // links
-            quat *= new DualQuaternion(Joints[0].Length / 2 * Vector3.UnitY);
+            quat *= new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY);
 
             // the order of multiplication is reversed, because the trans quat transforms the operand (quat) itself; it does not contribute in total transformation like other quats do
-            var trans_quat = new DualQuaternion(axes[0], pos[0], -DH[0].theta);
+            var trans_quat = new ImpDualQuat(Joints[0].Axis, Joints[0].Position, -DH[0].theta);
             quat = trans_quat * quat;
-            model = quat.Matrix(true);
+            model = quat.ToMatrix(true);
 
-            shader.SetMatrix4("model", model, false);  // TODO: make tranposing optional
+            shader.SetMatrix4("model", model);
             Links[0].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            quat *= new DualQuaternion(DH[0].d * Vector3.UnitY);
+            quat *= new ImpDualQuat(DH[0].d * Vector3.UnitY);
 
-            trans_quat = new DualQuaternion(axes[1], pos[1], -(DH[1].theta + (float)Math.PI / 2));
+            trans_quat = new ImpDualQuat(Joints[1].Axis, Joints[1].Position, -(DH[1].theta + (float)Math.PI / 2));
             quat = trans_quat * quat;
-            model = quat.Matrix(true);
+            model = quat.ToMatrix(true);
 
-            shader.SetMatrix4("model", model, false);
+            shader.SetMatrix4("model", model);
             Links[1].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            quat *= new DualQuaternion(DH[1].r * Vector3.UnitY);
+            quat *= new ImpDualQuat(DH[1].r * Vector3.UnitY);
 
-            trans_quat = new DualQuaternion(axes[2], pos[2], -DH[2].theta);
+            trans_quat = new ImpDualQuat(Joints[2].Axis, Joints[2].Position, -DH[2].theta);
             quat = trans_quat * quat;
-            model = quat.Matrix(true);
+            model = quat.ToMatrix(true);
 
-            shader.SetMatrix4("model", model, false);
+            shader.SetMatrix4("model", model);
             Links[2].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
             Dispatcher.UpdateConfig.Set();

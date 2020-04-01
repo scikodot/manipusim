@@ -80,9 +80,9 @@ namespace Logic
         public static Vector3 operator *(Matrix4 m, Vector3 v)
         {
             return new Vector3(
-                Dot(m.Row0.SubVector3, v) + m.Row0.W,
-                Dot(m.Row1.SubVector3, v) + m.Row1.W,
-                Dot(m.Row2.SubVector3, v) + m.Row2.W
+                Dot(m.Row0.XYZ, v) + m.Row0.W,
+                Dot(m.Row1.XYZ, v) + m.Row1.W,
+                Dot(m.Row2.XYZ, v) + m.Row2.W
             );
         }
 

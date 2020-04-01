@@ -23,7 +23,7 @@ namespace Logic
 
         public static Vector4 One => new Vector4(1, 1, 1, 1);
 
-        public Vector3 SubVector3 => new Vector3(X, Y, Z);
+        public Vector3 XYZ => new Vector3(X, Y, Z);
 
         public float Length => (float)Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
 

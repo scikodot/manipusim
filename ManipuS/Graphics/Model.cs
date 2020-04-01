@@ -18,6 +18,7 @@ namespace Graphics
         private string Directory;
 
         public Logic.Vector3 Position;  // TODO: need to refactor namespaces; ambiguous references, etc.
+                                        // TODO: not used anywhere! check
 
         public Model(string path)
         {
