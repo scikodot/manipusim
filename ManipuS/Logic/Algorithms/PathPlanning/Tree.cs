@@ -77,7 +77,7 @@ namespace Logic.PathPlanning
         public void RemoveNode(Node n)
         {
             // waiting for thread to unlock
-            Dispatcher.ThreadHandle.WaitOne();
+            Dispatcher.UpdateTree.WaitOne();
 
             // delete node from layer
             Layers[n.Layer].Remove(n);
@@ -98,7 +98,7 @@ namespace Logic.PathPlanning
         public void AddNode(Node n)
         {
             // waiting for thread to unlock
-            Dispatcher.ThreadHandle.WaitOne();
+            Dispatcher.UpdateTree.WaitOne();
 
             if (n.Layer == Layers.Count)
                 AddLayer();

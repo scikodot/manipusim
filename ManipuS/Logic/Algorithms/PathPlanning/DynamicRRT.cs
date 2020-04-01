@@ -60,9 +60,9 @@ namespace Logic.PathPlanning
                 }
 
                 // wait for window to draw current config so that we can update it
-                Dispatcher.UpdateConfig.WaitOne();
-                agent.q = agent.Configs[gripperPos < agent.Configs.Count - 1 ? gripperPos++ : gripperPos];
-                Dispatcher.UpdateConfig.Reset();
+                //Dispatcher.UpdateConfig.WaitOne();
+                //agent.q = agent.Configs[gripperPos < agent.Configs.Count - 1 ? gripperPos++ : gripperPos];
+                //Dispatcher.UpdateConfig.Reset();
             }
         }
 
@@ -104,7 +104,7 @@ namespace Logic.PathPlanning
             if (pPrev != Vector3.Null)
             {
                 paths.Insert(point, dkpPrev);
-                agent.Path.Insert(point, dkpPrev[agent.Joints.Length]);
+                agent.Path.Insert(point, dkpPrev[agent.Joints.Length]);  // TODO: optimize; insertions are always costly
                 agent.Configs.Insert(point++, cPrev);
             }
 

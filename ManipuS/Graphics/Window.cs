@@ -385,7 +385,7 @@ namespace Graphics
                     }
                     time += dt;
                     
-                    model = Matrix4.CreateTranslation(new Vector3(time, 0, 0));
+                    model = Matrix4.CreateTranslation(new Vector3(time, 0, 0));  // TODO: obstacle movement should be done in a separate method, with high frequency
                     for (int i = 0; i < obstacles.Length; i++)
                     {
                         Manager.Obstacles[i].Move(Vector3.UnitX, dt);
@@ -432,8 +432,9 @@ namespace Graphics
                     // path
                     if (manip.States["Path"] && manip.Path != null)
                     {
+                        // path may change at any time in control thread; GetRange() guarantees thread sync
                         int count = manip.Path.Count;
-                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.ToArray(), new Vector4(Vector3.UnitX, 1.0f)));  // TODO: array changes size while executing this method; maintain thread sync!!
+                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
 
                         model = Matrix4.Identity;
                         path[j].Display(model, () =>
@@ -446,7 +447,7 @@ namespace Graphics
                     if (manip.Tree != null)
                     {
                         // block the manager thread while updating tree
-                        Dispatcher.ThreadHandle.Reset();
+                        Dispatcher.UpdateTree.Reset();
 
                         // add all elements from addition buffer to the hash set
                         var add = new List<Logic.PathPlanning.Tree.Node>(manip.Tree.AddBuffer);
@@ -459,7 +460,7 @@ namespace Graphics
                         manip.Tree.DelBuffer.Clear();
 
                         // unblock the manager thread to continue calculations
-                        Dispatcher.ThreadHandle.Set();
+                        Dispatcher.UpdateTree.Set();
                     }
 
                     if (Dispatcher.WorkspaceBuffer.JointBuffer[j].ShowTree)
@@ -477,11 +478,8 @@ namespace Graphics
                         }
                     }
 
-                    // draw manipulator configuration if its model is loaded properly
-                    if (ManipLoaded)
-                    {
-                        manip.Draw(_shader);
-                    }
+                    // draw manipulator configuration
+                    manip.Draw(_shader);
                 }
             }
 

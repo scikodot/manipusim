@@ -110,6 +110,11 @@ namespace Logic
         public float q;
         public float[] qRanges;
 
+        public DualQuaternion State;
+
+        public Vector3 Position { get; set; }  // TODO: implement
+        public Vector3 Axis { get; set; }
+
         public Joint() { }
 
         public Joint(JointData data)
@@ -118,6 +123,11 @@ namespace Logic
             Length = data.Length;
             q = data.q;
             qRanges = new float[2] { data.q_ranges.X, data.q_ranges.Y };
+        }
+
+        public void UpdateState(DualQuaternion transform)
+        {
+            State *= transform;
         }
 
         public Joint Copy(bool deep = false)
@@ -142,8 +152,10 @@ namespace Logic
         public Tree Tree;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
         public List<Attractor> GoodAttractors, BadAttractors;
-        public Vector3[] Vector3s;
+        public Vector3[] points;
         public Dictionary<string, bool> States;
+
+        private int posCounter = 0;
 
         public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)
         {
@@ -197,15 +209,45 @@ namespace Logic
             Goal = source.Goal;  // TODO: review referencing
 
             States = new Dictionary<string, bool>(source.States);
+
+            if (source.Path != null)
+                Path = new List<Vector3>(source.Path);
         }
 
 
-        public void UpdateTransMatrices()
+        public void UpdateTransMatrices()  // TODO: use method UpdateState() instead to update all manip components (joint positions, joint axes, etc.)
         {
             TransMatrices = new List<Matrix4>();
             for (int i = 0; i < DH.Length; i++)
             {
                 TransMatrices.Add(CreateTransMatrix(DH[i]));
+            }
+        }
+
+        public void UpdateState()
+        {
+            Vector3[] axes = new Vector3[Links.Length];
+            Vector3[] pos = new Vector3[Links.Length];
+
+            axes[0] = Vector3.UnitY;
+            pos[0] = Vector3.Zero;
+
+            var quat = DualQuaternion.Zero;
+
+            for (int i = 0; i < Links.Length; i++)
+            {
+                quat *= new DualQuaternion(Vector3.UnitY, -DH[i].theta);
+
+
+
+                quat *= new DualQuaternion(DH[i].d * Vector3.UnitY);
+                quat *= new DualQuaternion(Vector3.UnitX, DH[i].alpha, DH[i].r * Vector3.UnitX);
+
+                if (i < Links.Length - 1)
+                {
+                    //axes[i + 1] = model.Rotation * axes[0];
+                    //pos[i + 1] = model.Translation;
+                }
             }
         }
 
@@ -276,12 +318,13 @@ namespace Logic
         {
             get
             {
-                float[] q = new float[Joints.Length];
-                for (int i = 0; i < Joints.Length; i++)
-                {
-                    q[i] = Joints[i].q;
-                }
-                return q;
+                return Joints.Select(x => x.q).ToArray();
+                //float[] q = new float[Joints.Length];
+                //for (int i = 0; i < Joints.Length; i++)
+                //{
+                //    q[i] = Joints[i].q;
+                //}
+                //return q;
             }
             set
             {
@@ -311,6 +354,9 @@ namespace Logic
         {
             Dispatcher.UpdateConfig.Reset();
 
+            if (Configs != null)
+                q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
+
             Vector3[] axes = new Vector3[Links.Length];
             Vector3[] pos = new Vector3[Links.Length];
 
@@ -324,7 +370,7 @@ namespace Logic
             //joints[2].q = time;
 
             Matrix4 model;
-            var quat = DualQuaternion.Default;
+            var quat = DualQuaternion.Zero;
 
             // joints
             for (int i = 0; i < Links.Length; i++)
@@ -347,7 +393,7 @@ namespace Logic
                 }
             }
 
-            quat = DualQuaternion.Default;
+            quat = DualQuaternion.Zero;
 
             // links
             quat *= new DualQuaternion(Joints[0].Length / 2 * Vector3.UnitY);

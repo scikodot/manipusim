@@ -8,9 +8,7 @@ namespace Logic
         public Quaternion Real;
         public Quaternion Dual;
 
-        public DualQuaternion Conjugate => new DualQuaternion(Real.Conjugate, Dual.Conjugate);
-
-        public static DualQuaternion Default => new DualQuaternion(Quaternion.Zero, Quaternion.Null);
+        public static DualQuaternion Zero => new DualQuaternion(Quaternion.Zero, Quaternion.Null);
 
         public float Length => (this * Conjugate).Real.W;
 
@@ -22,6 +20,12 @@ namespace Logic
                 return new DualQuaternion(Real * fact, Dual * fact);
             }
         }
+
+        public DualQuaternion Conjugate => new DualQuaternion(Real.Conjugate, Dual.Conjugate);
+
+        public Quaternion Rotation => Real;
+
+        public Vector3 Translation => 2 * (Dual * Real.Conjugate).XYZ;
 
         private DualQuaternion(Quaternion real, Quaternion dual)
         {
@@ -66,11 +70,11 @@ namespace Logic
             Dual = res.Dual;
         }
 
-        public DualQuaternion(Vector3 axis, Vector3 Vector3, float angle, Vector3 offset)
+        public DualQuaternion(Vector3 axis, Vector3 point, float angle, Vector3 offset)
         {
             axis = axis.Normalized;
             var qR = new DualQuaternion(axis, angle, offset);
-            var qT = new DualQuaternion(Vector3);
+            var qT = new DualQuaternion(point);
             var res = qT * qR * qT.Conjugate;
 
             Real = res.Real;
