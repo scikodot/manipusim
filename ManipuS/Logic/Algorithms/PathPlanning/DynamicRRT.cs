@@ -35,6 +35,7 @@ namespace Logic.PathPlanning
             }
 
             var control = Task.Run(() => Control(agent, goal, paths));
+            //control.Wait();
         }
 
         public void Control(Manipulator agent, Vector3 goal, List<List<Vector3>> paths)

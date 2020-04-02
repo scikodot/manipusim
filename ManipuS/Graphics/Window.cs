@@ -18,54 +18,6 @@ using Matrix4 = OpenTK.Matrix4;
 
 namespace Graphics
 {
-    /*public class Entity
-    {
-        public int VAO, VBO, EBO;
-        public Shader Shader;
-
-        public Entity(Shader shader, float[] data, uint[] indices = null)
-        {
-            Shader = shader;
-
-            // generating array/buffer objects
-            VAO = GL.GenVertexArray();
-            VBO = GL.GenBuffer();
-
-            GL.BindVertexArray(VAO);
-
-            // binding vertex data to buffer
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
-
-            // binding indices data to buffer, if presented
-            if (indices != null)
-            {
-                EBO = GL.GenBuffer();
-                GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-                GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
-            }
-
-            // configuring all the needed attributes
-            var PosAttrib = Shader.GetAttribLocation("aPos");
-            GL.VertexAttribVector3er(PosAttrib, 3, VertexAttribVector3erType.Float, false, 7 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(PosAttrib);
-
-            var ColAttrib = Shader.GetAttribLocation("aColor");
-            GL.VertexAttribVector3er(ColAttrib, 4, VertexAttribVector3erType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(ColAttrib);
-
-            GL.BindVertexArray(0);
-        }
-
-        public void Display(Matrix4 model, Action draw)
-        {
-            // displaying entity with the appropriate draw method
-            GL.BindVertexArray(VAO);
-            Shader.SetMatrix4("model", model, false);
-            draw();
-        }
-    }*/
-
     public class Window : GameWindow
     {
         // main graphics objects
@@ -111,6 +63,8 @@ namespace Graphics
         // manipulators' calculating threads
         private Thread[] threads;
         private bool[] ThreadsRunning;
+        private Task[] tasks;
+        private CancellationTokenSource tokenSource = new CancellationTokenSource();
 
         // misc variables
         private bool Capture = false;
@@ -551,28 +505,6 @@ namespace Graphics
                     {
                         if (ImGui.MenuItem("nanosuit.obj"))
                         {
-                            /*load = new Thread(() => 
-                            {
-                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.LinkBuffer.Length; i++)
-                                {
-                                    Dispatcher.WorkspaceBuffer.JointBuffer[i].Model = new Model(JointPath);
-                                    Dispatcher.WorkspaceBuffer.LinkBuffer[i].Model = new Model(LinkPath);
-                                }
-
-                                // wait for loading process to finish
-                                while (Dispatcher.ActionsQueue.Count != 0) { }  // TODO: remove redundant checks for ActionsQueue in this file (because ManipLoaded == true only when ActionsQueue.Count == 0)
-                                
-                                // update workspace with newly loaded model
-                                UpdateWorkspace();
-                                UpdateThreads();
-                                ManipLoaded = true;
-                                //Crytek = new Model(ManipPath);
-                            })
-                            {
-                                Name = "LoadModel",
-                                IsBackground = true
-                            };
-                            load.Start();*/
                             Dispatcher.ActiveTasks.Add(Task.Run(() =>
                             {
                                 for (int i = 0; i < Dispatcher.WorkspaceBuffer.LinkBuffer.Length; i++)
@@ -587,7 +519,8 @@ namespace Graphics
 
                                 // update workspace with newly loaded model
                                 UpdateWorkspace();
-                                UpdateThreads();
+                                //UpdateThreads();
+                                UpdateTasks();
                                 ManipLoaded = true;
                                 //Crytek = new Model(ManipPath);
                             }));
@@ -744,7 +677,8 @@ namespace Graphics
 
                 if (ImGui.Button("Execute"))
                 {
-                    RunThreads();
+                    //RunThreads();
+                    RunTasks();
                 }
                 if (ImGui.IsItemHovered())
                 {
@@ -772,9 +706,11 @@ namespace Graphics
                     if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
                     {
                         // updating workspace and resetting threads
-                        AbortThreads();
-                        UpdateWorkspace();
-                        UpdateThreads();
+                        //AbortThreads();
+                        AbortTasks();
+                        //UpdateWorkspace();
+                        //UpdateThreads();
+                        //UpdateTasks();
 
                         ImGui.CloseCurrentPopup();
                     }
@@ -844,7 +780,80 @@ namespace Graphics
             }
         }
 
-        protected void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
+        protected void UpdateTasks()
+        {
+            tasks = new Task[Manager.Manipulators.Length];
+
+            var token = tokenSource.Token;
+            for (int i = 0; i < tasks.Length; i++)
+            {
+                int index = i;
+                tasks[i] = new Task(() =>
+                {
+                    //var exeTask = Task.Run(() =>
+                    //{
+                    //    for (int j = 0; j < 1000000000; j++)
+                    //    {
+
+                    //    }
+
+                    //    timers[index].Start();
+                    //    Manager.Plan(Manager.Manipulators[index]);
+                    //    timers[index].Stop();
+                    //});
+
+                    try
+                    {
+                        var pollTask = Task.Run(() =>
+                        {
+                            while (true)
+                            {
+                                if (token.IsCancellationRequested)
+                                    throw new Exception();
+                                //token.ThrowIfCancellationRequested();
+                            }
+                        }, token);
+
+                        for (int j = 0; j < 1000000000; j++)
+                        {
+
+                        }
+
+                        timers[index].Start();
+                        Manager.Plan(Manager.Manipulators[index]);
+                        timers[index].Stop();
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine($"Task for the manipulator #{index} has been canceled.");
+                    }
+
+                    //Task.WaitAny(exeTask, pollTask);
+
+                    //if (pollTask.IsCanceled)
+                    //    Console.WriteLine($"Task for the manipulator #{index} has been canceled.");
+                });
+            }
+        }
+
+        protected void RunTasks()
+        {
+            foreach (var task in tasks)
+            {
+                Dispatcher.ActiveTasks.Add(task);
+                task.Start();
+            }
+        }
+
+        protected void AbortTasks()
+        {
+            if (tasks != null)
+            {
+                tokenSource.Cancel();
+            }
+        }
+
+        /*protected void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
         {
             // enabling/disabling specific threads for calculating paths for manipulators
             threads = new Thread[Manager.Manipulators.Length];
@@ -900,7 +909,7 @@ namespace Graphics
                 // wait until all threads abort
                 while (ThreadsRunning.Contains(true)) { }
             }
-        }
+        }*/
 
         protected void ScreenCapture()
         {

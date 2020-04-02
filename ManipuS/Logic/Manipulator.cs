@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Graphics;
 using Logic.PathPlanning;
-using OpenTK;
 
 namespace Logic
 {
@@ -125,11 +122,6 @@ namespace Logic
             qRanges = new float[2] { data.q_ranges.X, data.q_ranges.Y };
         }
 
-        //public void UpdateState(ImpDualQuat transform)
-        //{
-        //    State *= transform;
-        //}
-
         public Joint Copy(bool deep = false)
         {
             return (Joint)MemberwiseClone();
@@ -143,7 +135,6 @@ namespace Logic
         public Link[] Links;
         public Joint[] Joints;
         public TupleDH[] DH;
-        public List<Matrix4> TransMatrices;  // TODO: use quaternions instead of matrices for D-H transformations
         public float WorkspaceRadius;
 
         public Vector3 Goal;
@@ -214,16 +205,6 @@ namespace Logic
                 Path = new List<Vector3>(source.Path);
         }
 
-
-        //public void UpdateTransMatrices()  // TODO: use method UpdateState() instead to update all manip components (joint positions, joint axes, etc.)
-        //{
-        //    TransMatrices = new List<Matrix4>();
-        //    for (int i = 0; i < DH.Length; i++)
-        //    {
-        //        TransMatrices.Add(CreateTransMatrix(DH[i]));
-        //    }
-        //}
-
         public void UpdateState()
         {
             Joints[0].Axis = Vector3.UnitY;
@@ -251,23 +232,6 @@ namespace Logic
                     GripperPos = quat.Translation;
                 }
             }
-        }
-
-        public static Matrix4 CreateTransMatrix(TupleDH DH)  // TODO: optimize; better to call with joint that contains its own DH table
-        {
-            float cosT = (float)Math.Cos(DH.theta);
-            float sinT = (float)Math.Sin(DH.theta);
-            float d = DH.d;
-            float cosA = (float)Math.Cos(DH.alpha);
-            float sinA = (float)Math.Sin(DH.alpha);
-            float r = DH.r;
-
-            return new Matrix4(
-                new Vector4(cosT, -sinA * sinT, -sinT * cosA, r * cosT),
-                new Vector4(0, cosA, -sinA, d),
-                new Vector4(sinT, sinA * cosT, cosA * cosT, r * sinT),
-                new Vector4(0, 0, 0, 1)
-            );
         }
 
         public Vector3 GripperPos { get; set; }

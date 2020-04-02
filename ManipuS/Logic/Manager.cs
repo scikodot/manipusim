@@ -97,7 +97,7 @@ namespace Logic
             manip.States["Attractors"] = true;
         }
 
-        public static void Execute(Manipulator manip)
+        public static void Plan(Manipulator manip)
         {
             var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
 
@@ -153,6 +153,11 @@ namespace Logic
             manip.Path = resGA.Item1;
             manip.States["Path"] = true;
             manip.Configs = resGA.Item2;*/
+        }
+
+        public static void Control()
+        {
+
         }
     }
 }
