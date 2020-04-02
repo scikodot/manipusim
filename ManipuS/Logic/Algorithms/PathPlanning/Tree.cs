@@ -14,9 +14,9 @@ namespace Logic.PathPlanning
             public List<Node> Childs;
             public int Layer;
             public Vector3 p;
-            public float[] q;
+            public Vector q;
 
-            public Node(Node parent, Vector3 p, float[] q)
+            public Node(Node parent, Vector3 p, Vector q)
             {
                 Parent = parent;
                 Childs = new List<Node>();
@@ -25,7 +25,7 @@ namespace Logic.PathPlanning
                 else
                     Layer = parent.Layer + 1;
                 this.p = p;
-                this.q = Misc.CopyArray(q);
+                this.q = q;
             }
         }
 
@@ -161,11 +161,11 @@ namespace Logic.PathPlanning
             }
         }
 
-        public static Node[] Discretize(Node start, Node end, int Vector3Num)
+        public static Node[] Discretize(Node start, Node end, int pointNum)
         {
             Segment seg = new Segment(start.p, end.p);
-            Vector3[] Vector3s = new Vector3[Vector3Num];
-            Array.Copy(seg.Discretize(Vector3Num + 1), 1, Vector3s, 0, Vector3Num);
+            Vector3[] Vector3s = new Vector3[pointNum];
+            Array.Copy(seg.Discretize(pointNum + 1), 1, Vector3s, 0, pointNum);
 
             Node parent, child;
             if (start.Layer > end.Layer)
@@ -179,19 +179,14 @@ namespace Logic.PathPlanning
                 child = end;
             }
 
-            float[][] configs = new float[Vector3Num][];
-            for (int i = 0; i < Vector3Num; i++)
+            Vector[] configs = new Vector[pointNum];
+            for (int i = 0; i < pointNum; i++)
             {
-                float[] config = new float[start.q.Length];
-                for (int j = 0; j < start.q.Length; j++)
-                {
-                    config[j] = start.q[j] + (i + 1) * (end.q[j] - start.q[j]) / (Vector3Num + 1);
-                }
-                configs[i] = config;
+                configs[i] = start.q + (i + 1) * (end.q - start.q) / (pointNum + 1);
             }
 
-            Node[] nodes = new Node[Vector3Num];
-            for (int i = 0; i < Vector3Num; i++)
+            Node[] nodes = new Node[pointNum];
+            for (int i = 0; i < pointNum; i++)
             {
                 nodes[i] = new Node(null, Vector3s[i], configs[i]);
             }

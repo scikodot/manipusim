@@ -65,7 +65,7 @@ namespace Logic.InverseKinematics
             return collisions;
         }
 
-        public virtual (bool, float, float[], bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
+        public virtual (bool, float, Vector, bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
         {
             return default;
         }

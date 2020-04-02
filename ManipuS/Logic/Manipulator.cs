@@ -148,7 +148,7 @@ namespace Logic
 
         public Vector3 Goal;
         public List<Vector3> Path;
-        public List<float[]> Configs;
+        public List<Vector> Configs;
         public Tree Tree;
         public List<Tree.Node> Buffer = new List<Tree.Node>();
         public List<Attractor> GoodAttractors, BadAttractors;
@@ -282,11 +282,11 @@ namespace Logic
             }
         }
 
-        public float[] q
+        public Vector q
         {
             get
             {
-                return Joints.Select(x => x.q).ToArray();
+                return new Vector(Joints.Select(x => x.q).ToArray());
             }
             set
             {

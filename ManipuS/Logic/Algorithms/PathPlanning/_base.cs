@@ -21,7 +21,7 @@ namespace Logic.PathPlanning
             CollisionCheck = collisionCheck;
         }
 
-        public virtual (List<Vector3>, List<float[]>) Execute(Manipulator agent, Vector3 goal)
+        public virtual (List<Vector3>, List<Vector>) Execute(Manipulator agent, Vector3 goal)
         {
             return default;
         }

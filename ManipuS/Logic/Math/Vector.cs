@@ -7,7 +7,19 @@ namespace Logic
     {
         public float[] Components { get; private set; }
 
-        public float this[int index] => Components[index];
+        public float this[int index]
+        {
+            get
+            {
+                return Components[index];
+            }
+            set
+            {
+                Components[index] = value;
+            }
+        }
+
+        public static Vector Null => new Vector();
 
         public int Size => Components.Length;
 
@@ -17,9 +29,9 @@ namespace Logic
 
         public Vector Normalized => this / Length;
 
-        public Vector(int size)
+        public Vector(int size = 0)
         {
-            Components = new float[size];
+            Components = size == 0 ? null : new float[size];
         }
 
         public Vector(params float[] components)

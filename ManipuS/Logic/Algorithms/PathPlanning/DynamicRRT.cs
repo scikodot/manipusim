@@ -30,7 +30,7 @@ namespace Logic.PathPlanning
             List<List<Vector3>> paths = new List<List<Vector3>>();
             for (int i = 0; i < agent.Path.Count; i++)
             {
-                contestant.q = Misc.CopyArray(agent.Configs[i]);
+                contestant.q = agent.Configs[i]; //Misc.CopyArray(agent.Configs[i]);
                 paths.Add(contestant.DKP.ToList());
             }
 
@@ -75,29 +75,29 @@ namespace Logic.PathPlanning
             Vector3 pNew = paths[point][joint] + dx;
             var contestant = new Manipulator(agent)
             {
-                q = Misc.CopyArray(agent.Configs[point])
+                q = agent.Configs[point]  //Misc.CopyArray(agent.Configs[point])
             };
-            float[] cNew = contestant.q.Zip(Solver.Execute(contestant, pNew, joint).Item3, (t, s) => t + s).ToArray();
-            contestant.q = Misc.CopyArray(cNew);
+            Vector cNew = contestant.q + Solver.Execute(contestant, pNew, joint).Item3;
+            contestant.q = cNew;
             List<Vector3> dkpNew = contestant.DKP.ToList();
 
             Vector3 pPrev = Vector3.Null, pNext = Vector3.Null;
-            float[] cPrev = null, cNext = null;
+            Vector cPrev = Vector.Null, cNext = Vector.Null;
             List<Vector3> dkpPrev = null, dkpNext = null;
             if (pNew.DistanceTo(paths[point - 1][joint]) >= 2 * d)
             {
                 pPrev = (pNew + paths[point - 1][joint]) / 2;
-                contestant.q = Misc.CopyArray(agent.Configs[point]);
-                cPrev = contestant.q.Zip(Solver.Execute(contestant, pPrev, joint).Item3, (t, s) => t + s).ToArray();
-                contestant.q = Misc.CopyArray(cPrev);
+                contestant.q = agent.Configs[point];
+                cPrev = contestant.q + Solver.Execute(contestant, pPrev, joint).Item3;
+                contestant.q = cPrev;
                 dkpPrev = contestant.DKP.ToList();
             }
             if (pNew.DistanceTo(paths[point + 1][joint]) >= 2 * d)
             {
                 pNext = (pNew + paths[point + 1][joint]) / 2;
-                contestant.q = Misc.CopyArray(agent.Configs[point]);
-                cNext = contestant.q.Zip(Solver.Execute(contestant, pNext, joint).Item3, (t, s) => t + s).ToArray();
-                contestant.q = Misc.CopyArray(cNext);
+                contestant.q = agent.Configs[point];
+                cNext = contestant.q + Solver.Execute(contestant, pNext, joint).Item3;
+                contestant.q = cNext;
                 dkpNext = contestant.DKP.ToList();
             }
 
@@ -120,7 +120,7 @@ namespace Logic.PathPlanning
             }
         }
 
-        public override (List<Vector3>, List<float[]>) Execute(Manipulator agent, Vector3 goal)
+        public override (List<Vector3>, List<Vector>) Execute(Manipulator agent, Vector3 goal)
         {
             Manipulator Contestant = new Manipulator(agent);
 
@@ -183,7 +183,7 @@ namespace Logic.PathPlanning
                 if (!collision)
                 {
                     // solving IKP for new node
-                    Contestant.q = Misc.CopyArray(minNode.q);
+                    Contestant.q = minNode.q;
                     var res = Solver.Execute(Contestant, pNew, Contestant.Joints.Length);
                     var pos = Contestant.GripperPos;
                     if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
@@ -210,7 +210,7 @@ namespace Logic.PathPlanning
             // retrieving resultant path along with respective configurations
             Tree.Node start = agent.Tree.Min(agent.Goal), node_curr = start;
             List<Vector3> path = new List<Vector3>();
-            List<float[]> configs = new List<float[]>();
+            List<Vector> configs = new List<Vector>();
             for (int i = start.Layer; i >= 0; i--)
             {
                 if (node_curr.Layer == i)

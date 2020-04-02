@@ -8,15 +8,15 @@ namespace Logic.InverseKinematics
         public HillClimbing(Obstacle[] obstacles, float precision, float stepSize, int maxTime) : 
             base(obstacles, precision, stepSize, maxTime) { }
 
-        public override (bool, float, float[], bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
+        public override (bool, float, Vector, bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
         {
             // initial parameters
-            float[] qBest = Misc.CopyArray(agent.q);
+            Vector qBest = agent.q;
             float dist = agent.DKP[joint].DistanceTo(goal), init_dist = dist, k = 1;
             float minDist = float.PositiveInfinity;
             bool Converged = false;
 
-            float[] dq = new float[agent.Joints.Length];
+            Vector dq = new Vector(agent.Joints.Length);
             float range = 0, stepNeg = 0, stepPos = 0;
             int time = 0;
             Dispatcher.Timer.Start();
@@ -37,13 +37,13 @@ namespace Logic.InverseKinematics
                 }
 
                 // retrieving score of the new configuration
-                agent.q = qBest.Zip(dq, (t, s) => { return t + s; }).ToArray();
+                agent.q = qBest + dq;
                 float distNew = agent.DKP[joint].DistanceTo(goal);
 
                 if (distNew < dist)
                 {
                     // updating agent's configuration if it's better than the previos one
-                    qBest = Misc.CopyArray(agent.q);
+                    qBest = agent.q;
                     minDist = dist = distNew;
                     k = dist / init_dist;
                 }
@@ -61,7 +61,7 @@ namespace Logic.InverseKinematics
             Dispatcher.Timer.Reset();
 
             // checking for collisions of the found configuration if the algorithm has converged
-            bool[] Collisions = new bool[agent.q.Length - 1];
+            bool[] Collisions = new bool[agent.q.Size - 1];
             if (Converged)
                 Collisions = DetectCollisions(agent, Obstacles);
 
