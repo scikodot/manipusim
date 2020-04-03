@@ -5,13 +5,12 @@ namespace Logic.InverseKinematics
 {
     class Jacobian : IKSolver
     {
-        public Jacobian(Obstacle[] obstacles, float precision, float stepSize, int maxTime) : 
-            base(obstacles, precision, stepSize, maxTime) { }
+        public Jacobian(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 
-        public override (bool, float, Vector, bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
+        public override (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
             Vector offset = new Vector(agent.Joints.Length);
-            for (int j = 0; j < 10; j++)
+            for (int j = 0; j < 3; j++)
             {
                 Vector3 grip = agent.DKP[joint];
                 Vector3 error = goal - grip;
@@ -38,20 +37,15 @@ namespace Logic.InverseKinematics
                 if (joint < agent.Joints.Length)
                     dq.Expand(agent.Joints.Length - joint);
 
-                // checking for collisions of the found configuration if the algorithm has converged
-                //agent.q = agent.q.Zip(dq.Components, (t, s) => t + s).ToArray();
                 agent.q += dq;
-                bool[] collisions = new bool[agent.q.Size - 1];
-                collisions = DetectCollisions(agent, Obstacles);
-
                 offset += dq;
-                var dist = agent.GripperPos.DistanceTo(goal);
-
-                if (j == 3)
-                    return (true, dist, offset, collisions);
             }
 
-            return default;
+            // checking for collisions of the found configuration
+            bool[] collisions = DetectCollisions(agent, Obstacles);
+            var dist = agent.DKP[joint].DistanceTo(goal);
+
+            return (true, dist, offset, collisions);
         }
     }
 }

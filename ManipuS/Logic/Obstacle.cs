@@ -165,7 +165,7 @@ namespace Logic
         }
     }
 
-    class Obstacle
+    public class Obstacle
     {
         public Vector3[] Data { get; set; }
         public ICollider Collider;

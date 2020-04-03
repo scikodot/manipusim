@@ -400,21 +400,15 @@ namespace Graphics
                     // random tree
                     if (manip.Tree != null)
                     {
-                        // block the manager thread while updating tree
-                        Dispatcher.UpdateTree.Reset();
-
                         // add all elements from addition buffer to the hash set
-                        var add = new List<Logic.PathPlanning.Tree.Node>(manip.Tree.AddBuffer);
-                        tree[j].UnionWith(add);
-                        manip.Tree.AddBuffer.Clear();
+                        var addCount = manip.Tree.AddBuffer.Count;
+                        tree[j].UnionWith(manip.Tree.AddBuffer.GetRange(0, addCount));
+                        manip.Tree.AddBuffer.RemoveRange(0, addCount);
 
                         // delete all elements contained in deletion buffer from the hash set
-                        var del = new List<Logic.PathPlanning.Tree.Node>(manip.Tree.DelBuffer);
-                        tree[j].ExceptWith(del);
-                        manip.Tree.DelBuffer.Clear();
-
-                        // unblock the manager thread to continue calculations
-                        Dispatcher.UpdateTree.Set();
+                        var delCount = manip.Tree.DelBuffer.Count;
+                        tree[j].ExceptWith(manip.Tree.DelBuffer.GetRange(0, delCount));
+                        manip.Tree.DelBuffer.RemoveRange(0, delCount);
                     }
 
                     if (Dispatcher.WorkspaceBuffer.JointBuffer[j].ShowTree)
@@ -519,8 +513,7 @@ namespace Graphics
 
                                 // update workspace with newly loaded model
                                 UpdateWorkspace();
-                                //UpdateThreads();
-                                UpdateTasks();
+                                UpdateThreads();
                                 ManipLoaded = true;
                                 //Crytek = new Model(ManipPath);
                             }));
@@ -677,8 +670,7 @@ namespace Graphics
 
                 if (ImGui.Button("Execute"))
                 {
-                    //RunThreads();
-                    RunTasks();
+                    RunThreads();
                 }
                 if (ImGui.IsItemHovered())
                 {
@@ -706,10 +698,9 @@ namespace Graphics
                     if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
                     {
                         // updating workspace and resetting threads
-                        //AbortThreads();
-                        AbortTasks();
-                        //UpdateWorkspace();
-                        //UpdateThreads();
+                        AbortThreads();
+                        UpdateWorkspace();
+                        UpdateThreads();
                         //UpdateTasks();
 
                         ImGui.CloseCurrentPopup();
@@ -780,80 +771,7 @@ namespace Graphics
             }
         }
 
-        protected void UpdateTasks()
-        {
-            tasks = new Task[Manager.Manipulators.Length];
-
-            var token = tokenSource.Token;
-            for (int i = 0; i < tasks.Length; i++)
-            {
-                int index = i;
-                tasks[i] = new Task(() =>
-                {
-                    //var exeTask = Task.Run(() =>
-                    //{
-                    //    for (int j = 0; j < 1000000000; j++)
-                    //    {
-
-                    //    }
-
-                    //    timers[index].Start();
-                    //    Manager.Plan(Manager.Manipulators[index]);
-                    //    timers[index].Stop();
-                    //});
-
-                    try
-                    {
-                        var pollTask = Task.Run(() =>
-                        {
-                            while (true)
-                            {
-                                if (token.IsCancellationRequested)
-                                    throw new Exception();
-                                //token.ThrowIfCancellationRequested();
-                            }
-                        }, token);
-
-                        for (int j = 0; j < 1000000000; j++)
-                        {
-
-                        }
-
-                        timers[index].Start();
-                        Manager.Plan(Manager.Manipulators[index]);
-                        timers[index].Stop();
-                    }
-                    catch (Exception)
-                    {
-                        Console.WriteLine($"Task for the manipulator #{index} has been canceled.");
-                    }
-
-                    //Task.WaitAny(exeTask, pollTask);
-
-                    //if (pollTask.IsCanceled)
-                    //    Console.WriteLine($"Task for the manipulator #{index} has been canceled.");
-                });
-            }
-        }
-
-        protected void RunTasks()
-        {
-            foreach (var task in tasks)
-            {
-                Dispatcher.ActiveTasks.Add(task);
-                task.Start();
-            }
-        }
-
-        protected void AbortTasks()
-        {
-            if (tasks != null)
-            {
-                tokenSource.Cancel();
-            }
-        }
-
-        /*protected void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
+        protected void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
         {
             // enabling/disabling specific threads for calculating paths for manipulators
             threads = new Thread[Manager.Manipulators.Length];
@@ -867,7 +785,8 @@ namespace Graphics
                     try
                     {
                         ThreadsRunning[index] = true;
-                        Manager.Execute(Manager.Manipulators[index]);
+                        //Manager.Plan(Manager.Manipulators[index]);
+                        Manager.Manipulators[index].controller.Execute(Manager.Manipulators[index].Goal);
                         ThreadsRunning[index] = false;
                     }
                     catch (ThreadAbortException e)  // checking for abort query
@@ -909,7 +828,7 @@ namespace Graphics
                 // wait until all threads abort
                 while (ThreadsRunning.Contains(true)) { }
             }
-        }*/
+        }
 
         protected void ScreenCapture()
         {

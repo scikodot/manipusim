@@ -4,15 +4,13 @@ using System.Linq;
 
 namespace Logic.InverseKinematics
 {
-    class IKSolver
+    public class IKSolver
     {
-        protected Obstacle[] Obstacles;
         protected float Precision, StepSize;
         protected int MaxTime;
 
-        protected IKSolver(Obstacle[] obstacles, float precision, float stepSize, int maxTime)
+        protected IKSolver(float precision, float stepSize, int maxTime)
         {
-            Obstacles = obstacles;
             Precision = precision;
             StepSize = stepSize;
             MaxTime = maxTime;
@@ -65,7 +63,7 @@ namespace Logic.InverseKinematics
             return collisions;
         }
 
-        public virtual (bool, float, Vector, bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
+        public virtual (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
             return default;
         }

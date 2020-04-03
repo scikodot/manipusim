@@ -5,10 +5,9 @@ namespace Logic.InverseKinematics
 {
     class HillClimbing : IKSolver
     {
-        public HillClimbing(Obstacle[] obstacles, float precision, float stepSize, int maxTime) : 
-            base(obstacles, precision, stepSize, maxTime) { }
+        public HillClimbing(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 
-        public override (bool, float, Vector, bool[]) Execute(Manipulator agent, Vector3 goal, int joint)
+        public override (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
             // initial parameters
             Vector qBest = agent.q;
@@ -17,7 +16,7 @@ namespace Logic.InverseKinematics
             bool Converged = false;
 
             Vector dq = new Vector(agent.Joints.Length);
-            float range = 0, stepNeg = 0, stepPos = 0;
+            float range, stepNeg, stepPos;
             int time = 0;
             Dispatcher.Timer.Start();
             while (time++ < MaxTime)

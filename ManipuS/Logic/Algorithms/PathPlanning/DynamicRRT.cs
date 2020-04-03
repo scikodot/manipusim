@@ -12,118 +12,15 @@ namespace Logic.PathPlanning
         private float d;
         private int period;
 
-        public DynamicRRT(Obstacle[] obstacles, IKSolver solver, int maxTime, bool collisionCheck, float d, int period) : base(obstacles, solver, maxTime, collisionCheck)
+        public DynamicRRT(int maxTime, bool collisionCheck, float d, int period) : base(maxTime, collisionCheck)
         {
             this.d = d;
             this.period = period;
         }
 
-        public void Start(Manipulator agent, Vector3 goal)
+        public override (List<Vector3>, List<Vector>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, IKSolver Solver)
         {
-            var res = Execute(agent, goal);
-
-            agent.Path = res.Item1;
-            agent.States["Path"] = true;
-            agent.Configs = res.Item2;
-
-            var contestant = new Manipulator(agent);
-            List<List<Vector3>> paths = new List<List<Vector3>>();
-            for (int i = 0; i < agent.Path.Count; i++)
-            {
-                contestant.q = agent.Configs[i]; //Misc.CopyArray(agent.Configs[i]);
-                paths.Add(contestant.DKP.ToList());
-            }
-
-            var control = Task.Run(() => Control(agent, goal, paths));
-            //control.Wait();
-        }
-
-        public void Control(Manipulator agent, Vector3 goal, List<List<Vector3>> paths)
-        {
-            var contestant = new Manipulator(agent);
-
-            var gripperPos = 0;
-            while (gripperPos < agent.Configs.Count)
-            {
-                for (int i = gripperPos + 1; i < agent.Path.Count; i++)
-                {
-                    for (int j = paths[i].Count - 1; j > 0; j--)
-                    {
-                        foreach (var obst in Obstacles)
-                        {
-                            if (obst.Contains(paths[i][j]))
-                            {
-                                Deform(agent, obst, paths, i, j);
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // wait for window to draw current config so that we can update it
-                //Dispatcher.UpdateConfig.WaitOne();
-                //agent.q = agent.Configs[gripperPos < agent.Configs.Count - 1 ? gripperPos++ : gripperPos];
-                //Dispatcher.UpdateConfig.Reset();
-            }
-        }
-
-        public void Deform(Manipulator agent, Obstacle obstacle, List<List<Vector3>> paths, int point, int joint)
-        {
-            Vector3 vec = new Vector3(obstacle.Collider.Center, paths[point][joint]);
-            Vector3 n = vec.Normalized;
-            Vector3 dx = n * (obstacle.Collider as Sphere).Radius - vec;
-
-            Vector3 pNew = paths[point][joint] + dx;
-            var contestant = new Manipulator(agent)
-            {
-                q = agent.Configs[point]  //Misc.CopyArray(agent.Configs[point])
-            };
-            Vector cNew = contestant.q + Solver.Execute(contestant, pNew, joint).Item3;
-            contestant.q = cNew;
-            List<Vector3> dkpNew = contestant.DKP.ToList();
-
-            Vector3 pPrev = Vector3.Null, pNext = Vector3.Null;
-            Vector cPrev = Vector.Null, cNext = Vector.Null;
-            List<Vector3> dkpPrev = null, dkpNext = null;
-            if (pNew.DistanceTo(paths[point - 1][joint]) >= 2 * d)
-            {
-                pPrev = (pNew + paths[point - 1][joint]) / 2;
-                contestant.q = agent.Configs[point];
-                cPrev = contestant.q + Solver.Execute(contestant, pPrev, joint).Item3;
-                contestant.q = cPrev;
-                dkpPrev = contestant.DKP.ToList();
-            }
-            if (pNew.DistanceTo(paths[point + 1][joint]) >= 2 * d)
-            {
-                pNext = (pNew + paths[point + 1][joint]) / 2;
-                contestant.q = agent.Configs[point];
-                cNext = contestant.q + Solver.Execute(contestant, pNext, joint).Item3;
-                contestant.q = cNext;
-                dkpNext = contestant.DKP.ToList();
-            }
-
-            if (pPrev != Vector3.Null)
-            {
-                paths.Insert(point, dkpPrev);
-                agent.Path.Insert(point, dkpPrev[agent.Joints.Length]);  // TODO: optimize; insertions are always costly
-                agent.Configs.Insert(point++, cPrev);
-            }
-
-            paths[point] = dkpNew;
-            agent.Path[point] = dkpNew[agent.Joints.Length];
-            agent.Configs[point] = cNew;
-
-            if (pNext != Vector3.Null)
-            {
-                agent.Path.Insert(++point, dkpNext[agent.Joints.Length]);
-                agent.Configs.Insert(point, cNext);
-                paths.Insert(point, dkpNext);
-            }
-        }
-
-        public override (List<Vector3>, List<Vector>) Execute(Manipulator agent, Vector3 goal)
-        {
-            Manipulator Contestant = new Manipulator(agent);
+            var Contestant = agent.DeepCopy();
 
             // creating new tree
             agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));
@@ -135,7 +32,7 @@ namespace Logic.PathPlanning
             for (int i = 0; i < MaxTime; i++)
             {
                 if (i % period == 0 && i != 0)
-                    Trim(agent.Tree, Contestant);
+                    Trim(Obstacles, agent.Tree, Contestant, Solver);
 
                 // generating normally distributed value with Box-Muller transform
                 float num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
@@ -185,7 +82,7 @@ namespace Logic.PathPlanning
                 {
                     // solving IKP for new node
                     Contestant.q = minNode.q;
-                    var res = Solver.Execute(Contestant, pNew, Contestant.Joints.Length);
+                    var res = Solver.Execute(Obstacles, Contestant, pNew, Contestant.Joints.Length);
                     var pos = Contestant.GripperPos;
                     if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
                     {
@@ -242,7 +139,7 @@ namespace Logic.PathPlanning
             return (path, configs);
         }
 
-        private void Trim(Tree tree, Manipulator contestant)
+        private void Trim(Obstacle[] Obstacles, Tree tree, Manipulator contestant, IKSolver Solver)
         {
             for (int i = tree.Layers.Count - 1; i > 0; i--)
             {

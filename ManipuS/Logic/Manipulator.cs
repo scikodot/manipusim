@@ -8,11 +8,11 @@ namespace Logic
 {
     public struct TupleDH
     {
-        public Joint joint;
-        public float theta
-        {
-            get { return joint.q + thetaOffset; }
-        }
+        //public Joint joint;
+        //public float theta
+        //{
+        //    get { return joint.q + thetaOffset; }
+        //}
 
         public float thetaOffset;
         public float d;
@@ -21,7 +21,7 @@ namespace Logic
 
         public TupleDH(float thetaOffset, float d, float alpha, float r)
         {
-            joint = null;  // TODO: probably better to use class?
+            //joint = null;  // TODO: probably better to use class?
 
             this.thetaOffset = thetaOffset;
             this.d = d;
@@ -29,7 +29,7 @@ namespace Logic
             this.r = r;
         }
 
-        public TupleDH Copy(bool deep = false)
+        public TupleDH ShallowCopy()
         {
             return (TupleDH)MemberwiseClone();
         }
@@ -81,7 +81,7 @@ namespace Logic
         Planar  // Allows relative translation on a plane and relative rotation about an axis perpendicular to the plane
     }
 
-    public struct Link
+    public struct Link  // TODO: probably class would be better? it's an object after all, not a set of data
     {
         public Model Model;
         public float Length;
@@ -104,12 +104,14 @@ namespace Logic
         public Model Model;
         public float Length;
 
+        public TupleDH DH;
+
         public float q;
         public float[] qRanges;
 
         public ImpDualQuat State;
 
-        public Vector3 Position { get; set; }  // TODO: implement
+        public Vector3 Position { get; set; }
         public Vector3 Axis { get; set; }
 
         public Joint() { }
@@ -122,7 +124,7 @@ namespace Logic
             qRanges = new float[2] { data.q_ranges.X, data.q_ranges.Y };
         }
 
-        public Joint Copy(bool deep = false)
+        public Joint ShallowCopy()
         {
             return (Joint)MemberwiseClone();
         }
@@ -134,7 +136,6 @@ namespace Logic
 
         public Link[] Links;
         public Joint[] Joints;
-        public TupleDH[] DH;
         public float WorkspaceRadius;
 
         public Vector3 Goal;
@@ -144,32 +145,26 @@ namespace Logic
         public List<Tree.Node> Buffer = new List<Tree.Node>();
         public List<Attractor> GoodAttractors, BadAttractors;
         public Vector3[] points;
-        public Dictionary<string, bool> States;
+        public Dictionary<string, bool> States;  // TODO: this is used weirdly; replace with something?
+
+        public MotionController controller;
 
         private int posCounter = 0;
 
         public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)
         {
-            Links = new Link[links.Length];
-            for (int i = 0; i < links.Length; i++)
-            {
-                Links[i] = new Link(links[i]);
-            }
+            Links = Array.ConvertAll(links, x => new Link(x));
+            Joints = Array.ConvertAll(joints, x => new Joint(x));
 
-            Joints = new Joint[joints.Length];
-            for (int i = 0; i < joints.Length; i++)
-            {
-                Joints[i] = new Joint(joints[i]);
-            }
+            //Base = new Vector3(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
 
-            Base = new Vector3(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
-
-            this.DH = DH;
             for (int i = 0; i < DH.Length; i++)
             {
-                DH[i].joint = Joints[i];
+                Joints[i].DH = DH[i];
             }
             UpdateState();
+
+            Base = Joints[0].Position;
 
             WorkspaceRadius = Links.Sum((link) => { return link.Length; }) + Joints.Sum((joint) => { return joint.Length; });
 
@@ -181,30 +176,6 @@ namespace Logic
             };
         }
 
-        public Manipulator(Manipulator source)  // TODO: make a m.CreateCopy() method, not a constructor! that's much better
-        {
-            Links = Misc.CopyArray(source.Links);
-            Joints = Array.ConvertAll(source.Joints, x => x.Copy());  //Misc.CopyArray(source.Joints);
-
-            Base = source.Base;  // TODO: review referencing
-
-            DH = Array.ConvertAll(source.DH, x => x.Copy());  //Misc.CopyArray(source.DH);
-            for (int i = 0; i < DH.Length; i++)
-            {
-                DH[i].joint = Joints[i];
-            }
-            UpdateState();
-
-            WorkspaceRadius = source.WorkspaceRadius;
-
-            Goal = source.Goal;  // TODO: review referencing
-
-            States = new Dictionary<string, bool>(source.States);
-
-            if (source.Path != null)
-                Path = new List<Vector3>(source.Path);
-        }
-
         public void UpdateState()
         {
             Joints[0].Axis = Vector3.UnitY;
@@ -214,13 +185,13 @@ namespace Logic
 
             for (int i = 0; i < Joints.Length; i++)
             {
-                quat *= new ImpDualQuat(Vector3.UnitY, -DH[i].theta);
+                quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[i].q + Joints[i].DH.thetaOffset));
 
                 Joints[i].State = quat;
                 Joints[i].Model.Position = quat.Translation;
 
-                quat *= new ImpDualQuat(DH[i].d * Vector3.UnitY);
-                quat *= new ImpDualQuat(Vector3.UnitX, DH[i].alpha, DH[i].r * Vector3.UnitX);
+                quat *= new ImpDualQuat(Joints[i].DH.d * Vector3.UnitY);
+                quat *= new ImpDualQuat(Vector3.UnitX, Joints[i].DH.alpha, Joints[i].DH.r * Vector3.UnitX);
 
                 if (i < Joints.Length - 1)
                 {
@@ -229,7 +200,7 @@ namespace Logic
                 }
                 else
                 {
-                    GripperPos = quat.Translation;
+                    GripperPos = quat.Translation;  // TODO: gripper should be a part of Joints and treated similarly
                 }
             }
         }
@@ -250,25 +221,20 @@ namespace Logic
         {
             get
             {
-                return new Vector(Joints.Select(x => x.q).ToArray());
+                return new Vector(Array.ConvertAll(Joints, x => x.q));
             }
             set
             {
                 for (int i = 0; i < Joints.Length; i++)
-                {
                     Joints[i].q = value[i];
-                }
 
                 UpdateState();
             }
         }
 
-        public bool InWorkspace(Vector3 point)
+        public bool InWorkspace(Vector3 point)  // TODO: not used anywhere; fix
         {
-            if (point.DistanceTo(Vector3.Zero) - point.DistanceTo(Vector3.Zero) > WorkspaceRadius)
-                return false;
-            else
-                return true;
+            return point.DistanceTo(Vector3.Zero) - point.DistanceTo(Vector3.Zero) <= WorkspaceRadius;
         }
 
         public float DistanceTo(Vector3 p)
@@ -278,8 +244,6 @@ namespace Logic
 
         public void Draw(Shader shader)
         {
-            Dispatcher.UpdateConfig.Reset();
-
             if (Configs != null)
                 q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
 
@@ -302,32 +266,45 @@ namespace Logic
             quat *= new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY);
 
             // the order of multiplication is reversed, because the trans quat transforms the operand (quat) itself; it does not contribute in total transformation like other quats do
-            var trans_quat = new ImpDualQuat(Joints[0].Axis, Joints[0].Position, -DH[0].theta);
+            var trans_quat = new ImpDualQuat(Joints[0].Axis, Joints[0].Position, -(Joints[0].q + Joints[0].DH.thetaOffset));
             quat = trans_quat * quat;
             model = quat.ToMatrix(true);
 
             shader.SetMatrix4("model", model);
             Links[0].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            quat *= new ImpDualQuat(DH[0].d * Vector3.UnitY);
+            quat *= new ImpDualQuat(Joints[0].DH.d * Vector3.UnitY);
 
-            trans_quat = new ImpDualQuat(Joints[1].Axis, Joints[1].Position, -(DH[1].theta + (float)Math.PI / 2));
+            trans_quat = new ImpDualQuat(Joints[1].Axis, Joints[1].Position, -(Joints[1].q + Joints[1].DH.thetaOffset + (float)Math.PI / 2));
             quat = trans_quat * quat;
             model = quat.ToMatrix(true);
 
             shader.SetMatrix4("model", model);
             Links[1].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            quat *= new ImpDualQuat(DH[1].r * Vector3.UnitY);
+            quat *= new ImpDualQuat(Joints[1].DH.r * Vector3.UnitY);
 
-            trans_quat = new ImpDualQuat(Joints[2].Axis, Joints[2].Position, -DH[2].theta);
+            trans_quat = new ImpDualQuat(Joints[2].Axis, Joints[2].Position, -(Joints[2].q + Joints[2].DH.thetaOffset));
             quat = trans_quat * quat;
             model = quat.ToMatrix(true);
 
             shader.SetMatrix4("model", model);
             Links[2].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
+        }
 
-            Dispatcher.UpdateConfig.Set();
+        public Manipulator DeepCopy()
+        {
+            Manipulator manip = (Manipulator)MemberwiseClone();
+
+            manip.Links = Misc.CopyArray(Links);
+            manip.Joints = Array.ConvertAll(Joints, x => x.ShallowCopy());
+
+            manip.States = new Dictionary<string, bool>(States);
+
+            if (Path != null)
+                manip.Path = new List<Vector3>(Path);
+
+            return manip;
         }
     }
 }

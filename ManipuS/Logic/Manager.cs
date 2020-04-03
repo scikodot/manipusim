@@ -16,6 +16,14 @@ namespace Logic
             var LD = Dispatcher.WorkspaceBuffer.LinkBuffer;
             var JD = Dispatcher.WorkspaceBuffer.JointBuffer;
             var OD = Dispatcher.WorkspaceBuffer.ObstBuffer;
+            var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
+
+            // obstacles
+            Obstacles = new Obstacle[OD.Length];
+            for (int i = 0; i < OD.Length; i++)
+            {
+                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Vector3(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].Vector3s_num, new Random()), ColliderShape.Sphere);
+            }
 
             // manipulators
             Manipulators = new Manipulator[1];
@@ -26,13 +34,9 @@ namespace Logic
                     new TupleDH(0, 0, 0, JD[2].Length + LD[2].Length)
                 });
             Manipulators[0].Goal = new Vector3(0, 0.5f, 2.5f);
-
-            // obstacles
-            Obstacles = new Obstacle[OD.Length];
-            for (int i = 0; i < OD.Length; i++)
-            {
-                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Vector3(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].Vector3s_num, new Random()), ColliderShape.Sphere);
-            }
+            Manipulators[0].controller = new MotionController(Obstacles, Manipulators[0],
+                new DynamicRRT(AD.k, true, AD.d, AD.k / 100),
+                new Jacobian(AD.Precision, AD.StepSize, AD.MaxTime));
 
             var manip = Manipulators[0];
             manip.GoodAttractors = new List<Attractor>();
@@ -52,7 +56,7 @@ namespace Logic
             manip.GoodAttractors.Add(new Attractor(AttrVector3, AttrWeight, AttrArea, r));
             manip.States["Goal"] = true;
 
-            var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
+            
 
             // adding ancillary attractors
             while (manip.GoodAttractors.Count < AD.AttrNum)
@@ -123,9 +127,9 @@ namespace Logic
             manip.States["Path"] = true;
             manip.Configs = resRRT.Item2;*/
 
-            var solver = new Jacobian(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
+            /*var solver = new Jacobian(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
             var planner = new DynamicRRT(Obstacles, solver, AD.k, true, AD.d, AD.k / 100);
-            planner.Start(manip, Vector3.Zero);
+            planner.Start(manip, Vector3.Zero);*/
 
             /*var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
                 0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000, 
@@ -153,11 +157,6 @@ namespace Logic
             manip.Path = resGA.Item1;
             manip.States["Path"] = true;
             manip.Configs = resGA.Item2;*/
-        }
-
-        public static void Control()
-        {
-
         }
     }
 }

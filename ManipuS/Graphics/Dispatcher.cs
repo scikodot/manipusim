@@ -12,9 +12,6 @@ static class Dispatcher
 {
     public static List<Task> ActiveTasks = new List<Task>();
 
-    public static ManualResetEvent UpdateTree = new ManualResetEvent(true);
-    public static ManualResetEvent UpdateConfig = new ManualResetEvent(false);
-
     public static Random Rng = new Random();
     public static Stopwatch Timer = new Stopwatch();
 

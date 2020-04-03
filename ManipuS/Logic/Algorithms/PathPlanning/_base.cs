@@ -4,24 +4,20 @@ using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
-    class PathPlanner
+    public class PathPlanner
     {
         protected static Random Rng = new Random();
 
-        protected Obstacle[] Obstacles;
-        protected IKSolver Solver;
         protected bool CollisionCheck;
         protected int MaxTime;
 
-        protected PathPlanner(Obstacle[] obstacles, IKSolver solver, int maxTime, bool collisionCheck)
+        protected PathPlanner(int maxTime, bool collisionCheck)
         {
-            Obstacles = obstacles;
-            Solver = solver;
             MaxTime = maxTime;
             CollisionCheck = collisionCheck;
         }
 
-        public virtual (List<Vector3>, List<Vector>) Execute(Manipulator agent, Vector3 goal)
+        public virtual (List<Vector3>, List<Vector>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, IKSolver Solver)
         {
             return default;
         }
