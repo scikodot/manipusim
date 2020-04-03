@@ -18,7 +18,6 @@ namespace Logic.InverseKinematics
             Vector dq = new Vector(agent.Joints.Length);
             float range, stepNeg, stepPos;
             int time = 0;
-            Dispatcher.Timer.Start();
             while (time++ < MaxTime)
             {
                 for (int i = 0; i < joint; i++)
@@ -54,10 +53,6 @@ namespace Logic.InverseKinematics
                     break;
                 }
             }
-            Dispatcher.Timer.Stop();
-            Console.SetCursorPosition(0, 15);
-            Console.WriteLine("IKP time: {0}; Real time: {1}", time, Dispatcher.Timer.ElapsedTicks / 10);
-            Dispatcher.Timer.Reset();
 
             // checking for collisions of the found configuration if the algorithm has converged
             bool[] Collisions = new bool[agent.q.Size - 1];

@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Input;
+
 using ImGuiNET;
 using Logic;
-using System.Threading;
-using System.Threading.Tasks;
 
 using Vector3 = Logic.Vector3;
 using Vector4 = OpenTK.Vector4;
@@ -60,12 +62,6 @@ namespace Graphics
         // indices of current manipulators' configurations
         private int[] ConfigsCount;
 
-        // manipulators' calculating threads
-        private Thread[] threads;
-        private bool[] ThreadsRunning;
-        private Task[] tasks;
-        private CancellationTokenSource tokenSource = new CancellationTokenSource();
-
         // misc variables
         private bool Capture = false;
         private static System.IO.DirectoryInfo projDir = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent;
@@ -82,7 +78,6 @@ namespace Graphics
         private static string NanosuitPath = SolutionDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
         private static string LinkPath = SolutionDirectory + @"\Resources\Models\manipulator\Link.obj";
         private static string JointPath = SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
-        private Stopwatch[] timers;
         
         private Thread load;
         private float time = 0;
@@ -150,6 +145,9 @@ namespace Graphics
                 var action = Dispatcher.ActionsQueue.Dequeue();
                 action();
             }
+
+            if (Dispatcher.ActionsQueue.Count == 0)
+                Dispatcher.ActionsDone.Set();
         }
 
 
@@ -305,19 +303,19 @@ namespace Graphics
                 {
                     for (int i = 0; i < obstacles.Length; i++)
                     {
-                        obstacles[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Data, Vector4.One));
+                        obstacles[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Data, Vector4.One));
 
                         switch (Manager.Obstacles[i].Collider.Shape)
                         {
                             case ColliderShape.Box:
-                                boundings[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), new uint[]
+                                boundings[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), new uint[]
                                 {
                                     0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
                                 });
                                 break;
                             case ColliderShape.Sphere:
-                                boundings[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)));
-                                lon[i] = new Entity(lineShader, GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), ((Sphere)Manager.Obstacles[i].Collider).indicesLongitude);
+                                boundings[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)));
+                                lon[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), ((Sphere)Manager.Obstacles[i].Collider).indicesLongitude);
                                 break;
                         }
                     }
@@ -368,7 +366,7 @@ namespace Graphics
                         {
                             List<Vector3> MainAttr = new List<Vector3> { manip.GoodAttractors[0].Center };
                             MainAttr.AddRange(manip.GoodAttractors[0].Area);
-                            goal[j] = new Entity(lineShader, GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
+                            goal[j] = new Entity(lineShader, Utils.GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
                         }
                     }
                     else
@@ -388,7 +386,7 @@ namespace Graphics
                     {
                         // path may change at any time in control thread; GetRange() guarantees thread sync
                         int count = manip.Path.Count;
-                        path[j] = new Entity(lineShader, GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
+                        path[j] = new Entity(lineShader, Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
 
                         model = Matrix4.Identity;
                         path[j].Display(model, () =>
@@ -501,19 +499,23 @@ namespace Graphics
                         {
                             Dispatcher.ActiveTasks.Add(Task.Run(() =>
                             {
-                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.LinkBuffer.Length; i++)
+                                // load components' models
+                                var jointModel = new Model(JointPath);
+                                var linkModel = new Model(LinkPath);
+
+                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.JointBuffer.Length; i++)
                                 {
-                                    Dispatcher.WorkspaceBuffer.JointBuffer[i].Model = new Model(JointPath);
-                                    Dispatcher.WorkspaceBuffer.LinkBuffer[i].Model = new Model(LinkPath);
+                                    Dispatcher.WorkspaceBuffer.JointBuffer[i].Model = jointModel;
+                                    Dispatcher.WorkspaceBuffer.LinkBuffer[i].Model = linkModel;
                                 }
 
                                 // wait for loading process to finish
-                                while (Dispatcher.ActionsQueue.Count != 0) { }  // TODO: remove redundant checks for ActionsQueue in this file (because ManipLoaded == true only when ActionsQueue.Count == 0)
-                                // TODO: better to put WaitHandle here instead of emptiness check
+                                Dispatcher.ActionsDone.Reset();
+                                Dispatcher.ActionsDone.WaitOne();
 
                                 // update workspace with newly loaded model
                                 UpdateWorkspace();
-                                UpdateThreads();
+                                Dispatcher.UpdateThreads();
                                 ManipLoaded = true;
                                 //Crytek = new Model(ManipPath);
                             }));
@@ -670,7 +672,7 @@ namespace Graphics
 
                 if (ImGui.Button("Execute"))
                 {
-                    RunThreads();
+                    Dispatcher.RunThreads();
                 }
                 if (ImGui.IsItemHovered())
                 {
@@ -698,10 +700,9 @@ namespace Graphics
                     if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
                     {
                         // updating workspace and resetting threads
-                        AbortThreads();
+                        Dispatcher.AbortThreads();
                         UpdateWorkspace();
-                        UpdateThreads();
-                        //UpdateTasks();
+                        Dispatcher.UpdateThreads();
 
                         ImGui.CloseCurrentPopup();
                     }
@@ -755,125 +756,25 @@ namespace Graphics
             goal = new Entity[manip_length];
             configs = new Entity[manip_length];
             path = new Entity[manip_length];
-            //tree = new List<Entity>[manip_length];
             tree = new HashSet<Logic.PathPlanning.Tree.Node>[manip_length];
             for (int i = 0; i < tree.Length; i++)
             {
-                tree[i] = new HashSet<Logic.PathPlanning.Tree.Node>();  //new List<Entity>();
+                tree[i] = new HashSet<Logic.PathPlanning.Tree.Node>();
             }
 
             ConfigsCount = new int[manip_length];
 
-            timers = new Stopwatch[manip_length];
+            Dispatcher.timers = new Stopwatch[manip_length];
             for (int i = 0; i < manip_length; i++)
             {
-                timers[i] = new Stopwatch();
+                Dispatcher.timers[i] = new Stopwatch();
             }
-        }
-
-        protected void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
-        {
-            // enabling/disabling specific threads for calculating paths for manipulators
-            threads = new Thread[Manager.Manipulators.Length];
-            ThreadsRunning = new bool[Manager.Manipulators.Length];
-            for (int i = 0; i < threads.Length; i++)
-            {
-                int index = i;
-                threads[i] = new Thread(() => 
-                {
-                    timers[index].Start();
-                    try
-                    {
-                        ThreadsRunning[index] = true;
-                        //Manager.Plan(Manager.Manipulators[index]);
-                        Manager.Manipulators[index].controller.Execute(Manager.Manipulators[index].Goal);
-                        ThreadsRunning[index] = false;
-                    }
-                    catch (ThreadAbortException e)  // checking for abort query
-                    {
-                        ThreadsRunning[index] = false;
-                    }
-                    finally
-                    {
-                        timers[index].Stop();
-                    }
-                })
-                {
-                    Name = $"Manipulator {index}",
-                    IsBackground = true
-                };
-            }
-        }
-
-        protected void RunThreads()
-        {
-            // running all threads
-            for (int i = 0; i < threads.Length; i++)
-            {
-                threads[i].Start();
-            }
-        }
-
-        protected void AbortThreads()
-        {
-            // aborting all running threads if presented
-            if (threads != null)
-            {
-                for (int i = 0; i < threads.Length; i++)
-                {
-                    if (ThreadsRunning[i] == true)
-                        threads[i].Abort();
-                }
-                
-                // wait until all threads abort
-                while (ThreadsRunning.Contains(true)) { }
-            }
-        }
-
-        protected void ScreenCapture()
-        {
-            // taking a picture of a viewport
-            byte[,,] img = new byte[Height, Width, 3];
-            GL.ReadPixels(0, 0, Width, Height, PixelFormat.Rgb, PixelType.UnsignedByte, img);
-
-            System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(Width, Height);
-            for (int i = 0; i < Height; i++)
-            {
-                for (int j = 0; j < Width; j++)
-                {
-                    bitmap.SetPixel(j, Height - 1 - i, System.Drawing.Color.FromArgb(img[i, j, 0], img[i, j, 1], img[i, j, 2]));
-                }
-            }
-
-            // saving captured image
-            bitmap.Save(SavePath + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
-
-            Capture = false;
-        }
-
-        static protected float[] GL_Convert(Vector3[] data, Vector4 color)
-        {
-            // converting program data to OpenGL buffer format
-            float[] res = new float[data.Length * 7];
-
-            for (int i = 0; i < data.Length; i++)
-            {
-                res[7 * i] = data[i].X;
-                res[7 * i + 1] = data[i].Y;
-                res[7 * i + 2] = data[i].Z;
-                res[7 * i + 3] = color.X;
-                res[7 * i + 4] = color.Y;
-                res[7 * i + 5] = color.Z;
-                res[7 * i + 6] = color.W;
-            }
-
-            return res;
         }
 
         // some specific methods for better drawing organization
         public static Entity CreateTreeBranch(Vector3 p1, Vector3 p2)
         {
-            return new Entity(lineShader, GL_Convert(new Vector3[] { p1, p2 }, new Vector4(Vector3.Zero, 1.0f)));
+            return new Entity(lineShader, Utils.GL_Convert(new Vector3[] { p1, p2 }, new Vector4(Vector3.Zero, 1.0f)));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

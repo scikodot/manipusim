@@ -8,12 +8,6 @@ namespace Logic
 {
     public struct TupleDH
     {
-        //public Joint joint;
-        //public float theta
-        //{
-        //    get { return joint.q + thetaOffset; }
-        //}
-
         public float thetaOffset;
         public float d;
         public float alpha;
@@ -21,17 +15,10 @@ namespace Logic
 
         public TupleDH(float thetaOffset, float d, float alpha, float r)
         {
-            //joint = null;  // TODO: probably better to use class?
-
             this.thetaOffset = thetaOffset;
             this.d = d;
             this.alpha = alpha;
             this.r = r;
-        }
-
-        public TupleDH ShallowCopy()
-        {
-            return (TupleDH)MemberwiseClone();
         }
     }
 
@@ -114,8 +101,6 @@ namespace Logic
         public Vector3 Position { get; set; }
         public Vector3 Axis { get; set; }
 
-        public Joint() { }
-
         public Joint(JointData data)
         {
             Model = data.Model;
@@ -133,7 +118,6 @@ namespace Logic
     public class Manipulator
     {
         public Vector3 Base;
-
         public Link[] Links;
         public Joint[] Joints;
         public float WorkspaceRadius;
@@ -142,9 +126,7 @@ namespace Logic
         public List<Vector3> Path;
         public List<Vector> Configs;
         public Tree Tree;
-        public List<Tree.Node> Buffer = new List<Tree.Node>();
         public List<Attractor> GoodAttractors, BadAttractors;
-        public Vector3[] points;
         public Dictionary<string, bool> States;  // TODO: this is used weirdly; replace with something?
 
         public MotionController controller;
@@ -156,8 +138,6 @@ namespace Logic
             Links = Array.ConvertAll(links, x => new Link(x));
             Joints = Array.ConvertAll(joints, x => new Joint(x));
 
-            //Base = new Vector3(Joints[0].Model.Position.X, Joints[0].Model.Position.Y, Joints[0].Model.Position.Z);
-
             for (int i = 0; i < DH.Length; i++)
             {
                 Joints[i].DH = DH[i];
@@ -166,7 +146,7 @@ namespace Logic
 
             Base = Joints[0].Position;
 
-            WorkspaceRadius = Links.Sum((link) => { return link.Length; }) + Joints.Sum((joint) => { return joint.Length; });
+            WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => joint.Length);
 
             States = new Dictionary<string, bool>
             {
@@ -296,7 +276,7 @@ namespace Logic
         {
             Manipulator manip = (Manipulator)MemberwiseClone();
 
-            manip.Links = Misc.CopyArray(Links);
+            Array.Copy(Links, manip.Links, Links.Length);
             manip.Joints = Array.ConvertAll(Joints, x => x.ShallowCopy());
 
             manip.States = new Dictionary<string, bool>(States);

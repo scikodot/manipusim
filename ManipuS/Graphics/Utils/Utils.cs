@@ -1,6 +1,4 @@
-﻿using OpenTK;
-using OpenTK.Graphics.OpenGL4;
-using Graphics;
+﻿using OpenTK.Graphics.OpenGL4;
 
 namespace Graphics
 {
@@ -25,7 +23,7 @@ namespace Graphics
             bitmap.Save(savepath + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
         }
 
-        public static float[] GL_Convert(Vector3[] data, Vector4 color)
+        public static float[] GL_Convert(Logic.Vector3[] data, Logic.Vector4 color)
         {
             // converting program data to OpenGL buffer format
             float[] res = new float[data.Length * 7];
