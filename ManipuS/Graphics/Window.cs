@@ -315,7 +315,7 @@ namespace Graphics
                                 break;
                             case ColliderShape.Sphere:
                                 boundings[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)));
-                                lon[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), ((Sphere)Manager.Obstacles[i].Collider).indicesLongitude);
+                                lon[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), (Manager.Obstacles[i].Collider as Sphere).indicesLongitude);
                                 break;
                         }
                     }
@@ -350,7 +350,7 @@ namespace Graphics
                         if (Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding)
                         {
                             boundings[i].Display(model, Manager.Obstacles[i].Collider.Draw);
-                            lon[i].Display(model, ((Sphere)Manager.Obstacles[i].Collider).DrawLongitudes);
+                            lon[i].Display(model, (Manager.Obstacles[i].Collider as Sphere).DrawLongitudes);
                         }
                     }
                 }

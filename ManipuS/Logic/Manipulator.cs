@@ -131,7 +131,7 @@ namespace Logic
 
         public MotionController controller;
 
-        private int posCounter = 0;
+        public int posCounter = 0;
 
         public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)
         {
