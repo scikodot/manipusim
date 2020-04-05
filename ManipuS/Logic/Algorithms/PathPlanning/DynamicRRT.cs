@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Logic.InverseKinematics;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Logic.PathPlanning
 {
@@ -20,88 +18,85 @@ namespace Logic.PathPlanning
 
         public override (List<Vector3>, List<Vector>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, IKSolver Solver)
         {
-            var Contestant = agent.DeepCopy();
+            var contestant = agent.DeepCopy();
 
             // creating new tree
             agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));
 
             // sorting attractors for easier work
-            var Attractors = new List<Attractor>(agent.GoodAttractors);
-            Attractors.Sort((t, s) => { return t.Weight <= s.Weight ? (t.Weight < s.Weight ? -1 : 0) : 1; });
+            var attractors = new List<Attractor>(agent.GoodAttractors);
+            attractors.Sort((t, s) => t.Weight <= s.Weight ? (t.Weight < s.Weight ? -1 : 0) : 1);
 
             for (int i = 0; i < MaxTime; i++)
             {
                 if (i % period == 0 && i != 0)
-                    Trim(Obstacles, agent.Tree, Contestant, Solver);
+                    Trim(Obstacles, agent.Tree, contestant, Solver);
 
                 // generating normally distributed value with Box-Muller transform
-                float num = Misc.BoxMullerTransform(Rng, Attractors[0].Weight, (Attractors[Attractors.Count - 1].Weight - Attractors[0].Weight) / 3);  // TODO: check distribution!
+                float num = Misc.BoxMullerTransform(Rng, attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
 
                 // extracting the first relevant attractor
-                Attractor attr = Attractors.Find((t) => { return t.Weight > num; });
+                int index = attractors.FindIndex(t => t.Weight > num);
+                if (index == -1)  // clamping weight
+                    index = attractors.Count - 1;
 
-                int index = 0;
-                if (attr == null)  // clamping weight
-                    index = Attractors.Count - 1;
-                else
-                    index = Attractors.IndexOf(attr);
+                float radius = attractors[index].Radius, x, y_pos, y, z_pos, z;
 
-                float radius = Attractors[index].Radius, x, y_pos, y, z_pos, z;
-
-                // generating Vector3 of attraction (inside the attractor's field) for tree
+                // generating point of attraction (inside the attractor's field) for tree
                 x = -radius + (float)Rng.NextDouble() * 2 * radius;
                 y_pos = (float)Math.Sqrt(radius * radius - x * x);
                 y = -y_pos + (float)Rng.NextDouble() * 2 * y_pos;
                 z_pos = (float)Math.Sqrt(radius * radius - x * x - y * y);
                 z = -z_pos + (float)Rng.NextDouble() * 2 * z_pos;
 
-                Vector3 p = new Vector3(x, y, z) + Attractors[index].Center;
+                Vector3 p = new Vector3(x, y, z) + attractors[index].Center;
 
-                // finding the closest node to the generated Vector3
+                // finding the closest node to the generated point
                 Tree.Node minNode = agent.Tree.Min(p);
 
                 // creating offset vector to new node
-                Vector3 v = new Vector3(minNode.p, p);
-                Vector3 pNew = minNode.p + v.Normalized * d;
+                Vector3 pNew = minNode.p + (p - minNode.p).Normalized * d;
 
-                // checking for collisions of the new node
-                bool collision = false;
-                if (CollisionCheck)
+                if (pNew.DistanceTo(attractors[index].Center) < attractors[index].Radius)
                 {
-                    foreach (var obst in Obstacles)
+                    // removing attractor if it has been hit
+                    if (index != 0)
+                        attractors.RemoveAt(index);
+                    else
+                        attractors[index].InliersCount++;
+                }
+                else
+                {
+                    // checking for collisions of the new node
+                    bool collision = false;
+                    if (CollisionCheck)
                     {
-                        if (obst.Contains(pNew))
+                        foreach (var obst in Obstacles)
                         {
-                            collision = true;
-                            break;
+                            if (obst.Contains(pNew))
+                            {
+                                collision = true;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (!collision)
-                {
-                    // solving IKP for new node
-                    Contestant.q = minNode.q;
-                    var res = Solver.Execute(Obstacles, Contestant, pNew, Contestant.Joints.Length - 1);
-                    var pos = Contestant.GripperPos;
-                    if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
+                    if (!collision)
                     {
-                        // adding node to the tree
-                        Tree.Node node = new Tree.Node(minNode, Contestant.GripperPos, Contestant.q);
-                        agent.Tree.AddNode(node);
-                        if (pNew.DistanceTo(Attractors[index].Center) < Attractors[index].Radius)
+                        // solving IKP for new node
+                        contestant.q = minNode.q;
+                        var res = Solver.Execute(Obstacles, contestant, pNew, contestant.Joints.Length - 1);
+                        if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
                         {
-                            // removing attractor if it has been hit
-                            if (index != 0)
-                                Attractors.RemoveAt(index);
-                            else
-                                Attractors[index].InliersCount++;
+                            // adding node to the tree
+                            Tree.Node node = new Tree.Node(minNode, contestant.GripperPos, contestant.q);
+                            agent.Tree.AddNode(node);
                         }
                     }
                 }
 
                 // stopping in case the main attractor has been hit
-                if (Attractors[0].InliersCount != 0)
+                if (attractors[0].InliersCount != 0)
                     break;
             }
 

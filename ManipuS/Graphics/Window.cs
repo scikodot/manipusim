@@ -400,20 +400,16 @@ namespace Graphics
                     if (manip.Tree != null)
                     {
                         // add all elements from addition buffer to the hash set
-                        var addCount = manip.Tree.AddBuffer.Count;
-                        tree[j].UnionWith(manip.Tree.AddBuffer.GetRange(0, addCount));
-                        manip.Tree.AddBuffer.RemoveRange(0, addCount);
+                        tree[j].UnionWith(manip.Tree.AddBuffer.DequeueAll());
 
                         // delete all elements contained in deletion buffer from the hash set
-                        var delCount = manip.Tree.DelBuffer.Count;
-                        tree[j].ExceptWith(manip.Tree.DelBuffer.GetRange(0, delCount));
-                        manip.Tree.DelBuffer.RemoveRange(0, delCount);
+                        tree[j].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
                     }
 
                     if (Dispatcher.WorkspaceBuffer.JointBuffer[j].ShowTree)
                     {
                         model = Matrix4.Identity;
-                        foreach (var node in tree[j])
+                        foreach (var node in tree[j])  // TODO: node can become null; inspect why
                         {
                             if (node.Entity == null)
                                 node.Entity = CreateTreeBranch(node.p, node.Parent.p);

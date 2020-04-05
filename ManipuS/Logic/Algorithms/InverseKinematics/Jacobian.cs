@@ -23,9 +23,9 @@ namespace Logic.InverseKinematics
                         elem.X, 
                         elem.Y, 
                         elem.Z, 
-                        agent.Joints[i].Position.X, 
-                        agent.Joints[i].Position.Y, 
-                        agent.Joints[i].Position.Z);
+                        agent.Joints[i].Axis.X, 
+                        agent.Joints[i].Axis.Y, 
+                        agent.Joints[i].Axis.Z);
                 }
 
                 // get transpose of the Jacobian

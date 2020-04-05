@@ -6,7 +6,7 @@ namespace Logic.PathPlanning
 {
     public class Tree
     {
-        public class Node
+        public class Node  // TODO: probably make a struct?
         {
             public Entity Entity;
 
@@ -30,8 +30,8 @@ namespace Logic.PathPlanning
         }
 
         public List<List<Node>> Layers;  // TODO: create indexer, make layers private
-        public List<Node> AddBuffer;
-        public List<Node> DelBuffer;
+        public Queue<Node> AddBuffer;
+        public Queue<Node> DelBuffer;
         public int Count, LayersAdded;
 
         public Tree(Node root)
@@ -40,17 +40,12 @@ namespace Logic.PathPlanning
             {
                 new List<Node>()
             };
-            AddBuffer = new List<Node>();
-            DelBuffer = new List<Node>();
+            AddBuffer = new Queue<Node>();
+            DelBuffer = new Queue<Node>();
 
             Layers[0].Add(root);
             Count = 1;
             LayersAdded = 0;
-        }
-
-        public Tree(Tree tree)
-        {
-
         }
 
         public Node Root
@@ -89,7 +84,7 @@ namespace Logic.PathPlanning
 
             Count--;
 
-            DelBuffer.Add(n);
+            DelBuffer.Enqueue(n);
         }
 
         public void AddNode(Node n)
@@ -102,7 +97,7 @@ namespace Logic.PathPlanning
             Layers[n.Layer].Add(n);
             Count++;
 
-            AddBuffer.Add(n);
+            AddBuffer.Enqueue(n);
         }
 
         public Node Min(Vector3 p)
