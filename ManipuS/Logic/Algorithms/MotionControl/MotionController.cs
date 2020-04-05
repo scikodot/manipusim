@@ -74,7 +74,7 @@ namespace Logic
             contestant.q = cNew;
             Vector3[] dkpNew = contestant.DKP;
 
-            Agent.Path[point] = dkpNew[Agent.Joints.Length];
+            Agent.Path[point] = dkpNew[Agent.Joints.Length - 1];
             jointPaths[point] = dkpNew;
             Agent.Configs[point] = cNew;
         }
@@ -91,16 +91,16 @@ namespace Logic
                 {
                     Vector3 pPrev = (Agent.Path[i] + Agent.Path[i - 1]) / 2;
                     contestant.q = Agent.Configs[i];
-                    Vector cPrev = contestant.q + Solver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length).Item3;
+                    Vector cPrev = contestant.q + Solver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
                     contestant.q = cPrev;
                     Vector3[] dkpPrev = contestant.DKP;
 
-                    discretizedPath.Add(dkpPrev[Agent.Joints.Length]);
+                    discretizedPath.Add(dkpPrev[Agent.Joints.Length - 1]);
                     discretizedPaths.Add(dkpPrev);
                     discretizedConfigs.Add(cPrev);
                 }
 
-                discretizedPath.Add(jointPaths[i][Agent.Joints.Length]);
+                discretizedPath.Add(jointPaths[i][Agent.Joints.Length - 1]);
                 discretizedPaths.Add(jointPaths[i]);
                 discretizedConfigs.Add(Agent.Configs[i]);
             }

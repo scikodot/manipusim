@@ -151,7 +151,9 @@ namespace Graphics
 
                 // draw mesh
                 GL.BindVertexArray(VAO);
-                GL.DrawElements(BeginMode.LineLoop, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.PointSize(2);
+                GL.DrawElements(BeginMode.Points, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.PointSize(1);
                 GL.BindVertexArray(0);
             }
 

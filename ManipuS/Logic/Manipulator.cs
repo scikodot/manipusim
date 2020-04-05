@@ -138,6 +138,9 @@ namespace Logic
             Links = Array.ConvertAll(links, x => new Link(x));
             Joints = Array.ConvertAll(joints, x => new Joint(x));
 
+            Joints[0].Axis = Vector3.UnitY;
+            Joints[0].Position = Vector3.Zero;
+
             for (int i = 0; i < DH.Length; i++)
             {
                 Joints[i].DH = DH[i];
@@ -158,12 +161,9 @@ namespace Logic
 
         public void UpdateState()
         {
-            Joints[0].Axis = Vector3.UnitY;
-            Joints[0].Position = Vector3.Zero;
-
+            var end = Joints.Length - 1;
             var quat = ImpDualQuat.Zero;
-
-            for (int i = 0; i < Joints.Length; i++)
+            for (int i = 0; i < end; i++)
             {
                 quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[i].q + Joints[i].DH.thetaOffset));
 
@@ -173,36 +173,27 @@ namespace Logic
                 quat *= new ImpDualQuat(Joints[i].DH.d * Vector3.UnitY);
                 quat *= new ImpDualQuat(Vector3.UnitX, Joints[i].DH.alpha, Joints[i].DH.r * Vector3.UnitX);
 
-                if (i < Joints.Length - 1)
-                {
-                    Joints[i + 1].Axis = quat.Rotate(Joints[0].Axis);
-                    Joints[i + 1].Position = quat.Translation;
-                }
-                else
-                {
-                    GripperPos = quat.Translation;  // TODO: gripper should be a part of Joints and treated similarly
-                }
+                Joints[i + 1].Axis = quat.Rotate(Joints[0].Axis);
+                Joints[i + 1].Position = quat.Translation;
             }
+
+            quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[end].q + Joints[end].DH.thetaOffset));
+            quat *= new ImpDualQuat(Vector3.UnitX, Joints[end].DH.alpha);
+
+            Joints[end].State = quat;
+            Joints[end].Model.Position = quat.Translation;
+
+            Joints[end].Axis = quat.Rotate(Joints[0].Axis);
+            Joints[end].Position = quat.Translation;
         }
 
-        public Vector3 GripperPos { get; set; }
+        public Vector3 GripperPos => Joints[Joints.Length - 1].Position;
 
-        public Vector3[] DKP
-        {
-            get
-            {
-                List<Vector3> jointsPos = Joints.Select(x => x.Position).ToList();
-                jointsPos.Add(GripperPos);  // TODO: gripper should be a part of Joints and treated similarly, even if it cannot rotate or anything
-                return jointsPos.ToArray();
-            }
-        }
+        public Vector3[] DKP => Joints.Select(x => x.Position).ToArray();
 
         public Vector q
         {
-            get
-            {
-                return new Vector(Array.ConvertAll(Joints, x => x.q));
-            }
+            get => new Vector(Array.ConvertAll(Joints, x => x.q));
             set
             {
                 for (int i = 0; i < Joints.Length; i++)

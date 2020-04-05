@@ -78,6 +78,7 @@ namespace Graphics
         private static string NanosuitPath = SolutionDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
         private static string LinkPath = SolutionDirectory + @"\Resources\Models\manipulator\Link.obj";
         private static string JointPath = SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
+        private static string GripperPath = SolutionDirectory + @"\Resources\Models\manipulator\Gripper.obj";
         
         private Thread load;
         private float time = 0;
@@ -502,12 +503,15 @@ namespace Graphics
                                 // load components' models
                                 var jointModel = new Model(JointPath);
                                 var linkModel = new Model(LinkPath);
+                                var gripperModel = new Model(GripperPath);
 
-                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.JointBuffer.Length; i++)
+                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.JointBuffer.Length - 1; i++)
                                 {
                                     Dispatcher.WorkspaceBuffer.JointBuffer[i].Model = jointModel;
                                     Dispatcher.WorkspaceBuffer.LinkBuffer[i].Model = linkModel;
                                 }
+
+                                Dispatcher.WorkspaceBuffer.JointBuffer[Dispatcher.WorkspaceBuffer.JointBuffer.Length - 1].Model = gripperModel;
 
                                 // wait for loading process to finish
                                 Dispatcher.ActionsDone.Reset();

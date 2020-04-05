@@ -82,7 +82,7 @@ namespace Logic.PathPlanning
                 {
                     // solving IKP for new node
                     Contestant.q = minNode.q;
-                    var res = Solver.Execute(Obstacles, Contestant, pNew, Contestant.Joints.Length);
+                    var res = Solver.Execute(Obstacles, Contestant, pNew, Contestant.Joints.Length - 1);
                     var pos = Contestant.GripperPos;
                     if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
                     {

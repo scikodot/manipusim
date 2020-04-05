@@ -130,6 +130,14 @@ static class Dispatcher
                     q_ranges = new System.Numerics.Vector2(-180, 180),
 
                     ShowTree = true
+                },
+                new JointData
+                {
+                    Length = 0.25f,
+                    q = 0,
+                    q_ranges = new System.Numerics.Vector2(-180, 180),
+
+                    ShowTree = true
                 }
         };
 
