@@ -364,3 +364,7 @@ C:\Users\Dan\source\repos\manipus-2\ManipuS\obj\Debug\ManipuS.csproj.CoreCompile
 C:\Users\Dan\source\repos\manipus-2\ManipuS\obj\Debug\ManipuS.csproj.CopyComplete
 C:\Users\Dan\source\repos\manipus-2\ManipuS\obj\Debug\ManipuS.exe
 C:\Users\Dan\source\repos\manipus-2\ManipuS\obj\Debug\ManipuS.pdb
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MoreLinq.dll
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MoreLinq.pdb
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MoreLinq.xml
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\System.ValueTuple.xml

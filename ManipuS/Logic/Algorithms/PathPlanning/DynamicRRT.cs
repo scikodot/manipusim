@@ -30,7 +30,7 @@ namespace Logic.PathPlanning
             for (int i = 0; i < MaxTime; i++)
             {
                 if (i % period == 0 && i != 0)
-                    Trim(Obstacles, agent.Tree, contestant, Solver);
+                    agent.Tree.Trim(Obstacles, contestant, Solver);
 
                 // generating normally distributed value with Box-Muller transform
                 float num = Misc.BoxMullerTransform(Rng, attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
@@ -96,58 +96,61 @@ namespace Logic.PathPlanning
                 }
 
                 // stopping in case the main attractor has been hit
-                if (attractors[0].InliersCount != 0)
-                    break;
+                //if (attractors[0].InliersCount != 0)
+                //    break;
             }
 
             // retrieving resultant path along with respective configurations
             Tree.Node start = agent.Tree.Min(agent.Goal), node_curr = start;
-            List<Vector3> path = new List<Vector3>();
-            List<Vector> configs = new List<Vector>();
-            for (int i = start.Layer; i >= 0; i--)
-            {
-                path.Add(node_curr.Point);
-                configs.Add(node_curr.q);
-                node_curr = node_curr.Parent;
-            }
+            //List<Vector3> path = new List<Vector3>();
+            //List<Vector> configs = new List<Vector>();
+            //for (int i = start.Layer; i >= 0; i--)
+            //{
+            //    path.Add(node_curr.Point);
+            //    configs.Add(node_curr.q);
+            //    node_curr = node_curr.Parent;
+            //}
 
-            // reverting path so that it goes from root to goal
-            path.Reverse();
-            configs.Reverse();
+            //// reverting path so that it goes from root to goal
+            //path.Reverse();
+            //configs.Reverse();
+
+            List<Vector3> path = agent.Tree.TraversePath(start).Reverse().ToList();
+            List<Vector> configs = agent.Tree.TraverseConfigs(start).Reverse().ToList();
 
             return (path, configs);
         }
 
         private void Trim(Obstacle[] Obstacles, Tree tree, Manipulator contestant, IKSolver Solver)
         {
-            for (int i = tree.Layers.Count - 1; i > 0; i--)
-            {
-                for (int j = tree.Layers[i].Count - 1; j >= 0; j--)
-                {
-                    // check node Vector3 for collisions
-                    bool nodeRemoved = false;
-                    foreach (var obst in Obstacles)
-                    {
-                        if (obst.Contains(tree.Layers[i][j].Point))
-                        {
-                            tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
-                            tree.RemoveNode(tree.Layers[i][j]);
-                            nodeRemoved = true;
-                            break;
-                        }
-                    }
-                    if (nodeRemoved)
-                        continue;
+            //for (int i = tree.Layers.Count - 1; i > 0; i--)
+            //{
+            //    for (int j = tree.Layers[i].Count - 1; j >= 0; j--)
+            //    {
+            //        // check node Vector3 for collisions
+            //        bool nodeRemoved = false;
+            //        foreach (var obst in Obstacles)
+            //        {
+            //            if (obst.Contains(tree.Layers[i][j].Point))
+            //            {
+            //                tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
+            //                tree.RemoveNode(tree.Layers[i][j]);
+            //                nodeRemoved = true;
+            //                break;
+            //            }
+            //        }
+            //        if (nodeRemoved)
+            //            continue;
 
-                    // check node config for collisions
-                    contestant.q = tree.Layers[i][j].q;
-                    if (Solver.DetectCollisions(contestant, Obstacles).Contains(true))
-                    {
-                        tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
-                        tree.RemoveNode(tree.Layers[i][j]);
-                    }
-                }
-            }
+            //        // check node config for collisions
+            //        contestant.q = tree.Layers[i][j].q;
+            //        if (Solver.DetectCollisions(contestant, Obstacles).Contains(true))
+            //        {
+            //            tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
+            //            tree.RemoveNode(tree.Layers[i][j]);
+            //        }
+            //    }
+            //}
         }
     }
 }
