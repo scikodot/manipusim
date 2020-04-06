@@ -110,7 +110,7 @@
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />
     <Compile Include="Logic\Math\DualQuat.cs" />
-    <Compile Include="Logic\Manipulator.cs" />
+    <Compile Include="Logic\Workspace\Manipulator.cs" />
     <Compile Include="Logic\Math\ImpDualQuat.cs" />
     <Compile Include="Logic\Math\Matrix.cs" />
     <Compile Include="Logic\Math\Matrix3.cs" />
@@ -119,9 +119,12 @@
     <Compile Include="Logic\Math\Vector.cs" />
     <Compile Include="Logic\Math\Vector3.cs" />
     <Compile Include="Logic\Math\Vector4.cs" />
-    <Compile Include="Logic\Obstacle.cs" />
+    <Compile Include="Logic\Workspace\Obstacle.cs" />
     <Compile Include="Logic\Manager.cs" />
     <Compile Include="Logic\Helper.cs" />
+    <Compile Include="Logic\Workspace\Colliders\BoxCollider.cs" />
+    <Compile Include="Logic\Workspace\Colliders\SphereCollider.cs" />
+    <Compile Include="Logic\Workspace\Colliders\_base.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Graphics\Shader.cs" />

@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Graphics;
 
 namespace Logic.PathPlanning
 {
     public class Tree
     {
-        public class Node  // TODO: probably make a struct?
+        public class Node  // cannot be a struct, because cyclic references (Node Parent) are not supported by structs
         {
-            public Entity Entity;
-
             public Node Parent;
             public List<Node> Childs;
             public int Layer;
-            public Vector3 p;
+            public Vector3 Point;
             public Vector q;
+            public Entity Entity;
 
-            public Node(Node parent, Vector3 p, Vector q)
+            public Node(Node parent, Vector3 point, Vector q)
             {
                 Parent = parent;
                 Childs = new List<Node>();
@@ -24,14 +24,13 @@ namespace Logic.PathPlanning
                     Layer = 0;
                 else
                     Layer = parent.Layer + 1;
-                this.p = p;
+                Point = point;
                 this.q = q;
             }
         }
 
         public List<List<Node>> Layers;  // TODO: create indexer, make layers private
-        public Queue<Node> AddBuffer;
-        public Queue<Node> DelBuffer;
+        public Queue<Node> AddBuffer, DelBuffer;
         public int Count, LayersAdded;
 
         public Tree(Node root)
@@ -48,10 +47,7 @@ namespace Logic.PathPlanning
             LayersAdded = 0;
         }
 
-        public Node Root
-        {
-            get { return Layers[0][0]; }
-        }
+        public Node Root => Layers[0][0];
 
         public void AddLayer()
         {
@@ -108,7 +104,7 @@ namespace Logic.PathPlanning
             {
                 foreach (var node in layer)
                 {
-                    float curr = p.DistanceTo(node.p);
+                    float curr = p.DistanceTo(node.Point);
                     if (curr < min)
                     {
                         min = curr;
@@ -152,7 +148,7 @@ namespace Logic.PathPlanning
 
         public static Node[] Discretize(Node start, Node end, int pointNum)
         {
-            Segment seg = new Segment(start.p, end.p);
+            Segment seg = new Segment(start.Point, end.Point);
             Vector3[] Vector3s = new Vector3[pointNum];
             Array.Copy(seg.Discretize(pointNum + 1), 1, Vector3s, 0, pointNum);
 

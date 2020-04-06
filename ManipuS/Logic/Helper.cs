@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenTK;
 
 namespace Logic
@@ -18,14 +19,6 @@ namespace Logic
             maxX = Math.Max(p1.X, p2.X);
             minY = Math.Min(p1.Y, p2.Y);
             maxY = Math.Max(p1.Y, p2.Y);
-        }
-
-        public bool Contains(Vector3 p)
-        {
-            if (p.X >= minX && p.X <= maxX && p.Y >= minY && p.Y <= maxY)
-                return true;
-            else
-                return false;
         }
 
         public Vector3[] Discretize(int segments)
@@ -64,33 +57,10 @@ namespace Logic
 
     public static class Misc
     {
-        public static float[] ToRad(float[] degrees)
-        {
-            return Array.ConvertAll(degrees, x => x * (float)Math.PI / 180);
-        }
-
-        public static T[] CopyArray<T>(T[] source)
-        {
-            T[] destination = new T[source.Length];
-            Array.Copy(source, destination, source.Length);
-            return destination;
-        }
-
-        public static T[,] CopyArray<T>(T[,] source)
-        {
-            T[,] destination = new T[source.GetLength(0), source.GetLength(1)];
-            Array.Copy(source, destination, source.Length);
-            return destination;
-        }
-
         public static float BoxMullerTransform(Random rng, float mu, float sigma)
         {
-            float phi = 0, r = 0;
-            while (phi == 0)
-                phi = (float)rng.NextDouble();
-            while (r == 0)
-                r = (float)rng.NextDouble();
-
+            double phi = rng.NextDouble();
+            double r = 1 - rng.NextDouble();  // exclude zero
             float z = (float)(Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r)));
             return mu + sigma * z;
         }
@@ -98,22 +68,22 @@ namespace Logic
 
     public static class Primitives
     {
-        public static Vector3[] Sphere(float r, Vector3 c, int Vector3s_num, Random rng)
+        public static Vector3[] Sphere(float radius, Vector3 center, int pointsNum, Random rng)
         {
-            Vector3[] sphere = new Vector3[Vector3s_num];
-            float x, y_pos, y, z_pos, z;
-            for (int i = 0; i < Vector3s_num; i++)
+            Vector3[] data = new Vector3[pointsNum];
+            double x, yPos, y, zPos, z;
+            for (int i = 0; i < pointsNum; i++)
             {
-                x = -r + (float)rng.NextDouble() * 2 * r;
-                y_pos = (float)Math.Sqrt(r * r - x * x);
-                y = -y_pos + (float)rng.NextDouble() * 2 * y_pos;
-                z_pos = (float)Math.Sqrt(r * r - x * x - y * y);
-                z = rng.Next(0, 2) == 0 ? -z_pos : z_pos;
+                x = radius * (2 * rng.NextDouble() - 1);
+                yPos = Math.Sqrt(radius * radius - x * x);
+                y = yPos * (2 * rng.NextDouble() - 1);
+                zPos = Math.Sqrt(yPos * yPos - y * y);
+                z = rng.Next(0, 2) == 0 ? -zPos : zPos;
 
-                sphere[i] = new Vector3(x, y, z) + c;
+                data[i] = new Vector3((float)x, (float)y, (float)z) + center;
             }
 
-            return sphere;
+            return data;
         }
     }
 
@@ -135,6 +105,14 @@ namespace Logic
             {
                 yield return queue.Dequeue();
             }
+        }
+    }
+
+    public static class Vector3Extensions
+    {
+        public static Vector3 Sum(this IEnumerable<Vector3> source)
+        {
+            return source.Aggregate((x, y) => x + y);
         }
     }
 }

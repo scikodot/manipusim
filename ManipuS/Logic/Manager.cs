@@ -22,7 +22,7 @@ namespace Logic
             Obstacles = new Obstacle[OD.Length];
             for (int i = 0; i < OD.Length; i++)
             {
-                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, new Vector3(OD[i].c.X, OD[i].c.Y, OD[i].c.Z), OD[i].Vector3s_num, new Random()), ColliderShape.Sphere);
+                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, Vector3.Zero, OD[i].points_num, new Random()), new ImpDualQuat(OD[i].c), ColliderShape.Sphere);
             }
 
             // manipulators

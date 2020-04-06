@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Logic
 {
@@ -12,6 +8,7 @@ namespace Logic
         public Vector4 Row1 { get; }
         public Vector4 Row2 { get; }
         public Vector4 Row3 { get; }
+        private readonly bool transposed;
 
         public Vector4 Column0 => new Vector4(Row0.X, Row1.X, Row2.X, Row3.X);
         public Vector4 Column1 => new Vector4(Row0.Y, Row1.Y, Row2.Y, Row3.Y);
@@ -20,64 +17,102 @@ namespace Logic
 
         public static Matrix4 Identity => new Matrix4(Vector4.UnitX, Vector4.UnitY, Vector4.UnitZ, Vector4.UnitW);
 
-        public Matrix3 SubMatrix3 => new Matrix3(Row0.XYZ, Row1.XYZ, Row2.XYZ);
+        public Matrix3 Rotation => transposed ? new Matrix3(Column0.XYZ, Column1.XYZ, Column2.XYZ) : new Matrix3(Row0.XYZ, Row1.XYZ, Row2.XYZ);
 
-        public Matrix3 Rotation => SubMatrix3;
+        public Vector3 Translation => transposed ? Row3.XYZ : Column3.XYZ;
 
-        public Vector3 Translation => Column3.XYZ;
-
-        public Matrix4(Vector4 row0, Vector4 row1, Vector4 row2, Vector4 row3)
+        public Matrix4(Vector4 row0, Vector4 row1, Vector4 row2, Vector4 row3, bool transpose = false)  // TODO: probably make flag for transpose instead of bool?
         {
             Row0 = row0;
             Row1 = row1;
             Row2 = row2;
             Row3 = row3;
+            transposed = transpose;
         }
 
-        public static Matrix4 CreateTranslation(Vector3 offset)
+        public static Matrix4 CreateTranslation(Vector3 offset, bool transpose = false)
         {
-            return new Matrix4(
-                new Vector4(1, 0, 0, offset.X),
-                new Vector4(0, 1, 0, offset.Y),
-                new Vector4(0, 0, 1, offset.Z),
-                new Vector4(0, 0, 0, 1)
-            );
+            if (transpose)
+                return new Matrix4(
+                    new Vector4(1, 0, 0, 0),
+                    new Vector4(0, 1, 0, 0),
+                    new Vector4(0, 0, 1, 0),
+                    new Vector4(offset, 1),
+                    transpose
+                );
+            else
+                return new Matrix4(
+                    new Vector4(1, 0, 0, offset.X),
+                    new Vector4(0, 1, 0, offset.Y),
+                    new Vector4(0, 0, 1, offset.Z),
+                    new Vector4(0, 0, 0, 1)
+                );
         }
 
-        public static Matrix4 CreateRotationX(float angle)
-        {
-            var cos = (float)Math.Cos(angle);
-            var sin = (float)Math.Sin(angle);
-            return new Matrix4(
-                new Vector4(1, 0, 0, 0),
-                new Vector4(0, cos, -sin, 0),
-                new Vector4(0, sin, cos, 0),
-                new Vector4(0, 0, 0, 1)
-            );
-        }
-
-        public static Matrix4 CreateRotationY(float angle)
+        public static Matrix4 CreateRotationX(float angle, bool transpose = false)
         {
             var cos = (float)Math.Cos(angle);
             var sin = (float)Math.Sin(angle);
-            return new Matrix4(
-                new Vector4(cos, 0, -sin, 0),
-                new Vector4(0, 1, 0, 0),
-                new Vector4(sin, 0, cos, 0),
-                new Vector4(0, 0, 0, 1)
-            );
+
+            if (transpose)
+                return new Matrix4(
+                    new Vector4(1, 0, 0, 0),
+                    new Vector4(0, cos, sin, 0),
+                    new Vector4(0, -sin, cos, 0),
+                    new Vector4(0, 0, 0, 1),
+                    transpose
+                );
+            else
+                return new Matrix4(
+                    new Vector4(1, 0, 0, 0),
+                    new Vector4(0, cos, -sin, 0),
+                    new Vector4(0, sin, cos, 0),
+                    new Vector4(0, 0, 0, 1)
+                );
         }
 
-        public static Matrix4 CreateRotationZ(float angle)
+        public static Matrix4 CreateRotationY(float angle, bool transpose = false)
         {
             var cos = (float)Math.Cos(angle);
             var sin = (float)Math.Sin(angle);
-            return new Matrix4(
-                new Vector4(cos, -sin, 0, 0),
-                new Vector4(sin, cos, 0, 0),
-                new Vector4(0, 0, 1, 0),
-                new Vector4(0, 0, 0, 1)
-            );
+
+            if (transpose)
+                return new Matrix4(
+                    new Vector4(cos, 0, sin, 0),
+                    new Vector4(0, 1, 0, 0),
+                    new Vector4(-sin, 0, cos, 0),
+                    new Vector4(0, 0, 0, 1),
+                    transpose
+                );
+            else
+                return new Matrix4(
+                    new Vector4(cos, 0, -sin, 0),
+                    new Vector4(0, 1, 0, 0),
+                    new Vector4(sin, 0, cos, 0),
+                    new Vector4(0, 0, 0, 1)
+                );
+        }
+
+        public static Matrix4 CreateRotationZ(float angle, bool transpose = false)
+        {
+            var cos = (float)Math.Cos(angle);
+            var sin = (float)Math.Sin(angle);
+
+            if (transpose)
+                return new Matrix4(
+                    new Vector4(cos, sin, 0, 0),
+                    new Vector4(-sin, cos, 0, 0),
+                    new Vector4(0, 0, 1, 0),
+                    new Vector4(0, 0, 0, 1),
+                    transpose
+                );
+            else
+                return new Matrix4(
+                    new Vector4(cos, -sin, 0, 0),
+                    new Vector4(sin, cos, 0, 0),
+                    new Vector4(0, 0, 1, 0),
+                    new Vector4(0, 0, 0, 1)
+                );
         }
 
         public static Matrix4 operator +(Matrix4 m1, Matrix4 m2)

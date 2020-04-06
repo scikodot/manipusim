@@ -43,7 +43,7 @@ namespace Logic
     {
         public float r;
         public System.Numerics.Vector3 c;
-        public int Vector3s_num;
+        public int points_num;
 
         public bool ShowBounding;
     }

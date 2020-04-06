@@ -55,7 +55,7 @@ namespace Logic.PathPlanning
                 Tree.Node minNode = agent.Tree.Min(p);
 
                 // creating offset vector to new node
-                Vector3 pNew = minNode.p + (p - minNode.p).Normalized * d;
+                Vector3 pNew = minNode.Point + (p - minNode.Point).Normalized * d;
 
                 if (pNew.DistanceTo(attractors[index].Center) < attractors[index].Radius)
                 {
@@ -106,25 +106,9 @@ namespace Logic.PathPlanning
             List<Vector> configs = new List<Vector>();
             for (int i = start.Layer; i >= 0; i--)
             {
-                if (node_curr.Layer == i)
-                {
-                    path.Add(node_curr.p);
-                    configs.Add(node_curr.q);
-                    if (node_curr.Parent != null)
-                    {
-                        int Vector3sNum = node_curr.Layer - node_curr.Parent.Layer - 1;
-                        if (Vector3sNum > 0)
-                        {
-                            Tree.Node[] nodes = Tree.Discretize(node_curr, node_curr.Parent, Vector3sNum);
-                            foreach (var node in nodes)
-                            {
-                                configs.Add(node.q);
-                            }
-                        }
-                    }
-
-                    node_curr = node_curr.Parent;
-                }
+                path.Add(node_curr.Point);
+                configs.Add(node_curr.q);
+                node_curr = node_curr.Parent;
             }
 
             // reverting path so that it goes from root to goal
@@ -144,7 +128,7 @@ namespace Logic.PathPlanning
                     bool nodeRemoved = false;
                     foreach (var obst in Obstacles)
                     {
-                        if (obst.Contains(tree.Layers[i][j].p))
+                        if (obst.Contains(tree.Layers[i][j].Point))
                         {
                             tree.Layers[i][j].Parent.Childs.Remove(tree.Layers[i][j]);
                             tree.RemoveNode(tree.Layers[i][j]);

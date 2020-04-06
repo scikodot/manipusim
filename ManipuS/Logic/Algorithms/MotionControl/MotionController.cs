@@ -65,8 +65,9 @@ namespace Logic
 
         public void Deform(Obstacle obstacle, Manipulator contestant, List<Vector3[]> jointPaths, int point, int joint)
         {
-            Vector3 vec = jointPaths[point][joint] - obstacle.Collider.Center;
-            Vector3 dx = vec.Normalized * (obstacle.Collider as Sphere).Radius - vec;
+            //Vector3 vec = jointPaths[point][joint] - obstacle.Collider.Center;
+            //Vector3 dx = vec.Normalized * (obstacle.Collider as SphereCollider).Radius - vec;
+            Vector3 dx = obstacle.Extrude(jointPaths[point][joint]);
 
             Vector3 pNew = jointPaths[point][joint] + dx;
             contestant.q = Agent.Configs[point];

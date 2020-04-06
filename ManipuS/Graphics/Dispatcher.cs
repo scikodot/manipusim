@@ -147,7 +147,7 @@ static class Dispatcher
                 {
                     r = 0.5f,
                     c = new System.Numerics.Vector3(0, 2f, 1f),
-                    Vector3s_num = 2000,
+                    points_num = 2000,
 
                     ShowBounding = true
                 }

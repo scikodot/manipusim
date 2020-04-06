@@ -16,7 +16,7 @@ using Logic;
 
 using Vector3 = Logic.Vector3;
 using Vector4 = OpenTK.Vector4;
-using Matrix4 = OpenTK.Matrix4;
+using Matrix4 = Logic.Matrix4;
 
 namespace Graphics
 {
@@ -49,7 +49,6 @@ namespace Graphics
 
         // all the needed entities
         Entity grid, gridFloor;
-        Entity[] obstacles, boundings, lon;
         Entity[] goal, configs, path;
         Entity cloud, traj, attrGood, attrBad;
 
@@ -80,7 +79,6 @@ namespace Graphics
         private static string JointPath = SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
         private static string GripperPath = SolutionDirectory + @"\Resources\Models\manipulator\Gripper.obj";
         
-        private Thread load;
         private float time = 0;
         private bool forward;
         private bool ManipLoaded = false;
@@ -299,61 +297,26 @@ namespace Graphics
 
             if (ManipLoaded)
             {
-                // obstacles & colliders
-                if (obstacles.Contains(null))
+                float dt;
+                if (forward)
                 {
-                    for (int i = 0; i < obstacles.Length; i++)
-                    {
-                        obstacles[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Data, Vector4.One));
-
-                        switch (Manager.Obstacles[i].Collider.Shape)
-                        {
-                            case ColliderShape.Box:
-                                boundings[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), new uint[]
-                                {
-                                    0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
-                                });
-                                break;
-                            case ColliderShape.Sphere:
-                                boundings[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)));
-                                lon[i] = new Entity(lineShader, Utils.GL_Convert(Manager.Obstacles[i].Collider.Data, new Vector4(Vector3.UnitY, 1.0f)), (Manager.Obstacles[i].Collider as Sphere).indicesLongitude);
-                                break;
-                        }
-                    }
+                    dt = (float)e.Time;
+                    if (time > 1)
+                        forward = false;
                 }
                 else
                 {
-                    float dt;
-                    if (forward)
-                    {
-                        dt = (float)e.Time;
-                        if (time > 1)
-                            forward = false;
-                    }
-                    else
-                    {
-                        dt = -(float)e.Time;
-                        if (time < -1)
-                            forward = true;
-                    }
-                    time += dt;
-                    
-                    model = Matrix4.CreateTranslation(new Vector3(time, 0, 0));  // TODO: obstacle movement should be done in a separate method, with high frequency
-                    for (int i = 0; i < obstacles.Length; i++)
-                    {
-                        Manager.Obstacles[i].Move(Vector3.UnitX, dt);
+                    dt = -(float)e.Time;
+                    if (time < -1)
+                        forward = true;
+                }
+                time += dt;
 
-                        obstacles[i].Display(model, () =>
-                        {
-                            GL.DrawArrays(PrimitiveType.Points, 0, Manager.Obstacles[i].Data.Length);
-                        });
+                Manager.Obstacles[0].Move(dt * Vector3.UnitX);
 
-                        if (Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding)
-                        {
-                            boundings[i].Display(model, Manager.Obstacles[i].Collider.Draw);
-                            lon[i].Display(model, (Manager.Obstacles[i].Collider as Sphere).DrawLongitudes);
-                        }
-                    }
+                foreach (var obstacle in Manager.Obstacles)
+                {
+                    obstacle.Draw(lineShader, true);
                 }
 
                 for (int j = 0; j < Manager.Manipulators.Length; j++)
@@ -412,7 +375,7 @@ namespace Graphics
                         foreach (var node in tree[j])  // TODO: node can become null; inspect why
                         {
                             if (node.Entity == null)
-                                node.Entity = CreateTreeBranch(node.p, node.Parent.p);
+                                node.Entity = CreateTreeBranch(node.Point, node.Parent.Point);
 
                             node.Entity.Display(model, () =>
                             {
@@ -435,14 +398,14 @@ namespace Graphics
             });
             for (int i = 1; i < 11; i++)
             {
-                model = Matrix4.CreateTranslation(Vector3.UnitZ * i);
+                model = Matrix4.CreateTranslation(Vector3.UnitZ * i, true);
                 grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
-                model = Matrix4.CreateTranslation(Vector3.UnitZ * -i);
+                model = Matrix4.CreateTranslation(Vector3.UnitZ * -i, true);
                 grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
 
-                model = Matrix4.CreateTranslation(Vector3.UnitX * i);
+                model = Matrix4.CreateTranslation(Vector3.UnitX * i, true);
                 grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
-                model = Matrix4.CreateTranslation(Vector3.UnitX * -i);
+                model = Matrix4.CreateTranslation(Vector3.UnitX * -i, true);
                 grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
             }
 
@@ -620,7 +583,7 @@ namespace Graphics
                             ImGui.Checkbox("Show collider", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding);
                             ImGui.InputFloat("Radius", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].r);
                             ImGui.InputFloat3("Center", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].c);
-                            ImGui.InputInt("Vector3s number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].Vector3s_num);
+                            ImGui.InputInt("Vector3s number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].points_num);
 
                             ImGui.TreePop();
                         }
@@ -729,6 +692,9 @@ namespace Graphics
                 // save path for captured screenshot
                 ImGui.InputText("Save path", ref SavePath, 100);
 
+                if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
+                    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");
+
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));
                 ImGui.Text(string.Format("Framerate: {0:F1} FPS", ImGui.GetIO().Framerate));
@@ -747,22 +713,14 @@ namespace Graphics
             Manager.Initialize();
 
             // initializing all displaying entities
-            int obst_length = Manager.Obstacles.Length;
-            obstacles = new Entity[obst_length];
-            boundings = new Entity[obst_length];
-            lon = new Entity[obst_length];
-
             int manip_length = Manager.Manipulators.Length;
             goal = new Entity[manip_length];
-            configs = new Entity[manip_length];
             path = new Entity[manip_length];
             tree = new HashSet<Logic.PathPlanning.Tree.Node>[manip_length];
             for (int i = 0; i < tree.Length; i++)
             {
                 tree[i] = new HashSet<Logic.PathPlanning.Tree.Node>();
             }
-
-            ConfigsCount = new int[manip_length];
 
             Dispatcher.timers = new Stopwatch[manip_length];
             for (int i = 0; i < manip_length; i++)

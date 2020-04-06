@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Logic
 {
@@ -113,8 +115,9 @@ namespace Logic
 
         public static implicit operator OpenTK.Vector3(Vector3 v) => new OpenTK.Vector3(v.X, v.Y, v.Z);
         public static implicit operator Vector3(OpenTK.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
-        //public static explicit operator OpenTK.Vector4(Vector3 v) => new OpenTK.Vector4(v.X, v.Y, v.Z, 1);
-        //public static explicit operator Vector3(OpenTK.Vector4 v) => new Vector3(v.X, v.Y, v.Z);
+
+        public static implicit operator System.Numerics.Vector3(Vector3 v) => new System.Numerics.Vector3(v.X, v.Y, v.Z);
+        public static implicit operator Vector3(System.Numerics.Vector3 v) => new Vector3(v.X, v.Y, v.Z);
 
         public override bool Equals(object obj)
         {
@@ -134,5 +137,7 @@ namespace Logic
 
         private static readonly string ListSeparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
         public override string ToString() => string.Format("({0:0.###}{3} {1:0.###}{3} {2:0.###})", X, Y, Z, ListSeparator);
+
+        
     }
 }
