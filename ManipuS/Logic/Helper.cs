@@ -89,6 +89,15 @@ namespace Logic
 
     public static class QueueExtensions
     {
+        public static void EnqueueBatch<T>(this Queue<T> queue, IEnumerable<T> batch)
+        {
+            var enumerator = batch.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                queue.Enqueue(enumerator.Current);
+            }
+        }
+
         public static IEnumerable<T> DequeueBatch<T>(this Queue<T> queue, int batchSize)
         {
             for (int i = 0; i < batchSize && queue.Count > 0; i++)

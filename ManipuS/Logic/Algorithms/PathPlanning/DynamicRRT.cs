@@ -96,8 +96,8 @@ namespace Logic.PathPlanning
                 }
 
                 // stopping in case the main attractor has been hit
-                if (attractors[0].InliersCount != 0)
-                    break;
+                //if (attractors[0].InliersCount != 0)
+                //    break;
             }
 
             // retrieving resultant path along with respective configurations

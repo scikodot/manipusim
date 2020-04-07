@@ -13,16 +13,20 @@ namespace Logic.PathPlanning
         {
             public Node Parent;
             public Branch Branch;
+            public int IndexOnTree;
             public bool IsConnector;
-            public List<Node> Childs;
+
             public Vector3 Point;
             public Vector q;
             public Entity Entity;
 
+            public int IndexOnBranch => IndexOnTree - Branch.First.IndexOnTree;
+            public Node Previous => Parent;
+            public Node Next => Branch.ElementAtOrDefault(IndexOnBranch + 1);
+
             public Node(Node parent, Vector3 point, Vector q)
             {
                 Parent = parent;
-                Childs = new List<Node>();
                 Point = point;
                 this.q = q;
             }
@@ -33,10 +37,9 @@ namespace Logic.PathPlanning
             public List<Node> Nodes;  // TODO: make private
             public List<Branch> Childs;  // TODO: make private
 
-            public Node this[int index] => Nodes[index];
-
             public Node First => Nodes[0];
             public Node Last => Nodes[Nodes.Count - 1];
+            public int Count => Nodes.Count;
 
             public Branch(Node node)
             {
@@ -46,11 +49,17 @@ namespace Logic.PathPlanning
                 node.IsConnector = true;
             }
 
+            public Node ElementAtOrDefault(int index)
+            {
+                return Nodes.ElementAtOrDefault(index);
+            }
+
             public void AddNode(Node node)
             {
                 Nodes.Add(node);
 
                 node.Branch = this;
+                node.IndexOnTree = node.Parent.IndexOnTree + 1;
             }
 
             public void RemoveNode(Node node)
@@ -58,16 +67,49 @@ namespace Logic.PathPlanning
                 Nodes.Remove(node);
 
                 node.Branch = null;
+                node.Parent = null;
+            }
+
+            public List<Node> Trim(Node node)
+            {
+                var removed = new List<Node>();
+                var nodeCurr = Nodes[Nodes.Count - 1];
+                while(nodeCurr != node)
+                {
+                    removed.Add(nodeCurr);
+                    Nodes.RemoveAt(Nodes.Count - 1);
+                    nodeCurr = nodeCurr.Parent;
+                }
+
+                while (!node.IsConnector)
+                {
+                    removed.Add(node);
+                    Nodes.RemoveAt(Nodes.Count - 1);
+                    node = node.Parent;
+                }
+
+                int branchIndex = Childs.FindLastIndex(x => x.First == node);
+
+                for (int i = Childs.Count - 1; i > branchIndex; i--)
+                {
+                    removed.AddRange(Childs[i].Trim(Childs[i].First));
+                }
+
+                if (Nodes.Count == 1)
+                    First.Branch.RemoveBranch(this);
+
+                return removed;
             }
 
             public Branch AddBranch(Node node)
             {
                 var branch = new Branch(node);
                 Childs.Add(branch);
+                Childs = Childs.OrderBy(x => x.First.IndexOnTree).ToList();
                 return branch;
             }
 
-            public void RemoveBranch(Branch branch)  // TODO: use somewhere
+            public void RemoveBranch(Branch branch)
             {
                 Childs.Remove(branch);
             }
@@ -93,7 +135,7 @@ namespace Logic.PathPlanning
 
         public void AddNode(Node node)
         {
-            if (node.Parent.Childs.Count > 0)
+            if (node.Parent.Next != null)
             {
                 var branch = node.Parent.Branch.AddBranch(node.Parent);
                 branch.AddNode(node);
@@ -104,32 +146,7 @@ namespace Logic.PathPlanning
             }
             Count++;
 
-            node.Parent.Childs.Add(node);
-
             AddBuffer.Enqueue(node);
-        }
-
-        public void RemoveNode(Node node)
-        {
-            //// delete node from layer
-            //Layers[n.Layer].Remove(n);
-
-            //// remove all childs of this node
-            //foreach (var node in n.Childs)
-            //    RemoveNode(node);
-
-            //// delete current layer, if empty, with its successors
-            //if (Layers[n.Layer].Count == 0)
-            //    RemoveLayer(n.Layer);
-
-            //Count--;
-
-            //DelBuffer.Enqueue(n);
-
-            node.Branch.RemoveNode(node);
-            Count--;
-
-            DelBuffer.Enqueue(node);
         }
 
         public Node Min(Vector3 point)  // TODO: remove recursion!!! use cycles
@@ -176,34 +193,24 @@ namespace Logic.PathPlanning
 
         public void Trim(Obstacle[] obstacles, Manipulator contestant, IKSolver solver, Branch branch)
         {
-            foreach (var node in branch.Nodes)
+            var nodesCopy = new Node[branch.Nodes.Count];
+            branch.Nodes.CopyTo(nodesCopy);
+            for (int i = 0; i < branch.Nodes.Count; i++)
             {
-                contestant.q = node.q;
+                contestant.q = branch.Nodes[i].q;
                 if (solver.DetectCollisions(contestant, obstacles).Contains(true))
                 {
-                    // find the closest (upper) connector
-                    Node nodeTarget = node;
-                    while (!nodeTarget.IsConnector)
-                        nodeTarget = nodeTarget.Parent;
+                    var removedNodes = branch.Trim(branch.Nodes[i]);
+                    Count -= removedNodes.Count;
 
-                    // delete all the nodes after the found connector in the current branch
-                    int indexNode = branch.Nodes.FindIndex(x => x == nodeTarget);
-                    int countNode = branch.Nodes.Count - (indexNode + 1);
-                    branch.Nodes.RemoveRange(indexNode + 1, countNode);  // TODO: explicitly release references of the nodes to the current branch
-                    // TODO: also, after deleting all nodes, except the base node of the current branch, the branch remains alive; fix that
-                    // TODO: explicitly delete nodes, so that difference is mirrored in add/del buffers
-                    Count -= countNode;
-
-                    // delete all the branches after the found connector
-                    int indexBranch = branch.Childs.FindIndex(x => x.First == nodeTarget);
-                    branch.Childs.RemoveRange(indexBranch + 1, branch.Childs.Count - (indexBranch + 1));
+                    DelBuffer.EnqueueBatch(removedNodes);
 
                     break;
                 }
             }
 
-            foreach (var br in branch.Childs)
-                Trim(obstacles, contestant, solver, br);
+            for (int i = 0; i < branch.Childs.Count; i++)
+                Trim(obstacles, contestant, solver, branch.Childs[i]);
         }
 
         public IEnumerable<Vector3> TraversePath(Node node)
