@@ -18,35 +18,23 @@ namespace Logic.InverseKinematics
 
         public bool[] DetectCollisions(Manipulator manip, Obstacle[] obstacles)
         {
-            List<Vector3> joints = manip.DKP.ToList();
-
-            // removing duplicates
-            for (int i = 0; i < joints.Count - 1; i++)
-            {
-                if (joints[i].DistanceTo(joints[i + 1]) == 0)
-                    joints.RemoveAt(i + 1);
-            }
+            Vector3[] joints = manip.DKP;
 
             // representing manipulator as a sequence of actuators
-            List<Vector3> actuators = new List<Vector3>();
             int actuatorsNum = 50;
-            for (int i = 0; i < joints.Count - 1; i++)
+            List<Vector3> actuators = new List<Vector3>();
+            for (int i = 0; i < joints.Length - 1; i++)
             {
                 actuators.Add(joints[i]);
                 for (int j = 0; j < actuatorsNum; j++)
                 {
-                    actuators.Add(new Vector3
-                    (
-                        joints[i].X + (j + 1) * (joints[i + 1].X - joints[i].X) / (actuatorsNum + 1),
-                        joints[i].Y + (j + 1) * (joints[i + 1].Y - joints[i].Y) / (actuatorsNum + 1),
-                        joints[i].Z + (j + 1) * (joints[i + 1].Z - joints[i].Z) / (actuatorsNum + 1)
-                    ));
+                    actuators.Add(joints[i] + (j + 1) * (joints[i + 1] - joints[i]) / (actuatorsNum + 1));
                 }
             }
-            actuators.Add(joints[joints.Count - 1]);
+            actuators.Add(joints[joints.Length - 1]);
 
             // checking collisions for all actuators
-            bool[] collisions = new bool[joints.Count - 1];
+            bool[] collisions = new bool[joints.Length - 1];
             foreach (var obst in obstacles)
             {
                 for (int i = 0; i < actuators.Count; i++)
