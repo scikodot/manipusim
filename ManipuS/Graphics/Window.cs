@@ -15,7 +15,7 @@ using ImGuiNET;
 using Logic;
 
 using Vector3 = Logic.Vector3;
-using Vector4 = OpenTK.Vector4;
+using Vector4 = Logic.Vector4;
 using Matrix4 = Logic.Matrix4;
 
 namespace Graphics
@@ -49,17 +49,13 @@ namespace Graphics
 
         // all the needed entities
         Entity grid, gridFloor;
-        Entity[] goal, configs, path;
-        Entity cloud, traj, attrGood, attrBad;
+        Entity[] goal, path;
 
         HashSet<Logic.PathPlanning.Tree.Node>[] tree;
 
         // variables for mouse state processing
         private bool _firstMove = true;
         private Vector2 _lastPos;
-        
-        // indices of current manipulators' configurations
-        private int[] ConfigsCount;
 
         // misc variables
         private bool Capture = false;
@@ -399,14 +395,14 @@ namespace Graphics
             for (int i = 1; i < 11; i++)
             {
                 model = Matrix4.CreateTranslation(Vector3.UnitZ * i, true);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
+                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
                 model = Matrix4.CreateTranslation(Vector3.UnitZ * -i, true);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 0, 2); });
+                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
 
                 model = Matrix4.CreateTranslation(Vector3.UnitX * i, true);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
+                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
                 model = Matrix4.CreateTranslation(Vector3.UnitX * -i, true);
-                grid.Display(model, () => { GL.DrawArrays(PrimitiveType.LineStrip, 2, 2); });
+                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
 
             model = Matrix4.Identity;
@@ -732,7 +728,7 @@ namespace Graphics
         // some specific methods for better drawing organization
         public static Entity CreateTreeBranch(Vector3 p1, Vector3 p2)
         {
-            return new Entity(lineShader, Utils.GL_Convert(new Vector3[] { p1, p2 }, new Vector4(Vector3.Zero, 1.0f)));
+            return new Entity(lineShader, Utils.GL_Convert(new Vector3[] { p1, p2 }, Vector4.UnitW));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

@@ -44,7 +44,7 @@ namespace Logic
             manip.BadAttractors = new List<Attractor>();
 
             Random rng = new Random();
-            float work_radius = manip.WorkspaceRadius, x, y_pos, y, z_pos, z;
+            double work_radius = manip.WorkspaceRadius, x, yPos, y, zPos, z;
 
             // adding main attractor
             Vector3 AttrVector3 = manip.Goal;
@@ -57,19 +57,17 @@ namespace Logic
             manip.GoodAttractors.Add(new Attractor(AttrVector3, AttrWeight, AttrArea, r));
             manip.States["Goal"] = true;
 
-            
-
             // adding ancillary attractors
             while (manip.GoodAttractors.Count < AD.AttrNum)
             {
-                // generating attractor Vector3
-                x = -work_radius + (float)rng.NextDouble() * 2 * work_radius;
-                y_pos = (float)Math.Sqrt(work_radius * work_radius - x * x);
-                y = -y_pos + (float)rng.NextDouble() * 2 * y_pos;
-                z_pos = (float)Math.Sqrt(work_radius * work_radius - x * x - y * y);
-                z = -z_pos + (float)rng.NextDouble() * 2 * z_pos;
+                // generating attractor point
+                x = work_radius * (2 * rng.NextDouble() - 1);
+                yPos = Math.Sqrt(work_radius * work_radius - x * x);
+                y = yPos * (2 * rng.NextDouble() - 1);
+                zPos = Math.Sqrt(yPos * yPos - y * y);
+                z = zPos * (2 * rng.NextDouble() - 1);
 
-                Vector3 p = new Vector3(x, y, z) + manip.Base;
+                Vector3 p = new Vector3((float)x, (float)y, (float)z) + manip.Base;
 
                 // checking whether the attractor is inside any obstacle or not
                 bool collision = false;
