@@ -20,6 +20,26 @@ namespace Logic
             this.alpha = alpha;
             this.r = r;
         }
+
+        public TupleDH(System.Numerics.Vector4 data)
+        {
+            thetaOffset = data.X * (float)Math.PI / 180;
+            d = data.Y;
+            alpha = data.Z * (float)Math.PI / 180;
+            r = data.W;
+        }
+    }
+
+    public struct ManipData
+    {
+        public int N;
+        public System.Numerics.Vector3 Base;
+        public LinkData[] Links;
+        public JointData[] Joints;
+        public System.Numerics.Vector4[] DH;
+        public System.Numerics.Vector3 Goal;
+
+        public bool ShowTree;
     }
 
     public struct LinkData
@@ -35,26 +55,25 @@ namespace Logic
         public float q;
         public System.Numerics.Vector2 q_ranges;
         public System.Numerics.Vector4 DH;
-
-        public bool ShowTree;
     }
 
     public struct ObstData
     {
-        public float r;
-        public System.Numerics.Vector3 c;
-        public int points_num;
-
-        public bool ShowBounding;
+        public float Radius;
+        public System.Numerics.Vector3 Center;
+        public int PointsNum;
+        public bool ShowCollider;
     }
 
     public struct AlgData
     {
-        public int AttrNum;
-
-        public float Precision, StepSize;
+        public int InverseKinematicsSolverID;
+        public float StepSize;
+        public float Precision;
         public int MaxTime;
 
+        public int PathPlannerID;
+        public int AttrNum;
         public int k;
         public float d;
     }
@@ -126,31 +145,31 @@ namespace Logic
         public List<Vector3> Path;
         public List<Vector> Configs;
         public Tree Tree;
-        public List<Attractor> GoodAttractors, BadAttractors;
+        public List<Attractor> Attractors;
         public Dictionary<string, bool> States;  // TODO: this is used weirdly; replace with something?
 
-        public MotionController controller;
+        public MotionController Controller { get; set; }
 
         public int posCounter = 0;
 
-        public Manipulator(LinkData[] links, JointData[] joints, TupleDH[] DH)
+        public Manipulator(ManipData data)  //LinkData[] links, JointData[] joints, TupleDH[] DH)
         {
-            Links = Array.ConvertAll(links, x => new Link(x));
-            Joints = Array.ConvertAll(joints, x => new Joint(x));
+            Base = data.Base;
+            Links = Array.ConvertAll(data.Links, x => new Link(x));
+            Joints = Array.ConvertAll(data.Joints, x => new Joint(x));
 
-            Joints[0].Axis = Vector3.UnitY;
-            Joints[0].Position = Vector3.Zero;
+            Joints[0].Axis = Vector3.UnitY;  // TODO: should be set from GUI, not hard-coded!
+            Joints[0].Position = Base;
 
-            for (int i = 0; i < DH.Length; i++)
+            for (int i = 0; i < data.DH.Length; i++)
             {
-                Joints[i].DH = DH[i];
+                Joints[i].DH = new TupleDH(data.DH[i]);
             }
             UpdateState();
 
-            Base = Joints[0].Position;
-
             WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => joint.Length);
-
+            
+            Goal = data.Goal;
             States = new Dictionary<string, bool>
             {
                 { "Goal", false },
@@ -162,7 +181,7 @@ namespace Logic
         public void UpdateState()
         {
             var end = Joints.Length - 1;
-            var quat = ImpDualQuat.Zero;
+            var quat = new ImpDualQuat(Joints[0].Position);
             for (int i = 0; i < end; i++)
             {
                 quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[i].q + Joints[i].DH.thetaOffset));
@@ -231,7 +250,7 @@ namespace Logic
                 Joints[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
             }
 
-            var quat = ImpDualQuat.Zero;
+            var quat = new ImpDualQuat(Joints[0].Position);
 
             // links
             quat *= new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY);

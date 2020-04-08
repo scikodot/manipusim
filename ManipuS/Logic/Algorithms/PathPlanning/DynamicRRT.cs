@@ -24,7 +24,7 @@ namespace Logic.PathPlanning
             agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));
 
             // sorting attractors for easier work
-            var attractors = new List<Attractor>(agent.GoodAttractors);
+            var attractors = new List<Attractor>(agent.Attractors);
             attractors.Sort((t, s) => t.Weight <= s.Weight ? (t.Weight < s.Weight ? -1 : 0) : 1);
 
             for (int i = 0; i < MaxTime; i++)
@@ -96,8 +96,8 @@ namespace Logic.PathPlanning
                 }
 
                 // stopping in case the main attractor has been hit
-                //if (attractors[0].InliersCount != 0)
-                //    break;
+                if (attractors[0].InliersCount != 0)
+                    break;
             }
 
             // retrieving resultant path along with respective configurations

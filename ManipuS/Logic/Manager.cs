@@ -13,96 +13,117 @@ namespace Logic
 
         public static void Initialize()
         {
-            var LD = Dispatcher.WorkspaceBuffer.LinkBuffer;
-            var JD = Dispatcher.WorkspaceBuffer.JointBuffer;
-            var OD = Dispatcher.WorkspaceBuffer.ObstBuffer;
-            var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
+            Random rng = new Random();
+
+            var MB = WorkspaceBuffer.ManipBuffer;
+            var OB = WorkspaceBuffer.ObstBuffer;
+            var AB = WorkspaceBuffer.AlgBuffer;
 
             // obstacles
-            Obstacles = new Obstacle[OD.Length];
-            for (int i = 0; i < OD.Length; i++)
+            Obstacles = new Obstacle[OB.Length];
+            for (int i = 0; i < OB.Length; i++)
             {
-                Obstacles[i] = new Obstacle(Primitives.Sphere(OD[i].r, Vector3.Zero, OD[i].points_num, new Random()), new ImpDualQuat(OD[i].c), ColliderShape.Sphere);
+                Obstacles[i] = new Obstacle(Primitives.Sphere(OB[i].Radius, Vector3.Zero, OB[i].PointsNum, new Random()), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }
 
             // manipulators
-            Manipulators = new Manipulator[1];
-            Manipulators[0] = new Manipulator(LD, JD, new TupleDH[]
-                {
-                    new TupleDH(0, JD[0].Length / 2 + JD[1].Length / 2 + LD[0].Length, 90 * (float)Math.PI / 180, 0),
-                    new TupleDH(-90 * (float)Math.PI / 180, 0, 0, JD[1].Length / 2 + JD[2].Length / 2 + LD[1].Length),
-                    new TupleDH(0, 0, 0, JD[2].Length / 2 + 0.1f + LD[2].Length),
-                    new TupleDH(90 * (float)Math.PI / 180, 0, -90 * (float)Math.PI / 180, 0)
-                });
-            Manipulators[0].Goal = new Vector3(0, 0.5f, 2.5f);
-            Manipulators[0].controller = new MotionController(Obstacles, Manipulators[0],
-                new DynamicRRT(AD.k, true, AD.d, AD.k / 100),
-                new Jacobian(AD.Precision, AD.StepSize, AD.MaxTime));
+            //Manipulators = new Manipulator[1];
+            //Manipulators[0] = new Manipulator(LD, JD, new TupleDH[]
+            //    {
+            //        new TupleDH(0, JD[0].Length / 2 + JD[1].Length / 2 + LD[0].Length, 90 * (float)Math.PI / 180, 0),
+            //        new TupleDH(-90 * (float)Math.PI / 180, 0, 0, JD[1].Length / 2 + JD[2].Length / 2 + LD[1].Length),
+            //        new TupleDH(0, 0, 0, JD[2].Length / 2 + 0.1f + LD[2].Length),
+            //        new TupleDH(90 * (float)Math.PI / 180, 0, -90 * (float)Math.PI / 180, 0)
+            //    });
+            //Manipulators[0].Goal = new Vector3(0, 0.5f, 2.5f);
+            //Manipulators[0].controller = new MotionController(Obstacles, Manipulators[0],
+            //    new DynamicRRT(AD.k, true, AD.d, AD.k / 100),
+            //    new Jacobian(AD.Precision, AD.StepSize, AD.MaxTime));
 
-            var manip = Manipulators[0];
-            manip.GoodAttractors = new List<Attractor>();
-            manip.BadAttractors = new List<Attractor>();
-
-            Random rng = new Random();
-            double work_radius = manip.WorkspaceRadius, x, yPos, y, zPos, z;
-
-            // adding main attractor
-            Vector3 AttrVector3 = manip.Goal;
-
-            float AttrWeight = manip.DistanceTo(manip.Goal);
-
-            float r = Dispatcher.WorkspaceBuffer.AlgBuffer.d * (float)Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
-            Vector3[] AttrArea = Primitives.Sphere(r, AttrVector3, 64, new Random());
-
-            manip.GoodAttractors.Add(new Attractor(AttrVector3, AttrWeight, AttrArea, r));
-            manip.States["Goal"] = true;
-
-            // adding ancillary attractors
-            while (manip.GoodAttractors.Count < AD.AttrNum)
+            Manipulators = new Manipulator[MB.Length];
+            for (int i = 0; i < MB.Length; i++)
             {
-                // generating attractor point
-                x = work_radius * (2 * rng.NextDouble() - 1);
-                yPos = Math.Sqrt(work_radius * work_radius - x * x);
-                y = yPos * (2 * rng.NextDouble() - 1);
-                zPos = Math.Sqrt(yPos * yPos - y * y);
-                z = zPos * (2 * rng.NextDouble() - 1);
+                Manipulators[i] = new Manipulator(MB[i]);
 
-                Vector3 p = new Vector3((float)x, (float)y, (float)z) + manip.Base;
-
-                // checking whether the attractor is inside any obstacle or not
-                bool collision = false;
-                foreach (var obst in Obstacles)
+                IKSolver solver = default;
+                switch (AB.InverseKinematicsSolverID)
                 {
-                    if (obst.Contains(p))
-                    {
-                        collision = true;
+                    case 0:
+                        solver = new Jacobian(AB.Precision, AB.StepSize, AB.MaxTime);
                         break;
+                    case 1:
+                        solver = new HillClimbing(AB.Precision, AB.StepSize, AB.MaxTime);
+                        break;
+                }
+
+                PathPlanner planner = default;
+                switch (AB.PathPlannerID)
+                {
+                    case 0:
+                        planner = new DynamicRRT(AB.k, true, AB.d, AB.k / 100);
+                        break;
+                    case 1:
+                        throw new NotImplementedException("The Genetic algorithm planner is not yet implemented!");
+                        break;
+                }
+
+                Manipulators[i].Controller = new MotionController(Obstacles, Manipulators[i], planner, solver);
+
+                var manip = Manipulators[i];
+                manip.Attractors = new List<Attractor>();
+
+                double work_radius = manip.WorkspaceRadius, x, yPos, y, zPos, z;
+
+                // adding main attractor
+                Vector3 attrPoint = manip.Goal;
+                float attrWeight = manip.DistanceTo(manip.Goal);
+                float attrRadius = WorkspaceBuffer.AlgBuffer.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
+                Vector3[] attrArea = Primitives.Sphere(attrRadius, attrPoint, 32, new Random());
+
+                manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrArea, attrRadius));
+                manip.States["Goal"] = true;
+
+                // adding ancillary attractors
+                while (manip.Attractors.Count < AB.AttrNum)
+                {
+                    // generating attractor point
+                    x = work_radius * (2 * rng.NextDouble() - 1);
+                    yPos = Math.Sqrt(work_radius * work_radius - x * x);
+                    y = yPos * (2 * rng.NextDouble() - 1);
+                    zPos = Math.Sqrt(yPos * yPos - y * y);
+                    z = zPos * (2 * rng.NextDouble() - 1);
+
+                    Vector3 point = new Vector3((float)x, (float)y, (float)z) + manip.Base;
+
+                    // checking whether the attractor is inside any obstacle or not
+                    bool collision = false;
+                    foreach (var obst in Obstacles)
+                    {
+                        if (obst.Contains(point))
+                        {
+                            collision = true;
+                            break;
+                        }
+                    }
+
+                    if (!collision)  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
+                    {
+                        // adding attractor to the list
+                        attrPoint = point;
+                        attrWeight = manip.DistanceTo(point) + manip.Goal.DistanceTo(point);
+                        attrRadius = AB.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
+                        attrArea = Primitives.Sphere(attrRadius, attrPoint, 32, new Random());
+
+                        manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrArea, attrRadius));
                     }
                 }
-
-                // adding attractor to the list
-                AttrVector3 = p;
-
-                AttrWeight = manip.DistanceTo(p) + manip.Goal.DistanceTo(p);
-
-                r = AD.d * (float)Math.Pow(AttrWeight / manip.DistanceTo(manip.Goal), 4);
-                AttrArea = Primitives.Sphere(r, AttrVector3, 64, new Random());
-
-                if (!collision)
-                {
-                    manip.GoodAttractors.Add(new Attractor(AttrVector3, AttrWeight, AttrArea, r));
-                }
-                else
-                {
-                    manip.BadAttractors.Add(new Attractor(AttrVector3, AttrWeight, AttrArea, r));
-                }
-            }
-            manip.States["Attractors"] = true;
+                manip.States["Attractors"] = true;
+            }            
         }
 
         public static void Plan(Manipulator manip)
         {
-            var AD = Dispatcher.WorkspaceBuffer.AlgBuffer;
+            var AD = WorkspaceBuffer.AlgBuffer;
 
             /*// generating random tree
             var solver = new HillClimbing(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!

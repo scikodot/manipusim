@@ -6,7 +6,14 @@ namespace Logic.InverseKinematics
 {
     public class IKSolver
     {
-        protected float Precision, StepSize;
+        public static string[] Types = 
+        { 
+            "Jacobian", 
+            "Hill climbing" 
+        };
+
+        protected float StepSize;
+        protected float Precision;
         protected int MaxTime;
 
         protected IKSolver(float precision, float stepSize, int maxTime)

@@ -103,10 +103,6 @@ namespace Graphics
             // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
 
-            // initializing workspace and manipulators' threads
-            //UpdateWorkspace();
-            //UpdateThreads();
-
             // workspace grid
             grid = new Entity(lineShader, gridLines);
             gridFloor = new Entity(lineShader, transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
@@ -324,8 +320,8 @@ namespace Graphics
                     {
                         if (manip.States["Goal"])
                         {
-                            List<Vector3> MainAttr = new List<Vector3> { manip.GoodAttractors[0].Center };
-                            MainAttr.AddRange(manip.GoodAttractors[0].Area);
+                            List<Vector3> MainAttr = new List<Vector3> { manip.Attractors[0].Center };
+                            MainAttr.AddRange(manip.Attractors[0].Area);
                             goal[j] = new Entity(lineShader, Utils.GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
                         }
                     }
@@ -337,7 +333,7 @@ namespace Graphics
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
                             GL.PointSize(1);
-                            GL.DrawArrays(PrimitiveType.Points, 1, manip.GoodAttractors[0].Area.Length);
+                            GL.DrawArrays(PrimitiveType.Points, 1, manip.Attractors[0].Area.Length);
                         });
                     }
 
@@ -365,7 +361,7 @@ namespace Graphics
                         tree[j].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
                     }
 
-                    if (Dispatcher.WorkspaceBuffer.JointBuffer[j].ShowTree)
+                    if (WorkspaceBuffer.ManipBuffer[j].ShowTree)
                     {
                         model = Matrix4.Identity;
                         foreach (var node in tree[j])  // TODO: node can become null; inspect why
@@ -460,13 +456,17 @@ namespace Graphics
                                 var linkModel = new Model(LinkPath);
                                 var gripperModel = new Model(GripperPath);
 
-                                for (int i = 0; i < Dispatcher.WorkspaceBuffer.JointBuffer.Length - 1; i++)
+                                var MB = WorkspaceBuffer.ManipBuffer;
+                                for (int i = 0; i < MB.Length; i++)
                                 {
-                                    Dispatcher.WorkspaceBuffer.JointBuffer[i].Model = jointModel;
-                                    Dispatcher.WorkspaceBuffer.LinkBuffer[i].Model = linkModel;
-                                }
+                                    for (int j = 0; j < MB[i].N; j++)
+                                    {
+                                        MB[i].Links[j].Model = linkModel;
+                                        MB[i].Joints[j].Model = jointModel;
+                                    }
 
-                                Dispatcher.WorkspaceBuffer.JointBuffer[Dispatcher.WorkspaceBuffer.JointBuffer.Length - 1].Model = gripperModel;
+                                    MB[i].Joints[MB[i].N].Model = gripperModel;
+                                }
 
                                 // wait for loading process to finish
                                 Dispatcher.ActionsDone.Reset();
@@ -494,71 +494,65 @@ namespace Graphics
             }
 
             // manipulators window
-            /*if (ImGui.Begin("Manipulators",
+            if (ImGui.Begin("Manipulators",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
                 ImGuiWindowFlags.NoResize | 
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2(0, 0));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+                ImGui.SetWindowPos(new System.Numerics.Vector2(0, 20));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height - 20)));
 
-                var MD = Manager.MD;
-
-                for (int j = 0; j < Manager.Manipulators.Length; j++)
+                if (Manager.Manipulators != null)
                 {
-                    if (ImGui.TreeNode($"Manip {j}"))
+                    var MB = WorkspaceBuffer.ManipBuffer;
+                    for (int j = 0; j < Manager.Manipulators.Length; j++)
                     {
-                        ImGui.Text($"Time spent: {(float)timers[j].ElapsedMilliseconds / 1000} s");
-
-                        int count = Manager.Manipulators[j].Tree == null ? 0 : Manager.Manipulators[j].Tree.Count;
-                        ImGui.Checkbox($"Show tree ({count} verts)", ref MD[j].ShowTree);
-                        ImGui.InputFloat3("Goal", ref MD[j].Goal);
-                        ImGui.InputFloat3("Base", ref MD[j].Base);
-                        ImGui.InputInt("Links number", ref MD[j].N);
-
-                        if (ImGui.TreeNode("Links"))
+                        if (ImGui.TreeNode($"Manip {j}"))
                         {
-                            for (int i = 0; i < MD[j].N; i++)
+                            ImGui.Text($"Time spent: {Dispatcher.timers[j].ElapsedMilliseconds / 1000.0f} s");
+
+                            int count = Manager.Manipulators[j].Tree == null ? 0 : Manager.Manipulators[j].Tree.Count;
+                            ImGui.Checkbox($"Show tree ({count} verts)", ref MB[j].ShowTree);
+                            ImGui.InputFloat3("Goal", ref MB[j].Goal);
+                            ImGui.InputFloat3("Base", ref MB[j].Base);
+                            ImGui.InputInt("Links number", ref MB[j].N);
+
+                            WorkspaceBuffer.ConfigureArrays(j);
+
+                            if (ImGui.TreeNode("Links"))
                             {
-                                ImGui.InputFloat($"Link {i}", ref MD[j].l[i]);
+                                for (int i = 0; i < MB[j].N; i++)
+                                {
+                                    ImGui.InputFloat($"Link {i}", ref MB[j].Links[i].Length);
+                                }
+                                ImGui.TreePop();
+                            }
+
+                            if (ImGui.TreeNode("Joints"))
+                            {
+                                for (int i = 0; i < MB[j].N + 1; i++)
+                                {
+                                    if (ImGui.TreeNode($"Joint {i}"))
+                                    {
+                                        ImGui.InputFloat("Initial GC (deg)", ref MB[j].Joints[i].q);
+                                        ImGui.InputFloat2("GC range", ref MB[j].Joints[i].q_ranges);
+                                        ImGui.InputFloat4($"D-H params", ref MB[j].DH[i]);
+                                        ImGui.TreePop();
+                                    }
+                                }
+                                ImGui.TreePop();
                             }
                             ImGui.TreePop();
                         }
-
-                        if (ImGui.TreeNode("Initial GC (deg)"))
-                        {
-                            for (int i = 0; i < MD[j].N; i++)
-                            {
-                                ImGui.InputFloat($"GC {i}", ref MD[j].q[i]);
-                            }
-                            ImGui.TreePop();
-                        }
-
-                        if (ImGui.TreeNode("GC ranges (deg)"))
-                        {
-                            for (int i = 0; i < MD[j].N; i++)
-                            {
-                                ImGui.InputFloat2($"GC {i}", ref MD[j].q_ranges[i]);
-                            }
-                            ImGui.TreePop();
-                        }
-
-                        if (ImGui.TreeNode("D-H params"))
-                        {
-                            for (int i = 0; i < MD[j].N; i++)
-                            {
-                                ImGui.InputFloat4($"D-H {i}", ref MD[j].DH[i]);
-                            }
-                            ImGui.TreePop();
-                        }
-
-                        ImGui.TreePop();
                     }
                 }
-
+                else
+                {
+                    ImGui.Text("No manipulators at the scene.");
+                }
                 ImGui.End();
-            }*/
+            }
 
             // obstacles window
             if (ImGui.Begin("Obstacles",
@@ -576,20 +570,18 @@ namespace Graphics
                     {
                         if (ImGui.TreeNode($"Obst {i}"))
                         {
-                            ImGui.Checkbox("Show collider", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].ShowBounding);
-                            ImGui.InputFloat("Radius", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].r);
-                            ImGui.InputFloat3("Center", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].c);
-                            ImGui.InputInt("Vector3s number", ref Dispatcher.WorkspaceBuffer.ObstBuffer[i].points_num);
-
+                            ImGui.Checkbox("Show collider", ref WorkspaceBuffer.ObstBuffer[i].ShowCollider);
+                            ImGui.InputFloat("Radius", ref WorkspaceBuffer.ObstBuffer[i].Radius);
+                            ImGui.InputFloat3("Center", ref WorkspaceBuffer.ObstBuffer[i].Center);
+                            ImGui.InputInt("Points number", ref WorkspaceBuffer.ObstBuffer[i].PointsNum);
                             ImGui.TreePop();
                         }
                     }
                 }
                 else
                 {
-                    ImGui.Text("No obstacles in the scene.");
-                }                
-
+                    ImGui.Text("No obstacles at the scene.");
+                }     
                 ImGui.End();
             }
             
@@ -604,18 +596,27 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.5 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                ImGui.InputInt("Attractors number", ref Dispatcher.WorkspaceBuffer.AlgBuffer.AttrNum);
                 ImGui.NewLine();
-                ImGui.Text("Inverse kinematics solver:");
                 ImGui.PushID(0);
-                ImGui.InputInt("Iterations", ref Dispatcher.WorkspaceBuffer.AlgBuffer.MaxTime);
-                ImGui.InputFloat("Precision", ref Dispatcher.WorkspaceBuffer.AlgBuffer.Precision);
-                ImGui.InputFloat("Step size (deg)", ref Dispatcher.WorkspaceBuffer.AlgBuffer.StepSize);
+                ImGui.Text("Inverse kinematics solver:");
+                ImGui.Combo("Type",
+                    ref WorkspaceBuffer.AlgBuffer.InverseKinematicsSolverID,
+                    Logic.InverseKinematics.IKSolver.Types,
+                    Logic.InverseKinematics.IKSolver.Types.Length);
+                ImGui.InputFloat("Precision", ref WorkspaceBuffer.AlgBuffer.Precision);
+                ImGui.InputInt("Iterations", ref WorkspaceBuffer.AlgBuffer.MaxTime);
+                ImGui.InputFloat("Step size (deg)", ref WorkspaceBuffer.AlgBuffer.StepSize);
+
                 ImGui.NewLine();
                 ImGui.PushID(1);
-                ImGui.Text("RRT path planner:");
-                ImGui.InputInt("Iterations", ref Dispatcher.WorkspaceBuffer.AlgBuffer.k);
-                ImGui.InputFloat("Step size", ref Dispatcher.WorkspaceBuffer.AlgBuffer.d);
+                ImGui.Text("Path planner:");
+                ImGui.Combo("Type",
+                    ref WorkspaceBuffer.AlgBuffer.PathPlannerID,
+                    Logic.PathPlanning.PathPlanner.Types,
+                    Logic.PathPlanning.PathPlanner.Types.Length);
+                ImGui.InputInt("Attractors number", ref WorkspaceBuffer.AlgBuffer.AttrNum);
+                ImGui.InputInt("Iterations", ref WorkspaceBuffer.AlgBuffer.k);
+                ImGui.InputFloat("Step size", ref WorkspaceBuffer.AlgBuffer.d);
 
                 ImGui.End();
             }
@@ -651,7 +652,7 @@ namespace Graphics
                 }
 
                 bool dummy = true;
-                if (ImGui.BeginPopupModal("Update?", ref dummy, ImGuiWindowFlags.NoResize))
+                if (ImGui.BeginPopupModal("Update?", ref dummy, ImGuiWindowFlags.NoResize))  // TODO: move to separate method
                 {                    
                     ImGui.Text("Do you really want to update the workspace?\nThis will reset the current process.");
                     ImGui.Spacing();
@@ -726,6 +727,7 @@ namespace Graphics
         }
 
         // some specific methods for better drawing organization
+        // TODO: move somewhere else
         public static Entity CreateTreeBranch(Vector3 p1, Vector3 p2)
         {
             return new Entity(lineShader, Utils.GL_Convert(new Vector3[] { p1, p2 }, Vector4.UnitW));

@@ -6,6 +6,12 @@ namespace Logic.PathPlanning
 {
     public class PathPlanner
     {
+        public static string[] Types =
+        {
+            "RRT",
+            "Genetic algorithm"
+        };
+
         protected static Random Rng = new Random();
 
         protected bool CollisionCheck;

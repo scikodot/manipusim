@@ -10,7 +10,7 @@ using StbImageSharp;
 
 namespace Graphics
 {
-    public class Model
+    public class Model  // TODO: check unmanaged resources release 
     {
         private static List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
 
