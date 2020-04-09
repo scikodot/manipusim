@@ -42,7 +42,8 @@ namespace Logic
             int gripperPos = Agent.posCounter;
             while (gripperPos < Agent.Configs.Count - 1)
             {
-                for (int i = gripperPos + 1; i < Agent.Path.Count; i++)
+                // last point may not be deformed, since it is a goal point
+                for (int i = gripperPos + 1; i < Agent.Path.Count - 1; i++)
                 {
                     for (int j = jointPaths[i].Length - 1; j > 0; j--)
                     {

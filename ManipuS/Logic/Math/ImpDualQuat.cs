@@ -67,13 +67,29 @@ namespace Logic
             Dual = res.Dual;
         }
 
-        public ImpDualQuat(Vector3 axis, Vector3 point, float angle, Vector3 offset)
+        public ImpDualQuat(Vector3 axis, Vector3 currPoint, Vector3 targetPoint, float angle)
         {
             axis = axis.Normalized;
-            var res = new ImpDualQuat(point) * new ImpDualQuat(axis, angle, offset) * new ImpDualQuat(-point);
+            var res = new ImpDualQuat(targetPoint - currPoint) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(targetPoint - currPoint));
 
             Real = res.Real;
             Dual = res.Dual;
+        }
+
+        // TODO: make more clear use; here, an ambiguity is presented - offset/rotate or rotate/offset? (each option looks weird anyway)
+        public ImpDualQuat(Vector3 axis, Vector3 point, float angle, Vector3 offset)
+        {
+            axis = axis.Normalized;
+            var res = new ImpDualQuat(offset) * new ImpDualQuat(point - offset) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(point + offset));
+
+            Real = res.Real;
+            Dual = res.Dual;
+        }
+
+        public static float AngleBetween(ImpDualQuat q1, ImpDualQuat q2)
+        {
+            Quaternion q12 = q1.Real.Normalized.Conjugate * q2.Real.Normalized;
+            return 2 * (float)Math.Atan2(q12.XYZ.Length, q12.W);
         }
 
         public Vector3 Rotate(Vector3 v)
@@ -136,7 +152,7 @@ namespace Logic
 
         public static ImpDualQuat operator *(ImpDualQuat q1, ImpDualQuat q2)
         {
-            return new ImpDualQuat(q1.Real * q2.Real, q1.Real.Transform(q2.Dual) + q1.Dual);
+            return new ImpDualQuat(q1.Real * q2.Real, q1.Dual + q1.Real.Transform(q2.Dual));
         }
 
         public override string ToString() => string.Format("R: [{0}], D: [{1}]", Real, Dual);

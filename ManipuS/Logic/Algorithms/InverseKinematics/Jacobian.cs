@@ -33,7 +33,7 @@ namespace Logic.InverseKinematics
 
                 // calculate GC offsets
                 Vector dq = Jtr * new Vector(error.X, error.Y, error.Z, 0, 0, 0);
-                dq *= -0.1f;
+                dq *= -0.01f;
 
                 if (joint < agent.Joints.Length - 1)
                     dq.Expand(agent.Joints.Length - joint);

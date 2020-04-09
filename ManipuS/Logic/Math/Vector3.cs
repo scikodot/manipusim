@@ -10,7 +10,7 @@ namespace Logic
         public float Y { get; }
         public float Z { get; }
 
-        public static Vector3 Null => new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
+        public static Vector3 Null => new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);  // TODO: return not new, but pre-defined values; this must save some time and memory
 
         public static Vector3 Zero => new Vector3(0, 0, 0);
 
@@ -26,7 +26,14 @@ namespace Logic
 
         public float LengthSquared => X * X + Y * Y + Z * Z;
 
-        public Vector3 Normalized => this / Length;
+        public Vector3 Normalized
+        {
+            get
+            {
+                var length = Length;
+                return length == 0 ? this : this / Length;
+            }
+        }
 
         public Vector3(float x, float y, float z)
         {

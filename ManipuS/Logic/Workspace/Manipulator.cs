@@ -161,11 +161,25 @@ namespace Logic
             Joints[0].Axis = Vector3.UnitY;  // TODO: should be set from GUI, not hard-coded!
             Joints[0].Position = Base;
 
+            var end = Joints.Length - 1;
+            Joints[0].Axis = Joints[end].Axis = Vector3.UnitY;
+            for (int i = 1; i < end; i++)
+            {
+                Joints[i].Axis = Vector3.UnitZ;
+            }
+
+            Joints[0].Position = Base;
+            Joints[1].Position = Base + 1.4f * Vector3.UnitY;
+            Joints[2].Position = Base + 2.8f * Vector3.UnitY;
+            Joints[3].Position = Base + 4.1f * Vector3.UnitY;
+
+            Joints[0].State = new ImpDualQuat(Joints[0].Position);
+
             for (int i = 0; i < data.DH.Length; i++)
             {
                 Joints[i].DH = new TupleDH(data.DH[i]);
             }
-            UpdateState();
+            UpdateState(q);
 
             WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => joint.Length);
             
@@ -178,32 +192,159 @@ namespace Logic
             };
         }
 
-        public void UpdateState()
+        public void UpdateState(Vector dq)
         {
-            var end = Joints.Length - 1;
-            var quat = new ImpDualQuat(Joints[0].Position);
-            for (int i = 0; i < end; i++)
+            //var end = Joints.Length - 1;
+            //var quat = new ImpDualQuat(Joints[0].Position);
+            //for (int i = 0; i < end; i++)
+            //{
+            //    quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[i].q + Joints[i].DH.thetaOffset));
+
+            //    Joints[i].State = quat;
+            //    Joints[i].Model.Position = quat.Translation;
+
+            //    quat *= new ImpDualQuat(Joints[i].DH.d * Vector3.UnitY);
+            //    quat *= new ImpDualQuat(Vector3.UnitX, Joints[i].DH.alpha, Joints[i].DH.r * Vector3.UnitX);
+
+            //    Joints[i + 1].Axis = quat.Rotate(Joints[0].Axis);
+            //    Joints[i + 1].Position = quat.Translation;
+            //}
+
+            //quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[end].q + Joints[end].DH.thetaOffset));
+            //quat *= new ImpDualQuat(Vector3.UnitX, Joints[end].DH.alpha);
+
+            //Joints[end].State = quat;
+            //Joints[end].Model.Position = quat.Translation;
+
+            //Joints[end].Axis = quat.Rotate(Joints[0].Axis);
+            //Joints[end].Position = quat.Translation;
+
+            //var end = Joints.Length - 1;
+            //ImpDualQuat quat = Joints[0].State;
+            //ImpDualQuat quatAlign = ImpDualQuat.Zero;
+            //for (int i = 0; i <= end; i++)
+            //{
+            //    quat *= new ImpDualQuat(Joints[i].Axis, -dq[i]);
+
+            //    Joints[i].State = quat;
+
+            //    Joints[i].Axis = Joints[i].State.Rotate(Joints[0].Axis);
+
+            //    var angle = (float)Math.Acos(Vector3.Dot(Vector3.UnitZ, Joints[i].Axis));
+
+            //    Joints[i].Position = Joints[i].Model.Position = Joints[i].State.Translation;
+
+            //    if (i < end)
+            //    {
+            //        quat *= new ImpDualQuat(Joints[i + 1].Position - Joints[i].Position);
+            //        //quatAlign = new ImpDualQuat(
+            //        //    Vector3.Cross(Joints[i].Axis, Joints[i + 1].Axis).Normalized,
+            //        //    (float)Math.Acos(Vector3.Dot(Joints[i].Axis, Joints[i + 1].Axis)));
+
+            //        //Joints[i + 1].State *= quatAlign;
+            //    }
+            //}
+
+            Vector3[] initAxes = new Vector3[]
             {
-                quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[i].q + Joints[i].DH.thetaOffset));
+                Vector3.UnitY,
+                Vector3.UnitZ,
+                Vector3.UnitZ,
+                Vector3.UnitY
+            };
+
+            Vector3[] initPos = new Vector3[]
+            {
+                Base,
+                Base + 1.4f * Vector3.UnitY,
+                Base + 2.8f * Vector3.UnitY,
+                Base + 4.1f * Vector3.UnitY
+            };
+
+            ImpDualQuat init = new ImpDualQuat(Base);
+
+            ImpDualQuat quat = init;
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                quat = init;
+
+                for (int j = 0; j < i; j++)
+                {
+                    quat *= new ImpDualQuat(initPos[j + 1] - initPos[j]);
+                    quat *= new ImpDualQuat(initAxes[j], quat.Translation, initPos[j], -Joints[j].q);
+                    //quat *= new ImpDualQuat(Joints[j].Axis, -Joints[j].q);
+                }
+
+                quat *= new ImpDualQuat(initAxes[i], -Joints[i].q);
+
+                Vector3 axis = initAxes[i];
+
+                var axisAlign = Vector3.Cross(Joints[0].Axis, axis).Normalized;
+                var angleAlign = (float)Math.Acos(Vector3.Dot(Joints[0].Axis, axis));
+                quat *= new ImpDualQuat(axisAlign, angleAlign);
 
                 Joints[i].State = quat;
-                Joints[i].Model.Position = quat.Translation;
-
-                quat *= new ImpDualQuat(Joints[i].DH.d * Vector3.UnitY);
-                quat *= new ImpDualQuat(Vector3.UnitX, Joints[i].DH.alpha, Joints[i].DH.r * Vector3.UnitX);
-
-                Joints[i + 1].Axis = quat.Rotate(Joints[0].Axis);
-                Joints[i + 1].Position = quat.Translation;
+                Joints[i].Axis = quat.Rotate(initAxes[0]);
+                Joints[i].Position = quat.Translation;
             }
 
-            quat *= new ImpDualQuat(Vector3.UnitY, -(Joints[end].q + Joints[end].DH.thetaOffset));
-            quat *= new ImpDualQuat(Vector3.UnitX, Joints[end].DH.alpha);
+            //for (int i = 0; i < Joints.Length; i++)
+            //{
+            //    quat = Joints[i].State * new ImpDualQuat(initAxes[i], -Joints[i].q);
 
-            Joints[end].State = quat;
-            Joints[end].Model.Position = quat.Translation;
+            //    //Vector3 axis = initAxes[i];
 
-            Joints[end].Axis = quat.Rotate(Joints[0].Axis);
-            Joints[end].Position = quat.Translation;
+            //    //var axisAlign = Vector3.Cross(Joints[0].Axis, axis).Normalized;
+            //    //var angleAlign = (float)Math.Acos(Vector3.Dot(Joints[0].Axis, axis));
+            //    //quat *= new ImpDualQuat(axisAlign, angleAlign);
+
+            //    Joints[i].State = quat;
+            //    Joints[i].Axis = quat.Rotate(initAxes[0]);
+            //    Joints[i].Position = quat.Translation;
+
+            //    for (int j = i + 1; j < Joints.Length; j++)
+            //    {
+            //        quat = Joints[i].State * new ImpDualQuat(initPos[j] - initPos[i]);
+            //        quat *= new ImpDualQuat(initAxes[i], quat.Translation, initPos[i], -Joints[i].q);
+
+            //        var axis = initAxes[j];
+
+            //        var axisAlign = Vector3.Cross(Joints[0].Axis, axis).Normalized;
+            //        var angleAlign = (float)Math.Acos(Vector3.Dot(Joints[0].Axis, axis));
+            //        quat *= new ImpDualQuat(axisAlign, angleAlign);
+
+            //        Joints[j].State = quat;
+            //        Joints[j].Axis = quat.Rotate(initAxes[0]);
+            //        Joints[j].Position = quat.Translation;
+            //    }
+            //}
+
+            //quat *= new ImpDualQuat(Joints[0].Axis, -Joints[0].q, Joints[1].Position - Joints[0].Position);
+
+            //Vector3 axis = initAxes[1];
+
+            //var axisTemp = Vector3.Cross(Joints[0].Axis, axis).Normalized;
+            //var angle = (float)Math.Acos(Vector3.Dot(Joints[0].Axis, axis));
+            //quat *= new ImpDualQuat(axisTemp, angle);
+
+            //Joints[1].State = quat;
+            //Joints[1].Axis = quat.Rotate(initAxes[0]);
+            //Joints[1].Position = quat.Translation;
+
+            //quat *= new ImpDualQuat(initPos[1] - initPos[0]);
+            //quat *= new ImpDualQuat(initAxes[0], quat.Translation, initPos[0], -Joints[0].q);
+            //quat *= new ImpDualQuat(initPos[2] - initPos[1]);
+            //quat *= new ImpDualQuat(initAxes[1], quat.Translation, initPos[1], -Joints[1].q);
+
+            //Vector3 axis = initAxes[2];
+
+            //var axisTemp = Vector3.Cross(Joints[0].Axis, axis).Normalized;
+            //var angle = (float)Math.Acos(Vector3.Dot(Joints[0].Axis, axis));
+            //quat *= new ImpDualQuat(axisTemp, angle);
+
+            //Joints[1].State = quat;
+            //Joints[1].Axis = quat.Rotate(initAxes[0]);
+            //Joints[1].Position = quat.Translation;
         }
 
         public Vector3 GripperPos => Joints[Joints.Length - 1].Position;
@@ -215,10 +356,14 @@ namespace Logic
             get => new Vector(Array.ConvertAll(Joints, x => x.q));
             set
             {
+                var dq = new Vector(Joints.Length);
                 for (int i = 0; i < Joints.Length; i++)
+                {
+                    dq[i] = value[i] - Joints[i].q;
                     Joints[i].q = value[i];
+                }
 
-                UpdateState();
+                UpdateState(dq);
             }
         }
 
@@ -241,11 +386,12 @@ namespace Logic
 
             Matrix4 model;
 
+            q += new Vector(0.016f, 0.016f, 0.016f, 0.016f);
+
             // joints
             for (int i = 0; i < Joints.Length; i++)
             {
                 model = Joints[i].State.ToMatrix(true);
-
                 shader.SetMatrix4("model", model);
                 Joints[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
             }
@@ -253,33 +399,34 @@ namespace Logic
             var quat = new ImpDualQuat(Joints[0].Position);
 
             // links
-            quat *= new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY);
+            quat *= new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY);  // TODO: move links logic to UpdateState(); here they should only be displayed with appropriate matrices
 
             // the order of multiplication is reversed, because the trans quat transforms the operand (quat) itself; it does not contribute in total transformation like other quats do
             var trans_quat = new ImpDualQuat(Joints[0].Axis, Joints[0].Position, -(Joints[0].q + Joints[0].DH.thetaOffset));
             quat = trans_quat * quat;
-            model = quat.ToMatrix(true);
 
+            model = quat.ToMatrix(true);
             shader.SetMatrix4("model", model);
             Links[0].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
             quat *= new ImpDualQuat(Joints[0].DH.d * Vector3.UnitY);
-
             trans_quat = new ImpDualQuat(Joints[1].Axis, Joints[1].Position, -(Joints[1].q + Joints[1].DH.thetaOffset + (float)Math.PI / 2));
             quat = trans_quat * quat;
-            model = quat.ToMatrix(true);
 
+            model = quat.ToMatrix(true);
             shader.SetMatrix4("model", model);
             Links[1].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
 
-            quat *= new ImpDualQuat(Joints[1].DH.r * Vector3.UnitY);
+            for (int i = 2; i < Links.Length; i++)
+            {
+                quat *= new ImpDualQuat(Joints[i - 1].DH.r * Vector3.UnitY);
+                trans_quat = new ImpDualQuat(Joints[i].Axis, Joints[i].Position, -(Joints[i].q + Joints[i].DH.thetaOffset));
+                quat = trans_quat * quat;
 
-            trans_quat = new ImpDualQuat(Joints[2].Axis, Joints[2].Position, -(Joints[2].q + Joints[2].DH.thetaOffset));
-            quat = trans_quat * quat;
-            model = quat.ToMatrix(true);
-
-            shader.SetMatrix4("model", model);
-            Links[2].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
+                model = quat.ToMatrix(true);
+                shader.SetMatrix4("model", model);
+                Links[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
+            }
         }
 
         public Manipulator DeepCopy()

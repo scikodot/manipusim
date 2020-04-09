@@ -9,7 +9,10 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
     {
         new LinkData { Length = 1 },
         new LinkData { Length = 1 },
-        new LinkData { Length = 1 }
+        new LinkData { Length = 1 },
+        //new LinkData { Length = 1 },
+        //new LinkData { Length = 1 },
+        //new LinkData { Length = 1 }
     };
 
     public static JointData[] JointBuffer = 
@@ -32,6 +35,24 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
             q = 0,
             q_ranges = new System.Numerics.Vector2(-180, 180),
         },
+        //new JointData
+        //{
+        //    Length = 0.4f,
+        //    q = 0,
+        //    q_ranges = new System.Numerics.Vector2(-180, 180),
+        //},
+        //new JointData
+        //{
+        //    Length = 0.4f,
+        //    q = 0,
+        //    q_ranges = new System.Numerics.Vector2(-180, 180),
+        //},
+        //new JointData
+        //{
+        //    Length = 0.4f,
+        //    q = 0,
+        //    q_ranges = new System.Numerics.Vector2(-180, 180),
+        //},
         new JointData
         {
             Length = 0.2f,
@@ -42,22 +63,25 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
 
     public static ManipData[] ManipBuffer =  // TODO: synchronize thread access while loading models
     {
-        new ManipData
-        {
-            N = 3,
-            Base = new System.Numerics.Vector3(-1, 0, -1),
-            Links = LinkBuffer.ToArray(),
-            Joints = JointBuffer.ToArray(),
-            DH = new System.Numerics.Vector4[]
-            {
-                new System.Numerics.Vector4(0, JointBuffer[0].Length / 2 + LinkBuffer[0].Length + JointBuffer[1].Length / 2, 90, 0),
-                new System.Numerics.Vector4(-90, 0, 0, JointBuffer[1].Length / 2 + LinkBuffer[1].Length + JointBuffer[2].Length / 2),
-                new System.Numerics.Vector4(0, 0, 0, JointBuffer[2].Length / 2 + LinkBuffer[2].Length + JointBuffer[3].Length / 2),
-                new System.Numerics.Vector4(90, 0, -90, 0)
-            },
-            Goal = new System.Numerics.Vector3(0, 0.5f, 1f),
-            ShowTree = true
-        },
+        //new ManipData
+        //{
+        //    N = 6,
+        //    Base = new System.Numerics.Vector3(-1, 0, -1),
+        //    Links = LinkBuffer.ToArray(),
+        //    Joints = JointBuffer.ToArray(),
+        //    DH = new System.Numerics.Vector4[]
+        //    {
+        //        new System.Numerics.Vector4(0, JointBuffer[0].Length / 2 + LinkBuffer[0].Length + JointBuffer[1].Length / 2, 90, 0),
+        //        new System.Numerics.Vector4(-90, 0, 0, JointBuffer[1].Length / 2 + LinkBuffer[1].Length + JointBuffer[2].Length / 2),
+        //        new System.Numerics.Vector4(0, 0, 0, JointBuffer[2].Length / 2 + LinkBuffer[2].Length + JointBuffer[3].Length / 2),
+        //        new System.Numerics.Vector4(0, 0, 0, JointBuffer[3].Length / 2 + LinkBuffer[3].Length + JointBuffer[4].Length / 2),
+        //        new System.Numerics.Vector4(0, 0, 0, JointBuffer[4].Length / 2 + LinkBuffer[4].Length + JointBuffer[5].Length / 2),
+        //        new System.Numerics.Vector4(0, 0, 0, JointBuffer[5].Length / 2 + LinkBuffer[5].Length + JointBuffer[6].Length / 2),
+        //        new System.Numerics.Vector4(90, 0, -90, 0)
+        //    },
+        //    Goal = new System.Numerics.Vector3(0, 4f, 3f),
+        //    ShowTree = true
+        //},
         new ManipData
         {
             N = 3,
@@ -81,7 +105,7 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         new ObstData
         {
             Radius = 0.5f,
-            Center = new System.Numerics.Vector3(0, 2, 0),
+            Center = new System.Numerics.Vector3(0, 4, 2),
             PointsNum = 2000,
             ShowCollider = true
         },
