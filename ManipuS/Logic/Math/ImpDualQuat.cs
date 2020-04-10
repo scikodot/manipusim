@@ -70,7 +70,28 @@ namespace Logic
         public ImpDualQuat(Vector3 axis, Vector3 currPoint, Vector3 targetPoint, float angle)
         {
             axis = axis.Normalized;
-            var res = new ImpDualQuat(targetPoint - currPoint) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(targetPoint - currPoint));
+            var toPoint = new ImpDualQuat(targetPoint - currPoint);
+            var rotate = new ImpDualQuat(axis, angle);
+            var fromPoint = new ImpDualQuat(-(targetPoint - currPoint));
+            var one = toPoint * rotate;
+            var two = one * fromPoint;
+            var res = two;
+            //var res = new ImpDualQuat(targetPoint - currPoint) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(targetPoint - currPoint));
+
+            Real = res.Real;
+            Dual = res.Dual;
+        }
+
+        public ImpDualQuat(ImpDualQuat currState, Vector3 axis, Vector3 currPoint, Vector3 targetPoint, float angle)
+        {
+            axis = axis.Normalized;
+            var toPoint = new ImpDualQuat(currState.Rotate(targetPoint - currPoint));
+            var rotate = new ImpDualQuat(axis, angle);
+            var fromPoint = new ImpDualQuat(currState.Rotate(-(targetPoint - currPoint)));
+            var one = toPoint * rotate;
+            var two = one * fromPoint;
+            var res = two;
+            //var res = new ImpDualQuat(targetPoint - currPoint) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(targetPoint - currPoint));
 
             Real = res.Real;
             Dual = res.Dual;
