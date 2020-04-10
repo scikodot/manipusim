@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using OpenTK.Graphics.OpenGL4;
 using Graphics;
 
@@ -18,7 +19,7 @@ namespace Logic
             Center = data.Sum() / data.Length;
 
             // radius
-            Radius = data[0].DistanceTo(Center);
+            Radius = Array.ConvertAll(data, x => x.DistanceTo(Center)).Max();
 
             // data
             Data = new Vector3[2 + levels * pointsNum];

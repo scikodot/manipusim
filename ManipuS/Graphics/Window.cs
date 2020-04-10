@@ -515,7 +515,6 @@ namespace Graphics
                             int count = Manager.Manipulators[j].Tree == null ? 0 : Manager.Manipulators[j].Tree.Count;
                             ImGui.Checkbox($"Show tree ({count} verts)", ref MB[j].ShowTree);
                             ImGui.InputFloat3("Goal", ref MB[j].Goal);
-                            ImGui.InputFloat3("Base", ref MB[j].Base);
                             ImGui.InputInt("Links number", ref MB[j].N);
 
                             WorkspaceBuffer.ConfigureArrays(j);
@@ -533,10 +532,10 @@ namespace Graphics
                             {
                                 for (int i = 0; i < MB[j].N + 1; i++)
                                 {
-                                    if (ImGui.TreeNode($"Joint {i}"))
+                                    if (ImGui.TreeNode(i == 0 ? "Base" : $"Joint {i}"))
                                     {
-                                        ImGui.InputFloat3("Axis", ref MB[j].Joints[i].Axis);
-                                        ImGui.InputFloat3("Position", ref MB[j].Joints[i].Position);
+                                        ImGui.InputFloat3("Axis", ref WorkspaceBuffer.JointAxes[j][i]);
+                                        ImGui.InputFloat3("Position", ref WorkspaceBuffer.JointPositions[j][i]);
                                         ImGui.InputFloat("Initial GC (deg)", ref MB[j].Joints[i].q);
                                         ImGui.InputFloat2("GC range", ref MB[j].Joints[i].qRanges);
                                         ImGui.TreePop();
@@ -690,8 +689,8 @@ namespace Graphics
                 // save path for captured screenshot
                 ImGui.InputText("Save path", ref SavePath, 100);
 
-                if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
-                    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");
+                //if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
+                //    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");  // TODO: when scene is updated, obstacle center is not reset! fix
 
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));

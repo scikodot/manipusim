@@ -9,9 +9,10 @@ namespace Logic
     public struct ManipData
     {
         public int N;
-        public System.Numerics.Vector3 Base;
         public LinkData[] Links;
         public JointData[] Joints;
+        public System.Numerics.Vector3[] JointAxes;
+        public System.Numerics.Vector3[] JointPositions;
         public System.Numerics.Vector3 Goal;
         public bool ShowTree;
     }
@@ -28,8 +29,6 @@ namespace Logic
         public float Length;
         public float q;
         public System.Numerics.Vector2 qRanges;
-        public System.Numerics.Vector3 Axis;
-        public System.Numerics.Vector3 Position;
     }
 
     public struct ObstData
@@ -80,6 +79,11 @@ namespace Logic
             Model = data.Model;
             Length = data.Length;
         }
+
+        public Link ShallowCopy()
+        {
+            return (Link)MemberwiseClone();
+        }
     }
 
     public class Joint
@@ -101,9 +105,6 @@ namespace Logic
             Length = data.Length;
             q = data.q;
             qRanges = new float[2] { data.qRanges.X, data.qRanges.Y };
-
-            Axis = data.Axis;
-            Position = data.Position;
         }
 
         public Joint ShallowCopy()
@@ -135,12 +136,18 @@ namespace Logic
 
         public Manipulator(ManipData data)
         {
-            Base = data.Base;
+            Base = data.JointPositions[0];
             Links = Array.ConvertAll(data.Links, x => new Link(x));
             Joints = Array.ConvertAll(data.Joints, x => new Joint(x));
 
-            InitialAxes = Array.ConvertAll(data.Joints, x => (Vector3)x.Axis);
-            InitialPositions = Array.ConvertAll(data.Joints, x => (Vector3)x.Position);
+            InitialAxes = Array.ConvertAll(data.JointAxes, x => (Vector3)x);  //Array.ConvertAll(data.Joints, x => (Vector3)x.Axis);
+            InitialPositions = Array.ConvertAll(data.JointPositions, x => (Vector3)x); //Array.ConvertAll(data.Joints, x => (Vector3)x.Position);
+
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                Joints[i].Axis = data.JointAxes[i];
+                Joints[i].Position = data.JointPositions[i];
+            }
 
             UpdateState();
 
@@ -234,8 +241,7 @@ namespace Logic
 
             Matrix4 model;
 
-            q += new Vector(0.016f, 0.016f, 0.016f, 0.016f, 0.016f, 0.016f, 0.016f);
-            //q = new Vector((float)Math.PI / 4, (float)Math.PI / 4, (float)Math.PI / 4, 0);
+            //q += new Vector(0.016f, 0.016f, 0.016f, 0.016f, 0.016f, 0.016f, 0.016f);
 
             // joints
             for (int i = 0; i < Joints.Length; i++)
@@ -258,7 +264,7 @@ namespace Logic
         {
             Manipulator manip = (Manipulator)MemberwiseClone();
 
-            Array.Copy(Links, manip.Links, Links.Length);
+            manip.Links = Array.ConvertAll(Links, x => x.ShallowCopy());
             manip.Joints = Array.ConvertAll(Joints, x => x.ShallowCopy());
 
             manip.States = new Dictionary<string, bool>(States);

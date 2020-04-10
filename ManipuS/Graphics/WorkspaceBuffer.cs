@@ -10,9 +10,42 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         new LinkData { Length = 1 },
         new LinkData { Length = 1 },
         new LinkData { Length = 1 },
-        new LinkData { Length = 1 },
-        new LinkData { Length = 1 },
-        new LinkData { Length = 1 }
+    };
+
+    public static System.Numerics.Vector3[][] JointAxes =
+    {
+        new System.Numerics.Vector3[]
+        {
+            System.Numerics.Vector3.UnitY,
+            System.Numerics.Vector3.UnitZ,
+            System.Numerics.Vector3.UnitZ,
+            System.Numerics.Vector3.UnitY,
+        },
+        new System.Numerics.Vector3[]
+        {
+            System.Numerics.Vector3.UnitY,
+            System.Numerics.Vector3.UnitZ,
+            System.Numerics.Vector3.UnitZ,
+            System.Numerics.Vector3.UnitY,
+        }
+    };
+
+    public static System.Numerics.Vector3[][] JointPositions =
+    {
+        new System.Numerics.Vector3[]
+        {
+            new System.Numerics.Vector3(1, 0, 1),
+            new System.Numerics.Vector3(1, 1.4f, 1),
+            new System.Numerics.Vector3(1, 2.8f, 1),
+            new System.Numerics.Vector3(1, 4.1f, 1),
+        },
+        new System.Numerics.Vector3[]
+        {
+            new System.Numerics.Vector3(-1, 0, -1),
+            new System.Numerics.Vector3(-1, 1.4f, -1),
+            new System.Numerics.Vector3(-1, 2.8f, -1),
+            new System.Numerics.Vector3(-1, 4.1f, -1),
+        }
     };
 
     public static JointData[] JointBuffer =
@@ -21,57 +54,49 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180),
-            Axis = System.Numerics.Vector3.UnitY,
-            Position = new System.Numerics.Vector3(0, 0, 0)
+            qRanges = new System.Numerics.Vector2(-180, 180)
         },
         new JointData
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180),
-            Axis = System.Numerics.Vector3.UnitZ,
-            Position = new System.Numerics.Vector3(0, 1.4f, 0)
+            qRanges = new System.Numerics.Vector2(-180, 180)
         },
         new JointData
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180),
-            Axis = System.Numerics.Vector3.UnitZ,
-            Position = new System.Numerics.Vector3(0, 2.8f, 0)
+            qRanges = new System.Numerics.Vector2(-180, 180)
         },
-        new JointData
-        {
-            Length = 0.4f,
-            q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180),
-            Axis = System.Numerics.Vector3.UnitZ,
-            Position = new System.Numerics.Vector3(0, 4.2f, 0)
-        },
-        new JointData
-        {
-            Length = 0.4f,
-            q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180),
-            Axis = System.Numerics.Vector3.UnitZ,
-            Position = new System.Numerics.Vector3(0, 5.6f, 0)
-        },
-        new JointData
-        {
-            Length = 0.4f,
-            q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180),
-            Axis = System.Numerics.Vector3.UnitZ,
-            Position = new System.Numerics.Vector3(0, 7.0f, 0)
-        },
+        //new JointData
+        //{
+        //    Length = 0.4f,
+        //    q = 0,
+        //    qRanges = new System.Numerics.Vector2(-180, 180),
+        //    Axis = System.Numerics.Vector3.UnitZ,
+        //    Position = new System.Numerics.Vector3(0, 4.2f, 0)
+        //},
+        //new JointData
+        //{
+        //    Length = 0.4f,
+        //    q = 0,
+        //    qRanges = new System.Numerics.Vector2(-180, 180),
+        //    Axis = System.Numerics.Vector3.UnitZ,
+        //    Position = new System.Numerics.Vector3(0, 5.6f, 0)
+        //},
+        //new JointData
+        //{
+        //    Length = 0.4f,
+        //    q = 0,
+        //    qRanges = new System.Numerics.Vector2(-180, 180),
+        //    Axis = System.Numerics.Vector3.UnitZ,
+        //    Position = new System.Numerics.Vector3(0, 7.0f, 0)
+        //},
         new JointData
         {
             Length = 0.2f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180),
-            Axis = System.Numerics.Vector3.UnitY,
-            Position = new System.Numerics.Vector3(0, 8.3f, 0)
+            qRanges = new System.Numerics.Vector2(-180, 180)
         }
     };
 
@@ -79,22 +104,24 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
     {
         new ManipData
         {
-            N = 6,
-            Base = new System.Numerics.Vector3(0, 0, 0),
+            N = 3,
             Links = LinkBuffer.ToArray(),
             Joints = JointBuffer.ToArray(),
-            Goal = new System.Numerics.Vector3(0, 4f, 3f),
+            JointAxes = JointAxes[0].ToArray(),
+            JointPositions = JointPositions[0].ToArray(),
+            Goal = new System.Numerics.Vector3(0, 0.5f, -1f),
             ShowTree = true
         },
-        //new ManipData
-        //{
-        //    N = 3,
-        //    Base = new System.Numerics.Vector3(0, 0, 0),
-        //    Links = LinkBuffer.ToArray(),
-        //    Joints = JointBuffer.ToArray(),
-        //    Goal = new System.Numerics.Vector3(0, 0.5f, -1f),
-        //    ShowTree = true
-        //}
+        new ManipData
+        {
+            N = 3,
+            Links = LinkBuffer.ToArray(),
+            Joints = JointBuffer.ToArray(),
+            JointAxes = JointAxes[1].ToArray(),
+            JointPositions = JointPositions[1].ToArray(),
+            Goal = new System.Numerics.Vector3(0, 0.5f, 1f),
+            ShowTree = true
+        }
     };
 
     public static ObstData[] ObstBuffer = 
@@ -102,7 +129,7 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         new ObstData
         {
             Radius = 0.5f,
-            Center = new System.Numerics.Vector3(0, 4, 2),
+            Center = new System.Numerics.Vector3(0, 2, 0),
             PointsNum = 2000,
             ShowCollider = true
         },
