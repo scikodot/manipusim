@@ -535,9 +535,10 @@ namespace Graphics
                                 {
                                     if (ImGui.TreeNode($"Joint {i}"))
                                     {
+                                        ImGui.InputFloat3("Axis", ref MB[j].Joints[i].Axis);
+                                        ImGui.InputFloat3("Position", ref MB[j].Joints[i].Position);
                                         ImGui.InputFloat("Initial GC (deg)", ref MB[j].Joints[i].q);
-                                        ImGui.InputFloat2("GC range", ref MB[j].Joints[i].q_ranges);
-                                        ImGui.InputFloat4($"D-H params", ref MB[j].DH[i]);
+                                        ImGui.InputFloat2("GC range", ref MB[j].Joints[i].qRanges);
                                         ImGui.TreePop();
                                     }
                                 }

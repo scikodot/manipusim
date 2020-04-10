@@ -107,10 +107,13 @@ namespace Logic
             Dual = res.Dual;
         }
 
-        public static float AngleBetween(ImpDualQuat q1, ImpDualQuat q2)
+        public static ImpDualQuat Align(Vector3 axis1, Vector3 axis2)
         {
-            Quaternion q12 = q1.Real.Normalized.Conjugate * q2.Real.Normalized;
-            return 2 * (float)Math.Atan2(q12.XYZ.Length, q12.W);
+            axis1 = axis1.Normalized;
+            axis2 = axis2.Normalized;
+            var alignAxis = Vector3.Cross(axis1, axis2).Normalized;
+            var alignAngle = (float)Math.Acos(Vector3.Dot(axis1, axis2));  // TODO: make check for success; Acos is prone to errors
+            return new ImpDualQuat(alignAxis, alignAngle);
         }
 
         public Vector3 Rotate(Vector3 v)
