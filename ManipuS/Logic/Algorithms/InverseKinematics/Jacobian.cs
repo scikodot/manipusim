@@ -10,7 +10,7 @@ namespace Logic.InverseKinematics
         public override (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
             Vector initConfig = agent.q;
-            for (int j = 0; j < 15; j++)
+            for (int j = 0; j < 2; j++)
             {
                 Vector3 grip = agent.DKP[joint];
                 Vector3 error = goal - grip;
@@ -18,7 +18,7 @@ namespace Logic.InverseKinematics
                 Vector[] data = new Vector[joint + 1];
                 for (int i = 0; i <= joint; i++)
                 {
-                    var elem = Vector3.Cross(agent.Joints[i].Axis, grip - agent.Joints[i].Position);
+                    var elem = Vector3.Cross(agent.Joints[i].Axis, grip - agent.Joints[i].Position).Normalized;
                     data[i] = new Vector(
                         elem.X, 
                         elem.Y, 

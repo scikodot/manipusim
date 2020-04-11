@@ -36,9 +36,10 @@ namespace Logic.PathPlanning
                 float num = Misc.BoxMullerTransform(Rng, attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
 
                 // extracting the first relevant attractor
-                int index = attractors.FindIndex(t => t.Weight > num);
-                if (index == -1)  // clamping weight
-                    index = attractors.Count - 1;
+                //int index = attractors.FindIndex(t => t.Weight > num);
+                //if (index == -1)  // clamping weight
+                //    index = attractors.Count - 1;
+                int index = 0;
 
                 float radius = attractors[index].Radius, x, y_pos, y, z_pos, z;
 
@@ -57,13 +58,11 @@ namespace Logic.PathPlanning
                 // creating offset vector to new node
                 Vector3 pNew = minNode.Point + (p - minNode.Point).Normalized * d;
 
-                if (pNew.DistanceTo(attractors[index].Center) < attractors[index].Radius)
+                bool isClose = pNew.DistanceTo(attractors[index].Center) < attractors[index].Radius;
+                if (isClose && index != 0)
                 {
                     // removing attractor if it has been hit
-                    if (index != 0)
-                        attractors.RemoveAt(index);
-                    else
-                        attractors[index].InliersCount++;
+                    attractors.RemoveAt(index);
                 }
                 else
                 {
@@ -91,6 +90,10 @@ namespace Logic.PathPlanning
                             // adding node to the tree
                             Tree.Node node = new Tree.Node(minNode, contestant.GripperPos, contestant.q);
                             agent.Tree.AddNode(node);
+
+                            // check for exit condition
+                            if (isClose && index == 0)
+                                attractors[0].InliersCount++;
                         }
                     }
                 }

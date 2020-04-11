@@ -8,24 +8,39 @@ using Logic.InverseKinematics;
 
 namespace Logic
 {
+    public enum ControllerState
+    {
+        Aborted = -1,  // TODO: can be used for exceptions processing
+        Idle = 0,
+        Running = 1,
+        Finished = 2
+    }
+
     public class MotionController
     {
         public Manipulator Agent;
         public Obstacle[] Obstacles;
         public PathPlanner PathPlanner;
-        public IKSolver Solver;
+        public IKSolver PlanSolver;
+        public IKSolver ControlSolver;
+        public float DeformThreshold;
+        public ControllerState State = ControllerState.Idle;
 
-        public MotionController(Obstacle[] obstacles, Manipulator agent, PathPlanner pathPlanner, IKSolver solver)
+        public MotionController(Obstacle[] obstacles, Manipulator agent, PathPlanner pathPlanner, IKSolver planSolver, IKSolver controlSolver, float deformThreshold)
         {
             Obstacles = obstacles;
             Agent = agent;
             PathPlanner = pathPlanner;
-            Solver = solver;
+            PlanSolver = planSolver;
+            ControlSolver = controlSolver;
+            DeformThreshold = deformThreshold;
         }
 
         public void Execute(Vector3 goal)
         {
-            var res = PathPlanner.Execute(Obstacles, Agent, goal, Solver);
+            State = ControllerState.Running;
+
+            var res = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
 
             Agent.Path = res.Item1;
             Agent.States["Path"] = true;
@@ -62,6 +77,8 @@ namespace Logic
 
                 gripperPos = Agent.posCounter;
             }
+
+            State = ControllerState.Finished;
         }
 
         public void Deform(Obstacle obstacle, Manipulator contestant, List<Vector3[]> jointPaths, int point, int joint)
@@ -70,7 +87,7 @@ namespace Logic
 
             Vector3 pNew = jointPaths[point][joint] + dx;
             contestant.q = Agent.Configs[point];
-            Vector cNew = contestant.q + Solver.Execute(Obstacles, contestant, pNew, joint).Item3;
+            Vector cNew = contestant.q + ControlSolver.Execute(Obstacles, contestant, pNew, joint).Item3;
             contestant.q = cNew;
             Vector3[] dkpNew = contestant.DKP;
 
@@ -87,11 +104,11 @@ namespace Logic
 
             for (int i = gripperPos + 1; i < Agent.Path.Count; i++)
             {
-                if (Agent.Path[i].DistanceTo(Agent.Path[i - 1]) > 0.08)
+                if (Agent.Path[i].DistanceTo(Agent.Path[i - 1]) > DeformThreshold)
                 {
                     Vector3 pPrev = (Agent.Path[i] + Agent.Path[i - 1]) / 2;
                     contestant.q = Agent.Configs[i];
-                    Vector cPrev = contestant.q + Solver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
+                    Vector cPrev = contestant.q + ControlSolver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
                     contestant.q = cPrev;
                     Vector3[] dkpPrev = contestant.DKP;
 

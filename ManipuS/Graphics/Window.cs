@@ -304,7 +304,12 @@ namespace Graphics
                 }
                 time += dt;
 
-                Manager.Obstacles[0].Move(dt * Vector3.UnitX);
+                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+                {
+                    Manager.Obstacles[0].Move(dt * Vector3.UnitX);
+                    Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                    Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                }
 
                 foreach (var obstacle in Manager.Obstacles)
                 {
@@ -364,7 +369,7 @@ namespace Graphics
                     if (WorkspaceBuffer.ManipBuffer[j].ShowTree)
                     {
                         model = Matrix4.Identity;
-                        foreach (var node in tree[j])  // TODO: node can become null; inspect why
+                        foreach (var node in tree[j])  // TODO: node can become null; reason - Null in Add/Del buffers; inspect why!
                         {
                             if (node.Entity == null)
                                 node.Entity = CreateTreeBranch(node.Point, node.Parent.Point);

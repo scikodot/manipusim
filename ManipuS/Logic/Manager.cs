@@ -67,7 +67,8 @@ namespace Logic
                         break;
                 }
 
-                Manipulators[i].Controller = new MotionController(Obstacles, Manipulators[i], planner, solver);
+                Manipulators[i].Controller = new MotionController(Obstacles, Manipulators[i], planner, solver, 
+                    new Jacobian(AB.Precision, AB.StepSize, AB.MaxTime), 2 * AB.d);
 
                 var manip = Manipulators[i];
                 manip.Attractors = new List<Attractor>();
