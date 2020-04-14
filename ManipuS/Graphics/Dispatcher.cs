@@ -8,7 +8,10 @@ using Logic;
 using System.Threading;
 
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
-public static class Dispatcher
+public static class Dispatcher  // TODO: threads are not synchronized; 
+                                // when FPS drops, the algorithms fall apart because they cannot react to workspace changes in time,
+                                // and that causes poor performance of the whole program
+                                // FIX!!!
 {
     public static List<Task> ActiveTasks = new List<Task>();
 
@@ -26,6 +29,42 @@ public static class Dispatcher
     public static Task[] tasks;
     public static CancellationTokenSource tokenSource = new CancellationTokenSource();
     public static Stopwatch[] timers;
+
+    // obstacles' threads
+    public static Timer obstThread;
+    public static float time = 0;
+    public static bool forward;
+
+    public static void MoveObstacles(object state)
+    {
+        //float delta = 0.01f;
+        //float dt;
+        //if (forward)
+        //{
+        //    dt = delta;
+        //    if (time > 1)
+        //        forward = false;
+        //}
+        //else
+        //{
+        //    dt = -delta;
+        //    if (time < -1)
+        //        forward = true;
+        //}
+        //time += dt;
+
+        //if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+        //{
+        //    Manager.Obstacles[0].Move(dt * Vector3.UnitX);
+        //    Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+        //    Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+        //}
+    }
+
+    public static void RunObstacles()
+    {
+        obstThread = new Timer(MoveObstacles, null, 0, 10);
+    }
 
     public static void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
     {

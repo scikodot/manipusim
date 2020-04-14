@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // Общие сведения об этой сборке предоставляются следующим набором
 // набора атрибутов. Измените значения этих атрибутов, чтобы изменить сведения,
 // связанные со сборкой.
-[assembly: AssemblyTitle("GeneticAlgorithm")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("ManipuS")]
+[assembly: AssemblyDescription("A custom 3D engine for simulating robotic manipulators")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("GeneticAlgorithm")]
-[assembly: AssemblyCopyright("Copyright ©  2019")]
+[assembly: AssemblyProduct("ManipuS")]
+[assembly: AssemblyCopyright("scikodot © 2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

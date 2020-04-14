@@ -35,20 +35,20 @@ namespace Logic.PathPlanning
                 // generating normally distributed value with Box-Muller transform
                 float num = Misc.BoxMullerTransform(Rng, attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
 
-                // extracting the first relevant attractor
+                // extracting the index of the most relevant attractor
+                int index = attractors.NearestIndex(num, a => a.Weight);
                 //int index = attractors.FindIndex(t => t.Weight > num);
                 //if (index == -1)  // clamping weight
                 //    index = attractors.Count - 1;
-                int index = 0;
 
-                float radius = attractors[index].Radius, x, y_pos, y, z_pos, z;
+                float radius = attractors[index].Radius, x, yPos, y, zPos, z;
 
                 // generating point of attraction (inside the attractor's field) for tree
                 x = -radius + (float)Rng.NextDouble() * 2 * radius;
-                y_pos = (float)Math.Sqrt(radius * radius - x * x);
-                y = -y_pos + (float)Rng.NextDouble() * 2 * y_pos;
-                z_pos = (float)Math.Sqrt(radius * radius - x * x - y * y);
-                z = -z_pos + (float)Rng.NextDouble() * 2 * z_pos;
+                yPos = (float)Math.Sqrt(radius * radius - x * x);
+                y = -yPos + (float)Rng.NextDouble() * 2 * yPos;
+                zPos = (float)Math.Sqrt(radius * radius - x * x - y * y);
+                z = -zPos + (float)Rng.NextDouble() * 2 * zPos;
 
                 Vector3 p = new Vector3(x, y, z) + attractors[index].Center;
 

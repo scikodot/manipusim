@@ -36,6 +36,7 @@ namespace Logic.PathPlanning
         {
             public List<Node> Nodes;  // TODO: make private
             public List<Branch> Childs;  // TODO: make private
+            public Entity Entity;
 
             public Node First => Nodes[0];
             public Node Last => Nodes[Nodes.Count - 1];
@@ -115,7 +116,6 @@ namespace Logic.PathPlanning
             }
         }
 
-        //public List<List<Node>> Layers;  // TODO: create indexer, make layers private
         public Branch MainBranch;
         public Queue<Node> AddBuffer, DelBuffer;
         public int Count, LayersAdded;

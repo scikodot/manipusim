@@ -4,7 +4,7 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace Graphics
 {
-    public class Entity
+    public class Entity  // TODO: add methods for updating entity state, because redefinition is not a good idea
     {
         public int VAO, VBO, EBO;
         public Shader Shader;
@@ -41,6 +41,12 @@ namespace Graphics
             GL.EnableVertexAttribArray(ColAttrib);
 
             GL.BindVertexArray(0);
+        }
+
+        public void Update(float[] data)
+        {
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+            GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
         }
 
         public void Display(Matrix4 model, Action draw, bool transpose = false)

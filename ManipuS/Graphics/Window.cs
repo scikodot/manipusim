@@ -74,14 +74,14 @@ namespace Graphics
         private static string LinkPath = SolutionDirectory + @"\Resources\Models\manipulator\Link.obj";
         private static string JointPath = SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
         private static string GripperPath = SolutionDirectory + @"\Resources\Models\manipulator\Gripper.obj";
-        
-        private float time = 0;
-        private bool forward;
+
+        public static float time = 0;
+        public static bool forward;
         private bool ManipLoaded = false;
 
         // 3D model
         Model Crytek;
-        static Shader lineShader;
+        public static Shader lineShader;
 
         public Window(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
@@ -307,8 +307,8 @@ namespace Graphics
                 if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
                 {
                     Manager.Obstacles[0].Move(dt * Vector3.UnitX);
-                    Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                    Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
                 }
 
                 foreach (var obstacle in Manager.Obstacles)
@@ -316,24 +316,24 @@ namespace Graphics
                     obstacle.Draw(lineShader, true);
                 }
 
-                for (int j = 0; j < Manager.Manipulators.Length; j++)
+                for (int i = 0; i < Manager.Manipulators.Length; i++)
                 {
-                    Manipulator manip = Manager.Manipulators[j];
+                    Manipulator manip = Manager.Manipulators[i];
 
                     // goal
-                    if (goal[j] == null)
+                    if (goal[i] == null)
                     {
                         if (manip.States["Goal"])
                         {
                             List<Vector3> MainAttr = new List<Vector3> { manip.Attractors[0].Center };
                             MainAttr.AddRange(manip.Attractors[0].Area);
-                            goal[j] = new Entity(lineShader, Utils.GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
+                            goal[i] = new Entity(lineShader, Utils.GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
                         }
                     }
                     else
                     {
                         model = Matrix4.Identity;
-                        goal[j].Display(model, () =>
+                        goal[i].Display(model, () =>
                         {
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
@@ -343,14 +343,14 @@ namespace Graphics
                     }
 
                     // path
-                    if (manip.States["Path"] && manip.Path != null)
+                    if (manip.States["Path"] && manip.Path != null)  // TODO: entities should be retained! meanwhile only their content may be changed
                     {
                         // path may change at any time in control thread; GetRange() guarantees thread sync
                         int count = manip.Path.Count;
-                        path[j] = new Entity(lineShader, Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
+                        path[i] = new Entity(lineShader, Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
 
                         model = Matrix4.Identity;
-                        path[j].Display(model, () =>
+                        path[i].Display(model, () =>
                         {
                             GL.DrawArrays(PrimitiveType.LineStrip, 0, count);
                         });
@@ -360,16 +360,16 @@ namespace Graphics
                     if (manip.Tree != null)
                     {
                         // add all elements from addition buffer to the hash set
-                        tree[j].UnionWith(manip.Tree.AddBuffer.DequeueAll());
+                        tree[i].UnionWith(manip.Tree.AddBuffer.DequeueAll());
 
                         // delete all elements contained in deletion buffer from the hash set
-                        tree[j].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
+                        tree[i].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
                     }
 
-                    if (WorkspaceBuffer.ManipBuffer[j].ShowTree)
+                    if (WorkspaceBuffer.ManipBuffer[i].ShowTree)
                     {
                         model = Matrix4.Identity;
-                        foreach (var node in tree[j])  // TODO: node can become null; reason - Null in Add/Del buffers; inspect why!
+                        foreach (var node in tree[i])  // TODO: node can become null; reason - Null in Add/Del buffers; inspect why!
                         {
                             if (node.Entity == null)
                                 node.Entity = CreateTreeBranch(node.Point, node.Parent.Point);
@@ -482,6 +482,8 @@ namespace Graphics
                                 Dispatcher.UpdateThreads();
                                 ManipLoaded = true;
                                 //Crytek = new Model(ManipPath);
+
+                                Dispatcher.RunObstacles();
                             }));
                         }
 
