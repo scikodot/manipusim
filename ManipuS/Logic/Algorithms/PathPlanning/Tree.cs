@@ -7,6 +7,12 @@ using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
+    public enum TreeBehaviour
+    {
+        Cyclic = 0,
+        Recursive = 1
+    }
+
     public class Tree
     {
         public class Node  // cannot be a struct, because cyclic references (Node Parent) are not supported by structs
@@ -50,15 +56,18 @@ namespace Logic.PathPlanning
 
         public HashSet<Node> Nodes;
         public Queue<Node> AddBuffer, DelBuffer;
+        public TreeBehaviour Mode;
 
         public int Count => Nodes.Count;
 
-        public Tree(Node root)
+        public Tree(Node root, TreeBehaviour mode = TreeBehaviour.Cyclic)
         {
             Nodes = new HashSet<Node> { root };
 
             AddBuffer = new Queue<Node>();
             DelBuffer = new Queue<Node>();
+
+            Mode = mode;
         }
 
         public Node Root => Nodes.First();
@@ -83,10 +92,18 @@ namespace Logic.PathPlanning
             node.Parent.Childs.Remove(node);
 
             // remove all childs of the given node
-            var childs = new List<Node>(node.Childs);
-            foreach (var child in childs)
+            switch (Mode)
             {
-                RemoveNode(child);
+                case TreeBehaviour.Cyclic:
+                    // TODO: implement
+                    break;
+                case TreeBehaviour.Recursive:
+                    var childs = new List<Node>(node.Childs);
+                    foreach (var child in childs)
+                    {
+                        RemoveNode(child);
+                    }
+                    break;
             }
 
             DelBuffer.Enqueue(node);
@@ -140,9 +157,34 @@ namespace Logic.PathPlanning
 
         public void Trim(Obstacle[] obstacles, Manipulator contestant, IKSolver solver)
         {
-            foreach (var child in Root.Childs)
+            switch (Mode)
             {
-                Trim(obstacles, contestant, solver, child);
+                case TreeBehaviour.Cyclic:
+                    var source = new Queue<Node>();
+                    source.Enqueue(Root);
+                    while (source.Count != 0)
+                    {
+                        var childs = new List<Node>(source.Dequeue().Childs);
+                        foreach (var child in childs)
+                        {
+                            contestant.q = child.q;
+                            if (solver.DetectCollisions(contestant, obstacles).Contains(true))
+                            {
+                                RemoveNode(child);
+                            }
+                            else
+                            {
+                                source.Enqueue(child);
+                            }
+                        }
+                    }
+                    break;
+                case TreeBehaviour.Recursive:
+                    foreach (var child in Root.Childs)
+                    {
+                        Trim(obstacles, contestant, solver, child);
+                    }
+                    break;
             }
         }
 
