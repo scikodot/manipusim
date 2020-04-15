@@ -370,6 +370,8 @@ namespace Graphics
                     {
                         model = Matrix4.Identity;
                         foreach (var node in tree[i])  // TODO: node can become null; reason - Null in Add/Del buffers; inspect why!
+                                                       // this may be a problem with either thread communication, or queue extension,
+                                                       // because internally in tree no Null appears (tested on a single manipulator)
                         {
                             if (node.Entity == null)
                                 node.Entity = CreateTreeBranch(node.Point, node.Parent.Point);

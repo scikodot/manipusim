@@ -132,16 +132,16 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
             Goal = new System.Numerics.Vector3(0, 0.5f, -1f),
             ShowTree = true
         },
-        new ManipData
-        {
-            N = 3,
-            Links = LinkBuffer.ToArray(),
-            Joints = JointBuffer.ToArray(),
-            JointAxes = JointAxes[0].ToArray(),
-            JointPositions = JointPositions[1].ToArray(),
-            Goal = new System.Numerics.Vector3(0, 0.5f, 1f),
-            ShowTree = true
-        }
+        //new ManipData
+        //{
+        //    N = 3,
+        //    Links = LinkBuffer.ToArray(),
+        //    Joints = JointBuffer.ToArray(),
+        //    JointAxes = JointAxes[0].ToArray(),
+        //    JointPositions = JointPositions[1].ToArray(),
+        //    Goal = new System.Numerics.Vector3(0, 0.5f, 1f),
+        //    ShowTree = true
+        //}
         //new ManipData
         //{
         //    N = 6,

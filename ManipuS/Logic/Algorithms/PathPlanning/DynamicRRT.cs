@@ -37,9 +37,6 @@ namespace Logic.PathPlanning
 
                 // extracting the index of the most relevant attractor
                 int index = attractors.NearestIndex(num, a => a.Weight);
-                //int index = attractors.FindIndex(t => t.Weight > num);
-                //if (index == -1)  // clamping weight
-                //    index = attractors.Count - 1;
 
                 float radius = attractors[index].Radius, x, yPos, y, zPos, z;
 
