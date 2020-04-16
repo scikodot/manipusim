@@ -4,7 +4,7 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace Graphics
 {
-    public struct Entity  // TODO: add methods for updating entity state, because redefinition is not a good idea
+    public class Entity  // TODO: add methods for updating entity state, because redefinition is not a good idea
     {
         public int VAO, VBO, EBO;
         public Shader Shader;
@@ -76,14 +76,14 @@ namespace Graphics
             GL.DeleteVertexArray(VAO);
         }
 
-        public static bool operator ==(Entity e1, Entity e2)
-        {
-            return e1.VAO == e2.VAO;
-        }
+        //public static bool operator ==(Entity e1, Entity e2)
+        //{
+        //    return e1.VAO == e2.VAO;
+        //}
 
-        public static bool operator !=(Entity e1, Entity e2)
-        {
-            return e1.VAO != e2.VAO;
-        }
+        //public static bool operator !=(Entity e1, Entity e2)
+        //{
+        //    return e1.VAO != e2.VAO;
+        //}
     }
 }

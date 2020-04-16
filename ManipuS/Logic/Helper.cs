@@ -39,7 +39,7 @@ namespace Logic
 
     public class Attractor  // TODO: maybe struct would be better?
     {
-        public Vector3 Center;
+        public Vector3 Center;  // TODO: delete redundant fields!
         public float Weight;
         public Vector3[] Area;
         public float Radius;
