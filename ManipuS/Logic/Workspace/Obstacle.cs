@@ -57,7 +57,7 @@ namespace Logic
 
         public void Draw(Shader shader, bool showCollider = false)
         {
-            if (Entity == null)
+            if (Entity == default)
                 Entity = new Entity(shader, Utils.GL_Convert(Data, Vector4.One));
 
             Matrix4 model = State.ToMatrix(true);

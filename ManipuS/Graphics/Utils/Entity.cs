@@ -4,7 +4,7 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace Graphics
 {
-    public class Entity  // TODO: add methods for updating entity state, because redefinition is not a good idea
+    public struct Entity  // TODO: add methods for updating entity state, because redefinition is not a good idea
     {
         public int VAO, VBO, EBO;
         public Shader Shader;
@@ -30,6 +30,8 @@ namespace Graphics
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
             }
+            else
+                EBO = 0;
 
             // configuring all the needed attributes
             var PosAttrib = Shader.GetAttribLocation("aPos");
@@ -55,6 +57,33 @@ namespace Graphics
             GL.BindVertexArray(VAO);
             Shader.SetMatrix4("model", model, transpose);
             draw();
+        }
+
+        //~Entity()
+        //{
+        //    Dispatcher.ActionsQueue.Enqueue(() =>
+        //    {
+        //        GL.DeleteBuffer(EBO);
+        //        GL.DeleteBuffer(VBO);
+        //        GL.DeleteVertexArray(VAO);
+        //    });
+        //}
+
+        public void Dispose()
+        {
+            GL.DeleteBuffer(EBO);
+            GL.DeleteBuffer(VBO);
+            GL.DeleteVertexArray(VAO);
+        }
+
+        public static bool operator ==(Entity e1, Entity e2)
+        {
+            return e1.VAO == e2.VAO;
+        }
+
+        public static bool operator !=(Entity e1, Entity e2)
+        {
+            return e1.VAO != e2.VAO;
         }
     }
 }

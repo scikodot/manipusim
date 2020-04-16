@@ -4,6 +4,7 @@ using System.Linq;
 using MoreLinq.Extensions;
 using Graphics;
 using Logic.InverseKinematics;
+using System.Collections.Concurrent;
 
 namespace Logic.PathPlanning
 {
@@ -52,10 +53,22 @@ namespace Logic.PathPlanning
                     return hashCode;
                 }
             }
+
+            ~Node()
+            {
+                if (Entity != default)
+                {
+                    Dispatcher.ActionsQueue.Enqueue(() =>
+                    {
+                        Entity.Dispose();
+                        Console.WriteLine($"Disposed entity: VAO - {Entity.VAO}, VBO - {Entity.VBO}");
+                    });
+                }
+            }
         }
 
         public HashSet<Node> Nodes;
-        public Queue<Node> AddBuffer, DelBuffer;
+        public ConcurrentQueue<Node> AddBuffer, DelBuffer;
         public TreeBehaviour Mode;
 
         public int Count => Nodes.Count;
@@ -64,8 +77,8 @@ namespace Logic.PathPlanning
         {
             Nodes = new HashSet<Node> { root };
 
-            AddBuffer = new Queue<Node>();
-            DelBuffer = new Queue<Node>();
+            AddBuffer = new ConcurrentQueue<Node>();
+            DelBuffer = new ConcurrentQueue<Node>();
 
             Mode = mode;
         }
@@ -85,25 +98,46 @@ namespace Logic.PathPlanning
 
         public void RemoveNode(Node node)
         {
+            switch (Mode)
+            {
+                case TreeBehaviour.Cyclic:
+                    var source = new Queue<Node>();
+                    source.Enqueue(node);
+                    while (source.Count != 0)
+                    {
+                        var nodeCurrent = source.Dequeue();
+
+                        // remove the current node from the base list
+                        Nodes.Remove(nodeCurrent);
+
+                        // remove the current node from the parent's childs list
+                        nodeCurrent.Parent.Childs.Remove(nodeCurrent);
+
+                        // add childs of the current node to the deletion queue
+                        source.EnqueueBatch(nodeCurrent.Childs);
+
+                        DelBuffer.Enqueue(nodeCurrent);
+                    }
+                    break;
+                case TreeBehaviour.Recursive:
+                    RemoveNodeRecursive(node);
+                    break;
+            }
+        }
+
+        public void RemoveNodeRecursive(Node node)
+        {
             // remove the node from the base list
             Nodes.Remove(node);
 
             // remove the node from the parent's childs list
             node.Parent.Childs.Remove(node);
 
-            // remove all childs of the given node
-            switch (Mode)
+            // remove all childs of the node
+            var childs = new List<Node>(node.Childs);
+            foreach (var child in childs)
             {
-                case TreeBehaviour.Cyclic:
-                    // TODO: implement
-                    break;
-                case TreeBehaviour.Recursive:
-                    var childs = new List<Node>(node.Childs);
-                    foreach (var child in childs)
-                    {
-                        RemoveNode(child);
-                    }
-                    break;
+                RemoveNodeRecursive(child);
             }
 
             DelBuffer.Enqueue(node);
@@ -139,22 +173,6 @@ namespace Logic.PathPlanning
             // TODO: childs are not updated! fix
         }
 
-        public void Trim(Obstacle[] obstacles, Manipulator contestant, IKSolver solver, Node node)
-        {
-            contestant.q = node.q;
-            if (solver.DetectCollisions(contestant, obstacles).Contains(true))
-            {
-                RemoveNode(node);
-                return;
-            }
-
-            var childs = new List<Node>(node.Childs);
-            foreach (var child in childs)
-            {
-                Trim(obstacles, contestant, solver, child);
-            }
-        }
-
         public void Trim(Obstacle[] obstacles, Manipulator contestant, IKSolver solver)
         {
             switch (Mode)
@@ -182,9 +200,25 @@ namespace Logic.PathPlanning
                 case TreeBehaviour.Recursive:
                     foreach (var child in Root.Childs)
                     {
-                        Trim(obstacles, contestant, solver, child);
+                        TrimRecursive(obstacles, contestant, solver, child);
                     }
                     break;
+            }
+        }
+
+        public void TrimRecursive(Obstacle[] obstacles, Manipulator contestant, IKSolver solver, Node node)
+        {
+            contestant.q = node.q;
+            if (solver.DetectCollisions(contestant, obstacles).Contains(true))
+            {
+                RemoveNode(node);
+                return;
+            }
+
+            var childs = new List<Node>(node.Childs);
+            foreach (var child in childs)
+            {
+                TrimRecursive(obstacles, contestant, solver, child);
             }
         }
 

@@ -72,7 +72,7 @@ namespace Logic
         // draw method for latitudinal circles
         public override void Draw(Shader shader, Matrix4 model)
         {
-            if (Entity == null)
+            if (Entity == default)
                 Entity = new Entity(shader, Utils.GL_Convert(Data, new Vector4(Vector3.UnitY, 1.0f)), indicesLongitude);
 
             Entity.Display(model, () =>

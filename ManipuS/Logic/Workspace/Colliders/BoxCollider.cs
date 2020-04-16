@@ -93,7 +93,7 @@ namespace Logic
 
         public override void Draw(Shader shader, Matrix4 model)
         {
-            if (Entity == null)
+            if (Entity == default)
                 Entity = new Entity(shader, Utils.GL_Convert(Data, new Vector4(Vector3.UnitY, 1.0f)), new uint[]
                 {
                     0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4

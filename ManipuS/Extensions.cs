@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Logic;
@@ -70,6 +71,31 @@ public static class QueueExtensions
         for (int i = 0; i < count; i++)
         {
             yield return queue.Dequeue();
+        }
+    }
+}
+
+public static class ConcurrentQueueExtensions
+{
+    public static void EnqueueBatch<T>(this ConcurrentQueue<T> queue, IEnumerable<T> batch)
+    {
+        var enumerator = batch.GetEnumerator();
+        while (enumerator.MoveNext())
+        {
+            queue.Enqueue(enumerator.Current);
+        }
+    }
+
+    public static IEnumerable<T> DequeueAll<T>(this ConcurrentQueue<T> queue)  // TODO: define a maximum update rate (e.g. max 100 dequeues at once),
+                                                                               // because otherwise dequeuing would cause freezes
+    {
+        var count = queue.Count;
+        for (int i = 0; i < count; i++)
+        {
+            if (queue.TryDequeue(out T current))
+            {
+                yield return current;
+            }
         }
     }
 }

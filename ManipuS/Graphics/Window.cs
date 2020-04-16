@@ -131,9 +131,13 @@ namespace Graphics
 
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.ActionsQueue.Count;
+            if (count > 10)  // clamp amount of executing actions to get rid of microfreezes
+                count = 10;
+
             for (int i = 0; i < count; i++)
             {
-                var action = Dispatcher.ActionsQueue.Dequeue();
+                //var action = Dispatcher.ActionsQueue.Dequeue();
+                Dispatcher.ActionsQueue.TryDequeue(out Action action);
                 action();
             }
 
@@ -289,27 +293,27 @@ namespace Graphics
 
             if (ManipLoaded)
             {
-                float dt;
-                if (forward)
-                {
-                    dt = (float)e.Time;
-                    if (time > 1)
-                        forward = false;
-                }
-                else
-                {
-                    dt = -(float)e.Time;
-                    if (time < -1)
-                        forward = true;
-                }
-                time += dt;
+                //float dt;
+                //if (forward)
+                //{
+                //    dt = (float)e.Time;
+                //    if (time > 1)
+                //        forward = false;
+                //}
+                //else
+                //{
+                //    dt = -(float)e.Time;
+                //    if (time < -1)
+                //        forward = true;
+                //}
+                //time += dt;
 
-                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-                {
-                    Manager.Obstacles[0].Move(dt * Vector3.UnitX);
-                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-                }
+                //if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+                //{
+                //    Manager.Obstacles[0].Move(dt * Vector3.UnitX);
+                //    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                //    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                //}
 
                 foreach (var obstacle in Manager.Obstacles)
                 {
@@ -321,7 +325,7 @@ namespace Graphics
                     Manipulator manip = Manager.Manipulators[i];
 
                     // goal
-                    if (goal[i] == null)
+                    if (goal[i] == default)
                     {
                         if (manip.States["Goal"])
                         {
@@ -343,11 +347,22 @@ namespace Graphics
                     }
 
                     // path
-                    if (manip.States["Path"] && manip.Path != null)  // TODO: entities should be retained! meanwhile only their content may be changed
+                    if (manip.States["Path"])  // TODO: entities should be retained! meanwhile only their content may be changed
                     {
-                        // path may change at any time in control thread; GetRange() guarantees thread sync
                         int count = manip.Path.Count;
-                        path[i] = new Entity(lineShader, Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f)));
+                        float[] data = Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f));
+                        if (manip.Path != null)
+                        {
+                            if (path[i] == default)
+                            {
+                                // path may change at any time in control thread; GetRange() guarantees thread sync
+                                path[i] = new Entity(lineShader, data);
+                            }
+                            else
+                            {
+                                path[i].Update(data);
+                            }
+                        }
 
                         model = Matrix4.Identity;
                         path[i].Display(model, () =>
@@ -360,7 +375,17 @@ namespace Graphics
                     if (manip.Tree != null)
                     {
                         // add all elements from addition buffer to the hash set
+                        if (manip.Tree.AddBuffer.Contains(null))
+                        {
+                            int a = 2;  // here, Null does not appear
+                        }
                         tree[i].UnionWith(manip.Tree.AddBuffer.DequeueAll());
+                        if (manip.Tree.AddBuffer.Contains(null))
+                        {
+                            int a = 2;  // and here Null appears; 
+                                        // seems like AddBuffer loses reference while trimming the tree,
+                                        // though it's still not clear why; maybe finalization of a node?
+                        }
 
                         // delete all elements contained in deletion buffer from the hash set
                         tree[i].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
@@ -373,7 +398,7 @@ namespace Graphics
                                                        // this may be a problem with either thread communication, or queue extension,
                                                        // because internally in tree no Null appears (tested on a single manipulator)
                         {
-                            if (node.Entity == null)
+                            if (node.Entity == default)
                                 node.Entity = CreateTreeBranch(node.Point, node.Parent.Point);
 
                             node.Entity.Display(model, () =>
