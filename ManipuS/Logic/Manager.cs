@@ -47,7 +47,7 @@ namespace Logic
                 switch (AB.PathPlannerID)
                 {
                     case 0:
-                        planner = new DynamicRRT(AB.k, false, AB.d, AB.k / 100);
+                        planner = new DynamicRRT(AB.k, false, AB.d, AB.k / 10);
                         break;
                     case 1:
                         throw new NotImplementedException("The Genetic algorithm planner is not yet implemented!");

@@ -51,16 +51,16 @@ namespace Logic
         }
     }
 
-    public static class Misc
-    {
-        public static float BoxMullerTransform(Random rng, float mu, float sigma)
-        {
-            double phi = rng.NextDouble();
-            double r = 1 - rng.NextDouble();  // exclude zero
-            float z = (float)(Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r)));
-            return mu + sigma * z;
-        }
-    }
+    //public static class Misc
+    //{
+    //    public static float BoxMullerTransform(float mu, float sigma)
+    //    {
+    //        double phi = Dispatcher.Rng.NextDouble();
+    //        double r = 1 - Dispatcher.Rng.NextDouble();  // exclude zero
+    //        float z = (float)(Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r)));
+    //        return mu + sigma * z;
+    //    }
+    //}
 
     public static class Primitives
     {

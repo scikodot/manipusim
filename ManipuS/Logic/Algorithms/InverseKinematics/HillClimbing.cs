@@ -11,7 +11,7 @@ namespace Logic.InverseKinematics
         {
             // initial parameters
             Vector qBest = agent.q;
-            float dist = agent.DKP[joint].DistanceTo(goal), init_dist = dist, k = 1;
+            float dist = agent.Joints[joint].Position.DistanceTo(goal), init_dist = dist, k = 1;
             float minDist = float.PositiveInfinity;
             bool Converged = false;
 
@@ -36,7 +36,7 @@ namespace Logic.InverseKinematics
 
                 // retrieving score of the new configuration
                 agent.q = qBest + dq;
-                float distNew = agent.DKP[joint].DistanceTo(goal);
+                float distNew = agent.Joints[joint].Position.DistanceTo(goal);
 
                 if (distNew < dist)
                 {

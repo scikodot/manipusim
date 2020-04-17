@@ -1,9 +1,11 @@
-﻿using Logic;
-using System;
+﻿using System;
 using System.Linq;
+using System.Numerics;
+
+using Logic;
 
 // buffer that accepts input data from the GUI, which is later used by the Manager
-public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.Vectors?
+public class WorkspaceBuffer
 {
     public static LinkData[] LinkBuffer =
     {
@@ -15,62 +17,62 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         //new LinkData { Length = 1 },
     };
 
-    public static System.Numerics.Vector3[][] JointAxes =
+    public static Vector3[][] JointAxes =
     {
-        new System.Numerics.Vector3[]
+        new Vector3[]
         {
-            System.Numerics.Vector3.UnitY,
-            System.Numerics.Vector3.UnitZ,
-            System.Numerics.Vector3.UnitZ,
-            System.Numerics.Vector3.UnitY,
+            Vector3.UnitY,
+            Vector3.UnitZ,
+            Vector3.UnitZ,
+            Vector3.UnitY,
         }
         //new System.Numerics.Vector3[]
         //{
-        //    System.Numerics.Vector3.UnitY,
-        //    System.Numerics.Vector3.UnitX,
-        //    System.Numerics.Vector3.UnitZ,
-        //    System.Numerics.Vector3.UnitX,
-        //    System.Numerics.Vector3.UnitZ,
-        //    System.Numerics.Vector3.UnitX,
-        //    System.Numerics.Vector3.UnitY,
+        //    Vector3.UnitY,
+        //    Vector3.UnitX,
+        //    Vector3.UnitZ,
+        //    Vector3.UnitX,
+        //    Vector3.UnitZ,
+        //    Vector3.UnitX,
+        //    Vector3.UnitY,
         //},
     };
 
-    public static System.Numerics.Vector3[][] JointPositions =
+    public static Vector3[][] JointPositions =
     {
-        new System.Numerics.Vector3[]
+        new Vector3[]
         {
-            new System.Numerics.Vector3(1, 0, 1),
-            new System.Numerics.Vector3(1, 1.4f, 1),
-            new System.Numerics.Vector3(1, 2.8f, 1),
-            new System.Numerics.Vector3(1, 4.1f, 1),
+            new Vector3(1, 0, 1),
+            new Vector3(1, 1.4f, 1),
+            new Vector3(1, 2.8f, 1),
+            new Vector3(1, 4.1f, 1),
         },
-        new System.Numerics.Vector3[]
+        new Vector3[]
         {
-            new System.Numerics.Vector3(-1, 0, -1),
-            new System.Numerics.Vector3(-1, 1.4f, -1),
-            new System.Numerics.Vector3(-1, 2.8f, -1),
-            new System.Numerics.Vector3(-1, 4.1f, -1),
-        }
-        //new System.Numerics.Vector3[]
+            new Vector3(-1, 0, -1),
+            new Vector3(-1, 1.4f, -1),
+            new Vector3(-1, 2.8f, -1),
+            new Vector3(-1, 4.1f, -1),
+        },
+        //new Vector3[]
         //{
-        //    new System.Numerics.Vector3(2, 0, -2),
-        //    new System.Numerics.Vector3(2, 1.4f, -2),
-        //    new System.Numerics.Vector3(2, 2.8f, -2),
-        //    new System.Numerics.Vector3(2, 4.2f, -2),
-        //    new System.Numerics.Vector3(2, 5.6f, -2),
-        //    new System.Numerics.Vector3(2, 7.0f, -2),
-        //    new System.Numerics.Vector3(2, 8.3f, -2),
+        //    new Vector3(2, 0, -2),
+        //    new Vector3(2, 1.4f, -2),
+        //    new Vector3(2, 2.8f, -2),
+        //    new Vector3(2, 4.2f, -2),
+        //    new Vector3(2, 5.6f, -2),
+        //    new Vector3(2, 7.0f, -2),
+        //    new Vector3(2, 8.3f, -2),
         //},
-        //new System.Numerics.Vector3[]
+        //new Vector3[]
         //{
-        //    new System.Numerics.Vector3(-2, 0, 2),
-        //    new System.Numerics.Vector3(-2, 1.4f, 2),
-        //    new System.Numerics.Vector3(-2, 2.8f, 2),
-        //    new System.Numerics.Vector3(-2, 4.2f, 2),
-        //    new System.Numerics.Vector3(-2, 5.6f, 2),
-        //    new System.Numerics.Vector3(-2, 7.0f, 2),
-        //    new System.Numerics.Vector3(-2, 8.3f, 2),
+        //    new Vector3(-2, 0, 2),
+        //    new Vector3(-2, 1.4f, 2),
+        //    new Vector3(-2, 2.8f, 2),
+        //    new Vector3(-2, 4.2f, 2),
+        //    new Vector3(-2, 5.6f, 2),
+        //    new Vector3(-2, 7.0f, 2),
+        //    new Vector3(-2, 8.3f, 2),
         //},
     };
 
@@ -80,43 +82,43 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180)
+            qRanges = new Vector2(-180, 180)
         },
         new JointData
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180)
+            qRanges = new Vector2(-180, 180)
         },
         new JointData
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180)
+            qRanges = new Vector2(-180, 180)
         },
         //new JointData
         //{
         //    Length = 0.4f,
         //    q = 0,
-        //    qRanges = new System.Numerics.Vector2(-180, 180),
+        //    qRanges = new Vector2(-180, 180),
         //},
         //new JointData
         //{
         //    Length = 0.4f,
         //    q = 0,
-        //    qRanges = new System.Numerics.Vector2(-180, 180),
+        //    qRanges = new Vector2(-180, 180),
         //},
         //new JointData
         //{
         //    Length = 0.4f,
         //    q = 0,
-        //    qRanges = new System.Numerics.Vector2(-180, 180),
+        //    qRanges = new Vector2(-180, 180),
         //},
         new JointData
         {
             Length = 0.2f,
             q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180)
+            qRanges = new Vector2(-180, 180)
         }
     };
 
@@ -129,7 +131,7 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
             Joints = JointBuffer.ToArray(),
             JointAxes = JointAxes[0].ToArray(),
             JointPositions = JointPositions[0].ToArray(),
-            Goal = new System.Numerics.Vector3(0, 0.5f, -1f),
+            Goal = new Vector3(0, 0.5f, -1f),
             ShowTree = true
         },
         //new ManipData
@@ -139,9 +141,9 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         //    Joints = JointBuffer.ToArray(),
         //    JointAxes = JointAxes[0].ToArray(),
         //    JointPositions = JointPositions[1].ToArray(),
-        //    Goal = new System.Numerics.Vector3(0, 0.5f, 1f),
+        //    Goal = new Vector3(0, 0.5f, 1f),
         //    ShowTree = true
-        //}
+        //},
         //new ManipData
         //{
         //    N = 6,
@@ -149,7 +151,7 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         //    Joints = JointBuffer.ToArray(),
         //    JointAxes = JointAxes[0].ToArray(),
         //    JointPositions = JointPositions[0].ToArray(),
-        //    Goal = new System.Numerics.Vector3(-1f, 3f, 1f),
+        //    Goal = new Vector3(-1f, 3f, 1f),
         //    ShowTree = true
         //},
         //new ManipData
@@ -159,7 +161,7 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         //    Joints = JointBuffer.ToArray(),
         //    JointAxes = JointAxes[0].ToArray(),
         //    JointPositions = JointPositions[1].ToArray(),
-        //    Goal = new System.Numerics.Vector3(-1f, 5f, -2f),
+        //    Goal = new Vector3(-1f, 5f, -2f),
         //    ShowTree = true
         //},
     };
@@ -169,60 +171,56 @@ public class WorkspaceBuffer  // TODO: replace our Vectors with System.Numerics.
         new ObstData
         {
             Radius = 0.5f,
-            Center = new System.Numerics.Vector3(0, 2, 0),
+            Center = new Vector3(0, 2, 0),
             PointsNum = 2000,
             ShowCollider = true
         },
-        /*new ObstData
-        {
-            r = 1,
-            c = new System.Numerics.Vector3(-2.2f, 3.5f, 0),
-            points_num = 2000,
-
-            ShowBounding = true
-        },
-        new ObstData
-        {
-            r = 1,
-            c = new System.Numerics.Vector3(-2.2f, 0f, -1.5f),
-            points_num = 2000,
-
-            ShowBounding = true
-        },
-        new ObstData
-        {
-            r = 2.5f,
-            c = new System.Numerics.Vector3(0, 1f, -6f),
-            points_num = 6000,
-
-            ShowBounding = true
-        },
-        new ObstData
-        {
-            r = 0.75f,
-            c = new System.Numerics.Vector3(-1.6f, 2f, -2f),
-            points_num = 1500,
-
-            ShowBounding = true
-        }*/
+        //new ObstData
+        //{
+        //    Radius = 1,
+        //    Center = new Vector3(-2.2f, 3.5f, 0),
+        //    PointsNum = 2000,
+        //    ShowCollider = true
+        //},
+        //new ObstData
+        //{
+        //    Radius = 1,
+        //    Center = new Vector3(-2.2f, 0f, -1.5f),
+        //    PointsNum = 2000,
+        //    ShowCollider = true
+        //},
+        //new ObstData
+        //{
+        //    Radius = 2.5f,
+        //    Center = new Vector3(0, 1f, -6f),
+        //    PointsNum = 6000,
+        //    ShowCollider = true
+        //},
+        //new ObstData
+        //{
+        //    Radius = 0.75f,
+        //    Center = new Vector3(-1.6f, 2f, -2f),
+        //    PointsNum = 1500,
+        //    ShowCollider = true
+        //},
         //new ObstData
         //{
         //    Radius = 1f,
-        //    Center = new System.Numerics.Vector3(0, 4, -1),
+        //    Center = new Vector3(0, 4, -1),
         //    PointsNum = 2000,
         //    ShowCollider = true
         //},
         //new ObstData
         //{
         //    Radius = 0.75f,
-        //    Center = new System.Numerics.Vector3(0, 5, 0),
+        //    Center = new Vector3(0, 5, 0),
         //    PointsNum = 3000,
         //    ShowCollider = true
         //},
         //new ObstData
         //{
         //    Radius = 0.5f,
-        //    Center = new System.Numerics.Vector3(-1, 8, 0),
+        //    Center = new Vector3(-1, 8, 0),
         //    PointsNum = 1500,
         //    ShowCollider = true
         //},

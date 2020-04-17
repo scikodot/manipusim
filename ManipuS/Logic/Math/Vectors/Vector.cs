@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Logic
@@ -9,29 +10,15 @@ namespace Logic
 
         public float this[int index]
         {
-            get
-            {
-                return Components[index];
-            }
-            set
-            {
-                Components[index] = value;
-            }
+            get => Components[index];
+            set => Components[index] = value;
         }
-
-        public static Vector Null => new Vector();
 
         public int Size => Components.Length;
 
-        public float Length => (float)Math.Sqrt(Components.Sum(x => x * x));
-
-        public float LengthSquared => Components.Sum(x => x * x);
-
-        public Vector Normalized => this / Length;
-
-        public Vector(int size = 0)
+        public Vector(int size)
         {
-            Components = size == 0 ? null : new float[size];
+            Components = new float[size];
         }
 
         public Vector(params float[] components)

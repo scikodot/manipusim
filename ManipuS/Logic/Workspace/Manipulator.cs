@@ -136,8 +136,6 @@ namespace Logic
             Links = Array.ConvertAll(data.Links, x => new Link(x));
             Joints = Array.ConvertAll(data.Joints, x => new Joint(x));
 
-            //InitialAxes = Array.ConvertAll(data.JointAxes, x => (Vector3)x);  //Array.ConvertAll(data.Joints, x => (Vector3)x.Axis);
-            //InitialPositions = Array.ConvertAll(data.JointPositions, x => (Vector3)x); //Array.ConvertAll(data.Joints, x => (Vector3)x.Position);
             InitialAxes = data.JointAxes;
             InitialPositions = data.JointPositions;
 
@@ -146,6 +144,8 @@ namespace Logic
                 Joints[i].Axis = data.JointAxes[i];
                 Joints[i].Position = data.JointPositions[i];
             }
+
+            _q = new Vector(Joints.Select(x => x.q).ToArray());
 
             UpdateState();
 
@@ -162,6 +162,8 @@ namespace Logic
 
         public void UpdateState()
         {
+            DKP = new Vector3[Joints.Length];
+
             ImpDualQuat quat;
             ImpDualQuat init = new ImpDualQuat(Base);
 
@@ -182,7 +184,7 @@ namespace Logic
 
                 Joints[i].State = quat;
                 Joints[i].Axis = quat.Rotate(Joints[0].Axis);
-                Joints[i].Position = quat.Translation;
+                Joints[i].Position = DKP[i] = quat.Translation;
             }
 
             // links
@@ -202,22 +204,22 @@ namespace Logic
             }
 
             // gripper
-            GripperPos = Joints[Joints.Length - 1].Position;
+            GripperPos = DKP[Joints.Length - 1];
         }
 
-        public Vector3 GripperPos { get; private set; }  // TODO: replace with Vector<Vector3>
+        public Vector3 GripperPos { get; private set; }
 
-        public Vector3[] DKP => Joints.Select(x => x.Position).ToArray();
+        public Vector3[] DKP { get; private set; }
 
+        private Vector _q;
         public Vector q
         {
-            get => new Vector(Array.ConvertAll(Joints, x => x.q));
+            get => _q;
             set
             {
+                _q = value;
                 for (int i = 0; i < Joints.Length; i++)
-                {
                     Joints[i].q = value[i];
-                }
 
                 UpdateState();
             }

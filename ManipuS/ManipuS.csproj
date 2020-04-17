@@ -95,17 +95,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extensions.cs" />
-    <Compile Include="Graphics\Camera.cs" />
-    <Compile Include="Graphics\Dispatcher.cs" />
-    <Compile Include="Graphics\ImGui\ImGuiController.cs" />
-    <Compile Include="Graphics\ImGui\ImGuiShader.cs" />
-    <Compile Include="Graphics\ImGui\ImGuiTexture.cs" />
-    <Compile Include="Graphics\Mesh.cs" />
-    <Compile Include="Graphics\Model.cs" />
+    <Compile Include="Common\Extensions.cs" />
+    <Compile Include="Graphics\Scene\Camera.cs" />
+    <Compile Include="Common\Dispatcher.cs" />
+    <Compile Include="Graphics\ImGUI\ImGuiController.cs" />
+    <Compile Include="Graphics\ImGUI\ImGuiShader.cs" />
+    <Compile Include="Graphics\ImGUI\ImGuiTexture.cs" />
+    <Compile Include="Graphics\Scene\Model\Mesh.cs" />
+    <Compile Include="Graphics\Scene\Model\Model.cs" />
     <Compile Include="Graphics\Utils\Utils.cs" />
     <Compile Include="Graphics\Utils\Entity.cs" />
-    <Compile Include="Graphics\WorkspaceBuffer.cs" />
+    <Compile Include="Common\WorkspaceBuffer.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\_base.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\HillClimbing.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\Jacobian.cs" />
@@ -116,17 +116,16 @@
     <Compile Include="Logic\Algorithms\PathPlanning\Tree.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\_base.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
-    <Compile Include="Graphics\ImGui\ImGuiUtil.cs" />
-    <Compile Include="Logic\Math\DualQuat.cs" />
+    <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
+    <Compile Include="Logic\Math\Quaternions\DualQuat.cs" />
+    <Compile Include="Logic\Math\Special\ProbabilityTheory.cs" />
     <Compile Include="Logic\Workspace\Manipulator.cs" />
-    <Compile Include="Logic\Math\ImpDualQuat.cs" />
-    <Compile Include="Logic\Math\Matrix.cs" />
-    <Compile Include="Logic\Math\Matrix3.cs" />
-    <Compile Include="Logic\Math\Matrix4.cs" />
-    <Compile Include="Logic\Math\Quaternion.cs" />
-    <Compile Include="Logic\Math\Vector.cs" />
-    <Compile Include="Logic\Math\Vector3.cs" />
-    <Compile Include="Logic\Math\Vector4.cs" />
+    <Compile Include="Logic\Math\Quaternions\ImpDualQuat.cs" />
+    <Compile Include="Logic\Math\Matrices\Matrix.cs" />
+    <Compile Include="Logic\Math\Matrices\Matrix3.cs" />
+    <Compile Include="Logic\Math\Matrices\Matrix4.cs" />
+    <Compile Include="Logic\Math\Quaternions\Quaternion.cs" />
+    <Compile Include="Logic\Math\Vectors\Vector.cs" />
     <Compile Include="Logic\Workspace\Obstacle.cs" />
     <Compile Include="Logic\Manager.cs" />
     <Compile Include="Logic\Helper.cs" />
@@ -135,8 +134,8 @@
     <Compile Include="Logic\Workspace\Colliders\_base.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Graphics\Shader.cs" />
-    <Compile Include="Graphics\Texture.cs" />
+    <Compile Include="Graphics\Shader\Shader.cs" />
+    <Compile Include="Graphics\Texture\Texture.cs" />
     <Compile Include="Graphics\Window.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -160,9 +159,9 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <None Include="Graphics\Shaders\FragmentShader.glsl" />
-    <None Include="Graphics\Shaders\LineShader.glsl" />
-    <None Include="Graphics\Shaders\VertexShader.glsl" />
+    <None Include="Graphics\Shader\Shaders\FragmentShader.glsl" />
+    <None Include="Graphics\Shader\Shaders\LineShader.glsl" />
+    <None Include="Graphics\Shader\Shaders\VertexShader.glsl" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

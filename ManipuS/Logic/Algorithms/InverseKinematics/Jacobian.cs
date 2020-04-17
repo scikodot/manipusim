@@ -11,13 +11,13 @@ namespace Logic.InverseKinematics
             Vector initConfig = agent.q;
             for (int j = 0; j < 4; j++)
             {
-                Vector3 grip = agent.DKP[joint];
-                Vector3 error = goal - grip;
+                Vector3 jointPos = agent.Joints[joint].Position;
+                Vector3 error = goal - jointPos;
 
                 Vector[] data = new Vector[joint + 1];
                 for (int i = 0; i <= joint; i++)
                 {
-                    var elem = Vector3.Cross(agent.Joints[i].Axis, grip - agent.Joints[i].Position);
+                    var elem = Vector3.Cross(agent.Joints[i].Axis, jointPos - agent.Joints[i].Position);
                     if (elem != Vector3.Zero)
                         elem = Vector3.Normalize(elem);
                     data[i] = new Vector(
@@ -44,7 +44,7 @@ namespace Logic.InverseKinematics
 
             // checking for collisions of the found configuration
             bool[] collisions = DetectCollisions(agent, Obstacles);
-            var dist = agent.DKP[joint].DistanceTo(goal);
+            var dist = agent.Joints[joint].Position.DistanceTo(goal);
 
             return (true, dist, agent.q - initConfig, collisions);
         }

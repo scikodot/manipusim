@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Diagnostics;
-using Logic;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Numerics;
+using System.Diagnostics;
+
+using Logic;
 
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
 public static class Dispatcher  // TODO: threads are not synchronized; 
@@ -38,28 +39,28 @@ public static class Dispatcher  // TODO: threads are not synchronized;
 
     public static void MoveObstacles(object state)
     {
-        float delta = 0.01f;
-        float dt;
-        if (forward)
-        {
-            dt = delta;
-            if (time > 1)
-                forward = false;
-        }
-        else
-        {
-            dt = -delta;
-            if (time < -1)
-                forward = true;
-        }
-        time += dt;
+        //float delta = 0.01f;
+        //float dt;
+        //if (forward)
+        //{
+        //    dt = delta;
+        //    if (time > 1)
+        //        forward = false;
+        //}
+        //else
+        //{
+        //    dt = -delta;
+        //    if (time < -1)
+        //        forward = true;
+        //}
+        //time += dt;
 
-        if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-        {
-            Manager.Obstacles[0].Move(dt * Vector3.UnitX);
-            //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-            //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-        }
+        //if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+        //{
+        //    Manager.Obstacles[0].Move(dt * Vector3.UnitX);
+        //    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+        //    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+        //}
     }
 
     public static void RunObstacles()

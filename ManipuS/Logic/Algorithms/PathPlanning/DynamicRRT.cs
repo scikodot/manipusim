@@ -35,7 +35,7 @@ namespace Logic.PathPlanning
                     agent.Tree.Trim(Obstacles, contestant, Solver);
 
                 // generating normally distributed value with Box-Muller transform
-                float num = Misc.BoxMullerTransform(Rng, attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
+                float num = ProbabilityTheory.BoxMullerTransform(attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
 
                 // extracting the index of the most relevant attractor
                 int index = attractors.NearestIndex(num, a => a.Weight);

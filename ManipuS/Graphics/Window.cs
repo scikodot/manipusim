@@ -61,9 +61,9 @@ namespace Graphics
         private static string ProjectDirectory = projDir.FullName;
         private static string SolutionDirectory = solDir.FullName;
 
-        private static string VertexShader = ProjectDirectory + @"\Graphics\Shaders\VertexShader.glsl";
-        private static string FragmentShader = ProjectDirectory + @"\Graphics\Shaders\FragmentShader.glsl";
-        private static string LineShader = ProjectDirectory + @"\Graphics\Shaders\LineShader.glsl";
+        private static string VertexShader = ProjectDirectory + @"\Graphics\Shader\Shaders\VertexShader.glsl";
+        private static string FragmentShader = ProjectDirectory + @"\Graphics\Shader\Shaders\FragmentShader.glsl";
+        private static string LineShader = ProjectDirectory + @"\Graphics\Shader\Shaders\LineShader.glsl";
 
         private static string SavePath = SolutionDirectory + @"\Screenshots";
         private static string NanosuitPath = SolutionDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
@@ -289,27 +289,27 @@ namespace Graphics
 
             if (ManipLoaded)
             {
-                //float dt;
-                //if (forward)
-                //{
-                //    dt = (float)e.Time;
-                //    if (time > 1)
-                //        forward = false;
-                //}
-                //else
-                //{
-                //    dt = -(float)e.Time;
-                //    if (time < -1)
-                //        forward = true;
-                //}
-                //time += dt;
+                float dt;
+                if (forward)
+                {
+                    dt = (float)e.Time;
+                    if (time > 1)
+                        forward = false;
+                }
+                else
+                {
+                    dt = -(float)e.Time;
+                    if (time < -1)
+                        forward = true;
+                }
+                time += dt;
 
-                //if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-                //{
-                //    Manager.Obstacles[0].Move(dt * Vector3.UnitX);
-                //    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                //    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-                //}
+                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+                {
+                    Manager.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
+                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                }
 
                 foreach (var obstacle in Manager.Obstacles)
                 {
