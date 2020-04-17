@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using MoreLinq.Extensions;
-using Graphics;
-using Logic.InverseKinematics;
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Numerics;
+
+using Logic.InverseKinematics;
+
+using MoreLinq.Extensions;
 
 namespace Logic.PathPlanning
 {
@@ -24,7 +26,7 @@ namespace Logic.PathPlanning
             public Vector3 Point;
             public Vector q;
 
-            public Entity Entity;
+            public Graphics.Entity Entity;
 
             public Node(Node parent, Vector3 point, Vector q)
             {

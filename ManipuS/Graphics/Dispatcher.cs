@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Logic;
 using System.Threading;
 using System.Collections.Concurrent;
+using System.Numerics;
 
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
 public static class Dispatcher  // TODO: threads are not synchronized; 

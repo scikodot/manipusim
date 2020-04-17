@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Numerics;
 
 namespace Logic
 {
@@ -23,6 +20,15 @@ namespace Logic
             Row0 = row0;
             Row1 = row1;
             Row2 = row2;
+        }
+
+        public Matrix3(float m00, float m01, float m02,
+                       float m10, float m11, float m12,
+                       float m20, float m21, float m22)
+        {
+            Row0 = new Vector3(m00, m01, m02);
+            Row1 = new Vector3(m10, m11, m12);
+            Row2 = new Vector3(m20, m21, m22);
         }
 
         public static Matrix3 CreateRotationX(float angle)
@@ -120,8 +126,12 @@ namespace Logic
             return new Matrix3(m.Row0 / s, m.Row1 / s, m.Row2 / s);
         }
 
-        public static implicit operator OpenTK.Matrix3(Matrix3 m) => new OpenTK.Matrix3(m.Row0, m.Row1, m.Row2);
-        public static implicit operator Matrix3(OpenTK.Matrix3 m) => new Matrix3(m.Row0, m.Row1, m.Row2);
+        public static implicit operator OpenTK.Matrix3(Matrix3 m) => new OpenTK.Matrix3(m.Row0.X, m.Row0.Y, m.Row0.Z,
+                                                                                        m.Row1.X, m.Row1.Y, m.Row1.Z,
+                                                                                        m.Row2.X, m.Row2.Y, m.Row2.Z);
+        public static implicit operator Matrix3(OpenTK.Matrix3 m) => new Matrix3(m.Row0.X, m.Row0.Y, m.Row0.Z,
+                                                                                 m.Row1.X, m.Row1.Y, m.Row1.Z,
+                                                                                 m.Row2.X, m.Row2.Y, m.Row2.Z);
 
         public override string ToString() => $"{Row0}\n{Row1}\n{Row2}";
     }

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using OpenTK;
+﻿using System.Numerics;
+
 using OpenTK.Graphics.OpenGL4;
-using Graphics;
-using Logic.PathPlanning;
 
 namespace Logic
 {
@@ -21,7 +15,7 @@ namespace Logic
         private Vector3[] Data;
         public ImpDualQuat State;
         public Collider Collider;
-        public Entity Entity;
+        public Graphics.Entity Entity;
 
         public Obstacle(Vector3[] data, ImpDualQuat state, ColliderShape shape)
         {
@@ -55,10 +49,10 @@ namespace Logic
             Collider.Center = State.Translation;
         }
 
-        public void Draw(Shader shader, bool showCollider = false)
+        public void Draw(Graphics.Shader shader, bool showCollider = false)
         {
             if (Entity == default)
-                Entity = new Entity(shader, Utils.GL_Convert(Data, Vector4.One));
+                Entity = new Graphics.Entity(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.White));
 
             Matrix4 model = State.ToMatrix(true);
             Entity.Display(model, () =>

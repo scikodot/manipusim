@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Numerics;
 
 namespace Logic.InverseKinematics
 {
@@ -18,7 +17,9 @@ namespace Logic.InverseKinematics
                 Vector[] data = new Vector[joint + 1];
                 for (int i = 0; i <= joint; i++)
                 {
-                    var elem = Vector3.Cross(agent.Joints[i].Axis, grip - agent.Joints[i].Position).Normalized;
+                    var elem = Vector3.Cross(agent.Joints[i].Axis, grip - agent.Joints[i].Position);
+                    if (elem != Vector3.Zero)
+                        elem = Vector3.Normalize(elem);
                     data[i] = new Vector(
                         elem.X, 
                         elem.Y, 

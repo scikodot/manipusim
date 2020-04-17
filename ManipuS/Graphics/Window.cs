@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 
 using OpenTK;
@@ -14,8 +12,6 @@ using OpenTK.Input;
 using ImGuiNET;
 using Logic;
 
-using Vector3 = Logic.Vector3;
-using Vector4 = Logic.Vector4;
 using Matrix4 = Logic.Matrix4;
 
 namespace Graphics
@@ -329,9 +325,10 @@ namespace Graphics
                     {
                         if (manip.States["Goal"])
                         {
-                            List<Vector3> MainAttr = new List<Vector3> { manip.Attractors[0].Center };
-                            MainAttr.AddRange(manip.Attractors[0].Area);
-                            goal[i] = new Entity(lineShader, Utils.GL_Convert(MainAttr.ToArray(), new Vector4(1.0f, 1.0f, 0.0f, 1.0f)));
+                            var goalAttr = manip.Attractors[0];  // TODO: refactor this part
+                            var data = new List<System.Numerics.Vector3> { goalAttr.Center };
+                            data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100, new Random()));
+                            goal[i] = new Entity(lineShader, Utils.GL_Convert(data.ToArray(), Color4.Yellow));
                         }
                     }
                     else
@@ -342,7 +339,7 @@ namespace Graphics
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
                             GL.PointSize(1);
-                            GL.DrawArrays(PrimitiveType.Points, 1, manip.Attractors[0].Area.Length);
+                            GL.DrawArrays(PrimitiveType.Points, 1, 100);
                         });
                     }
 
@@ -350,7 +347,7 @@ namespace Graphics
                     if (manip.States["Path"])  // TODO: entities should be retained! meanwhile only their content may be changed
                     {
                         int count = manip.Path.Count;
-                        float[] data = Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), new Vector4(Vector3.UnitX, 1.0f));
+                        float[] data = Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), Color4.Red);
                         if (manip.Path != null)
                         {
                             if (path[i] == default)
@@ -422,19 +419,19 @@ namespace Graphics
             });
             for (int i = 1; i < 11; i++)
             {
-                model = Matrix4.CreateTranslation(Vector3.UnitZ * i, true);
+                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i, true);
                 grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
-                model = Matrix4.CreateTranslation(Vector3.UnitZ * -i, true);
+                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i, true);
                 grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
 
-                model = Matrix4.CreateTranslation(Vector3.UnitX * i, true);
+                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i, true);
                 grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
-                model = Matrix4.CreateTranslation(Vector3.UnitX * -i, true);
+                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i, true);
                 grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
 
             model = Matrix4.Identity;
-            gridFloor.Display(model, () =>
+            gridFloor.Display(model, () =>  // TODO: all help should be placed in a separate document (aka documentation)
             {
                 // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
                 //
@@ -762,9 +759,9 @@ namespace Graphics
 
         // some specific methods for better drawing organization
         // TODO: move somewhere else
-        public static Entity CreateTreeBranch(Vector3 p1, Vector3 p2)
+        public static Entity CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
         {
-            return new Entity(lineShader, Utils.GL_Convert(new Vector3[] { p1, p2 }, Vector4.UnitW));
+            return new Entity(lineShader, Utils.GL_Convert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

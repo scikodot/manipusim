@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Logic;
+using System.Numerics;
 
 public static class ArrayExtensions
 {
@@ -102,6 +102,16 @@ public static class ConcurrentQueueExtensions
 
 public static class Vector3Extensions
 {
+    public static float DistanceTo(this Vector3 v1, Vector3 v2)
+    {
+        return (v2 - v1).Length();
+    }
+
+    public static OpenTK.Vector3 ToOpenTK(this Vector3 vec)
+    {
+        return new OpenTK.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
     public static Vector3 Sum(this IEnumerable<Vector3> source)
     {
         return source.Aggregate((x, y) => x + y);

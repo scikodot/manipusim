@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace Logic
 {
@@ -40,7 +41,8 @@ namespace Logic
 
         public DualQuat(Vector3 axis, float angle)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var cos = (float)Math.Cos(angle / 2);
             var sin = (float)Math.Sin(angle / 2);
 
@@ -50,7 +52,8 @@ namespace Logic
 
         public DualQuat(Vector3 axis, float angle, Vector3 offset)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var cos = (float)Math.Cos(angle / 2);
             var sin = (float)Math.Sin(angle / 2);
 
@@ -60,7 +63,8 @@ namespace Logic
 
         public DualQuat(Vector3 axis, Vector3 Vector3, float angle)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var qR = new DualQuat(axis, angle);
             var qT = new DualQuat(Vector3);
             var res = qT * qR * qT.Conjugate;
@@ -71,7 +75,8 @@ namespace Logic
 
         public DualQuat(Vector3 axis, Vector3 point, float angle, Vector3 offset)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var qR = new DualQuat(axis, angle, offset);
             var qT = new DualQuat(point);
             var res = qT * qR * qT.Conjugate;

@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL4;
 
 namespace Graphics
 {
@@ -10,7 +11,7 @@ namespace Graphics
             byte[,,] img = new byte[win.Height, win.Width, 3];
             GL.ReadPixels(0, 0, win.Width, win.Height, PixelFormat.Rgb, PixelType.UnsignedByte, img);
 
-            System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(win.Width, win.Height);
+            var bitmap = new System.Drawing.Bitmap(win.Width, win.Height);
             for (int i = 0; i < win.Height; i++)
             {
                 for (int j = 0; j < win.Width; j++)
@@ -23,7 +24,7 @@ namespace Graphics
             bitmap.Save(savepath + ".bmp", System.Drawing.Imaging.ImageFormat.Bmp);
         }
 
-        public static float[] GL_Convert(Logic.Vector3[] data, Logic.Vector4 color)
+        public static float[] GL_Convert(System.Numerics.Vector3[] data, Color4 color)
         {
             // converting program data to OpenGL buffer format
             float[] res = new float[data.Length * 7];
@@ -33,10 +34,10 @@ namespace Graphics
                 res[7 * i] = data[i].X;
                 res[7 * i + 1] = data[i].Y;
                 res[7 * i + 2] = data[i].Z;
-                res[7 * i + 3] = color.X;
-                res[7 * i + 4] = color.Y;
-                res[7 * i + 5] = color.Z;
-                res[7 * i + 6] = color.W;
+                res[7 * i + 3] = color.R;
+                res[7 * i + 4] = color.G;
+                res[7 * i + 5] = color.B;
+                res[7 * i + 6] = color.A;
             }
 
             return res;

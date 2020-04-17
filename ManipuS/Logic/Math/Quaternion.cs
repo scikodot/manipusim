@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Numerics;
 
 namespace Logic
 {
@@ -11,17 +11,17 @@ namespace Logic
         public float Z => XYZW.Z;
         public float W => XYZW.W;
 
-        public Vector3 XYZ => XYZW.XYZ;
+        public Vector3 XYZ => new Vector3(X, Y, Z);
 
         public static Quaternion Null => new Quaternion(0, 0, 0, 0);
 
         public static Quaternion Zero => new Quaternion(0, 0, 0, 1);
 
-        public float Length => XYZW.Length;
+        public float Length => XYZW.Length();
 
-        public float LengthSquared => XYZW.LengthSquared;
+        //public float LengthSquared => XYZW.LengthSquared;
 
-        public Quaternion Normalized => new Quaternion(XYZW.Normalized);
+        public Quaternion Normalized => new Quaternion(Vector4.Normalize(XYZW));
 
         public Quaternion Conjugate => new Quaternion(-XYZ, W);
 

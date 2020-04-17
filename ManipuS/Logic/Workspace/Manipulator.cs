@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+
 using Graphics;
 using Logic.PathPlanning;
 
@@ -11,9 +13,9 @@ namespace Logic
         public int N;
         public LinkData[] Links;
         public JointData[] Joints;
-        public System.Numerics.Vector3[] JointAxes;
-        public System.Numerics.Vector3[] JointPositions;
-        public System.Numerics.Vector3 Goal;
+        public Vector3[] JointAxes;
+        public Vector3[] JointPositions;
+        public Vector3 Goal;
         public bool ShowTree;
     }
 
@@ -28,13 +30,13 @@ namespace Logic
         public Model Model;
         public float Length;
         public float q;
-        public System.Numerics.Vector2 qRanges;
+        public Vector2 qRanges;
     }
 
     public struct ObstData
     {
         public float Radius;
-        public System.Numerics.Vector3 Center;
+        public Vector3 Center;
         public int PointsNum;
         public bool ShowCollider;
     }
@@ -61,18 +63,12 @@ namespace Logic
         Planar  // Allows relative translation on a plane and relative rotation about an axis perpendicular to the plane
     }
 
-    public class Link  // TODO: probably class would be better? it's an object after all, not a set of data
+    public class Link
     {
         public Model Model;
-        public float Length;
+        public float Length;  // TODO: must be names Size or something like that; Length is not suitable
 
         public ImpDualQuat State;
-
-        public Link(Model model, float length)
-        {
-            Model = model;
-            Length = length;
-        }
 
         public Link(LinkData data)
         {
@@ -92,7 +88,7 @@ namespace Logic
         public float Length;
 
         public float q;
-        public float[] qRanges;
+        public float[] qRanges;  // TODO: consider switching to Vector2 instead of array; array has a bit of overhead
 
         public ImpDualQuat State;
 
@@ -140,8 +136,10 @@ namespace Logic
             Links = Array.ConvertAll(data.Links, x => new Link(x));
             Joints = Array.ConvertAll(data.Joints, x => new Joint(x));
 
-            InitialAxes = Array.ConvertAll(data.JointAxes, x => (Vector3)x);  //Array.ConvertAll(data.Joints, x => (Vector3)x.Axis);
-            InitialPositions = Array.ConvertAll(data.JointPositions, x => (Vector3)x); //Array.ConvertAll(data.Joints, x => (Vector3)x.Position);
+            //InitialAxes = Array.ConvertAll(data.JointAxes, x => (Vector3)x);  //Array.ConvertAll(data.Joints, x => (Vector3)x.Axis);
+            //InitialPositions = Array.ConvertAll(data.JointPositions, x => (Vector3)x); //Array.ConvertAll(data.Joints, x => (Vector3)x.Position);
+            InitialAxes = data.JointAxes;
+            InitialPositions = data.JointPositions;
 
             for (int i = 0; i < Joints.Length; i++)
             {
@@ -202,9 +200,12 @@ namespace Logic
 
                 Links[i].State = quat;
             }
+
+            // gripper
+            GripperPos = Joints[Joints.Length - 1].Position;
         }
 
-        public Vector3 GripperPos => Joints[Joints.Length - 1].Position;
+        public Vector3 GripperPos { get; private set; }  // TODO: replace with Vector<Vector3>
 
         public Vector3[] DKP => Joints.Select(x => x.Position).ToArray();
 
@@ -229,7 +230,7 @@ namespace Logic
 
         public float DistanceTo(Vector3 p)
         {
-            return new Vector3(GripperPos, p).Length;
+            return GripperPos.DistanceTo(p);
         }
 
         public void Draw(Shader shader)
@@ -240,8 +241,6 @@ namespace Logic
             shader.Use();
 
             Matrix4 model;
-
-            //q += new Vector(0.016f, 0.016f, 0.016f, 0.016f, 0.016f, 0.016f, 0.016f);
 
             // joints
             for (int i = 0; i < Joints.Length; i++)

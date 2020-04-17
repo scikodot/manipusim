@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+
 using OpenTK.Graphics.OpenGL4;
-using Graphics;
 
 namespace Logic
 {
@@ -66,14 +67,14 @@ namespace Logic
         public override Vector3 Extrude(Vector3 point)
         {
             Vector3 vec = point - Center;
-            return vec.Normalized * Radius - vec;
+            return Vector3.Normalize(vec) * Radius - vec;
         }
 
         // draw method for latitudinal circles
-        public override void Draw(Shader shader, Matrix4 model)
+        public override void Draw(Graphics.Shader shader, Matrix4 model)
         {
             if (Entity == default)
-                Entity = new Entity(shader, Utils.GL_Convert(Data, new Vector4(Vector3.UnitY, 1.0f)), indicesLongitude);
+                Entity = new Graphics.Entity(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), indicesLongitude);
 
             Entity.Display(model, () =>
             {

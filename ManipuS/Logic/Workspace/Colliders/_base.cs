@@ -1,4 +1,4 @@
-﻿using Graphics;
+﻿using System.Numerics;
 
 namespace Logic
 {
@@ -6,7 +6,7 @@ namespace Logic
     {
         public Vector3[] Data;
         public Vector3 Center;
-        public Entity Entity;
+        public Graphics.Entity Entity;
 
         protected Collider(Vector3[] data)
         {
@@ -23,7 +23,7 @@ namespace Logic
             return default;
         }
 
-        public virtual void Draw(Shader shader, Matrix4 model)
+        public virtual void Draw(Graphics.Shader shader, Matrix4 model)
         {
             
         }

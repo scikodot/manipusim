@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using OpenTK;
+using System.Numerics;
 
 namespace Logic
 {
-    public class Segment
+    public class Segment  // TODO: check usefulness; this class is rarely used
     {
         public Vector3 p1, p2;
         public float minX, maxX, minY, maxY;
@@ -41,15 +39,13 @@ namespace Logic
     {
         public Vector3 Center;  // TODO: delete redundant fields!
         public float Weight;
-        public Vector3[] Area;
         public float Radius;
         public float InliersCount;
 
-        public Attractor(Vector3 center, float weight, Vector3[] area, float radius)
+        public Attractor(Vector3 center, float weight, float radius)
         {
             Center = center;
             Weight = weight;
-            Area = area;
             Radius = radius;
             InliersCount = 0;
         }
@@ -68,7 +64,8 @@ namespace Logic
 
     public static class Primitives
     {
-        public static Vector3[] Sphere(float radius, Vector3 center, int pointsNum, Random rng)
+        public static Vector3[] Sphere(float radius, Vector3 center, int pointsNum, Random rng)  // TODO: consider removing RNG from arguments; 
+                                                                                                 // the method should use a static RNG
         {
             Vector3[] data = new Vector3[pointsNum];
             double x, yPos, y, zPos, z;

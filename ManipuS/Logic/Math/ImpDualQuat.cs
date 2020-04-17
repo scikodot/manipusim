@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace Logic
 {
@@ -40,7 +41,8 @@ namespace Logic
 
         public ImpDualQuat(Vector3 axis, float angle)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var cos = (float)Math.Cos(angle / 2);
             var sin = (float)Math.Sin(angle / 2);
 
@@ -50,7 +52,8 @@ namespace Logic
 
         public ImpDualQuat(Vector3 axis, float angle, Vector3 offset)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var cos = (float)Math.Cos(angle / 2);
             var sin = (float)Math.Sin(angle / 2);
 
@@ -60,7 +63,8 @@ namespace Logic
 
         public ImpDualQuat(Vector3 axis, Vector3 point, float angle)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var res = new ImpDualQuat(point) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-point);
 
             Real = res.Real;
@@ -69,7 +73,8 @@ namespace Logic
 
         public ImpDualQuat(Vector3 axis, Vector3 currPoint, Vector3 targetPoint, float angle)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var toPoint = new ImpDualQuat(targetPoint - currPoint);
             var rotate = new ImpDualQuat(axis, angle);
             var fromPoint = new ImpDualQuat(-(targetPoint - currPoint));
@@ -84,7 +89,8 @@ namespace Logic
 
         public ImpDualQuat(ImpDualQuat currState, Vector3 axis, Vector3 currPoint, Vector3 targetPoint, float angle)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var toPoint = new ImpDualQuat(currState.Rotate(targetPoint - currPoint));
             var rotate = new ImpDualQuat(axis, angle);
             var fromPoint = new ImpDualQuat(currState.Rotate(-(targetPoint - currPoint)));
@@ -100,7 +106,8 @@ namespace Logic
         // TODO: make more clear use; here, an ambiguity is presented - offset/rotate or rotate/offset? (each option looks weird anyway)
         public ImpDualQuat(Vector3 axis, Vector3 point, float angle, Vector3 offset)
         {
-            axis = axis.Normalized;
+            if (axis != Vector3.Zero)
+                axis = Vector3.Normalize(axis);
             var res = new ImpDualQuat(offset) * new ImpDualQuat(point - offset) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(point + offset));
 
             Real = res.Real;
@@ -109,9 +116,16 @@ namespace Logic
 
         public static ImpDualQuat Align(Vector3 axis1, Vector3 axis2)
         {
-            axis1 = axis1.Normalized;
-            axis2 = axis2.Normalized;
-            var alignAxis = Vector3.Cross(axis1, axis2).Normalized;
+            if (axis1 != Vector3.Zero)
+                axis1 = Vector3.Normalize(axis1);
+
+            if (axis2 != Vector3.Zero)
+                axis2 = Vector3.Normalize(axis2);
+
+            var alignAxis = Vector3.Cross(axis1, axis2);
+            if (alignAxis != Vector3.Zero)
+                alignAxis = Vector3.Normalize(alignAxis);
+
             var alignAngle = (float)Math.Acos(Vector3.Dot(axis1, axis2));  // TODO: make check for success; Acos is prone to errors
             return new ImpDualQuat(alignAxis, alignAngle);
         }

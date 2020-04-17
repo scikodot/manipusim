@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 using Assimp;
@@ -11,20 +7,16 @@ using StbImageSharp;
 namespace Graphics
 {
     public class Model  // TODO: check unmanaged resources release 
+                        // TODO: need to refactor namespaces; ambiguous references, etc.
     {
         private static List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
 
         private List<Mesh> Meshes = new List<Mesh>();
         private string Directory;
 
-        public Logic.Vector3 Position;  // TODO: need to refactor namespaces; ambiguous references, etc.
-                                        // TODO: not used anywhere! check
-
         public Model(string path)
         {
             LoadModel(path);
-
-            Position = Meshes[0].Position;
         }
 
         public void Draw(Shader shader, MeshMode mode)

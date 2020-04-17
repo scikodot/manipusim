@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Numerics;
+
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
 
@@ -25,20 +26,6 @@ namespace Logic
             {
                 Obstacles[i] = new Obstacle(Primitives.Sphere(OB[i].Radius, Vector3.Zero, OB[i].PointsNum, new Random()), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }
-
-            // manipulators
-            //Manipulators = new Manipulator[1];
-            //Manipulators[0] = new Manipulator(LD, JD, new TupleDH[]
-            //    {
-            //        new TupleDH(0, JD[0].Length / 2 + JD[1].Length / 2 + LD[0].Length, 90 * (float)Math.PI / 180, 0),
-            //        new TupleDH(-90 * (float)Math.PI / 180, 0, 0, JD[1].Length / 2 + JD[2].Length / 2 + LD[1].Length),
-            //        new TupleDH(0, 0, 0, JD[2].Length / 2 + 0.1f + LD[2].Length),
-            //        new TupleDH(90 * (float)Math.PI / 180, 0, -90 * (float)Math.PI / 180, 0)
-            //    });
-            //Manipulators[0].Goal = new Vector3(0, 0.5f, 2.5f);
-            //Manipulators[0].controller = new MotionController(Obstacles, Manipulators[0],
-            //    new DynamicRRT(AD.k, true, AD.d, AD.k / 100),
-            //    new Jacobian(AD.Precision, AD.StepSize, AD.MaxTime));
 
             Manipulators = new Manipulator[MB.Length];
             for (int i = 0; i < MB.Length; i++)
@@ -79,9 +66,8 @@ namespace Logic
                 Vector3 attrPoint = manip.Goal;
                 float attrWeight = manip.DistanceTo(manip.Goal);
                 float attrRadius = WorkspaceBuffer.AlgBuffer.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
-                Vector3[] attrArea = Primitives.Sphere(attrRadius, attrPoint, 32, new Random());
 
-                manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrArea, attrRadius));
+                manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
                 manip.States["Goal"] = true;
 
                 // adding ancillary attractors
@@ -113,9 +99,8 @@ namespace Logic
                         attrPoint = point;
                         attrWeight = manip.DistanceTo(point) + manip.Goal.DistanceTo(point);
                         attrRadius = AB.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
-                        attrArea = Primitives.Sphere(attrRadius, attrPoint, 32, new Random());
 
-                        manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrArea, attrRadius));
+                        manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
                     }
                 }
                 manip.States["Attractors"] = true;

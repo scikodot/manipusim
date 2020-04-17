@@ -1,4 +1,5 @@
-﻿using Graphics;
+﻿using System.Numerics;
+
 using OpenTK.Graphics.OpenGL4;
 
 namespace Logic
@@ -91,10 +92,10 @@ namespace Logic
             return vec * ratio;
         }
 
-        public override void Draw(Shader shader, Matrix4 model)
+        public override void Draw(Graphics.Shader shader, Matrix4 model)
         {
             if (Entity == default)
-                Entity = new Entity(shader, Utils.GL_Convert(Data, new Vector4(Vector3.UnitY, 1.0f)), new uint[]
+                Entity = new Graphics.Entity(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), new uint[]
                 {
                     0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
                 });

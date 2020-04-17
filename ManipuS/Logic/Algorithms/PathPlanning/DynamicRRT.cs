@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+
 using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
@@ -53,7 +55,7 @@ namespace Logic.PathPlanning
                 Tree.Node minNode = agent.Tree.Min(p);
 
                 // creating offset vector to new node
-                Vector3 pNew = minNode.Point + (p - minNode.Point).Normalized * d;
+                Vector3 pNew = minNode.Point + Vector3.Normalize(p - minNode.Point) * d;
 
                 bool isClose = pNew.DistanceTo(attractors[index].Center) < attractors[index].Radius;
                 if (isClose && index != 0)
@@ -96,8 +98,8 @@ namespace Logic.PathPlanning
                 }
 
                 // stopping in case the main attractor has been hit
-                //if (attractors[0].InliersCount != 0)
-                //    break;
+                if (attractors[0].InliersCount != 0)
+                    break;
             }
 
             // retrieving resultant path along with respective configurations
