@@ -64,18 +64,17 @@ namespace Logic
 
     public static class Primitives
     {
-        public static Vector3[] Sphere(float radius, Vector3 center, int pointsNum, Random rng)  // TODO: consider removing RNG from arguments; 
-                                                                                                 // the method should use a static RNG
+        public static Vector3[] Sphere(float radius, Vector3 center, int pointsNum)
         {
             Vector3[] data = new Vector3[pointsNum];
             double x, yPos, y, zPos, z;
             for (int i = 0; i < pointsNum; i++)
             {
-                x = radius * (2 * rng.NextDouble() - 1);
+                x = radius * (2 * Dispatcher.Rng.NextDouble() - 1);
                 yPos = Math.Sqrt(radius * radius - x * x);
-                y = yPos * (2 * rng.NextDouble() - 1);
+                y = yPos * (2 * Dispatcher.Rng.NextDouble() - 1);
                 zPos = Math.Sqrt(yPos * yPos - y * y);
-                z = rng.Next(0, 2) == 0 ? -zPos : zPos;
+                z = Dispatcher.Rng.Next(0, 2) == 0 ? -zPos : zPos;
 
                 data[i] = new Vector3((float)x, (float)y, (float)z) + center;
             }

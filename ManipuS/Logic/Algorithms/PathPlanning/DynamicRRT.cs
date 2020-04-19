@@ -31,11 +31,11 @@ namespace Logic.PathPlanning
 
             for (int i = 0; i < MaxTime; i++)
             {
-                if (i % period == 0 && i != 0)
-                    agent.Tree.Trim(Obstacles, contestant, Solver);
+                //if (i % period == 0 && i != 0)
+                //    agent.Tree.Trim(Obstacles, contestant, Solver);
 
                 // generating normally distributed value with Box-Muller transform
-                float num = ProbabilityTheory.BoxMullerTransform(attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
+                float num = ProbabilityTheory.RandomGaussian(attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
 
                 // extracting the index of the most relevant attractor
                 int index = attractors.NearestIndex(num, a => a.Weight);

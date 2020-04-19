@@ -86,7 +86,8 @@ namespace Graphics
         {
             //var unptr = Assimp.Unmanaged.AssimpLibrary.Instance.ImportFile(JointPath, Assimp.PostProcessSteps.None, Assimp.Unmanaged.AssimpLibrary.Instance.CreatePropertyStore());
             //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
-            //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.TransformUVCoords);
+            //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.Triangulate);
+            //manptr = Assimp.Scene.FromUnmanagedScene(ptr);
 
             // defining ImGui controller
             controller = new ImGuiController(Width, Height);
@@ -327,7 +328,7 @@ namespace Graphics
                         {
                             var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                             var data = new List<System.Numerics.Vector3> { goalAttr.Center };
-                            data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100, new Random()));
+                            data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
                             goal[i] = new Entity(lineShader, Utils.GL_Convert(data.ToArray(), Color4.Yellow));
                         }
                     }
