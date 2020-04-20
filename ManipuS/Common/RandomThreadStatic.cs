@@ -33,6 +33,11 @@ public static class RandomThreadStatic
         return Instance.Next(minValue, maxValue);
     }
 
+    public static double NextDouble()
+    {
+        return Instance.NextDouble();
+    }
+
     public static float NextGaussian(float mu, float sigma, GaussianAlgorithm algorithm = GaussianAlgorithm.RatioOfUniforms)
     {
         return Instance.NextGaussian(mu, sigma, algorithm);

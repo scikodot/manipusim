@@ -30,7 +30,7 @@ namespace Logic.InverseKinematics
                     stepPos = range >= StepSize ? StepSize : range;
 
                     // generating random GCs' offset
-                    dq[i] = (float)((stepNeg + Dispatcher.Rng.NextDouble() * (stepPos - stepNeg)) * Math.PI / 180);
+                    dq[i] = (float)((stepNeg + RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * Math.PI / 180);
                     dq[i] *= k;
                 }
 

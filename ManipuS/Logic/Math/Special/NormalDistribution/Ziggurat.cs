@@ -59,7 +59,7 @@ namespace Logic
                     continue;  // TODO: implement
                 }
 
-                if (Dispatcher.Rng.NextDouble() * (f[i - 1] - f[i]) < RandomCustom.Gaussian(x) - f[i])
+                if (rng.NextDouble() * (f[i - 1] - f[i]) < RandomCustom.Gaussian(x) - f[i])
                     return mu + sigma * (float)x;
             }
         }

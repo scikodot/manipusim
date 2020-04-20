@@ -19,7 +19,6 @@ public static class Dispatcher  // TODO: threads are not synchronized;
 
     public static ManualResetEvent ActionsDone = new ManualResetEvent(false);
 
-    public static Random Rng = new Random();
     public static Stopwatch Timer = new Stopwatch();
 
     // actions that main thread has to execute

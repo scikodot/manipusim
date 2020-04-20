@@ -8,10 +8,10 @@ namespace Logic
         public Vector3 p1, p2;
         public float minX, maxX, minY, maxY;
 
-        public Segment(Vector3 Vector31, Vector3 Vector32)
+        public Segment(Vector3 point1, Vector3 point2)
         {
-            p1 = Vector31;
-            p2 = Vector32;
+            p1 = point1;
+            p2 = point2;
 
             minX = Math.Min(p1.X, p2.X);
             maxX = Math.Max(p1.X, p2.X);
@@ -51,17 +51,6 @@ namespace Logic
         }
     }
 
-    //public static class Misc
-    //{
-    //    public static float BoxMullerTransform(float mu, float sigma)
-    //    {
-    //        double phi = Dispatcher.Rng.NextDouble();
-    //        double r = 1 - Dispatcher.Rng.NextDouble();  // exclude zero
-    //        float z = (float)(Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r)));
-    //        return mu + sigma * z;
-    //    }
-    //}
-
     public static class Primitives
     {
         public static Vector3[] Sphere(float radius, Vector3 center, int pointsNum)
@@ -70,11 +59,11 @@ namespace Logic
             double x, yPos, y, zPos, z;
             for (int i = 0; i < pointsNum; i++)
             {
-                x = radius * (2 * Dispatcher.Rng.NextDouble() - 1);
+                x = radius * (2 * RandomThreadStatic.NextDouble() - 1);
                 yPos = Math.Sqrt(radius * radius - x * x);
-                y = yPos * (2 * Dispatcher.Rng.NextDouble() - 1);
+                y = yPos * (2 * RandomThreadStatic.NextDouble() - 1);
                 zPos = Math.Sqrt(yPos * yPos - y * y);
-                z = Dispatcher.Rng.Next(0, 2) == 0 ? -zPos : zPos;
+                z = RandomThreadStatic.Next(0, 2) == 0 ? -zPos : zPos;
 
                 data[i] = new Vector3((float)x, (float)y, (float)z) + center;
             }
