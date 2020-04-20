@@ -1,14 +1,23 @@
-﻿using System.Numerics;
+﻿using System.Linq;
+using System.Numerics;
 
 namespace Logic.InverseKinematics
 {
+    public enum JacobianType
+    {
+        Transpose,
+        Pseudoinverse
+    }
+
     class Jacobian : IKSolver
     {
+        public JacobianType type = JacobianType.Pseudoinverse;
+
         public Jacobian(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 
         public override (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
-            Vector initConfig = agent.q;
+            Vector initConfig = agent.q, dq = default;
             float alpha = 0.1f;
             for (int j = 0; j < 4; j++)
             {
@@ -33,17 +42,29 @@ namespace Logic.InverseKinematics
 
                 // get transpose of the Jacobian
                 Matrix JT = new Matrix(data);
-                Matrix J = JT.Transpose;
+                Matrix J = JT.Transpose();
+
                 Vector JJTe = J * JT * errorExt;
                 float nom = Vector.Dot(errorExt, JJTe);
                 float denom = Vector.Dot(JJTe, JJTe);
                 if (denom != 0)
                     alpha = nom / denom;
 
-                // calculate GC offsets
-                Vector dq = JT * errorExt;
-                //dq *= -0.1f;
-                dq *= -alpha;
+                switch (type)
+                {
+                    case JacobianType.Transpose:
+                        dq = JT * errorExt;
+                        dq *= -alpha;
+                        break;
+                    case JacobianType.Pseudoinverse:
+                        var m = MathNet.Numerics.LinearAlgebra.Matrix<float>.Build.DenseOfColumnArrays(data.Select(x => x.Components));
+                        m = m.PseudoInverse();
+                        var inv = new Matrix(m.EnumerateRows().Select(x => x.ToArray()).Select(x => new Vector(x)).ToArray());
+
+                        dq = inv * errorExt;
+                        dq *= -alpha;
+                        break;
+                }
 
                 if (joint < agent.Joints.Length - 1)
                     dq.Expand(agent.Joints.Length - joint);

@@ -368,3 +368,5 @@ C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MoreLinq.dll
 C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MoreLinq.pdb
 C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MoreLinq.xml
 C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\System.ValueTuple.xml
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MathNet.Numerics.dll
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Debug\MathNet.Numerics.xml

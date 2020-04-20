@@ -18,24 +18,21 @@ namespace Logic
 
         public int ColumnsNumber => Rows[0].Size;
 
-        public Matrix Transpose
+        public Matrix Transpose()
         {
-            get
+            var rows = new Vector[ColumnsNumber];
+            for (int i = 0; i < ColumnsNumber; i++)
             {
-                var rows = new Vector[ColumnsNumber];
-                for (int i = 0; i < ColumnsNumber; i++)
-                {
-                    //rows[i] = new Vector(Rows.Length);
-                    //for (int j = 0; j < Rows.Length; j++)
-                    //{
-                    //    rows[i][j] = Rows[j][i];
-                    //}
+                //rows[i] = new Vector(Rows.Length);
+                //for (int j = 0; j < Rows.Length; j++)
+                //{
+                //    rows[i][j] = Rows[j][i];
+                //}
 
-                    rows[i] = new Vector(Rows.Select(x => x[i]).ToArray());
-                }
-
-                return new Matrix(rows);
+                rows[i] = new Vector(Rows.Select(x => x[i]).ToArray());
             }
+
+            return new Matrix(rows);
         }
 
         public Matrix(int rows, int columns)
