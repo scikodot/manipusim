@@ -2,13 +2,13 @@
 
 namespace Logic
 {
-    static class ProbabilityTheory
+    static class Ziggurat
     {
         private static uint[] k;
         private static double[] w;
         private static double[] f;
 
-        static ProbabilityTheory()
+        static Ziggurat()
         {
             k = new uint[256];
             w = new double[256];
@@ -22,8 +22,8 @@ namespace Logic
             double funcVal;
             for (int i = 255; i > 0; i--)
             {
-                funcVal = func(xCurr);
-                xPrev = funcInv(v / xCurr + funcVal);
+                funcVal = RandomCustom.Gaussian(xCurr);
+                xPrev = RandomCustom.GaussianInv(v / xCurr + funcVal);
 
                 k[i] = (uint)(uint.MaxValue * (xPrev / xCurr));
                 w[i] = xCurr / uint.MaxValue;
@@ -32,35 +32,25 @@ namespace Logic
                 xCurr = xPrev;
             }
 
-            funcVal = func(r);
+            funcVal = RandomCustom.Gaussian(r);
             k[0] = (uint)(uint.MaxValue * (r * funcVal / v));
-            w[0] = v / (func(r) * uint.MaxValue);
+            w[0] = v / (funcVal * uint.MaxValue);
         }
 
-        static double func(double x) => Math.Exp(-x * x / 2);
-        static double funcInv(double x) => Math.Sqrt(-2 * Math.Log(x > 1 ? 1 : x));
-
-        public static float RandomGaussian(float mu, float sigma)
+        public static float NextGaussian(Random rng, float mu, float sigma)
         {
-            //// Box-Muller transform
-            //double phi = Dispatcher.Rng.NextDouble();
-            //double r = 1 - Dispatcher.Rng.NextDouble();  // exclude zero
-            //double z = Math.Cos(2 * Math.PI * phi) * Math.Sqrt(-2 * Math.Log(r));
-            //return mu + sigma * (float)z;
-
-            // Ziggurat algorithm  // TODO: something's wrong with the distribution (too low mean-biasing); check
-            uint j;
-            uint i;
+            int j;
+            int i;
             double x;
             while (true)
             {
-                uint highHalf = (uint)Dispatcher.Rng.Next(1 << 16) << 16;
-                uint lowHalf = (uint)Dispatcher.Rng.Next(1 << 16);
+                int highHalf = rng.Next(1 << 16) << 16;
+                int lowHalf = rng.Next(1 << 16);
                 j = highHalf | lowHalf;
                 i = j & 255;
 
                 x = j * w[i];
-                if (j < k[i])
+                if (Math.Abs(j) < k[i])
                     return mu + sigma * (float)x;
 
                 if (i == 0)
@@ -69,7 +59,7 @@ namespace Logic
                     continue;  // TODO: implement
                 }
 
-                if (Dispatcher.Rng.NextDouble() * (f[i - 1] - f[i]) < func(x) - f[i])
+                if (Dispatcher.Rng.NextDouble() * (f[i - 1] - f[i]) < RandomCustom.Gaussian(x) - f[i])
                     return mu + sigma * (float)x;
             }
         }

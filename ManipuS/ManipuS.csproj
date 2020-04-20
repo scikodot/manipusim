@@ -96,6 +96,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\Extensions.cs" />
+    <Compile Include="Common\RandomCustom.cs" />
+    <Compile Include="Common\RandomThreadStatic.cs" />
     <Compile Include="Graphics\Scene\Camera.cs" />
     <Compile Include="Common\Dispatcher.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiController.cs" />
@@ -118,7 +120,9 @@
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
     <Compile Include="Logic\Math\Quaternions\DualQuat.cs" />
-    <Compile Include="Logic\Math\Special\ProbabilityTheory.cs" />
+    <Compile Include="Logic\Math\Special\NormalDistribution\BoxMullerTransform.cs" />
+    <Compile Include="Logic\Math\Special\NormalDistribution\RatioOfUniforms.cs" />
+    <Compile Include="Logic\Math\Special\NormalDistribution\Ziggurat.cs" />
     <Compile Include="Logic\Workspace\Manipulator.cs" />
     <Compile Include="Logic\Math\Quaternions\ImpDualQuat.cs" />
     <Compile Include="Logic\Math\Matrices\Matrix.cs" />
