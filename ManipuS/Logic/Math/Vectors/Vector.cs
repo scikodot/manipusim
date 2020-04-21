@@ -8,7 +8,7 @@ namespace Logic
     {
         public float[] Components { get; private set; }
 
-        public float this[int index]
+        public float this[int index]  // TODO: if making structs "readonly", this should be implemented in constructor
         {
             get => Components[index];
             set => Components[index] = value;

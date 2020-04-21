@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Numerics;
 
 namespace Logic.InverseKinematics
@@ -58,11 +59,18 @@ namespace Logic.InverseKinematics
                         break;
                     case JacobianType.Pseudoinverse:
                         var m = MathNet.Numerics.LinearAlgebra.Matrix<float>.Build.DenseOfColumnArrays(data.Select(x => x.Components));
-                        m = m.PseudoInverse();
-                        var inv = new Matrix(m.EnumerateRows().Select(x => x.ToArray()).Select(x => new Vector(x)).ToArray());
+                        //m = m.PseudoInverse();
+                        //var inv = new Matrix(m.EnumerateRows().Select(x => x.ToArray()).Select(x => new Vector(x)).ToArray());
+                        //dq = inv * errorExt;
+                        //dq *= -alpha;
 
-                        dq = inv * errorExt;
-                        dq *= -alpha;
+                        //var JTJ = JT * J;
+
+                        var matTest = new Matrix(
+                            new Vector(1, 3, 5),
+                            new Vector(2, 4, 7),
+                            new Vector(1, 1, 0));
+                        var det2 = matTest.Determinant();
                         break;
                 }
 

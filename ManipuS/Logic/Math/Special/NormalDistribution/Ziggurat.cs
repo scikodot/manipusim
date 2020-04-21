@@ -7,15 +7,15 @@ namespace Logic
         private static uint[] k;
         private static double[] w;
         private static double[] f;
+        private static double r = 3.6541528853610088;
+        private static double rInv = 1 / r;
+        private static double v = 0.00492867323399;
 
         static Ziggurat()
         {
             k = new uint[256];
             w = new double[256];
             f = new double[256];
-
-            double r = 3.6541528853610088;
-            double v = 0.00492867323399;
 
             double xCurr = r;
             double xPrev;
@@ -39,14 +39,11 @@ namespace Logic
 
         public static float NextGaussian(Random rng, float mu, float sigma)
         {
-            int j;
-            int i;
-            double x;
+            int i, j;
+            double x, y;
             while (true)
             {
-                int highHalf = rng.Next(1 << 16) << 16;
-                int lowHalf = rng.Next(1 << 16);
-                j = highHalf | lowHalf;
+                j = rng.Next(int.MinValue, int.MaxValue);
                 i = j & 255;
 
                 x = j * w[i];
@@ -55,8 +52,13 @@ namespace Logic
 
                 if (i == 0)
                 {
-                    // return an x from the tail
-                    continue;  // TODO: implement
+                    do
+                    {
+                        x = -Math.Log(RandomThreadStatic.NextDouble()) * rInv;
+                        y = -Math.Log(RandomThreadStatic.NextDouble());
+                    } while (y + y < x * x);
+
+                    return (float)(j > 0 ? r + x : -r - x);
                 }
 
                 if (rng.NextDouble() * (f[i - 1] - f[i]) < RandomCustom.Gaussian(x) - f[i])
