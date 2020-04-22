@@ -4,6 +4,8 @@ using System.Linq;
 
 namespace Logic
 {
+    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+
     public struct Vector
     {
         public float[] Components { get; private set; }

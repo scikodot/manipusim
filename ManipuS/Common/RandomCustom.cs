@@ -28,14 +28,4 @@ class RandomCustom : Random
                 throw new ArgumentException("The specified algorithm does not exist!", "Algorithm");
         }
     }
-
-    public static double Gaussian(double x)
-    {
-        return Math.Exp(-(x * x / 2));
-    }
-
-    public static double GaussianInv(double x)
-    {
-        return Math.Sqrt(-2 * Math.Log(x > 1 ? 1 : x));
-    }
 }

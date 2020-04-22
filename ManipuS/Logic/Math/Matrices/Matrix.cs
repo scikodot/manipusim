@@ -51,108 +51,108 @@ namespace Logic
             return new Matrix(rows);
         }
 
-        public float Determinant()
-        {
-            var lu = LU();
+        //public float Determinant()
+        //{
+        //    var lu = LU();
 
-            // get determinant of the U matrix
-            float detU = 1;
-            for (int i = 0; i < RowsNumber; i++)
-            {
-                detU *= lu.Item3[i, i];
-            }
+        //    // get determinant of the U matrix
+        //    float detU = 1;
+        //    for (int i = 0; i < RowsNumber; i++)
+        //    {
+        //        detU *= lu.Item3[i, i];
+        //    }
 
-            // detA = detP * detL * detU
-            // -------------------------
-            // detP is pre-calculated for convenience in LU decomposition
-            // detL is 1 since L is a unitriangular matrix (all diagonal elements equal 1)
-            // detU has to be calculated (see above)
-            return lu.Item4 * detU;
-        }
+        //    // detA = detP * detL * detU
+        //    // -------------------------
+        //    // detP is pre-calculated for convenience in LU decomposition
+        //    // detL is 1 since L is a unitriangular matrix (all diagonal elements equal 1)
+        //    // detU has to be calculated (see above)
+        //    return lu.Item4 * detU;
+        //}
 
-        public (Matrix, Matrix, Matrix, int) LU()
-        {
-            var size = RowsNumber;
+        //public (Matrix, Matrix, Matrix, int) LU()
+        //{
+        //    var size = RowsNumber;
 
-            Matrix L = new Matrix(size, size);
-            Matrix U = new Matrix(size, size);
-            var pivot = Pivotize(this);
+        //    Matrix L = new Matrix(size, size);
+        //    Matrix U = new Matrix(size, size);
+        //    var pivot = Pivotize(this);
 
-            // do optimized multiplication of the current matrix with its pivot
-            var rows = new Vector[size];
-            for (int i = 0; i < size; i++)
-            {
-                rows[i] = new Vector(size);
-                for (int j = 0; j < size; j++)
-                {
-                    rows[i][j] = pivot.Item1[i, pivot.Item2[i]] * this[pivot.Item2[i], j];
-                }
-            }
-            Matrix A2 = new Matrix(rows);  // TODO: this can be avoided
+        //    // do optimized multiplication of the current matrix with its pivot
+        //    var rows = new Vector[size];
+        //    for (int i = 0; i < size; i++)
+        //    {
+        //        rows[i] = new Vector(size);
+        //        for (int j = 0; j < size; j++)
+        //        {
+        //            rows[i][j] = pivot.Item1[i, pivot.Item2[i]] * this[pivot.Item2[i], j];
+        //        }
+        //    }
+        //    Matrix A2 = new Matrix(rows);  // TODO: this can be avoided
 
-            for (int j = 0; j < size; j++)
-            {
-                L[j, j] = 1;
-                for (int i = 0; i < j + 1; i++)
-                {
-                    float s1 = 0;
-                    for (int k = 0; k < i; k++)
-                        s1 += U[k, j] * L[i, k];
-                    U[i, j] = A2[i, j] - s1;
-                }
-                for (int i = j; i < size; i++)
-                {
-                    float s2 = 0;
-                    for (int k = 0; k < j; k++)
-                        s2 += U[k, j] * L[i, k];
+        //    for (int j = 0; j < size; j++)
+        //    {
+        //        L[j, j] = 1;
+        //        for (int i = 0; i < j + 1; i++)
+        //        {
+        //            float s1 = 0;
+        //            for (int k = 0; k < i; k++)
+        //                s1 += U[k, j] * L[i, k];
+        //            U[i, j] = A2[i, j] - s1;
+        //        }
+        //        for (int i = j; i < size; i++)
+        //        {
+        //            float s2 = 0;
+        //            for (int k = 0; k < j; k++)
+        //                s2 += U[k, j] * L[i, k];
 
-                    // if U has zero diagonal elements even after pivoting, the determinant is zero, hence no need to calculate further
-                    if (U[j, j] == 0)  // TODO: maybe there's a better way to check?
-                        goto ZeroDet;
-                    L[i, j] = (A2[i, j] - s2) / U[j, j];
-                }
-            }
-            ZeroDet:
+        //            // if U has zero diagonal elements even after pivoting, the determinant is zero, hence no need to calculate further
+        //            if (U[j, j] == 0)  // TODO: maybe there's a better way to check?
+        //                goto ZeroDet;
+        //            L[i, j] = (A2[i, j] - s2) / U[j, j];
+        //        }
+        //    }
+        //    ZeroDet:
 
-            return (pivot.Item1, L, U, pivot.Item3);
-        }
+        //    return (pivot.Item1, L, U, pivot.Item3);
+        //}
 
-        private static (Matrix, int[], int) Pivotize(Matrix mat)
-        {
-            var size = mat.ColumnsNumber;
-            Vector[] columns = new Vector[size];
+        //private static (Matrix, int[], int) Pivotize(Matrix mat)
+        //{
+        //    var size = mat.ColumnsNumber;
+        //    Vector[] columns = new Vector[size];
 
-            int determinant = 1;
-            int[] indices = new int[size];
-            for (int i = 0; i < size; i++)
-            {
-                float max = mat[i, i];
-                int row = i;
+        //    int determinant = 1;
+        //    int[] indices = new int[size];
+        //    for (int i = 0; i < size; i++)
+        //    {
+        //        float max = mat[i, i];
+        //        int row = i;
 
-                for (int j = i; j < size; j++)
-                {
-                    if (mat[j, i] > max)
-                    {
-                        max = mat[j, i];
-                        row = j;
-                    }
-                }
+        //        for (int j = i; j < size; j++)
+        //        {
+        //            if (mat[j, i] > max)
+        //            {
+        //                max = mat[j, i];
+        //                row = j;
+        //            }
+        //        }
 
-                Vector column = new Vector(size);
-                column[i] = 1;
-                columns[row] = column;
+        //        Vector column = new Vector(size);
+        //        column[i] = 1;
+        //        columns[row] = column;
 
-                indices[i] = row;
+        //        indices[i] = row;
 
-                if (i != row)
-                {
-                    // the columns were swapped, hence increase swap count
-                    determinant = -determinant;
-                }
-            }
+        //        if (i != row)
+        //        {
+        //            // the columns were swapped, hence increase swap count
+        //            determinant = -determinant;
+        //        }
+        //    }
 
-            return (new Matrix(columns), indices, determinant);
-        }
+        //    return (new Matrix(columns), indices, determinant);
+        //}
 
         public static Matrix operator +(Matrix m1, Matrix m2)
         {
