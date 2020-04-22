@@ -38,8 +38,8 @@ public static class RandomThreadStatic
         return Instance.NextDouble();
     }
 
-    public static float NextGaussian(float mu, float sigma, GaussianAlgorithm algorithm = GaussianAlgorithm.RatioOfUniforms)
+    public static float NextGaussian(float mu, float sigma)
     {
-        return Instance.NextGaussian(mu, sigma, algorithm);
+        return Instance.NextGaussian(mu, sigma);
     }
 }

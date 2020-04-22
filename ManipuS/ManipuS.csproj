@@ -124,9 +124,7 @@
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
     <Compile Include="Logic\Math\Quaternions\DualQuat.cs" />
-    <Compile Include="Logic\Math\Special\NormalDistribution\BoxMullerTransform.cs" />
-    <Compile Include="Logic\Math\Special\NormalDistribution\RatioOfUniforms.cs" />
-    <Compile Include="Logic\Math\Special\NormalDistribution\Ziggurat.cs" />
+    <Compile Include="Logic\Math\Special\Ziggurat.cs" />
     <Compile Include="Logic\Workspace\Manipulator.cs" />
     <Compile Include="Logic\Math\Quaternions\ImpDualQuat.cs" />
     <Compile Include="Logic\Math\Matrices\Matrix.cs" />
