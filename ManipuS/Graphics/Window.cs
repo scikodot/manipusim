@@ -13,6 +13,7 @@ using ImGuiNET;
 using Logic;
 
 using Matrix4 = Logic.Matrix4;
+using System.Drawing;
 
 namespace Graphics
 {
@@ -78,6 +79,13 @@ namespace Graphics
         // 3D model
         Model Crytek;
         public static Shader lineShader;
+        public static PlainModel pointMoveable;
+        public static Vector2 pointScreen;
+
+        public static Entity axisY, axisZ;
+        public static AxesWidget widget;
+        public static bool IsAxisX;
+        //public static Matrix4 mat = Matrix4.Identity;
 
         public Window(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
@@ -103,6 +111,29 @@ namespace Graphics
             // workspace grid
             grid = new Entity(lineShader, gridLines);
             gridFloor = new Entity(lineShader, transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
+
+            pointMoveable = new PlainModel(lineShader, new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f });
+
+            widget = new AxesWidget();
+            widget.Attach(pointMoveable);
+
+            widget.axisX.Model = new PlainModel(lineShader, new float[]
+            {
+                0.0f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f,
+                1.0f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f
+            });
+
+            axisY = new Entity(lineShader, new float[]
+            {
+                0.0f, 0.001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 1.001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f
+            });
+
+            axisZ = new Entity(lineShader, new float[]
+            {
+                0.0f, 0.001f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f,
+                0.0f, 0.001f, 1.0f,   0.0f, 0.0f, 1.0f, 1.0f
+            });
 
             base.OnLoad(e);
         }
@@ -203,6 +234,28 @@ namespace Graphics
             // updating last mouse position
             _lastPos = new Vector2(mouse.X, mouse.Y);
 
+            var view = _camera.GetViewMatrix();
+            var proj = _camera.GetProjectionMatrix();
+
+            //var point = new Vector4(0, 0, 0, 1);
+            //var pointView = point * view;
+            //var pointProj = pointView * proj;
+            //pointProj /= pointProj.W;
+
+            CursorWindow.X -= (int)(0.25 * Width + 8);
+            CursorWindow.Y -= 38;
+
+            pointScreen = new Vector2(  //new Vector2(pointProj.X, -pointProj.Y);
+                ((float)CursorWindow.X / (0.75f * Width) - 0.5f) * 2,
+                ((float)(Height - CursorWindow.Y) / Height - 0.5f) * 2);
+
+            //if (widget.Poll(view, proj, pointScreen))
+            //    IsAxisX = true;
+            //else
+            //    IsAxisX = false;
+
+            widget.Transform(view, proj, pointScreen, mouse);  // TODO: pass State by ref, that saves some time
+
             base.OnUpdateFrame(e);
         }
         
@@ -286,7 +339,29 @@ namespace Graphics
             lineShader.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
             lineShader.SetVector3("color", Vector3.One);
 
-            Matrix4 model;
+            Matrix4 model = Matrix4.Identity;
+            
+            pointMoveable.Render(() =>
+            {
+                GL.PointSize(20);
+                GL.DrawArrays(PrimitiveType.Points, 0, 1);
+                GL.PointSize(1);
+            });
+
+            widget.axisX.Model.Render(() =>
+            {
+                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
+            });
+
+            axisY.Display(model, () =>
+            {
+                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
+            });
+
+            axisZ.Display(model, () =>
+            {
+                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
+            });
 
             if (ManipLoaded)
             {
@@ -723,6 +798,11 @@ namespace Graphics
 
                 //if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
                 //    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");  // TODO: when scene is updated, obstacle center is not reset! fix
+
+                ImGui.Text(string.Format("({0:0.000}, {1:0.000})", pointScreen.X, pointScreen.Y));
+                ImGui.Text(string.Format($"Axis X is {IsAxisX}"));
+                ImGui.Text(string.Format("({0:0.000}, {1:0.000})", widget.axisX.EndNDC.X, widget.axisX.EndNDC.Y));
+                ImGui.Text(string.Format("Axis X distance: {0:0.000}", widget.axisX.CursorDist));
 
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));
