@@ -239,26 +239,22 @@ namespace Graphics
             var view = _camera.GetViewMatrix();
             var proj = _camera.GetProjectionMatrix();
 
-            var point = new Vector4(0, 0, 0, 1);
-            var pointView = point * view;
-            var pointProj = pointView * proj;
-            pointProj /= pointProj.W;
+            widget.axisX.Raycast(new Vector2(0, 0), view, proj);
+            widget.axisX.Raycast(new Vector2(-1, 1), view, proj);
 
             CursorWindow.X -= (int)(0.25 * Width + 8);
             CursorWindow.Y -= 38;
-
-            pointScreen = Vector2.Zero;  //new Vector2(pointProj.X, -pointProj.Y);
 
             pointScreen = new Vector2(
                 ((float)CursorWindow.X / (0.75f * Width) - 0.5f) * 2,
                 ((float)(Height - CursorWindow.Y) / Height - 0.5f) * 2);
 
             widget.axisX.Scale = (_camera.Position - widget.axisX.Start.Xyz).Length;
-            Console.SetCursorPosition(0, 10);
-            Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", _camera.Position.X, _camera.Position.Y, _camera.Position.Z);
-            Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", view.Row3.X, view.Row3.Y, view.Row3.Z);
+            //Console.SetCursorPosition(0, 10);
+            //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", _camera.Up.X, _camera.Up.Y, _camera.Up.Z);
+            //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", view.Row3.X, view.Row3.Y, view.Row3.Z);
 
-            widget.Transform(view, proj, pointScreen, mouse);  // TODO: pass State by ref, that saves some time
+            widget.Transform(_camera, view, proj, pointScreen, mouse);  // TODO: pass State by ref, that saves some time
 
             base.OnUpdateFrame(e);
         }

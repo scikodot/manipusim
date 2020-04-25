@@ -28,10 +28,10 @@ namespace Graphics
             Parent = renderable;
         }
 
-        public void Transform(Matrix4 view, Matrix4 proj, Vector2 posCurr, MouseState stateCurr)
+        public void Transform(Camera camera, Matrix4 view, Matrix4 proj, Vector2 posCurr, MouseState stateCurr)
         {
             var parentState = Parent.State;
-            axisX.Transform(ref parentState, view, proj, posCurr, stateCurr);  // TODO: prioritize axes polling, so that those with smaller depth go first
+            axisX.Transform(ref parentState, camera, view, proj, posCurr, stateCurr);  // TODO: prioritize axes polling, so that those with smaller depth go first
             //axisY.Transform(ref parentState, view, proj, posCurr, stateCurr);
             //axisZ.Transform(ref parentState, view, proj, posCurr, stateCurr);
             Parent.State = parentState;
@@ -41,7 +41,7 @@ namespace Graphics
     public class Axis
     {
         public Vector4 Start, End;
-        public Vector2 StartNDC, EndNDC;
+        public Vector2 StartNDC, EndNDC;  // TODO: perhaps there's no need to store these variables here?
         public PlainModel Model;
         public float CursorDist;
 
@@ -61,6 +61,8 @@ namespace Graphics
                 _scale = value;
             }
         }
+
+        public Vector3 Direction => (End - Start).Xyz.Normalized();
 
         public bool FirstClick = true, Started;
         public Vector3 Offset;
@@ -83,7 +85,7 @@ namespace Graphics
             var startView = Start * view;
             var startProj = startView * proj;
             startProj /= startProj.W;
-            StartNDC = new Vector2(startProj.X, startProj.Y);  // TODO: why no minus at Y here?
+            StartNDC = new Vector2(startProj.X, startProj.Y);
 
             // transform end point to NDC
             var endView = End * view;
@@ -95,7 +97,7 @@ namespace Graphics
             return CursorDist < 0.1f;
         }
 
-        public void Transform(ref Matrix4 state, Matrix4 view, Matrix4 proj, Vector2 posCurr, MouseState stateCurr)  // TODO: optimize, remove state
+        public void Transform(ref Matrix4 state, Camera camera, Matrix4 view, Matrix4 proj, Vector2 posCurr, MouseState stateCurr)  // TODO: optimize, remove state
         {
             var axisActive = Poll(view, proj, posCurr);
             //Console.SetCursorPosition(0, 10);
@@ -107,43 +109,25 @@ namespace Graphics
                 Started = true;
 
                 // find the new mouse point projection onto the X axis (in NDC space)
-                var mNew = posCurr;
                 var a = EndNDC - StartNDC;
-                var n = mNew - EndNDC;
-                var v = a.Normalized() * Vector2.Dot(a, n);
+                var n = posCurr - EndNDC;
+                var v = Vector2.Dot(a, n) * a.Normalized();  // this vector defines offset from the end point of the axis (in NDC space)
 
                 // cast a ray from the near plane to the far plane
-                var raycastRes = Raycast(EndNDC + v, view, proj);
+                (var rayOrigin, var rayDirection) = Raycast(EndNDC + v, view, proj);
 
-                // find the point of intersection of the ray and the XY plane (in World space)
-                var p0 = Vector3.Zero;  // a point on the XY plane
-                var l0 = raycastRes.Item1.Xyz;  // a point on the near plane
-                var norm = Vector3.UnitZ;  // the normal of the XY plane
-                var l = raycastRes.Item2.Xyz.Normalized();  // a direction of the ray
+                // project axis onto the view plane
+                var axis = (End - Start).Xyz;
+                var axisView = axis - Vector3.Dot(axis, camera.Front) * camera.Front;
 
-                var nom = Vector3.Dot(p0 - l0, norm);
-                var denom = Vector3.Dot(l, norm);
+                // find vector, orthogonal to the projected axis
+                var axisViewOrtho = Vector3.Cross(axisView, camera.Front);
 
-                Vector3 intersection = default;
-                if (denom != 0)
-                {
-                    // a unique point of intersection
-                    var d = nom / denom;
-                    intersection = l0 + l * d;
-                }
-                else
-                {
-                    if (nom == 0)
-                    {
-                        // the ray is on the plane, i.e. infinite amount of intersections
+                // construct a ray plane
+                var planeNormal = Vector3.Cross(axisViewOrtho, rayDirection.Xyz).Normalized();
 
-                    }
-                    else
-                    {
-                        // the ray is parallel to the plane, i.e. no intersections
-
-                    }
-                }
+                // find the point of intersection between the ray plane and the local X axis of the object
+                var intersection = LinePlaneIntersection(state.Row3.Xyz, Direction, rayOrigin.Xyz, planeNormal);
 
                 //Vector3 intersection = LinesIntersection(raycastRes.Item1.Xyz, raycastRes.Item2.Xyz, Vector3.Zero, Vector3.UnitX);
                 //Console.SetCursorPosition(0, 10);
@@ -183,7 +167,32 @@ namespace Graphics
             }
         }
 
-        public Vector3 LinesIntersection(Vector3 p1, Vector3 a1, Vector3 p2, Vector3 a2)
+        public Vector3 LinePlaneIntersection(Vector3 pLine, Vector3 nLine, Vector3 pPlane, Vector3 nPlane)  // TODO: move to library
+        {
+            var nom = Vector3.Dot(pPlane - pLine, nPlane);
+            var denom = Vector3.Dot(nLine, nPlane);
+
+            if (denom != 0)
+            {
+                // a unique point of intersection
+                return pLine + nLine * nom / denom;
+            }
+            else
+            {
+                if (nom == 0)
+                {
+                    // the ray is on the plane, i.e. infinite amount of intersections
+                    return default;
+                }
+                else
+                {
+                    // the ray is parallel to the plane, i.e. no intersections
+                    return default;
+                }
+            }
+        }
+
+        public Vector3 LinesIntersection(Vector3 p1, Vector3 a1, Vector3 p2, Vector3 a2)  // TODO: move to library
         {
             var f1 = Vector3.Dot(a1, p1 - p2);
             var f2 = Vector3.Dot(a1, a1);
@@ -206,7 +215,7 @@ namespace Graphics
             }
         }
 
-        public (Vector4, Vector4) Raycast(Vector2 ndc, Matrix4 view, Matrix4 proj)  // TODO: optimize
+        public (Vector4, Vector4) Raycast(Vector2 ndc, Matrix4 view, Matrix4 proj)  // TODO: optimize, move to library
         {
             var vStart = new Vector4(ndc.X, ndc.Y, -1, 1);
             var vEnd = new Vector4(ndc.X, ndc.Y, 0, 1);
