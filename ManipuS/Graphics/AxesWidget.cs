@@ -28,12 +28,15 @@ namespace Graphics
             Parent = renderable;
         }
 
-        public void Transform(Camera camera, Matrix4 view, Matrix4 proj, Vector2 posCurr, MouseState stateCurr)
+        public void Poll(Camera camera, Vector2 cursorPos, MouseState mouseState)
         {
+            Console.SetCursorPosition(0, 10);
             var parentState = Parent.State;
-            axisX.Transform(ref parentState, camera, view, proj, posCurr, stateCurr);  // TODO: prioritize axes polling, so that those with smaller depth go first
-            //axisY.Transform(ref parentState, view, proj, posCurr, stateCurr);
-            //axisZ.Transform(ref parentState, view, proj, posCurr, stateCurr);
+
+            axisX.Poll(ref parentState, camera, cursorPos, mouseState);  // TODO: prioritize axes polling, so that those with smaller depth go first
+            axisY.Poll(ref parentState, camera, cursorPos, mouseState);
+            axisZ.Poll(ref parentState, camera, cursorPos, mouseState);
+
             Parent.State = parentState;
         }
     }
@@ -78,39 +81,28 @@ namespace Graphics
             });
         }
 
-        public bool Poll(Matrix4 view, Matrix4 proj, Vector2 cursorPos)  // TODO: optimize, refactor
-                                                                         // TODO: (optionally) check distance between ray and axis; if small, the axis is active
+        public bool Poll(ref Matrix4 state, Camera camera, Vector2 cursorPos, MouseState stateCurr)  // TODO: optimize, remove state
         {
-            // transform start point to NDC
-            var startView = Start * view;
-            var startProj = startView * proj;
-            startProj /= startProj.W;
-            StartNDC = new Vector2(startProj.X, startProj.Y);
+            // get current view and projection matrices
+            var view = camera.GetViewMatrix();
+            var proj = camera.GetProjectionMatrix();
 
-            // transform end point to NDC
-            var endView = End * view;
-            var endProj = endView * proj;
-            endProj /= endProj.W;
-            EndNDC = new Vector2(endProj.X, endProj.Y);
+            // scale axis according to camera position, so that its size remains fixed
+            Scale = (camera.Position - Start.Xyz).Length;
 
-            CursorDist = Vector2.Distance(cursorPos, EndNDC);
-            return CursorDist < 0.1f;
-        }
-
-        public void Transform(ref Matrix4 state, Camera camera, Matrix4 view, Matrix4 proj, Vector2 posCurr, MouseState stateCurr)  // TODO: optimize, remove state
-        {
-            var axisActive = Poll(view, proj, posCurr);
-            //Console.SetCursorPosition(0, 10);
-            //Console.WriteLine($"Axis X is {axisActive}");
-            //Console.WriteLine($"Mouse button is {stateCurr.RightButton}");
+            // check if current axis is active, i.e. cursor is nearby
+            var axisActive = IsActive(view, proj, cursorPos);
+            Console.WriteLine($"Axis X is {axisActive}");
+            Console.WriteLine($"Mouse button is {stateCurr.RightButton}");
 
             if ((axisActive || Started) && stateCurr.RightButton == ButtonState.Pressed)
             {
+                // axis is active, button was pressed ---> start transformation
                 Started = true;
 
                 // find the new mouse point projection onto the X axis (in NDC space)
                 var a = EndNDC - StartNDC;
-                var n = posCurr - EndNDC;
+                var n = cursorPos - EndNDC;
                 var v = Vector2.Dot(a, n) * a.Normalized();  // this vector defines offset from the end point of the axis (in NDC space)
 
                 // cast a ray from the near plane to the far plane
@@ -135,36 +127,68 @@ namespace Graphics
 
                 if (FirstClick)
                 {
-                    Offset = new Vector3(intersection.X, 0, 0) - End.Xyz;
+                    // at first click memoize the offset of cursor from end point
+                    Offset = intersection - End.Xyz;
                     FirstClick = false;
                 }
                 else
                 {
                     // project the intersecton point onto the X axis (in World space)
-                    Vector3 translation = new Vector3(intersection.X, 0, 0) - Offset - End.Xyz;
+                    Vector3 translation = intersection - Offset - End.Xyz;
 
+                    // update axis edge points
                     Start += new Vector4(translation);
                     End += new Vector4(translation);
 
+                    // update parent object
                     state.M14 += translation.X;
+                    state.M24 += translation.Y;
+                    state.M34 += translation.Z;
+
+                    // update axis model
                     Model.State = new Matrix4(
                         new Vector4(Scale, 0, 0, state.M14),
-                        new Vector4(0, Scale, 0, 0),
-                        new Vector4(0, 0, Scale, 0),
+                        new Vector4(0, Scale, 0, state.M24),
+                        new Vector4(0, 0, Scale, state.M34),
                         new Vector4(0, 0, 0, 1));
                 }
+
+                return true;
             }
             else
             {
+                // axis is inactive or button was released ---> stop transformation
                 Started = false;
                 FirstClick = true;
 
-                Model.State = new Matrix4(
+                // update axis model
+                Model.State = new Matrix4(  // TODO: try to optimize
                         new Vector4(Scale, 0, 0, Model.State.M14),
-                        new Vector4(0, Scale, 0, 0),
-                        new Vector4(0, 0, Scale, 0),
+                        new Vector4(0, Scale, 0, Model.State.M24),
+                        new Vector4(0, 0, Scale, Model.State.M34),
                         new Vector4(0, 0, 0, 1));
+
+                return false;
             }
+        }
+
+        public bool IsActive(Matrix4 view, Matrix4 proj, Vector2 cursorPos)  // TODO: optimize, refactor
+                                                                         // TODO: (optionally) check distance between ray and axis; if small, the axis is active
+        {
+            // transform start point to NDC
+            var startView = Start * view;
+            var startProj = startView * proj;
+            startProj /= startProj.W;
+            StartNDC = new Vector2(startProj.X, startProj.Y);
+
+            // transform end point to NDC
+            var endView = End * view;
+            var endProj = endView * proj;
+            endProj /= endProj.W;
+            EndNDC = new Vector2(endProj.X, endProj.Y);
+
+            CursorDist = Vector2.Distance(cursorPos, EndNDC);
+            return CursorDist < 0.1f;
         }
 
         public Vector3 LinePlaneIntersection(Vector3 pLine, Vector3 nLine, Vector3 pPlane, Vector3 nPlane)  // TODO: move to library

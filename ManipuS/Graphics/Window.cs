@@ -84,8 +84,6 @@ namespace Graphics
 
         public static AxesWidget widget;
         public static bool IsAxisX;
-        //public static Matrix4 mat = Matrix4.Identity;
-        public static Matrix4 Ortho;
 
         public Window(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
@@ -134,8 +132,6 @@ namespace Graphics
                 0.0f, 0.001f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f,
                 0.0f, 0.001f, 0.30f,   0.0f, 0.0f, 1.0f, 1.0f
             });
-
-            Ortho = OpenTK.Matrix4.CreateOrthographicOffCenter(-0.375f * Width, 0.375f * Width, -0.5f * Height, 0.5f * Height, 0.01f, 100.0f);
 
             base.OnLoad(e);
         }
@@ -210,7 +206,7 @@ namespace Graphics
 
             var cursor = Mouse.GetCursorState();
             var window = Location;
-            var CursorWindow = new System.Drawing.Point(cursor.X - window.X, cursor.Y - window.Y);  // cursor position relative to window
+            var CursorWindow = new Point(cursor.X - window.X, cursor.Y - window.Y);  // cursor position relative to window
             var GuiActive = ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow);
 
             if (_firstMove) // this bool variable is initially set to true
@@ -236,27 +232,33 @@ namespace Graphics
             // updating last mouse position
             _lastPos = new Vector2(mouse.X, mouse.Y);
 
-            var view = _camera.GetViewMatrix();
-            var proj = _camera.GetProjectionMatrix();
+            //CursorWindow.X -= (int)(0.25 * Width + 8);
+            //CursorWindow.Y -= 38;
 
-            widget.axisX.Raycast(new Vector2(0, 0), view, proj);
-            widget.axisX.Raycast(new Vector2(-1, 1), view, proj);
+            //pointScreen = new Vector2(
+            //    ((float)CursorWindow.X / (0.75f * Width) - 0.5f) * 2,
+            //    ((float)(Height - CursorWindow.Y) / Height - 0.5f) * 2);
 
-            CursorWindow.X -= (int)(0.25 * Width + 8);
-            CursorWindow.Y -= 38;
-
-            pointScreen = new Vector2(
-                ((float)CursorWindow.X / (0.75f * Width) - 0.5f) * 2,
-                ((float)(Height - CursorWindow.Y) / Height - 0.5f) * 2);
-
-            widget.axisX.Scale = (_camera.Position - widget.axisX.Start.Xyz).Length;
             //Console.SetCursorPosition(0, 10);
             //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", _camera.Up.X, _camera.Up.Y, _camera.Up.Z);
             //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", view.Row3.X, view.Row3.Y, view.Row3.Z);
 
-            widget.Transform(_camera, view, proj, pointScreen, mouse);  // TODO: pass State by ref, that saves some time
+            widget.Poll(_camera, MousePosition(Mouse.GetCursorState(), this), mouse);  // TODO: pass State by ref, that saves some time
 
             base.OnUpdateFrame(e);
+        }
+
+        public Vector2 MousePosition(MouseState mouse, Window window)
+        {
+            // cursor position relative to window
+            var cursorWindow = new Point(mouse.X - window.X, mouse.Y - window.Y);
+
+            cursorWindow.X -= (int)(0.25 * window.Width + 8);
+            cursorWindow.Y -= 38;
+
+            return new Vector2(
+                (cursorWindow.X / (0.75f * window.Width) - 0.5f) * 2,
+                ((float)(window.Height - cursorWindow.Y) / window.Height - 0.5f) * 2);
         }
         
         protected override void OnMouseMove(MouseMoveEventArgs e)
