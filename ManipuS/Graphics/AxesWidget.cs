@@ -18,9 +18,9 @@ namespace Graphics
 
         public AxesWidget()
         {
-            axisX = new Axis(Vector4.UnitW, new Vector4(1, 0, 0, 1), new Vector4(1, 0, 0, 1));
-            axisY = new Axis(Vector4.UnitW, new Vector4(0, 1, 0, 1), new Vector4(0, 1, 0, 1));
-            axisZ = new Axis(Vector4.UnitW, new Vector4(0, 0, 1, 1), new Vector4(0, 0, 1, 1));
+            axisX = new Axis(Vector4.UnitW, new Vector4(0.3f, 0, 0, 1), new Vector4(1, 0, 0, 1));
+            axisY = new Axis(Vector4.UnitW, new Vector4(0, 0.3f, 0, 1), new Vector4(0, 1, 0, 1));
+            axisZ = new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1));
         }
 
         public void Attach(IRenderable renderable)
@@ -32,8 +32,8 @@ namespace Graphics
         {
             var parentState = Parent.State;
             axisX.Transform(ref parentState, view, proj, posCurr, stateCurr);  // TODO: prioritize axes polling, so that those with smaller depth go first
-            axisY.Transform(ref parentState, view, proj, posCurr, stateCurr);
-            axisZ.Transform(ref parentState, view, proj, posCurr, stateCurr);
+            //axisY.Transform(ref parentState, view, proj, posCurr, stateCurr);
+            //axisZ.Transform(ref parentState, view, proj, posCurr, stateCurr);
             Parent.State = parentState;
         }
     }
@@ -44,6 +44,23 @@ namespace Graphics
         public Vector2 StartNDC, EndNDC;
         public PlainModel Model;
         public float CursorDist;
+
+        private float _scale = 1;
+        public float Scale
+        {
+            get => _scale;
+            set
+            {
+                // determine change in scale
+                var ratio = value / _scale;  // TODO: check for zero, i.e. when camera is aligned with the widget
+
+                // apply that change
+                End = ratio * (End - Start) + Start;
+
+                // and store the new scale
+                _scale = value;
+            }
+        }
 
         public bool FirstClick = true, Started;
         public Vector3 Offset;
@@ -60,12 +77,13 @@ namespace Graphics
         }
 
         public bool Poll(Matrix4 view, Matrix4 proj, Vector2 cursorPos)  // TODO: optimize, refactor
+                                                                         // TODO: (optionally) check distance between ray and axis; if small, the axis is active
         {
             // transform start point to NDC
             var startView = Start * view;
             var startProj = startView * proj;
             startProj /= startProj.W;
-            StartNDC = new Vector2(startProj.X, startProj.Y);
+            StartNDC = new Vector2(startProj.X, startProj.Y);  // TODO: why no minus at Y here?
 
             // transform end point to NDC
             var endView = End * view;
@@ -89,7 +107,7 @@ namespace Graphics
                 Started = true;
 
                 // find the new mouse point projection onto the X axis (in NDC space)
-                var mNew = posCurr;  //new Vector2(stateCurr.X, stateCurr.Y);
+                var mNew = posCurr;
                 var a = EndNDC - StartNDC;
                 var n = mNew - EndNDC;
                 var v = a.Normalized() * Vector2.Dot(a, n);
@@ -127,6 +145,10 @@ namespace Graphics
                     }
                 }
 
+                //Vector3 intersection = LinesIntersection(raycastRes.Item1.Xyz, raycastRes.Item2.Xyz, Vector3.Zero, Vector3.UnitX);
+                //Console.SetCursorPosition(0, 10);
+                //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", intersection.X, intersection.Y, intersection.Z);
+
                 if (FirstClick)
                 {
                     Offset = new Vector3(intersection.X, 0, 0) - End.Xyz;
@@ -135,19 +157,52 @@ namespace Graphics
                 else
                 {
                     // project the intersecton point onto the X axis (in World space)
-                    Vector3 translation = new Vector3(intersection.X, 0, 0) - End.Xyz - Offset;
+                    Vector3 translation = new Vector3(intersection.X, 0, 0) - Offset - End.Xyz;
 
                     Start += new Vector4(translation);
                     End += new Vector4(translation);
 
                     state.M14 += translation.X;
-                    Model.State = state;  // TODO: move to separate method UpdateState() ?
+                    Model.State = new Matrix4(
+                        new Vector4(Scale, 0, 0, state.M14),
+                        new Vector4(0, Scale, 0, 0),
+                        new Vector4(0, 0, Scale, 0),
+                        new Vector4(0, 0, 0, 1));
                 }
             }
             else
             {
                 Started = false;
                 FirstClick = true;
+
+                Model.State = new Matrix4(
+                        new Vector4(Scale, 0, 0, Model.State.M14),
+                        new Vector4(0, Scale, 0, 0),
+                        new Vector4(0, 0, Scale, 0),
+                        new Vector4(0, 0, 0, 1));
+            }
+        }
+
+        public Vector3 LinesIntersection(Vector3 p1, Vector3 a1, Vector3 p2, Vector3 a2)
+        {
+            var f1 = Vector3.Dot(a1, p1 - p2);
+            var f2 = Vector3.Dot(a1, a1);
+            var f3 = Vector3.Dot(a1, a2);
+            var f4 = Vector3.Dot(a2, p1 - p2);
+            var f5 = Vector3.Dot(a2, a2);
+
+            var denom = f3 * f3 - f2 * f5;
+            if (denom != 0)
+            {
+                //var t1 = (f1 * f5 - f3 * f4) / denom;
+                var t2 = (f1 * f3 - f2 * f4) / denom;
+
+                return p2 + t2 * a2;
+            }
+            else
+            {
+                // ???
+                return default;
             }
         }
 

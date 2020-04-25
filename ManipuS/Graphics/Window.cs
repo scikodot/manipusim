@@ -82,10 +82,10 @@ namespace Graphics
         public static PlainModel pointMoveable;
         public static Vector2 pointScreen;
 
-        public static Entity axisY, axisZ;
         public static AxesWidget widget;
         public static bool IsAxisX;
         //public static Matrix4 mat = Matrix4.Identity;
+        public static Matrix4 Ortho;
 
         public Window(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
@@ -120,20 +120,22 @@ namespace Graphics
             widget.axisX.Model = new PlainModel(lineShader, new float[]
             {
                 0.0f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f,
-                1.0f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f
+                0.30f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f
             });
 
-            axisY = new Entity(lineShader, new float[]
+            widget.axisY.Model = new PlainModel(lineShader, new float[]
             {
                 0.0f, 0.001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f,
-                0.0f, 1.001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f
+                0.0f, 0.3001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f
             });
 
-            axisZ = new Entity(lineShader, new float[]
+            widget.axisZ.Model = new PlainModel(lineShader, new float[]
             {
                 0.0f, 0.001f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f,
-                0.0f, 0.001f, 1.0f,   0.0f, 0.0f, 1.0f, 1.0f
+                0.0f, 0.001f, 0.30f,   0.0f, 0.0f, 1.0f, 1.0f
             });
+
+            Ortho = OpenTK.Matrix4.CreateOrthographicOffCenter(-0.375f * Width, 0.375f * Width, -0.5f * Height, 0.5f * Height, 0.01f, 100.0f);
 
             base.OnLoad(e);
         }
@@ -237,22 +239,24 @@ namespace Graphics
             var view = _camera.GetViewMatrix();
             var proj = _camera.GetProjectionMatrix();
 
-            //var point = new Vector4(0, 0, 0, 1);
-            //var pointView = point * view;
-            //var pointProj = pointView * proj;
-            //pointProj /= pointProj.W;
+            var point = new Vector4(0, 0, 0, 1);
+            var pointView = point * view;
+            var pointProj = pointView * proj;
+            pointProj /= pointProj.W;
 
             CursorWindow.X -= (int)(0.25 * Width + 8);
             CursorWindow.Y -= 38;
 
-            pointScreen = new Vector2(  //new Vector2(pointProj.X, -pointProj.Y);
+            pointScreen = Vector2.Zero;  //new Vector2(pointProj.X, -pointProj.Y);
+
+            pointScreen = new Vector2(
                 ((float)CursorWindow.X / (0.75f * Width) - 0.5f) * 2,
                 ((float)(Height - CursorWindow.Y) / Height - 0.5f) * 2);
 
-            //if (widget.Poll(view, proj, pointScreen))
-            //    IsAxisX = true;
-            //else
-            //    IsAxisX = false;
+            widget.axisX.Scale = (_camera.Position - widget.axisX.Start.Xyz).Length;
+            Console.SetCursorPosition(0, 10);
+            Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", _camera.Position.X, _camera.Position.Y, _camera.Position.Z);
+            Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", view.Row3.X, view.Row3.Y, view.Row3.Z);
 
             widget.Transform(view, proj, pointScreen, mouse);  // TODO: pass State by ref, that saves some time
 
@@ -353,12 +357,12 @@ namespace Graphics
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
             });
 
-            axisY.Display(model, () =>
+            widget.axisY.Model.Render(() =>
             {
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
             });
 
-            axisZ.Display(model, () =>
+            widget.axisZ.Model.Render(() =>
             {
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
             });
