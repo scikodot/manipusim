@@ -104,7 +104,7 @@ namespace Graphics
             });
         }
 
-        public void Draw(Shader shader, MeshMode mode)
+        public void Render(Shader shader, MeshMode mode)
         {
             if ((mode & MeshMode.Solid) == MeshMode.Solid)
             {

@@ -32,7 +32,7 @@ namespace Graphics
 
     public interface IRenderable
     {
-        Matrix4 State { get; set; }
+        ref Matrix4 State { get; }
     }
 
     public class PlainModel : IRenderable
@@ -40,7 +40,8 @@ namespace Graphics
         private int VAO, VBO, EBO;
         public Shader Shader;
 
-        public Matrix4 State { get; set; }
+        private Matrix4 _state;
+        public ref Matrix4 State => ref _state;
 
         public PlainModel(Shader shader, float[] vertices, uint[] indices = null, Matrix4 state = default)
         {
@@ -80,12 +81,12 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        public void Render(Action draw)
+        public void Render(Action render)
         {
             // displaying entity with the appropriate draw method
             GL.BindVertexArray(VAO);
             Shader.SetMatrix4("model", State, true);
-            draw();
+            render();
         }
     }
 
@@ -95,17 +96,18 @@ namespace Graphics
         private List<Mesh> Meshes = new List<Mesh>();
         private string Directory;
 
-        public Matrix4 State { get; set; }
+        private Matrix4 _state;
+        public ref Matrix4 State => ref _state;
 
         public ComplexModel(string path)
         {
             LoadModel(path);
         }
 
-        public void Draw(Shader shader, MeshMode mode)
+        public void Render(Shader shader, MeshMode mode)
         {
             foreach (var mesh in Meshes)
-                mesh.Draw(shader, mode);
+                mesh.Render(shader, mode);
         }
 
         private void LoadModel(string path)

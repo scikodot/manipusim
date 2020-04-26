@@ -115,23 +115,23 @@ namespace Graphics
             widget = new AxesWidget();
             widget.Attach(pointMoveable);
 
-            widget.axisX.Model = new PlainModel(lineShader, new float[]
-            {
-                0.0f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f,
-                0.30f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f
-            });
+            //widget.axisX.Model = new PlainModel(lineShader, new float[]
+            //{
+            //    0.0f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f,
+            //    0.30f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f
+            //});
 
-            widget.axisY.Model = new PlainModel(lineShader, new float[]
-            {
-                0.0f, 0.001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f,
-                0.0f, 0.3001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f
-            });
+            //widget.axisY.Model = new PlainModel(lineShader, new float[]
+            //{
+            //    0.0f, 0.001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f,
+            //    0.0f, 0.3001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f
+            //});
 
-            widget.axisZ.Model = new PlainModel(lineShader, new float[]
-            {
-                0.0f, 0.001f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f,
-                0.0f, 0.001f, 0.30f,   0.0f, 0.0f, 1.0f, 1.0f
-            });
+            //widget.axisZ.Model = new PlainModel(lineShader, new float[]
+            //{
+            //    0.0f, 0.001f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f,
+            //    0.0f, 0.001f, 0.30f,   0.0f, 0.0f, 1.0f, 1.0f
+            //});
 
             base.OnLoad(e);
         }
@@ -350,17 +350,7 @@ namespace Graphics
                 GL.PointSize(1);
             });
 
-            widget.axisX.Model.Render(() =>
-            {
-                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
-            });
-
-            widget.axisY.Model.Render(() =>
-            {
-                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
-            });
-
-            widget.axisZ.Model.Render(() =>
+            widget.Render(() =>
             {
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
             });
@@ -800,11 +790,6 @@ namespace Graphics
 
                 //if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
                 //    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");  // TODO: when scene is updated, obstacle center is not reset! fix
-
-                ImGui.Text(string.Format("({0:0.000}, {1:0.000})", pointScreen.X, pointScreen.Y));
-                ImGui.Text(string.Format($"Axis X is {IsAxisX}"));
-                ImGui.Text(string.Format("({0:0.000}, {1:0.000})", widget.axisX.EndNDC.X, widget.axisX.EndNDC.Y));
-                ImGui.Text(string.Format("Axis X distance: {0:0.000}", widget.axisX.CursorDist));
 
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));

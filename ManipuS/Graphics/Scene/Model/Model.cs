@@ -22,7 +22,7 @@ namespace Graphics
         public void Draw(Shader shader, MeshMode mode)
         {
             foreach (var mesh in Meshes)
-                mesh.Draw(shader, mode);
+                mesh.Render(shader, mode);
         }
 
         private void LoadModel(string path)

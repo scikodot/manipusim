@@ -13,6 +13,23 @@ public static class ArrayExtensions
             array[i] = value;
         }
     }
+
+    public static int IndexOfMin<T>(this T[] array, Func<T, float> converter)
+    {
+        float min = converter(array[0]);
+        int minIndex = 0;
+        for (int i = 1; i < array.Length; i++)
+        {
+            float curr = converter(array[i]);
+            if (curr < min)
+            {
+                min = curr;
+                minIndex = i;
+            }
+        }
+
+        return minIndex;
+    }
 }
 
 public static class ListExtensions
