@@ -95,13 +95,13 @@ namespace Logic
         public override void Render(Graphics.Shader shader, ref Matrix4 state)
         {
             if (Model == default)
-                Model = new Graphics.PlainModel(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), new uint[]
+                Model = new Graphics.PlainModel(Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), new uint[]
                 {
                     0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
                 });
 
             Model.State = state;
-            Model.Render(() =>
+            Model.Render(shader, () =>
             {
                 GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
             });

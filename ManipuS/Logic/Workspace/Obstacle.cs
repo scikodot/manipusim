@@ -52,11 +52,11 @@ namespace Logic
         public void Render(Graphics.Shader shader, bool showCollider = false)
         {
             if (Model == default)
-                Model = new Graphics.PlainModel(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.White));
+                Model = new Graphics.PlainModel(Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.White));
 
             var stateMatrix = State.ToMatrix();
             Model.State = stateMatrix;
-            Model.Render(() =>
+            Model.Render(shader, () =>
             {
                 GL.DrawArrays(PrimitiveType.Points, 0, Data.Length);
             });

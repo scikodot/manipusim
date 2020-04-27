@@ -9,9 +9,10 @@ namespace Graphics
 {
     public class ComplexModel : IRenderable
     {
-        private static List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
-        private List<Mesh> Meshes = new List<Mesh>();
-        private string Directory;
+        private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
+        private readonly List<Mesh> Meshes = new List<Mesh>();
+
+        public string Directory { get; private set; }
 
         private Matrix4 _state;
         public ref Matrix4 State => ref _state;

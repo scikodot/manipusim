@@ -30,45 +30,38 @@ namespace Graphics
     public class PlainModel : IRenderable, IDisposable
     {
         private readonly int VAO, VBO, EBO;
-        public Shader Shader;
 
         private Matrix4 _state;
         public ref Matrix4 State => ref _state;
 
-        public PlainModel(Shader shader, float[] vertices, uint[] indices = null, Matrix4 state = default)
+        public PlainModel(float[] vertices, uint[] indices = null, Matrix4 state = default)
         {
             State = state == default ? Matrix4.Identity : state;
 
-            Shader = shader;
-
-            // generating array/buffer objects
+            // generate array/buffer objects
             VAO = GL.GenVertexArray();
             VBO = GL.GenBuffer();
 
             GL.BindVertexArray(VAO);
 
-            // binding vertex data to buffer
+            // bind vertices to buffer
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
             GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
 
-            // binding indices data to buffer, if presented
+            // bind indices to buffer, if presented
             if (indices != null)
             {
                 EBO = GL.GenBuffer();
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
             }
-            else
-                EBO = 0;
 
-            // configuring all the needed attributes
-            var PosAttrib = Shader.GetAttribLocation("aPos");
-            GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(PosAttrib);
+            // set all attributes at appropriate locations
+            GL.EnableVertexAttribArray(0);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
 
-            var ColAttrib = Shader.GetAttribLocation("aColor");
-            GL.VertexAttribPointer(ColAttrib, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(ColAttrib);
+            GL.EnableVertexAttribArray(3);
+            GL.VertexAttribPointer(3, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
 
             GL.BindVertexArray(0);
         }
@@ -79,11 +72,11 @@ namespace Graphics
             GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
         }
 
-        public void Render(Action render)
+        public void Render(Shader shader, Action render)
         {
-            // displaying entity with the appropriate draw method
+            // render model with the appropriate draw method
             GL.BindVertexArray(VAO);
-            Shader.SetMatrix4("model", ref State, true);  // TODO: remove transpose?
+            shader.SetMatrix4("model", ref State, true);  // TODO: remove transpose?
             render();
         }
 
@@ -100,12 +93,6 @@ namespace Graphics
         {
             // TODO: check for disposed; see documentation
 
-            if (disposing)
-            {
-                // clear managed resources
-                Shader = null;
-            }
-
             // clear unmanaged resources
             GL.DeleteBuffer(EBO);
             GL.DeleteBuffer(VBO);
@@ -114,6 +101,7 @@ namespace Graphics
             Console.WriteLine($"Disposed model: VAO - {VAO}, VBO - {VBO}");
         }
 
+        // TODO: is there any need in finalizer?
         //~PlainModel()
         //{
         //    // dispose the model without clearing managed resources, that is performed by GC

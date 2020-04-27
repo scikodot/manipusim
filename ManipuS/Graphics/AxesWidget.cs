@@ -25,10 +25,10 @@ namespace Graphics
             };
         }
 
-        public void Render(Action render)
+        public void Render(Shader shader, Action render)
         {
             foreach (var axis in Axes)
-                axis.Render(render);
+                axis.Render(shader, render);
         }
 
         public void Attach(IRenderable renderable)
@@ -144,16 +144,16 @@ namespace Graphics
             Start = start;
             End = end;
 
-            Model = new PlainModel(Window.lineShader, new float[]
+            Model = new PlainModel(new float[]
             {
                 start.X, start.Y, start.Z,   color.X, color.Y, color.Z, color.W,
                 end.X, end.Y, end.Z,    color.X, color.Y, color.Z, color.W
             });
         }
 
-        public void Render(Action render)
+        public void Render(Shader shader, Action render)
         {
-            Model.Render(render);
+            Model.Render(shader, render);
         }
 
         internal void Translate(Vector3 translation)
@@ -179,9 +179,9 @@ namespace Graphics
             modelX.M11 = modelX.M22 = modelX.M33 = ScaleFactor;
         }
 
-        internal Vector3 Poll(Camera camera, ref Matrix4 view, ref Matrix4 proj, MouseState stateCurr, Vector2 cursorPos)  // TODO: optimize, remove state
+        internal Vector3 Poll(Camera camera, ref Matrix4 view, ref Matrix4 proj, MouseState stateCurr, Vector2 cursorPos)  // TODO: optimize
         {
-            if (stateCurr.RightButton == ButtonState.Pressed)
+            if (stateCurr.LeftButton == ButtonState.Pressed)
             {
                 // button was pressed ---> start transformation
                 Active = true;

@@ -108,10 +108,10 @@ namespace Graphics
             _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
 
             // workspace grid
-            grid = new PlainModel(lineShader, gridLines);
-            gridFloor = new PlainModel(lineShader, transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
+            grid = new PlainModel(gridLines);
+            gridFloor = new PlainModel(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
 
-            pointMoveable = new PlainModel(lineShader, new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f });
+            pointMoveable = new PlainModel(new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f });
 
             widget = new AxesWidget();
             widget.Attach(pointMoveable);
@@ -195,14 +195,14 @@ namespace Graphics
             lineShader.SetMatrix4("projection", ref _camera.ProjectionMatrix, false);
             lineShader.SetVector3("color", Vector3.One);
 
-            pointMoveable.Render(() =>
+            pointMoveable.Render(lineShader, () =>
             {
                 GL.PointSize(20);
                 GL.DrawArrays(PrimitiveType.Points, 0, 1);
                 GL.PointSize(1);
             });
 
-            widget.Render(() =>
+            widget.Render(lineShader, () =>
             {
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
             });
@@ -225,7 +225,7 @@ namespace Graphics
                     // render goal
                     if (goal[i] != default)
                     {
-                        goal[i].Render(() =>
+                        goal[i].Render(lineShader, () =>
                         {
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
@@ -238,7 +238,7 @@ namespace Graphics
                     if (manip.Path != null)
                     {
                         int count = manip.Path.Count;
-                        path[i].Render(() =>
+                        path[i].Render(lineShader, () =>
                         {
                             GL.DrawArrays(PrimitiveType.LineStrip, 0, count);
                         });
@@ -254,7 +254,7 @@ namespace Graphics
                             if (node.Model == default)
                                 node.Model = CreateTreeBranch(node.Point, node.Parent.Point);
 
-                            node.Model.Render(() =>
+                            node.Model.Render(lineShader, () =>
                             {
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                             });
@@ -265,7 +265,7 @@ namespace Graphics
 
             // workspace grid
             grid.State = Matrix4.Identity;
-            grid.Render(() =>
+            grid.Render(lineShader, () =>
             {
                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                 GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
@@ -273,17 +273,17 @@ namespace Graphics
             for (int i = 1; i < 11; i++)
             {
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i);
-                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i);
-                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
 
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i);
-                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i);
-                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
 
-            gridFloor.Render(() =>  // TODO: all help should be placed in a separate document (aka documentation)
+            gridFloor.Render(lineShader, () =>  // TODO: all help should be placed in a separate document (aka documentation)
             {
                 // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
                 //
@@ -638,7 +638,7 @@ namespace Graphics
                         var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                         var data = new List<System.Numerics.Vector3> { goalAttr.Center };
                         data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
-                        goal[i] = new PlainModel(lineShader, Utils.GL_Convert(data.ToArray(), Color4.Yellow));
+                        goal[i] = new PlainModel(Utils.GL_Convert(data.ToArray(), Color4.Yellow));
                     }
 
                     // obtained path
@@ -649,7 +649,7 @@ namespace Graphics
                         float[] data = Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), Color4.Red);
                         if (path[i] == default)
                         {
-                            path[i] = new PlainModel(lineShader, data);
+                            path[i] = new PlainModel(data);
                         }
                         else
                         {
@@ -684,18 +684,12 @@ namespace Graphics
 
         public void PollMouse(Camera camera, MouseState mouse)
         {
-            // get mouse position in NDC coordinates
-            var mouseNDC = MouseToNDC(mouse);
-
             if (_firstMove) // this bool variable is initially set to true
             {
                 _lastPos = new Vector2(mouse.X, mouse.Y);
                 _firstMove = false;
             }
-            else if (mouseNDC.X > -1 && mouseNDC.X < 1 &&  // Updating camera only if the mouse is inside the respective viewport
-                     mouseNDC.Y > -1 && mouseNDC.Y < 1 &&  // with the left button pressed and if no GUI window is active.
-                     mouse.LeftButton == ButtonState.Pressed &&
-                     !ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow))  
+            else if (mouse.MiddleButton == ButtonState.Pressed)  // update camera orientation if the middle button is pressed
             {
                 // Calculate the offset of the mouse position
                 var deltaX = mouse.X - _lastPos.X;
@@ -790,7 +784,7 @@ namespace Graphics
             base.OnUnload(e);
         }
 
-        protected void UpdateWorkspace()
+        protected void UpdateWorkspace()  // TODO: move somewhere else
         {
             // initializing manager
             Manager.Initialize();
@@ -816,7 +810,7 @@ namespace Graphics
         // TODO: move somewhere else
         public static PlainModel CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
         {
-            return new PlainModel(lineShader, Utils.GL_Convert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
+            return new PlainModel(Utils.GL_Convert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

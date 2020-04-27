@@ -74,10 +74,10 @@ namespace Logic
         public override void Render(Graphics.Shader shader, ref Matrix4 state)
         {
             if (Model == default)
-                Model = new Graphics.PlainModel(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), indicesLongitude);
+                Model = new Graphics.PlainModel(Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), indicesLongitude);
 
             Model.State = state;
-            Model.Render(() =>
+            Model.Render(shader, () =>
             {
                 for (int i = 0; i < levels; i++)
                 {
