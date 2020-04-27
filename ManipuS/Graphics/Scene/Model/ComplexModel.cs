@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
@@ -8,88 +7,6 @@ using StbImageSharp;
 
 namespace Graphics
 {
-    //abstract class AnyModel
-    //{
-    //    public abstract Matrix4 State { get; set; }
-
-    //    public abstract void Draw(Shader shader);
-
-    //    public static AnyModel Create(string path)
-    //    {
-    //        return new ComplexModel(path);
-    //    }
-
-    //    public static AnyModel Create(Shader shader, float[] data, uint[] indices)
-    //    {
-    //        return new PlainModel(shader, data, indices, null);
-    //    }
-
-    //    public static AnyModel Create(Shader shader, float[] data, Action draw)
-    //    {
-    //        return new PlainModel(shader, data, null, draw);
-    //    }
-    //}
-
-    public interface IRenderable
-    {
-        ref Matrix4 State { get; }
-    }
-
-    public class PlainModel : IRenderable
-    {
-        private int VAO, VBO, EBO;
-        public Shader Shader;
-
-        private Matrix4 _state;
-        public ref Matrix4 State => ref _state;
-
-        public PlainModel(Shader shader, float[] vertices, uint[] indices = null, Matrix4 state = default)
-        {
-            State = state == default ? Matrix4.Identity : state;
-
-            Shader = shader;
-
-            // generating array/buffer objects
-            VAO = GL.GenVertexArray();
-            VBO = GL.GenBuffer();
-
-            GL.BindVertexArray(VAO);
-
-            // binding vertex data to buffer
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
-
-            // binding indices data to buffer, if presented
-            if (indices != null)
-            {
-                EBO = GL.GenBuffer();
-                GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-                GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(float), indices, BufferUsageHint.StaticDraw);
-            }
-            else
-                EBO = 0;
-
-            // configuring all the needed attributes
-            var PosAttrib = Shader.GetAttribLocation("aPos");
-            GL.VertexAttribPointer(PosAttrib, 3, VertexAttribPointerType.Float, false, 7 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(PosAttrib);
-
-            var ColAttrib = Shader.GetAttribLocation("aColor");
-            GL.VertexAttribPointer(ColAttrib, 4, VertexAttribPointerType.Float, false, 7 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(ColAttrib);
-
-            GL.BindVertexArray(0);
-        }
-
-        public void Render(Action render)
-        {
-            // displaying entity with the appropriate draw method
-            GL.BindVertexArray(VAO);
-            Shader.SetMatrix4("model", State, true);
-            render();
-        }
-    }
-
     public class ComplexModel : IRenderable
     {
         private static List<MeshTexture> TexturesLoaded = new List<MeshTexture>();

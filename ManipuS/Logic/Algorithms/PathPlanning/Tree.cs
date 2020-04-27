@@ -26,7 +26,7 @@ namespace Logic.PathPlanning
             public Vector3 Point;
             public Vector q;
 
-            public Graphics.Entity Entity;
+            public Graphics.PlainModel Model;
 
             public Node(Node parent, Vector3 point, Vector q)
             {
@@ -58,13 +58,9 @@ namespace Logic.PathPlanning
 
             ~Node()
             {
-                if (Entity != default)
+                if (Model != default)
                 {
-                    Dispatcher.ActionsQueue.Enqueue(() =>
-                    {
-                        Entity.Dispose();
-                        Console.WriteLine($"Disposed entity: VAO - {Entity.VAO}, VBO - {Entity.VBO}");
-                    });
+                    Dispatcher.ActionsQueue.Enqueue(Model.Dispose);
                 }
             }
         }

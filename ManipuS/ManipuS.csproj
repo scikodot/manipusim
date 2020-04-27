@@ -100,6 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\Extensions.cs" />
+    <Compile Include="Common\Interfaces.cs" />
     <Compile Include="Common\RandomCustom.cs" />
     <Compile Include="Common\RandomThreadStatic.cs" />
     <Compile Include="Graphics\AxesWidget.cs" />
@@ -108,11 +109,10 @@
     <Compile Include="Graphics\ImGUI\ImGuiController.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiShader.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiTexture.cs" />
+    <Compile Include="Graphics\Scene\Model\ComplexModel.cs" />
     <Compile Include="Graphics\Scene\Model\Mesh.cs" />
-    <Compile Include="Graphics\Scene\Model\Model.cs" />
-    <Compile Include="Graphics\Scene\Model\AnyModel.cs" />
+    <Compile Include="Graphics\Scene\Model\PlainModel.cs" />
     <Compile Include="Graphics\Utils\Utils.cs" />
-    <Compile Include="Graphics\Utils\Entity.cs" />
     <Compile Include="Common\WorkspaceBuffer.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\_base.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\HillClimbing.cs" />

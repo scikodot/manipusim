@@ -15,7 +15,7 @@ namespace Logic
         private Vector3[] Data;
         public ImpDualQuat State;
         public Collider Collider;
-        public Graphics.Entity Entity;
+        public Graphics.PlainModel Model;
 
         public Obstacle(Vector3[] data, ImpDualQuat state, ColliderShape shape)
         {
@@ -49,19 +49,22 @@ namespace Logic
             Collider.Center = State.Translation;
         }
 
-        public void Draw(Graphics.Shader shader, bool showCollider = false)
+        public void Render(Graphics.Shader shader, bool showCollider = false)
         {
-            if (Entity == default)
-                Entity = new Graphics.Entity(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.White));
+            if (Model == default)
+                Model = new Graphics.PlainModel(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.White));
 
-            Matrix4 model = State.ToMatrix(true);
-            Entity.Display(model, () =>
+            var stateMatrix = State.ToMatrix();
+            Model.State = stateMatrix;
+            Model.Render(() =>
             {
                 GL.DrawArrays(PrimitiveType.Points, 0, Data.Length);
             });
 
             if (showCollider)
-                Collider.Draw(shader, model);
+            {
+                Collider.Render(shader, ref stateMatrix);
+            }
         }
     }
 }

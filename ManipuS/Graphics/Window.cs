@@ -45,8 +45,8 @@ namespace Graphics
         };
 
         // all the needed entities
-        Entity grid, gridFloor;
-        Entity[] goal, path;
+        PlainModel grid, gridFloor;
+        PlainModel[] goal, path;
 
         HashSet<Logic.PathPlanning.Tree.Node>[] tree;
 
@@ -77,7 +77,7 @@ namespace Graphics
         private bool ManipLoaded = false;
 
         // 3D model
-        Model Crytek;
+        ComplexModel Crytek;
         public static Shader lineShader;
         public static PlainModel pointMoveable;
         public static Vector2 pointScreen;
@@ -107,31 +107,13 @@ namespace Graphics
             _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
 
             // workspace grid
-            grid = new Entity(lineShader, gridLines);
-            gridFloor = new Entity(lineShader, transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
+            grid = new PlainModel(lineShader, gridLines);
+            gridFloor = new PlainModel(lineShader, transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
 
             pointMoveable = new PlainModel(lineShader, new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f });
 
             widget = new AxesWidget();
             widget.Attach(pointMoveable);
-
-            //widget.axisX.Model = new PlainModel(lineShader, new float[]
-            //{
-            //    0.0f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f,
-            //    0.30f, 0.001f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f
-            //});
-
-            //widget.axisY.Model = new PlainModel(lineShader, new float[]
-            //{
-            //    0.0f, 0.001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f,
-            //    0.0f, 0.3001f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f
-            //});
-
-            //widget.axisZ.Model = new PlainModel(lineShader, new float[]
-            //{
-            //    0.0f, 0.001f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f,
-            //    0.0f, 0.001f, 0.30f,   0.0f, 0.0f, 1.0f, 1.0f
-            //});
 
             base.OnLoad(e);
         }
@@ -178,6 +160,9 @@ namespace Graphics
             {
                 return;
             }
+
+            _camera.UpdateViewMatrix();
+            _camera.UpdateProjectionMatrix();
 
             var input = Keyboard.GetState();
 
@@ -244,6 +229,31 @@ namespace Graphics
             //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", view.Row3.X, view.Row3.Y, view.Row3.Z);
 
             widget.Poll(_camera, MousePosition(Mouse.GetCursorState(), this), mouse);  // TODO: pass State by ref, that saves some time
+
+            if (ManipLoaded)
+            {
+                float dt;
+                if (forward)
+                {
+                    dt = (float)e.Time;
+                    if (time > 1)
+                        forward = false;
+                }
+                else
+                {
+                    dt = -(float)e.Time;
+                    if (time < -1)
+                        forward = true;
+                }
+                time += dt;
+
+                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+                {
+                    Manager.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
+                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                }
+            }
 
             base.OnUpdateFrame(e);
         }
@@ -318,8 +328,8 @@ namespace Graphics
 
             // set view and projection matrices;
             // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader file)
-            _shader.SetMatrix4("view", _camera.GetViewMatrix(), false);
-            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
+            _shader.SetMatrix4("view", ref _camera.ViewMatrix, false);
+            _shader.SetMatrix4("projection", ref _camera.ProjectionMatrix, false);
 
             // set general properties
             _shader.SetVector3("viewPos", _camera.Position);
@@ -337,11 +347,9 @@ namespace Graphics
 
             // setup line shader
             lineShader.Use();
-            lineShader.SetMatrix4("view", _camera.GetViewMatrix(), false);
-            lineShader.SetMatrix4("projection", _camera.GetProjectionMatrix(), false);
+            lineShader.SetMatrix4("view", ref _camera.ViewMatrix, false);
+            lineShader.SetMatrix4("projection", ref _camera.ProjectionMatrix, false);
             lineShader.SetVector3("color", Vector3.One);
-
-            Matrix4 model = Matrix4.Identity;
             
             pointMoveable.Render(() =>
             {
@@ -357,31 +365,9 @@ namespace Graphics
 
             if (ManipLoaded)
             {
-                float dt;
-                if (forward)
-                {
-                    dt = (float)e.Time;
-                    if (time > 1)
-                        forward = false;
-                }
-                else
-                {
-                    dt = -(float)e.Time;
-                    if (time < -1)
-                        forward = true;
-                }
-                time += dt;
-
-                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-                {
-                    Manager.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
-                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-                }
-
                 foreach (var obstacle in Manager.Obstacles)
                 {
-                    obstacle.Draw(lineShader, true);
+                    obstacle.Render(lineShader, true);
                 }
 
                 for (int i = 0; i < Manager.Manipulators.Length; i++)
@@ -396,13 +382,12 @@ namespace Graphics
                             var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                             var data = new List<System.Numerics.Vector3> { goalAttr.Center };
                             data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
-                            goal[i] = new Entity(lineShader, Utils.GL_Convert(data.ToArray(), Color4.Yellow));
+                            goal[i] = new PlainModel(lineShader, Utils.GL_Convert(data.ToArray(), Color4.Yellow));
                         }
                     }
                     else
                     {
-                        model = Matrix4.Identity;
-                        goal[i].Display(model, () =>
+                        goal[i].Render(() =>
                         {
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
@@ -421,7 +406,7 @@ namespace Graphics
                             if (path[i] == default)
                             {
                                 // path may change at any time in control thread; GetRange() guarantees thread sync
-                                path[i] = new Entity(lineShader, data);
+                                path[i] = new PlainModel(lineShader, data);
                             }
                             else
                             {
@@ -429,8 +414,7 @@ namespace Graphics
                             }
                         }
 
-                        model = Matrix4.Identity;
-                        path[i].Display(model, () =>
+                        path[i].Render(() =>
                         {
                             GL.DrawArrays(PrimitiveType.LineStrip, 0, count);
                         });
@@ -458,15 +442,14 @@ namespace Graphics
 
                     if (WorkspaceBuffer.ManipBuffer[i].ShowTree)
                     {
-                        model = Matrix4.Identity;
                         foreach (var node in tree[i])  // TODO: node can become null; reason - Null in Add/Del buffers; inspect why!
                                                        // this may be a problem with either thread communication, or queue extension,
                                                        // because internally in tree no Null appears (tested on a single manipulator)
                         {
-                            if (node.Entity == default)
-                                node.Entity = CreateTreeBranch(node.Point, node.Parent.Point);
+                            if (node.Model == default)
+                                node.Model = CreateTreeBranch(node.Point, node.Parent.Point);
 
-                            node.Entity.Display(model, () =>
+                            node.Model.Render(() =>
                             {
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                             });
@@ -479,27 +462,26 @@ namespace Graphics
             }
 
             // workspace grid
-            model = Matrix4.Identity;
-            grid.Display(model, () =>
+            grid.State = Matrix4.Identity;
+            grid.Render(() =>
             {
                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                 GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
             });
             for (int i = 1; i < 11; i++)
             {
-                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i, true);
-                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
-                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i, true);
-                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i);
+                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i);
+                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
 
-                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i, true);
-                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
-                model = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i, true);
-                grid.Display(model, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i);
+                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i);
+                grid.Render(() => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
 
-            model = Matrix4.Identity;
-            gridFloor.Display(model, () =>  // TODO: all help should be placed in a separate document (aka documentation)
+            gridFloor.Render(() =>  // TODO: all help should be placed in a separate document (aka documentation)
             {
                 // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
                 //
@@ -549,9 +531,9 @@ namespace Graphics
                             Dispatcher.ActiveTasks.Add(Task.Run(() =>
                             {
                                 // load components' models
-                                var jointModel = new Model(JointPath);
-                                var linkModel = new Model(LinkPath);
-                                var gripperModel = new Model(GripperPath);
+                                var jointModel = new ComplexModel(JointPath);
+                                var linkModel = new ComplexModel(LinkPath);
+                                var gripperModel = new ComplexModel(GripperPath);
 
                                 var MB = WorkspaceBuffer.ManipBuffer;
                                 for (int i = 0; i < MB.Length; i++)
@@ -810,8 +792,8 @@ namespace Graphics
 
             // initializing all displaying entities
             int manip_length = Manager.Manipulators.Length;
-            goal = new Entity[manip_length];
-            path = new Entity[manip_length];
+            goal = new PlainModel[manip_length];
+            path = new PlainModel[manip_length];
             tree = new HashSet<Logic.PathPlanning.Tree.Node>[manip_length];
             for (int i = 0; i < tree.Length; i++)
             {
@@ -827,9 +809,9 @@ namespace Graphics
 
         // some specific methods for better drawing organization
         // TODO: move somewhere else
-        public static Entity CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
+        public static PlainModel CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
         {
-            return new Entity(lineShader, Utils.GL_Convert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
+            return new PlainModel(lineShader, Utils.GL_Convert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

@@ -6,7 +6,7 @@ namespace Logic
     {
         public Vector3[] Data;
         public Vector3 Center;
-        public Graphics.Entity Entity;
+        public Graphics.PlainModel Model;
 
         protected Collider(Vector3[] data)
         {
@@ -23,7 +23,7 @@ namespace Logic
             return default;
         }
 
-        public virtual void Draw(Graphics.Shader shader, Matrix4 model)
+        public virtual void Render(Graphics.Shader shader, ref Matrix4 state)
         {
             
         }

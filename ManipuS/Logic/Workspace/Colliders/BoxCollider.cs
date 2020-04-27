@@ -92,15 +92,16 @@ namespace Logic
             return vec * ratio;
         }
 
-        public override void Draw(Graphics.Shader shader, Matrix4 model)
+        public override void Render(Graphics.Shader shader, ref Matrix4 state)
         {
-            if (Entity == default)
-                Entity = new Graphics.Entity(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), new uint[]
+            if (Model == default)
+                Model = new Graphics.PlainModel(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), new uint[]
                 {
                     0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
                 });
 
-            Entity.Display(model, () =>
+            Model.State = state;
+            Model.Render(() =>
             {
                 GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
             });

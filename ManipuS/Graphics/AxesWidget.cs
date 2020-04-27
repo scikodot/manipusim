@@ -42,19 +42,19 @@ namespace Graphics
             Scale(camera);  // TODO: try to implement event-based system
 
             // get current view and projection matrices
-            var view = camera.GetViewMatrix();
-            var proj = camera.GetProjectionMatrix();  // TODO: make matrices ref properties
+            ref var view = ref camera.ViewMatrix;
+            ref var proj = ref camera.ProjectionMatrix;  // TODO: make matrices ref properties
 
             if (ActiveAxis == null || (ActiveAxis != null && !ActiveAxis.Active))
             {
                 // get active priority axis
-                ActiveAxis = GetActiveAxis(view, proj, cursorPos);
+                ActiveAxis = GetActiveAxis(ref view, ref proj, cursorPos);
             }
 
             if (ActiveAxis != null)
             {
                 // poll axis for interaction
-                var translation = ActiveAxis.Poll(camera, view, proj, mouseState, cursorPos);
+                var translation = ActiveAxis.Poll(camera, ref view, ref proj, mouseState, cursorPos);
 
                 // translate the parent object and the widget with the acquired translation
                 Translate(translation);
@@ -80,19 +80,19 @@ namespace Graphics
                 axis.Scale(camera);
         }
 
-        private Axis GetActiveAxis(Matrix4 view, Matrix4 proj, Vector2 cursorPos)
+        private Axis GetActiveAxis(ref Matrix4 view, ref Matrix4 proj, Vector2 cursorPos)
         {
             var axesActive = new List<(Axis, Vector3)>();
             foreach (var axis in Axes)
             {
-                if (axis.IsActive(view, proj, cursorPos, out Vector3 endNDC))
+                if (axis.IsActive(ref view, ref proj, cursorPos, out Vector3 endNDC))
                     axesActive.Add((axis, endNDC));
             }
 
             return axesActive.Count == 0 ? null : axesActive.MinBy(x => Math.Abs(x.Item2.Z)).First().Item1;
         }
 
-        public static (Vector4, Vector4) Raycast(Vector2 ndc, Matrix4 view, Matrix4 proj)  // TODO: optimize, move somewhere else
+        public static (Vector4, Vector4) Raycast(Vector2 ndc, ref Matrix4 view, ref Matrix4 proj)  // TODO: optimize, move somewhere else
         {
             var pStart = new Vector4(ndc.X, ndc.Y, -1, 1);
             var pEnd = new Vector4(ndc.X, ndc.Y, 0, 1);
@@ -113,9 +113,14 @@ namespace Graphics
 
     public class Axis
     {
+        private PlainModel Model { get; set; }
+        private Vector3 Offset { get; set; }
+        private bool FirstClick { get; set; } = true;
+
         public Vector4 Start { get; private set; }
         public Vector4 End { get; private set; }
-        private PlainModel Model { get; set; }
+        public Vector3 Direction => (End - Start).Xyz.Normalized();
+        public bool Active { get; private set; }
 
         private float _scaleFactor = 1;
         public float ScaleFactor
@@ -133,11 +138,6 @@ namespace Graphics
                 _scaleFactor = value;
             }
         }
-
-        public Vector3 Direction => (End - Start).Xyz.Normalized();
-        public bool Active { get; private set; }
-        private Vector3 Offset { get; set; }
-        private bool FirstClick { get; set; } = true;
 
         public Axis(Vector4 start, Vector4 end, Vector4 color)
         {
@@ -179,7 +179,7 @@ namespace Graphics
             modelX.M11 = modelX.M22 = modelX.M33 = ScaleFactor;
         }
 
-        internal Vector3 Poll(Camera camera, Matrix4 view, Matrix4 proj, MouseState stateCurr, Vector2 cursorPos)  // TODO: optimize, remove state
+        internal Vector3 Poll(Camera camera, ref Matrix4 view, ref Matrix4 proj, MouseState stateCurr, Vector2 cursorPos)  // TODO: optimize, remove state
         {
             if (stateCurr.RightButton == ButtonState.Pressed)
             {
@@ -187,7 +187,7 @@ namespace Graphics
                 Active = true;
 
                 // cast a ray from the current cursor position
-                (var rayOrigin, var rayDirection) = AxesWidget.Raycast(cursorPos, view, proj);
+                (var rayOrigin, var rayDirection) = AxesWidget.Raycast(cursorPos, ref view, ref proj);
 
                 // project axis onto the view plane
                 var axisView = VectorPlaneProjection(Direction, camera.Front);
@@ -223,20 +223,20 @@ namespace Graphics
             return default;
         }
 
-        internal Vector3 Project(Matrix4 view, Matrix4 proj)
+        internal bool IsActive(ref Matrix4 view, ref Matrix4 proj, Vector2 cursorPos, out Vector3 endNDC)
+        {
+            // transform the axis to the NDC space
+            endNDC = Project(ref view, ref proj);
+
+            // return the distance between the projected axis tip and the cursor
+            return Vector2.Distance(cursorPos, endNDC.Xy) < 0.1f;
+        }
+
+        internal Vector3 Project(ref Matrix4 view, ref Matrix4 proj)
         {
             // transform end point to NDC
             var endProj = End * view * proj;
             return (endProj / endProj.W).Xyz;
-        }
-
-        internal bool IsActive(Matrix4 view, Matrix4 proj, Vector2 cursorPos, out Vector3 endNDC)
-        {
-            // transform the axis to the NDC space
-            endNDC = Project(view, proj);
-
-            // return the distance between the projected axis tip and the cursor
-            return Vector2.Distance(cursorPos, endNDC.Xy) < 0.1f;
         }
 
         public Vector3 LinePlaneIntersection(Vector3 pLine, Vector3 nLine, Vector3 pPlane, Vector3 nPlane)  // TODO: move to library

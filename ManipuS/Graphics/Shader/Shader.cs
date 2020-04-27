@@ -207,7 +207,7 @@ namespace Graphics
         ///   The matrix is transposed before being sent to the shader.
         ///   </para>
         /// </remarks>
-        public void SetMatrix4(string name, Matrix4 data, bool transpose = false)
+        public void SetMatrix4(string name, ref Matrix4 data, bool transpose = false)
         {
             if (_uniformLocations.ContainsKey(name))
             {

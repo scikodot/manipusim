@@ -21,13 +21,13 @@ namespace Logic
 
     public struct LinkData
     {
-        public Model Model;
+        public ComplexModel Model;
         public float Length;
     }
 
     public struct JointData
     {
-        public Model Model;
+        public ComplexModel Model;
         public float Length;
         public float q;
         public Vector2 qRanges;
@@ -65,7 +65,7 @@ namespace Logic
 
     public class Link
     {
-        public Model Model;
+        public ComplexModel Model;
         public float Length;  // TODO: must be names Size or something like that; Length is not suitable
 
         public ImpDualQuat State;
@@ -84,7 +84,7 @@ namespace Logic
 
     public class Joint
     {
-        public Model Model;
+        public ComplexModel Model;
         public float Length;
 
         public float q;
@@ -242,22 +242,22 @@ namespace Logic
 
             shader.Use();
 
-            Matrix4 model;
+            OpenTK.Matrix4 model;
 
             // joints
             for (int i = 0; i < Joints.Length; i++)
             {
                 model = Joints[i].State.ToMatrix(true);
-                shader.SetMatrix4("model", model);
-                Joints[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
+                shader.SetMatrix4("model", ref model);
+                Joints[i].Model.Render(shader, MeshMode.Solid | MeshMode.Wireframe);
             }
 
             // links
             for (int i = 0; i < Links.Length; i++)
             {
                 model = Links[i].State.ToMatrix(true);
-                shader.SetMatrix4("model", model);
-                Links[i].Model.Draw(shader, MeshMode.Solid | MeshMode.Wireframe);
+                shader.SetMatrix4("model", ref model);
+                Links[i].Model.Render(shader, MeshMode.Solid | MeshMode.Wireframe);
             }
         }
 

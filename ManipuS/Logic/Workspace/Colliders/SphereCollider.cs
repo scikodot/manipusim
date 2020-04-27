@@ -71,12 +71,13 @@ namespace Logic
         }
 
         // draw method for latitudinal circles
-        public override void Draw(Graphics.Shader shader, Matrix4 model)
+        public override void Render(Graphics.Shader shader, ref Matrix4 state)
         {
-            if (Entity == default)
-                Entity = new Graphics.Entity(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), indicesLongitude);
+            if (Model == default)
+                Model = new Graphics.PlainModel(shader, Graphics.Utils.GL_Convert(Data, OpenTK.Graphics.Color4.Green), indicesLongitude);
 
-            Entity.Display(model, () =>
+            Model.State = state;
+            Model.Render(() =>
             {
                 for (int i = 0; i < levels; i++)
                 {

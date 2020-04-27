@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices.WindowsRuntime;
 using OpenTK;
 
 namespace Graphics
@@ -12,7 +13,7 @@ namespace Graphics
     // Check out the web version if you don't know why we are doing a specific thing or want to know more about the code
     public class Camera
     {
-        // Those vectors are directions Vector3ing outwards from the camera to define how it rotated
+        // Those vectors are directions pointing outwards from the camera to define how it rotated
         private Vector3 _front = -Vector3.UnitZ;
         private Vector3 _up = Vector3.UnitY;
         private Vector3 _right = Vector3.UnitX;
@@ -28,6 +29,9 @@ namespace Graphics
         {
             Position = position;
             AspectRatio = aspectRatio;
+
+            UpdateViewMatrix();
+            UpdateProjectionMatrix();
         }
 
         // The position of the camera
@@ -78,17 +82,33 @@ namespace Graphics
             }
         }
 
-        // Get the view matrix using the amazing LookAt function described more in depth on the web tutorials
-        public Matrix4 GetViewMatrix()
+        private Matrix4 _viewMatrix;
+        public ref Matrix4 ViewMatrix => ref _viewMatrix;
+
+        public void UpdateViewMatrix()
         {
-            return Matrix4.LookAt(Position, Position + _front, _up);
+            _viewMatrix = Matrix4.LookAt(Position, Position + _front, _up);
         }
 
-        // Get the projection matrix using the same method we have used up until this Vector3
-        public Matrix4 GetProjectionMatrix()
+        private Matrix4 _projectionMatrix;
+        public ref Matrix4 ProjectionMatrix => ref _projectionMatrix;
+
+        public void UpdateProjectionMatrix()
         {
-            return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
+            _projectionMatrix = Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
         }
+
+        //// Get the view matrix using the amazing LookAt function described more in depth on the web tutorials
+        //public Matrix4 GetViewMatrix()
+        //{
+        //    return Matrix4.LookAt(Position, Position + _front, _up);
+        //}
+
+        //// Get the projection matrix using the same method we have used up until this Vector3
+        //public Matrix4 GetProjectionMatrix()
+        //{
+        //    return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
+        //}
 
         // This function is going to update the direction vertices using some of the math learned in the web tutorials
         private void UpdateVectors()
