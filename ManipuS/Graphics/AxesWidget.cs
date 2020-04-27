@@ -36,7 +36,7 @@ namespace Graphics
             Parent = renderable;
         }
 
-        public void Poll(Camera camera, Vector2 cursorPos, MouseState mouseState)
+        public void Poll(Camera camera, MouseState mouseState, Vector2 cursorPos)
         {
             // scale all axes so that their size on screen remains fixed
             Scale(camera);  // TODO: try to implement event-based system

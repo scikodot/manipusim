@@ -124,7 +124,6 @@ namespace Logic
         public List<Vector> Configs;
         public Tree Tree;
         public List<Attractor> Attractors;
-        public Dictionary<string, bool> States;  // TODO: this is used weirdly; replace with something?
 
         public MotionController Controller { get; set; }
 
@@ -152,12 +151,6 @@ namespace Logic
             WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => joint.Length);
             
             Goal = data.Goal;
-            States = new Dictionary<string, bool>
-            {
-                { "Goal", false },
-                { "Attractors", false },
-                { "Path", false }
-            };
         }
 
         public void UpdateState()
@@ -235,7 +228,7 @@ namespace Logic
             return GripperPos.DistanceTo(p);
         }
 
-        public void Draw(Shader shader)
+        public void Render(Shader shader)
         {
             if (Configs != null)
                 q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
@@ -267,8 +260,6 @@ namespace Logic
 
             manip.Links = Array.ConvertAll(Links, x => x.ShallowCopy());
             manip.Joints = Array.ConvertAll(Joints, x => x.ShallowCopy());
-
-            manip.States = new Dictionary<string, bool>(States);
 
             if (Path != null)
                 manip.Path = new List<Vector3>(Path);

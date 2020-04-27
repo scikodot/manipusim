@@ -40,7 +40,6 @@ namespace Logic
             var res = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
 
             Agent.Path = res.Item1;
-            Agent.States["Path"] = true;
             Agent.Configs = res.Item2;
 
             var contestant = Agent.DeepCopy();

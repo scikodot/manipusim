@@ -68,7 +68,6 @@ namespace Logic
                 float attrRadius = WorkspaceBuffer.AlgBuffer.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
 
                 manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
-                manip.States["Goal"] = true;
 
                 // adding ancillary attractors
                 while (manip.Attractors.Count < AB.AttrNum)
@@ -103,7 +102,6 @@ namespace Logic
                         manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
                     }
                 }
-                manip.States["Attractors"] = true;
             }            
         }
 

@@ -75,6 +75,7 @@ namespace Graphics
         public static float time = 0;
         public static bool forward;
         private bool ManipLoaded = false;
+        private bool TextEdited = false;
 
         // 3D model
         ComplexModel Crytek;
@@ -122,11 +123,11 @@ namespace Graphics
         {
             controller.Update(this, (float)e.Time);
 
-            // drawing main part (workspace)
-            ShowCore(e);
+            // render main part, i.e. workspace
+            RenderCore(e);
 
-            // drawing GUI
-            ShowGUI();
+            // render GUI
+            RenderGUI();
 
             // capture screen after render if queried
             if (Capture)
@@ -135,181 +136,24 @@ namespace Graphics
                 Capture = false;
             }
 
-            SwapBuffers();
-
             // execute all actions, enqueued while loading a model
-            int count = Dispatcher.ActionsQueue.Count;
+            int count = Dispatcher.RenderActions.Count;
             if (count > 10)  // clamp amount of executing actions to get rid of microfreezes
                 count = 10;
 
             for (int i = 0; i < count; i++)
             {
-                //var action = Dispatcher.ActionsQueue.Dequeue();
-                Dispatcher.ActionsQueue.TryDequeue(out Action action);
+                Dispatcher.RenderActions.TryDequeue(out Action action);
                 action();
             }
 
-            if (Dispatcher.ActionsQueue.Count == 0)
+            if (Dispatcher.RenderActions.Count == 0)
                 Dispatcher.ActionsDone.Set();
+
+            SwapBuffers();
         }
 
-
-        protected override void OnUpdateFrame(FrameEventArgs e)
-        {
-            if (!Focused) // check to see if the window is focused
-            {
-                return;
-            }
-
-            _camera.UpdateViewMatrix();
-            _camera.UpdateProjectionMatrix();
-
-            var input = Keyboard.GetState();
-
-            // exit program
-            if (input.IsKeyDown(Key.Escape))
-            {
-                Exit();
-            }
-
-            // camera parameters
-            const float cameraSpeed = 3f;
-            const float sensitivity = 0.2f;
-
-            // panning
-            if (input.IsKeyDown(Key.W))
-                _camera.Position += _camera.Up * cameraSpeed * (float)e.Time; // Up 
-            if (input.IsKeyDown(Key.S))
-                _camera.Position -= _camera.Up * cameraSpeed * (float)e.Time; // Down
-            if (input.IsKeyDown(Key.A))
-                _camera.Position -= _camera.Right * cameraSpeed * (float)e.Time; // Left
-            if (input.IsKeyDown(Key.D))
-                _camera.Position += _camera.Right * cameraSpeed * (float)e.Time; // Right
-
-            // Get the mouse state
-            var mouse = Mouse.GetState();
-
-            var cursor = Mouse.GetCursorState();
-            var window = Location;
-            var CursorWindow = new Point(cursor.X - window.X, cursor.Y - window.Y);  // cursor position relative to window
-            var GuiActive = ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow);
-
-            if (_firstMove) // this bool variable is initially set to true
-            {
-                _lastPos = new Vector2(mouse.X, mouse.Y);
-                _firstMove = false;
-            }
-            else if (CursorWindow.X > (int)(0.25 * Width) + 8 &&  // Updating camera only if the mouse is inside the respective viewport
-                     CursorWindow.X < Width + 8 &&                // with the left button pressed and if no GUI window is active.
-                     CursorWindow.Y > 31 &&                       // Of indents: for (1000, 600) client size we have (1016, 639) actual size, where:
-                     CursorWindow.Y < Height + 31 &&              // 8 - indent for resizing feature, 39 - 2 * 8 = 23 - main titlebar height
-                     mouse.LeftButton == ButtonState.Pressed && !GuiActive)
-            {
-                // Calculate the offset of the mouse position
-                var deltaX = mouse.X - _lastPos.X;
-                var deltaY = mouse.Y - _lastPos.Y;
-
-                // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
-                _camera.Yaw += deltaX * sensitivity;
-                _camera.Pitch -= deltaY * sensitivity; // reversed since y-coordinates range from bottom to top
-            }
-
-            // updating last mouse position
-            _lastPos = new Vector2(mouse.X, mouse.Y);
-
-            //CursorWindow.X -= (int)(0.25 * Width + 8);
-            //CursorWindow.Y -= 38;
-
-            //pointScreen = new Vector2(
-            //    ((float)CursorWindow.X / (0.75f * Width) - 0.5f) * 2,
-            //    ((float)(Height - CursorWindow.Y) / Height - 0.5f) * 2);
-
-            //Console.SetCursorPosition(0, 10);
-            //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", _camera.Up.X, _camera.Up.Y, _camera.Up.Z);
-            //Console.WriteLine("({0:0.000}, {1:0.000}, {2:0.000})", view.Row3.X, view.Row3.Y, view.Row3.Z);
-
-            widget.Poll(_camera, MousePosition(Mouse.GetCursorState(), this), mouse);  // TODO: pass State by ref, that saves some time
-
-            if (ManipLoaded)
-            {
-                float dt;
-                if (forward)
-                {
-                    dt = (float)e.Time;
-                    if (time > 1)
-                        forward = false;
-                }
-                else
-                {
-                    dt = -(float)e.Time;
-                    if (time < -1)
-                        forward = true;
-                }
-                time += dt;
-
-                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-                {
-                    Manager.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
-                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-                }
-            }
-
-            base.OnUpdateFrame(e);
-        }
-
-        public Vector2 MousePosition(MouseState mouse, Window window)
-        {
-            // cursor position relative to window
-            var cursorWindow = new Point(mouse.X - window.X, mouse.Y - window.Y);
-
-            cursorWindow.X -= (int)(0.25 * window.Width + 8);
-            cursorWindow.Y -= 38;
-
-            return new Vector2(
-                (cursorWindow.X / (0.75f * window.Width) - 0.5f) * 2,
-                ((float)(window.Height - cursorWindow.Y) / window.Height - 0.5f) * 2);
-        }
-        
-        protected override void OnMouseMove(MouseMoveEventArgs e)
-        {
-            base.OnMouseMove(e);
-        }
-        
-        protected override void OnMouseWheel(MouseWheelEventArgs e)
-        {
-            // applying zoom only if no GUI window is currently hovered over
-            if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
-                _camera.Fov -= e.DeltaPrecise;  // zooming
-
-            base.OnMouseWheel(e);
-        }
-
-
-        protected override void OnResize(EventArgs e)
-        {
-            // We need to update the aspect ratio once the window has been resized
-            _camera.AspectRatio = (float)(0.75 * Width / Height);
-
-            base.OnResize(e);
-
-            // reporting GUI controller about resizing
-            controller.WindowResized(Width, Height);
-        }
-
-        protected override void OnUnload(EventArgs e)
-        {
-            // freeing all the used resources
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.BindVertexArray(0);
-            GL.UseProgram(0);
-
-            GL.DeleteProgram(_shader.Handle);
-
-            base.OnUnload(e);
-        }
-
-        protected void ShowCore(FrameEventArgs e)
+        protected void RenderCore(FrameEventArgs e)
         {
             // workspace viewport
             GL.Viewport((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
@@ -350,7 +194,7 @@ namespace Graphics
             lineShader.SetMatrix4("view", ref _camera.ViewMatrix, false);
             lineShader.SetMatrix4("projection", ref _camera.ProjectionMatrix, false);
             lineShader.SetVector3("color", Vector3.One);
-            
+
             pointMoveable.Render(() =>
             {
                 GL.PointSize(20);
@@ -365,6 +209,7 @@ namespace Graphics
 
             if (ManipLoaded)
             {
+                // render obstacles
                 foreach (var obstacle in Manager.Obstacles)
                 {
                     obstacle.Render(lineShader, true);
@@ -374,18 +219,11 @@ namespace Graphics
                 {
                     Manipulator manip = Manager.Manipulators[i];
 
-                    // goal
-                    if (goal[i] == default)
-                    {
-                        if (manip.States["Goal"])
-                        {
-                            var goalAttr = manip.Attractors[0];  // TODO: refactor this part
-                            var data = new List<System.Numerics.Vector3> { goalAttr.Center };
-                            data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
-                            goal[i] = new PlainModel(lineShader, Utils.GL_Convert(data.ToArray(), Color4.Yellow));
-                        }
-                    }
-                    else
+                    // render manipulator
+                    manip.Render(_shader);
+
+                    // render goal
+                    if (goal[i] != default)
                     {
                         goal[i].Render(() =>
                         {
@@ -396,50 +234,17 @@ namespace Graphics
                         });
                     }
 
-                    // path
-                    if (manip.States["Path"])  // TODO: entities should be retained! meanwhile only their content may be changed
+                    // render path
+                    if (manip.Path != null)
                     {
                         int count = manip.Path.Count;
-                        float[] data = Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), Color4.Red);
-                        if (manip.Path != null)
-                        {
-                            if (path[i] == default)
-                            {
-                                // path may change at any time in control thread; GetRange() guarantees thread sync
-                                path[i] = new PlainModel(lineShader, data);
-                            }
-                            else
-                            {
-                                path[i].Update(data);
-                            }
-                        }
-
                         path[i].Render(() =>
                         {
                             GL.DrawArrays(PrimitiveType.LineStrip, 0, count);
                         });
                     }
 
-                    // random tree
-                    if (manip.Tree != null)
-                    {
-                        // add all elements from addition buffer to the hash set
-                        if (manip.Tree.AddBuffer.Contains(null))
-                        {
-                            int a = 2;  // here, Null does not appear
-                        }
-                        tree[i].UnionWith(manip.Tree.AddBuffer.DequeueAll());
-                        if (manip.Tree.AddBuffer.Contains(null))
-                        {
-                            int a = 2;  // and here Null appears; 
-                                        // seems like AddBuffer loses reference while trimming the tree,
-                                        // though it's still not clear why; maybe finalization of a node?
-                        }
-
-                        // delete all elements contained in deletion buffer from the hash set
-                        tree[i].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
-                    }
-
+                    // render tree
                     if (WorkspaceBuffer.ManipBuffer[i].ShowTree)
                     {
                         foreach (var node in tree[i])  // TODO: node can become null; reason - Null in Add/Del buffers; inspect why!
@@ -455,9 +260,6 @@ namespace Graphics
                             });
                         }
                     }
-
-                    // draw manipulator configuration
-                    manip.Draw(_shader);
                 }
             }
 
@@ -508,7 +310,7 @@ namespace Graphics
             base.OnRenderFrame(e);
         }
 
-        protected void ShowGUI()
+        protected void RenderGUI()
         {
             // GUI viewport
             GL.Viewport(0, 0, Width, Height);
@@ -578,7 +380,7 @@ namespace Graphics
             if (ImGui.Begin("Manipulators",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
-                ImGuiWindowFlags.NoResize | 
+                ImGuiWindowFlags.NoResize |
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, 20));
@@ -662,16 +464,16 @@ namespace Graphics
                 else
                 {
                     ImGui.Text("No obstacles at the scene.");
-                }     
+                }
                 ImGui.End();
             }
-            
+
 
             // algorithm window
             if (ImGui.Begin("Algorithm",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
-                ImGuiWindowFlags.NoResize | 
+                ImGuiWindowFlags.NoResize |
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.5 * Height)));
@@ -734,7 +536,7 @@ namespace Graphics
 
                 bool dummy = true;
                 if (ImGui.BeginPopupModal("Update?", ref dummy, ImGuiWindowFlags.NoResize))  // TODO: move to separate method
-                {                    
+                {
                     ImGui.Text("Do you really want to update the workspace?\nThis will reset the current process.");
                     ImGui.Spacing();
                     ImGui.SetCursorPos(new System.Numerics.Vector2(ImGui.GetWindowSize().X / 2 - 104, ImGui.GetCursorPosY()));
@@ -769,6 +571,7 @@ namespace Graphics
 
                 // save path for captured screenshot
                 ImGui.InputText("Save path", ref SavePath, 100);
+                TextEdited = ImGui.IsItemActive();
 
                 //if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
                 //    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");  // TODO: when scene is updated, obstacle center is not reset! fix
@@ -783,6 +586,208 @@ namespace Graphics
             // rendering controller and checking for errors
             controller.Render();
             Util.CheckGLError("End of frame");
+        }
+
+        protected override void OnUpdateFrame(FrameEventArgs e)
+        {
+            // check to see if the window is focused
+            if (!Focused)
+            {
+                return;
+            }
+
+            // update camera state
+            _camera.UpdateViewMatrix();
+            _camera.UpdateProjectionMatrix();
+
+            PollKeyboard(_camera, Keyboard.GetState(), e);
+
+            PollMouse(_camera, Mouse.GetCursorState());
+
+            if (ManipLoaded)
+            {
+                float dt;
+                if (forward)
+                {
+                    dt = (float)e.Time;
+                    if (time > 1)
+                        forward = false;
+                }
+                else
+                {
+                    dt = -(float)e.Time;
+                    if (time < -1)
+                        forward = true;
+                }
+                time += dt;
+
+                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+                {
+                    Manager.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
+                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                }
+
+                for (int i = 0; i < Manager.Manipulators.Length; i++)
+                {
+                    Manipulator manip = Manager.Manipulators[i];
+
+                    // goal
+                    if (goal[i] == default)
+                    {
+                        var goalAttr = manip.Attractors[0];  // TODO: refactor this part
+                        var data = new List<System.Numerics.Vector3> { goalAttr.Center };
+                        data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
+                        goal[i] = new PlainModel(lineShader, Utils.GL_Convert(data.ToArray(), Color4.Yellow));
+                    }
+
+                    // obtained path
+                    if (manip.Path != null)
+                    {
+                        // path may change at any time in control thread; GetRange() guarantees thread sync
+                        int count = manip.Path.Count;
+                        float[] data = Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), Color4.Red);
+                        if (path[i] == default)
+                        {
+                            path[i] = new PlainModel(lineShader, data);
+                        }
+                        else
+                        {
+                            path[i].Update(data);
+                        }
+                    }
+
+                    // random tree
+                    if (manip.Tree != null)
+                    {
+                        // add all elements from addition buffer to the hash set
+                        if (manip.Tree.AddBuffer.Contains(null))
+                        {
+                            int a = 2;  // here, Null does not appear
+                        }
+                        tree[i].UnionWith(manip.Tree.AddBuffer.DequeueAll());
+                        if (manip.Tree.AddBuffer.Contains(null))
+                        {
+                            int a = 2;  // and here Null appears; 
+                                        // seems like AddBuffer loses reference while trimming the tree,
+                                        // though it's still not clear why; maybe finalization of a node?
+                        }
+
+                        // delete all elements contained in deletion buffer from the hash set
+                        tree[i].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
+                    }
+                }
+            }
+
+            base.OnUpdateFrame(e);
+        }
+
+        public void PollMouse(Camera camera, MouseState mouse)
+        {
+            // get mouse position in NDC coordinates
+            var mouseNDC = MouseToNDC(mouse);
+
+            if (_firstMove) // this bool variable is initially set to true
+            {
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+                _firstMove = false;
+            }
+            else if (mouseNDC.X > -1 && mouseNDC.X < 1 &&  // Updating camera only if the mouse is inside the respective viewport
+                     mouseNDC.Y > -1 && mouseNDC.Y < 1 &&  // with the left button pressed and if no GUI window is active.
+                     mouse.LeftButton == ButtonState.Pressed &&
+                     !ImGui.IsWindowFocused(ImGuiFocusedFlags.AnyWindow))  
+            {
+                // Calculate the offset of the mouse position
+                var deltaX = mouse.X - _lastPos.X;
+                var deltaY = mouse.Y - _lastPos.Y;
+
+                // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
+                _camera.Yaw += deltaX * camera.Sensitivity;
+                _camera.Pitch -= deltaY * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
+            }
+
+            // updating last mouse position
+            _lastPos = new Vector2(mouse.X, mouse.Y);
+
+            // poll widget for interaction
+            widget.Poll(_camera, mouse, MouseToNDC(mouse));
+        }
+
+        public Vector2 MouseToNDC(MouseState mouse)
+        {
+            // cursor position relative to window
+            var cursorWindow = new Point(mouse.X - X, mouse.Y - Y);
+
+            // take into account window borders
+            cursorWindow.X -= (int)(0.25 * Width + 8);  // 8 - indent for resizing feature
+            cursorWindow.Y -= 38;  // 38 = 2 * 8 + 22, where 8 - resizing, 22 - main titlebar height
+
+            // return cursor position in NDC coordinates
+            return new Vector2(
+                (cursorWindow.X / (0.75f * Width) - 0.5f) * 2,
+                ((float)(Height - cursorWindow.Y) / Height - 0.5f) * 2);
+        }
+
+        public void PollKeyboard(Camera camera, KeyboardState keyboard, FrameEventArgs e)
+        {
+            // exit program if queried
+            if (keyboard.IsKeyDown(Key.Escape))
+            {
+                Exit();
+            }
+
+            if (!TextEdited)
+            {
+                // panning
+                if (keyboard.IsKeyDown(Key.W))
+                    camera.Position += camera.Up * camera.Speed * (float)e.Time; // Up 
+                if (keyboard.IsKeyDown(Key.S))
+                    camera.Position -= camera.Up * camera.Speed * (float)e.Time; // Down
+                if (keyboard.IsKeyDown(Key.A))
+                    camera.Position -= camera.Right * camera.Speed * (float)e.Time; // Left
+                if (keyboard.IsKeyDown(Key.D))
+                    camera.Position += camera.Right * camera.Speed * (float)e.Time; // Right
+            }
+        }
+        
+        protected override void OnMouseMove(MouseMoveEventArgs e)
+        {
+            base.OnMouseMove(e);
+        }
+        
+        protected override void OnMouseWheel(MouseWheelEventArgs e)
+        {
+            // apply zoom only if no GUI window is currently hovered over
+            if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
+                _camera.Fov -= e.DeltaPrecise;  // zooming
+
+            base.OnMouseWheel(e);
+        }
+
+
+        protected override void OnResize(EventArgs e)
+        {
+            // We need to update the aspect ratio once the window has been resized
+            _camera.AspectRatio = (float)(0.75 * Width / Height);
+
+            // report to GUI controller about resizing
+            controller.WindowResized(Width, Height);
+
+            base.OnResize(e);
+        }
+
+        protected override void OnUnload(EventArgs e)
+        {
+            // TODO: clear all unmanaged resources
+
+            // freeing all the used resources
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindVertexArray(0);
+            GL.UseProgram(0);
+
+            GL.DeleteProgram(_shader.Handle);
+
+            base.OnUnload(e);
         }
 
         protected void UpdateWorkspace()

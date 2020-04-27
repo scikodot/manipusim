@@ -22,7 +22,7 @@ public static class Dispatcher  // TODO: threads are not synchronized;
     public static Stopwatch Timer = new Stopwatch();
 
     // actions that main thread has to execute
-    public static ConcurrentQueue<Action> ActionsQueue = new ConcurrentQueue<Action>();
+    public static ConcurrentQueue<Action> RenderActions = new ConcurrentQueue<Action>();
 
     // manipulators' calculating threads
     public static Thread[] threads;

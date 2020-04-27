@@ -74,7 +74,7 @@ namespace Graphics
         private void SetupMesh()
         {
             // sending necessary actions to dispatcher
-            Dispatcher.ActionsQueue.Enqueue(() =>
+            Dispatcher.RenderActions.Enqueue(() =>
             {
                 VAO = GL.GenVertexArray();
                 VBO = GL.GenBuffer();

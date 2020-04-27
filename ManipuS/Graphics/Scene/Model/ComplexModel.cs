@@ -172,7 +172,7 @@ namespace Graphics
                     format = PixelInternalFormat.Rgba;
 
                 // send necessary actions to dispatcher
-                Dispatcher.ActionsQueue.Enqueue(() =>
+                Dispatcher.RenderActions.Enqueue(() =>
                 {
                     // load and generate the texture
                     GL.GenTextures(1, out texture.ID);

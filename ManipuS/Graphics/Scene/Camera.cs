@@ -13,6 +13,10 @@ namespace Graphics
     // Check out the web version if you don't know why we are doing a specific thing or want to know more about the code
     public class Camera
     {
+        // camera parameters
+        public float Speed = 3f;
+        public float Sensitivity = 0.2f;
+
         // Those vectors are directions pointing outwards from the camera to define how it rotated
         private Vector3 _front = -Vector3.UnitZ;
         private Vector3 _up = Vector3.UnitY;

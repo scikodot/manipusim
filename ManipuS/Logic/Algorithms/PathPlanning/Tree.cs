@@ -60,7 +60,7 @@ namespace Logic.PathPlanning
             {
                 if (Model != default)
                 {
-                    Dispatcher.ActionsQueue.Enqueue(Model.Dispose);
+                    Dispatcher.RenderActions.Enqueue(Model.Dispose);
                 }
             }
         }
