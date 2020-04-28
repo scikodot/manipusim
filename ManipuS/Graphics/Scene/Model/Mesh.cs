@@ -10,22 +10,22 @@ using System.Runtime.InteropServices;
 
 namespace Graphics
 {
-    struct MeshVertex
+    struct MeshVertex  // TODO: try to use Assimp's data structures
     {
         public Vector3 Position;
         public Vector3 Normal;
         public Vector2 TexCoords;
     }
 
-    // MeshTexture has to be class; otherwise it could not be passed by reference 
-    class MeshTexture
+    // MeshTexture has to be class; otherwise it could not be passed by reference  // TODO: actually, it can be passed; fix!
+    class MeshTexture  // TODO: try to use Assimp's data structures
     {
         public int ID;
         public string Type;
         public string Path;
     }
 
-    struct MeshColor
+    struct MeshColor  // TODO: try to use Assimp's data structures
     {
         public Color4D Ambient;
         public Color4D Diffuse;
@@ -45,7 +45,7 @@ namespace Graphics
         public string Name;
 
         public MeshVertex[] Vertices;
-        public int[] Indices;
+        public uint[] Indices;
         public MeshTexture[] Textures;
         public MeshColor Color;
 
@@ -53,7 +53,7 @@ namespace Graphics
 
         private int VAO, VBO, EBO;
 
-        public Mesh(string name, MeshVertex[] vertices, int[] indices, MeshTexture[] textures, MeshColor color)
+        public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshColor color)
         {
             Name = name;
             Vertices = vertices;
@@ -63,9 +63,9 @@ namespace Graphics
 
             Position = new Vector3
             {
-                X = vertices.Sum((vertex) => { return vertex.Position.X; }),
-                Y = vertices.Sum((vertex) => { return vertex.Position.Y; }),
-                Z = vertices.Sum((vertex) => { return vertex.Position.Z; })
+                X = vertices.Sum(vertex => vertex.Position.X),
+                Y = vertices.Sum(vertex => vertex.Position.Y),
+                Z = vertices.Sum(vertex => vertex.Position.Z)
             };
 
             SetupMesh();
@@ -97,8 +97,8 @@ namespace Graphics
                 GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("Normal"));
 
                 // vertex texture coords
-                GL.EnableVertexAttribArray(2);
-                GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("TexCoords"));
+                GL.EnableVertexAttribArray(3);
+                GL.VertexAttribPointer(3, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("TexCoords"));
 
                 GL.BindVertexArray(0);
             });
@@ -106,9 +106,21 @@ namespace Graphics
 
         public void Render(Shader shader, MeshMode mode)
         {
+            GL.BindVertexArray(VAO);
+
+            if ((mode & MeshMode.Wireframe) == MeshMode.Wireframe)
+            {
+                shader.SetBool("useMaterial", 0);
+
+                GL.PointSize(2);
+                GL.DrawElements(BeginMode.Points, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.PointSize(1);
+            }
+
             if ((mode & MeshMode.Solid) == MeshMode.Solid)
             {
-                shader.SetBool("wireframe", 0);
+                shader.SetBool("useMaterial", 1);
+                shader.SetBool("useTextures", Textures.Length == 0 ? 0u : 1u);
 
                 // set textures
                 int diffuseNr = 1;
@@ -136,31 +148,16 @@ namespace Graphics
                 shader.SetVector3("material.specularCol", new Vector3(Color.Specular.R, Color.Specular.G, Color.Specular.B));
                 shader.SetFloat("material.shininess", Color.Shininess);
 
-                // set drawing mode
-                shader.SetBool("material.textured", (uint)(Textures.Length == 0 ? 0 : 1));
-
-                // draw mesh
-                GL.BindVertexArray(VAO);
+                // render mesh
                 GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
-                GL.BindVertexArray(0);
-            }
-
-            if ((mode & MeshMode.Wireframe) == MeshMode.Wireframe)
-            {
-                shader.SetBool("wireframe", 1);
-
-                // draw mesh
-                GL.BindVertexArray(VAO);
-                GL.PointSize(2);
-                GL.DrawElements(BeginMode.Points, Indices.Length, DrawElementsType.UnsignedInt, 0);
-                GL.PointSize(1);
-                GL.BindVertexArray(0);
             }
 
             if (mode == 0)
             {
                 // TODO: maybe notify the user about drawing nothing?
             }
+
+            GL.BindVertexArray(0);
         }
     }
 }

@@ -63,7 +63,7 @@ namespace Graphics
         private Mesh ProcessMesh(Assimp.Mesh mesh, Scene scene)
         {
             var vertices = new List<MeshVertex>();
-            var indices = new List<int>();
+            var indices = new List<uint>();
             var textures = new List<MeshTexture>();
             var color = new MeshColor();
 
@@ -94,7 +94,7 @@ namespace Graphics
             {
                 Face face = mesh.Faces[i];
                 for (int j = 0; j < face.IndexCount; j++)
-                    indices.Add(face.Indices[j]);
+                    indices.Add((uint)face.Indices[j]);
             }
 
             // process material

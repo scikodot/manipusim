@@ -12,9 +12,6 @@ struct Material {
 	vec3 specularCol;
 	
 	float shininess;
-
-	// switch between textures/colors
-	bool textured;
 };
 
 struct DirLight {
@@ -68,25 +65,27 @@ vec3 specularComp;
 uniform vec3 viewPos;
 uniform DirLight dirLight[NR_DIR_LIGHTS];
 uniform Material material;
-uniform bool wireframe;
+
+uniform bool useMaterial;  // switch between vertex/material colors (for vertex colors no light is applied)
+uniform bool useTextures;  // switch between material textures/colors
 
 // function prototypes
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
-vec3 CalcVector3Light(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 void main()
 {
-    if (!wireframe)
+    if (useMaterial)
     {
         // properties
         vec3 norm = normalize(Normal);
         vec3 viewDir = normalize(viewPos - FragPos);
 
         // material components
-        ambientComp = material.textured ? vec3(texture(material.diffuseTex, TexCoords)) : material.ambientCol;
-        diffuseComp = material.textured ? vec3(texture(material.diffuseTex, TexCoords)) : material.diffuseCol;
-        specularComp = material.textured ? vec3(texture(material.specularTex, TexCoords)) : material.specularCol;
+        ambientComp = useTextures ? vec3(texture(material.diffuseTex, TexCoords)) : material.ambientCol;
+        diffuseComp = useTextures ? vec3(texture(material.diffuseTex, TexCoords)) : material.diffuseCol;
+        specularComp = useTextures ? vec3(texture(material.specularTex, TexCoords)) : material.specularCol;
 
         // directional light
         vec3 result = vec3(0.0);
@@ -97,7 +96,8 @@ void main()
     }
     else
     {
-        FragColor = vec4(0.0);
+		// pass input color if the material is not presented
+        FragColor = Color;
     }
 }
 
@@ -121,7 +121,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 }
 
 // calculates the color when using a point light.
-vec3 CalcVector3Light(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
     vec3 lightDir = normalize(light.position - fragPos);
 

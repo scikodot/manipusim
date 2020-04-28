@@ -39,9 +39,9 @@ namespace Graphics
             ComplexShader.SetVector3("viewPos", camera.Position);
 
             // set directional light properties
-            ComplexShader.SetVector3("dirLight[0].direction", new Vector3(1.0f, 0.0f, 0.0f));
-            ComplexShader.SetVector3("dirLight[1].direction", new Vector3(0.0f, -1.0f, 0.0f));
-            ComplexShader.SetVector3("dirLight[2].direction", new Vector3(0.0f, 0.0f, -1.0f));
+            ComplexShader.SetVector3("dirLight[0].direction", new Vector3(1.0f, -0.2f, -1.0f));
+            ComplexShader.SetVector3("dirLight[1].direction", new Vector3(-1.0f, -0.5f, 0.0f));
+            ComplexShader.SetVector3("dirLight[2].direction", new Vector3(0.3f, -0.8f, 0.7f));
             for (int i = 0; i < 3; i++)
             {
                 ComplexShader.SetVector3($"dirLight[{i}].ambient", new Vector3(0.05f, 0.05f, 0.05f));

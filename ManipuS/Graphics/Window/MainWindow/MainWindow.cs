@@ -13,7 +13,8 @@ using ImGuiNET;
 using Logic;
 
 using Matrix4 = Logic.Matrix4;
-using System.Drawing;
+using Phys;
+using BulletSharp;
 
 namespace Graphics
 {
@@ -43,6 +44,85 @@ namespace Graphics
             0.0f, 0.0f, -10.0f,     1.0f, 1.0f, 1.0f, 1.0f
         };
 
+        private float[] cube =  // TODO: use MeshVertex for better vertex representation
+        {
+            //1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+            //1.0f, 1.0f, -1.0f,    1.0f, 1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+            //1.0f, -1.0f, 1.0f,    1.0f, -1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+            //1.0f, -1.0f, -1.0f,    1.0f, -1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+
+            //-1.0f, 1.0f, 1.0f,    -1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+            //-1.0f, 1.0f, -1.0f,    -1.0f, 1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+            //-1.0f, -1.0f, 1.0f,    -1.0f, -1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+            //-1.0f, -1.0f, -1.0f,    -1.0f, -1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+
+            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+            -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+            -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+        };
+
+        private uint[] cubeIndices =
+        {
+            // X ortho planes
+            0, 1, 2,
+            2, 3, 1,
+
+            4, 5, 6,
+            6, 7, 5,
+
+            // Y ortho planes
+            0, 1, 4,
+            4, 5, 1,
+
+            2, 3, 6,
+            6, 7, 3,
+
+            // Z ortho planes
+            0, 2, 4,
+            4, 6, 2,
+
+            1, 3, 5,
+            5, 7, 3
+        };
+
         // all the needed entities
         PlainModel grid, gridFloor;
         PlainModel[] goal, path;
@@ -58,8 +138,15 @@ namespace Graphics
         public static PlainModel pointMoveable;
         public static Vector2 pointScreen;
 
+        private PlainModel[] Cubes;
+        private PlainModel Ground;
+        private Physics _physics;
+
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
-            base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
+            base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
+        {
+            _physics = new Physics();
+        }
 
         protected override void OnLoad(EventArgs e)
         {
@@ -89,7 +176,44 @@ namespace Graphics
                 new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
             }, pointMoveable);
 
+            Cubes = new PlainModel[3];
+            for (int i = 0; i < 3; i++)
+            {
+                Cubes[i] = new PlainModel(cube, material: new Assimp.Material
+                {
+                    ColorAmbient = new Assimp.Color4D(0.1f, 0.1f, 0.0f),
+                    ColorDiffuse = new Assimp.Color4D(0.8f, 0.8f, 0.0f),
+                    ColorSpecular = new Assimp.Color4D(0.5f, 0.5f, 0.0f),
+                    Shininess = 8
+                });
+            }
+
+            Cubes[0].State.M24 = 3;
+            Cubes[1].State.M24 = 4.5f;
+            Cubes[2].State.M24 = 6;
+
+            Ground = new PlainModel(cube, material: new Assimp.Material
+            {
+                ColorAmbient = new Assimp.Color4D(0.02f, 0.1f, 0.0f),
+                ColorDiffuse = new Assimp.Color4D(0.1f, 0.8f, 0.0f),
+                ColorSpecular = new Assimp.Color4D(0.1f, 0.5f, 0.0f),
+                Shininess = 8
+            });
+
+            Ground.State.M11 *= 10;
+            Ground.State.M33 *= 10;
+            Ground.State.M22 *= 0.25f;
+
             base.OnLoad(e);
+        }
+
+        private OpenTK.Matrix4 Convert(BulletSharp.Math.Matrix m)
+        {
+            return OpenTK.Matrix4.Transpose(new OpenTK.Matrix4(
+                m.M11, m.M12, m.M13, m.M14,
+                m.M21, m.M22, m.M23, m.M24,
+                m.M31, m.M32, m.M33, m.M34,
+                m.M41, m.M42, m.M43, m.M44));
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
@@ -101,6 +225,12 @@ namespace Graphics
 
             // render GUI
             RenderGUI();
+
+            foreach (RigidBody body in _physics.World.CollisionObjectArray)
+            {
+                if (!"Ground".Equals(body.UserObject))
+                    Cubes[body.UserIndex].State = Convert(body.WorldTransform);
+            }
 
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.RenderActions.Count;
@@ -135,11 +265,25 @@ namespace Graphics
 
             ShaderHandler.SetupShaders(_camera);
 
-            pointMoveable.Render(ShaderHandler.GenericShader, () =>
+            //pointMoveable.Render(ShaderHandler.GenericShader, () =>
+            //{
+            //    GL.PointSize(20);
+            //    GL.DrawArrays(PrimitiveType.Points, 0, 1);
+            //    GL.PointSize(1);
+            //});
+
+            foreach (var cube in Cubes)
             {
-                GL.PointSize(20);
-                GL.DrawArrays(PrimitiveType.Points, 0, 1);
-                GL.PointSize(1);
+                cube.Render(ShaderHandler.ComplexShader, () =>
+                {
+                    GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
+                    //GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
+                });
+            }
+
+            Ground.Render(ShaderHandler.ComplexShader, () =>
+            {
+                GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
             });
 
             InputHandler.Widget.Render(ShaderHandler.GenericShader, () =>
@@ -530,6 +674,8 @@ namespace Graphics
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
+            _physics.Update((float)e.Time);
+
             // check to see if the window is focused
             if (!Focused)
             {
@@ -657,6 +803,8 @@ namespace Graphics
             GL.UseProgram(0);
 
             ShaderHandler.DeleteShaders();
+
+            _physics.ExitPhysics();
 
             base.OnUnload(e);
         }
