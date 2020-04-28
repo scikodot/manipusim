@@ -15,14 +15,16 @@ namespace Graphics
         public Axis ActiveAxis { get; private set; }
         public IRenderable Parent { get; private set; }
 
-        public AxesWidget()
+        public AxesWidget(Axis[] axes)
         {
-            Axes = new Axis[3]
-            {
-                new Axis(Vector4.UnitW, new Vector4(0.3f, 0, 0, 1), new Vector4(1, 0, 0, 1)),
-                new Axis(Vector4.UnitW, new Vector4(0, 0.3f, 0, 1), new Vector4(0, 1, 0, 1)),
-                new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
-            };
+            Axes = axes;
+        }
+
+        public AxesWidget(Axis[] axes, IRenderable renderable)
+        {
+            Axes = axes;
+
+            Attach(renderable);
         }
 
         public void Render(Shader shader, Action render)

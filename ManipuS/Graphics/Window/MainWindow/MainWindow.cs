@@ -17,10 +17,9 @@ using System.Drawing;
 
 namespace Graphics
 {
-    public class Window : GameWindow
+    public class MainWindow : GameWindow
     {
         // main graphics objects
-        private static Shader _shader;
         private ImGuiController controller;
         private Camera _camera;
 
@@ -50,43 +49,16 @@ namespace Graphics
 
         HashSet<Logic.PathPlanning.Tree.Node>[] tree;
 
-        // variables for mouse state processing
-        private bool _firstMove = true;
-        private Vector2 _lastPos;
-
-        // misc variables
-        private bool Capture = false;
-        private static System.IO.DirectoryInfo projDir = System.IO.Directory.GetParent(Environment.CurrentDirectory).Parent;
-        private static System.IO.DirectoryInfo solDir = projDir.Parent;
-
-        private static string ProjectDirectory = projDir.FullName;
-        private static string SolutionDirectory = solDir.FullName;
-
-        private static string VertexShader = ProjectDirectory + @"\Graphics\Shader\Shaders\VertexShader.glsl";
-        private static string FragmentShader = ProjectDirectory + @"\Graphics\Shader\Shaders\FragmentShader.glsl";
-        private static string LineShader = ProjectDirectory + @"\Graphics\Shader\Shaders\LineShader.glsl";
-
-        private static string SavePath = SolutionDirectory + @"\Screenshots";
-        private static string NanosuitPath = SolutionDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
-        private static string LinkPath = SolutionDirectory + @"\Resources\Models\manipulator\Link.obj";
-        private static string JointPath = SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
-        private static string GripperPath = SolutionDirectory + @"\Resources\Models\manipulator\Gripper.obj";
-
         public static float time = 0;
         public static bool forward;
         private bool ManipLoaded = false;
-        private bool TextEdited = false;
 
         // 3D model
         ComplexModel Crytek;
-        public static Shader lineShader;
         public static PlainModel pointMoveable;
         public static Vector2 pointScreen;
 
-        public static AxesWidget widget;
-        public static bool IsAxisX;
-
-        public Window(int width, int height, GraphicsMode gMode, string title) : 
+        public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) { }
 
         protected override void OnLoad(EventArgs e)
@@ -96,13 +68,10 @@ namespace Graphics
             //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.Triangulate);
             //manptr = Assimp.Scene.FromUnmanagedScene(ptr);
 
+            ShaderHandler.InitializeShaders();
+
             // defining ImGui controller
             controller = new ImGuiController(Width, Height);
-            
-            // retrieving shaders' files
-            _shader = new Shader(VertexShader, FragmentShader);
-
-            lineShader = new Shader(VertexShader, LineShader);
 
             // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
@@ -113,8 +82,12 @@ namespace Graphics
 
             pointMoveable = new PlainModel(new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f });
 
-            widget = new AxesWidget();
-            widget.Attach(pointMoveable);
+            InputHandler.Widget = new AxesWidget(new Axis[3]
+            {
+                new Axis(Vector4.UnitW, new Vector4(0.3f, 0, 0, 1), new Vector4(1, 0, 0, 1)),
+                new Axis(Vector4.UnitW, new Vector4(0, 0.3f, 0, 1), new Vector4(0, 1, 0, 1)),
+                new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
+            }, pointMoveable);
 
             base.OnLoad(e);
         }
@@ -128,13 +101,6 @@ namespace Graphics
 
             // render GUI
             RenderGUI();
-
-            // capture screen after render if queried
-            if (Capture)
-            {
-                Utils.ScreenCapture(this, SavePath);
-                Capture = false;
-            }
 
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.RenderActions.Count;
@@ -167,42 +133,16 @@ namespace Graphics
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
 
-            // attaching shader
-            _shader.Use();
+            ShaderHandler.SetupShaders(_camera);
 
-            // set view and projection matrices;
-            // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader file)
-            _shader.SetMatrix4("view", ref _camera.ViewMatrix, false);
-            _shader.SetMatrix4("projection", ref _camera.ProjectionMatrix, false);
-
-            // set general properties
-            _shader.SetVector3("viewPos", _camera.Position);
-
-            // set directional light properties
-            _shader.SetVector3("dirLight[0].direction", new Vector3(1.0f, 0.0f, 0.0f));
-            _shader.SetVector3("dirLight[1].direction", new Vector3(0.0f, -1.0f, 0.0f));
-            _shader.SetVector3("dirLight[2].direction", new Vector3(0.0f, 0.0f, -1.0f));
-            for (int i = 0; i < 3; i++)
-            {
-                _shader.SetVector3($"dirLight[{i}].ambient", new Vector3(0.05f, 0.05f, 0.05f));
-                _shader.SetVector3($"dirLight[{i}].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
-                _shader.SetVector3($"dirLight[{i}].specular", new Vector3(0.5f, 0.5f, 0.5f));
-            }
-
-            // setup line shader
-            lineShader.Use();
-            lineShader.SetMatrix4("view", ref _camera.ViewMatrix, false);
-            lineShader.SetMatrix4("projection", ref _camera.ProjectionMatrix, false);
-            lineShader.SetVector3("color", Vector3.One);
-
-            pointMoveable.Render(lineShader, () =>
+            pointMoveable.Render(ShaderHandler.GenericShader, () =>
             {
                 GL.PointSize(20);
                 GL.DrawArrays(PrimitiveType.Points, 0, 1);
                 GL.PointSize(1);
             });
 
-            widget.Render(lineShader, () =>
+            InputHandler.Widget.Render(ShaderHandler.GenericShader, () =>
             {
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
             });
@@ -212,7 +152,7 @@ namespace Graphics
                 // render obstacles
                 foreach (var obstacle in Manager.Obstacles)
                 {
-                    obstacle.Render(lineShader, true);
+                    obstacle.Render(ShaderHandler.GenericShader, true);
                 }
 
                 for (int i = 0; i < Manager.Manipulators.Length; i++)
@@ -220,12 +160,12 @@ namespace Graphics
                     Manipulator manip = Manager.Manipulators[i];
 
                     // render manipulator
-                    manip.Render(_shader);
+                    manip.Render(ShaderHandler.ComplexShader);
 
                     // render goal
                     if (goal[i] != default)
                     {
-                        goal[i].Render(lineShader, () =>
+                        goal[i].Render(ShaderHandler.GenericShader, () =>
                         {
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
@@ -238,7 +178,7 @@ namespace Graphics
                     if (manip.Path != null)
                     {
                         int count = manip.Path.Count;
-                        path[i].Render(lineShader, () =>
+                        path[i].Render(ShaderHandler.GenericShader, () =>
                         {
                             GL.DrawArrays(PrimitiveType.LineStrip, 0, count);
                         });
@@ -254,7 +194,7 @@ namespace Graphics
                             if (node.Model == default)
                                 node.Model = CreateTreeBranch(node.Point, node.Parent.Point);
 
-                            node.Model.Render(lineShader, () =>
+                            node.Model.Render(ShaderHandler.GenericShader, () =>
                             {
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                             });
@@ -265,7 +205,7 @@ namespace Graphics
 
             // workspace grid
             grid.State = Matrix4.Identity;
-            grid.Render(lineShader, () =>
+            grid.Render(ShaderHandler.GenericShader, () =>
             {
                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                 GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
@@ -273,17 +213,17 @@ namespace Graphics
             for (int i = 1; i < 11; i++)
             {
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i);
-                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i);
-                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
 
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i);
-                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i);
-                grid.Render(lineShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
 
-            gridFloor.Render(lineShader, () =>  // TODO: all help should be placed in a separate document (aka documentation)
+            gridFloor.Render(ShaderHandler.GenericShader, () =>  // TODO: all help should be placed in a separate document (aka documentation)
             {
                 // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
                 //
@@ -333,9 +273,9 @@ namespace Graphics
                             Dispatcher.ActiveTasks.Add(Task.Run(() =>
                             {
                                 // load components' models
-                                var jointModel = new ComplexModel(JointPath);
-                                var linkModel = new ComplexModel(LinkPath);
-                                var gripperModel = new ComplexModel(GripperPath);
+                                var jointModel = new ComplexModel(InputHandler.JointPath);
+                                var linkModel = new ComplexModel(InputHandler.LinkPath);
+                                var gripperModel = new ComplexModel(InputHandler.GripperPath);
 
                                 var MB = WorkspaceBuffer.ManipBuffer;
                                 for (int i = 0; i < MB.Length; i++)
@@ -560,8 +500,8 @@ namespace Graphics
 
                 if (ImGui.Button("Screenshot"))
                 {
-                    // inform the program that window capturing has been queried
-                    Capture = true;
+                    // inform the program that the window capture has been queried
+                    InputHandler.Capture = true;
                 }
                 if (ImGui.IsItemHovered())
                 {
@@ -570,8 +510,8 @@ namespace Graphics
                 }
 
                 // save path for captured screenshot
-                ImGui.InputText("Save path", ref SavePath, 100);
-                TextEdited = ImGui.IsItemActive();
+                ImGui.InputText("Save path", ref InputHandler.ScreenshotsPath, 100);
+                InputHandler.TextIsEdited = ImGui.IsItemActive();
 
                 //if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
                 //    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");  // TODO: when scene is updated, obstacle center is not reset! fix
@@ -600,9 +540,8 @@ namespace Graphics
             _camera.UpdateViewMatrix();
             _camera.UpdateProjectionMatrix();
 
-            PollKeyboard(_camera, Keyboard.GetState(), e);
-
-            PollMouse(_camera, Mouse.GetCursorState());
+            // process all the input events
+            InputHandler.PollEvents(this, _camera, Mouse.GetCursorState(), Keyboard.GetState(), e);
 
             if (ManipLoaded)
             {
@@ -638,7 +577,7 @@ namespace Graphics
                         var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                         var data = new List<System.Numerics.Vector3> { goalAttr.Center };
                         data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
-                        goal[i] = new PlainModel(Utils.GL_Convert(data.ToArray(), Color4.Yellow));
+                        goal[i] = new PlainModel(Utils.GLConvert(data.ToArray(), Color4.Yellow));
                     }
 
                     // obtained path
@@ -646,7 +585,7 @@ namespace Graphics
                     {
                         // path may change at any time in control thread; GetRange() guarantees thread sync
                         int count = manip.Path.Count;
-                        float[] data = Utils.GL_Convert(manip.Path.GetRange(0, count).ToArray(), Color4.Red);
+                        float[] data = Utils.GLConvert(manip.Path.GetRange(0, count).ToArray(), Color4.Red);
                         if (path[i] == default)
                         {
                             path[i] = new PlainModel(data);
@@ -680,68 +619,6 @@ namespace Graphics
             }
 
             base.OnUpdateFrame(e);
-        }
-
-        public void PollMouse(Camera camera, MouseState mouse)
-        {
-            if (_firstMove) // this bool variable is initially set to true
-            {
-                _lastPos = new Vector2(mouse.X, mouse.Y);
-                _firstMove = false;
-            }
-            else if (mouse.MiddleButton == ButtonState.Pressed)  // update camera orientation if the middle button is pressed
-            {
-                // Calculate the offset of the mouse position
-                var deltaX = mouse.X - _lastPos.X;
-                var deltaY = mouse.Y - _lastPos.Y;
-
-                // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
-                _camera.Yaw += deltaX * camera.Sensitivity;
-                _camera.Pitch -= deltaY * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
-            }
-
-            // updating last mouse position
-            _lastPos = new Vector2(mouse.X, mouse.Y);
-
-            // poll widget for interaction
-            widget.Poll(_camera, mouse, MouseToNDC(mouse));
-        }
-
-        public Vector2 MouseToNDC(MouseState mouse)
-        {
-            // cursor position relative to window
-            var cursorWindow = new Point(mouse.X - X, mouse.Y - Y);
-
-            // take into account window borders
-            cursorWindow.X -= (int)(0.25 * Width + 8);  // 8 - indent for resizing feature
-            cursorWindow.Y -= 38;  // 38 = 2 * 8 + 22, where 8 - resizing, 22 - main titlebar height
-
-            // return cursor position in NDC coordinates
-            return new Vector2(
-                (cursorWindow.X / (0.75f * Width) - 0.5f) * 2,
-                ((float)(Height - cursorWindow.Y) / Height - 0.5f) * 2);
-        }
-
-        public void PollKeyboard(Camera camera, KeyboardState keyboard, FrameEventArgs e)
-        {
-            // exit program if queried
-            if (keyboard.IsKeyDown(Key.Escape))
-            {
-                Exit();
-            }
-
-            if (!TextEdited)
-            {
-                // panning
-                if (keyboard.IsKeyDown(Key.W))
-                    camera.Position += camera.Up * camera.Speed * (float)e.Time; // Up 
-                if (keyboard.IsKeyDown(Key.S))
-                    camera.Position -= camera.Up * camera.Speed * (float)e.Time; // Down
-                if (keyboard.IsKeyDown(Key.A))
-                    camera.Position -= camera.Right * camera.Speed * (float)e.Time; // Left
-                if (keyboard.IsKeyDown(Key.D))
-                    camera.Position += camera.Right * camera.Speed * (float)e.Time; // Right
-            }
         }
         
         protected override void OnMouseMove(MouseMoveEventArgs e)
@@ -779,7 +656,7 @@ namespace Graphics
             GL.BindVertexArray(0);
             GL.UseProgram(0);
 
-            GL.DeleteProgram(_shader.Handle);
+            ShaderHandler.DeleteShaders();
 
             base.OnUnload(e);
         }
@@ -810,14 +687,14 @@ namespace Graphics
         // TODO: move somewhere else
         public static PlainModel CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
         {
-            return new PlainModel(Utils.GL_Convert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
+            return new PlainModel(Utils.GLConvert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
-            base.OnKeyPress(e);
-
             controller.PressChar(e.KeyChar);
+
+            base.OnKeyPress(e);            
         }
     }
 }

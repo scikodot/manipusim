@@ -1,0 +1,59 @@
+﻿using OpenTK;
+using OpenTK.Graphics.OpenGL4;
+
+namespace Graphics
+{
+    public static class ShaderHandler
+    {
+        private static string VertexShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\VertexShader.glsl";
+        private static string ComplexFragmentShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\FragmentShader.glsl";
+        private static string GenericFragmentShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\LineShader.glsl";
+
+        public static Shader GenericShader;
+        public static Shader ComplexShader;
+
+        public static void InitializeShaders()
+        {
+            // create shaders
+            GenericShader = new Shader(VertexShader, GenericFragmentShader);
+            ComplexShader = new Shader(VertexShader, ComplexFragmentShader);
+        }
+
+        public static void SetupShaders(Camera camera)
+        {
+            // setup generic shader
+            GenericShader.Use();
+            GenericShader.SetMatrix4("view", ref camera.ViewMatrix, false);
+            GenericShader.SetMatrix4("projection", ref camera.ProjectionMatrix, false);
+            GenericShader.SetVector3("color", Vector3.One);
+
+            // setup complex shader
+            ComplexShader.Use();
+
+            // set view and projection matrices;
+            // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader file)
+            ComplexShader.SetMatrix4("view", ref camera.ViewMatrix, false);
+            ComplexShader.SetMatrix4("projection", ref camera.ProjectionMatrix, false);
+
+            // set general properties
+            ComplexShader.SetVector3("viewPos", camera.Position);
+
+            // set directional light properties
+            ComplexShader.SetVector3("dirLight[0].direction", new Vector3(1.0f, 0.0f, 0.0f));
+            ComplexShader.SetVector3("dirLight[1].direction", new Vector3(0.0f, -1.0f, 0.0f));
+            ComplexShader.SetVector3("dirLight[2].direction", new Vector3(0.0f, 0.0f, -1.0f));
+            for (int i = 0; i < 3; i++)
+            {
+                ComplexShader.SetVector3($"dirLight[{i}].ambient", new Vector3(0.05f, 0.05f, 0.05f));
+                ComplexShader.SetVector3($"dirLight[{i}].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
+                ComplexShader.SetVector3($"dirLight[{i}].specular", new Vector3(0.5f, 0.5f, 0.5f));
+            }
+        }
+
+        public static void DeleteShaders()
+        {
+            GL.DeleteProgram(ComplexShader.Handle);
+            GL.DeleteProgram(GenericShader.Handle);
+        }
+    }
+}
