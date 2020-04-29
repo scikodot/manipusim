@@ -9,8 +9,8 @@ namespace Graphics
         private static string ComplexFragmentShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\FragmentShader.glsl";
         private static string GenericFragmentShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\LineShader.glsl";
 
-        public static Shader GenericShader;
-        public static Shader ComplexShader;
+        public static Shader GenericShader { get; private set; }
+        public static Shader ComplexShader { get; private set; }
 
         public static void InitializeShaders()
         {

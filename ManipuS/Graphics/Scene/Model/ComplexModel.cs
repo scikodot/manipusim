@@ -4,10 +4,11 @@ using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
+using System;
 
 namespace Graphics
 {
-    public class ComplexModel : IRenderable
+    public class ComplexModel : IRenderable, IDisposable
     {
         private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
         private readonly List<Mesh> Meshes = new List<Mesh>();
@@ -17,15 +18,56 @@ namespace Graphics
         private Matrix4 _state;
         public ref Matrix4 State => ref _state;
 
+        // create a model, consisting of a single mesh
+        public ComplexModel(float[] vertices, uint[] indices = null, Material material = null, Matrix4 state = default, string name = "")
+        {
+            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], new MeshColor  // TODO: perhaps replace empty array with nulls?
+            {
+                Ambient = material.ColorAmbient,
+                Diffuse = material.ColorDiffuse,
+                Specular = material.ColorSpecular,
+                Shininess = material.Shininess
+            }));
+
+            State = state == default ? Matrix4.Identity : state;
+        }
+
+        public ComplexModel(System.Numerics.Vector3[] vertices, uint[] indices = null, Material material = null, Matrix4 state = default, string name = "")
+        {
+            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], new MeshColor  // TODO: perhaps replace empty array with nulls?
+            {
+                Ambient = material.ColorAmbient,
+                Diffuse = material.ColorDiffuse,
+                Specular = material.ColorSpecular,
+                Shininess = material.Shininess
+            }));
+
+            State = state == default ? Matrix4.Identity : state;
+        }
+
+        // load an arbitrary model, located at the specified path
         public ComplexModel(string path)
         {
             LoadModel(path);
         }
 
-        public void Render(Shader shader, MeshMode mode)
+        //public void Update(int meshIndex, float[] data, uint[] indices)
+        //{
+        //    Meshes[meshIndex].Update(data, indices);
+        //}
+
+        public void Update(int meshIndex, System.Numerics.Vector3[] data, uint[] indices)
         {
+            Meshes[meshIndex].Update(MeshVertex.Convert(data), indices);
+        }
+
+        public void Render(Shader shader, MeshMode mode, Action render = default)
+        {
+            // setup model matrix
+            shader.SetMatrix4("model", ref State, true);
+
             foreach (var mesh in Meshes)
-                mesh.Render(shader, mode);
+                mesh.Render(shader, mode, render);
         }
 
         private void LoadModel(string path)
@@ -198,6 +240,18 @@ namespace Graphics
             io.Dispose();
 
             return texture;
+        }
+
+        public void Dispose()
+        {
+            // dispose the model
+            foreach (var mesh in Meshes)
+            {
+                mesh.Dispose(true);
+            }
+
+            // suppress additional finalization
+            GC.SuppressFinalize(this);
         }
     }
 }

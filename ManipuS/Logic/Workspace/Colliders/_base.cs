@@ -6,7 +6,7 @@ namespace Logic
     {
         public Vector3[] Data;
         public Vector3 Center;
-        public Graphics.PlainModel Model;
+        public Graphics.ComplexModel Model;
 
         protected Collider(Vector3[] data)
         {

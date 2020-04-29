@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-
+using Graphics;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Logic
@@ -92,16 +92,21 @@ namespace Logic
             return vec * ratio;
         }
 
-        public override void Render(Graphics.Shader shader, ref Matrix4 state)
+        public override void Render(Shader shader, ref Matrix4 state)
         {
             if (Model == default)
-                Model = new Graphics.PlainModel(Graphics.Utils.GLConvert(Data, OpenTK.Graphics.Color4.Green), new uint[]
+                Model = new ComplexModel(Utils.GLConvert(Data), new uint[]
                 {
                     0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
+                }, 
+                new Assimp.Material
+                {
+                    ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                    ColorDiffuse = new Assimp.Color4D(0.0f, 1.0f, 0.0f, 1.0f)
                 });
 
             Model.State = state;
-            Model.Render(shader, () =>
+            Model.Render(shader, MeshMode.Solid, () =>
             {
                 GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
             });

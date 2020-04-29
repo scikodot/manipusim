@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
+using Graphics;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Logic
@@ -71,13 +71,17 @@ namespace Logic
         }
 
         // draw method for latitudinal circles
-        public override void Render(Graphics.Shader shader, ref Matrix4 state)
+        public override void Render(Shader shader, ref Matrix4 state)
         {
             if (Model == default)
-                Model = new Graphics.PlainModel(Graphics.Utils.GLConvert(Data, OpenTK.Graphics.Color4.Green), indicesLongitude);
+                Model = new ComplexModel(Utils.GLConvert(Data), indicesLongitude, new Assimp.Material
+                {
+                    ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                    ColorDiffuse = new Assimp.Color4D(0.0f, 1.0f, 0.0f, 1.0f)
+                });
 
             Model.State = state;
-            Model.Render(shader, () =>
+            Model.Render(shader, MeshMode.Solid, () =>
             {
                 for (int i = 0; i < levels; i++)
                 {

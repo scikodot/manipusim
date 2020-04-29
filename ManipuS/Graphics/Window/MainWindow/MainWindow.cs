@@ -15,6 +15,7 @@ using Logic;
 using Matrix4 = Logic.Matrix4;
 using Phys;
 using BulletSharp;
+using System.Threading;
 
 namespace Graphics
 {
@@ -28,104 +29,86 @@ namespace Graphics
         private float[] transparencyMask =
         {
             // mask used to make a floor half-transparent
-            10.0f, 0.0f, 10.0f,     1.0f, 1.0f, 1.0f, 0.5f,
-            -10.0f, 0.0f, 10.0f,    1.0f, 1.0f, 1.0f, 0.5f,
-            -10.0f, 0.0f, -10.0f,   1.0f, 1.0f, 1.0f, 0.5f,
-            10.0f, 0.0f, -10.0f,    1.0f, 1.0f, 1.0f, 0.5f
+            10.0f, 0.0f, 10.0f,     0.0f, 1.0f, 0.0f,
+            -10.0f, 0.0f, 10.0f,    0.0f, 1.0f, 0.0f,
+            -10.0f, 0.0f, -10.0f,   0.0f, 1.0f, 0.0f,
+            10.0f, 0.0f, -10.0f,    0.0f, 1.0f, 0.0f
         };
+
         private float[] gridLines =
         {
             // X axis lines
-            10.0f, 0.0f, 0.0f,      1.0f, 1.0f, 1.0f, 1.0f,
-            -10.0f, 0.0f, 0.0f,     1.0f, 1.0f, 1.0f, 1.0f,
+            10.0f, 0.0f, 0.0f,      0.0f, 1.0f, 0.0f,
+            -10.0f, 0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
 
             // Y axis lines (Z in GL format)
-            0.0f, 0.0f, 10.0f,      1.0f, 1.0f, 1.0f, 1.0f,
-            0.0f, 0.0f, -10.0f,     1.0f, 1.0f, 1.0f, 1.0f
+            0.0f, 0.0f, 10.0f,      0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, -10.0f,     0.0f, 1.0f, 0.0f
         };
 
         private float[] cube =  // TODO: use MeshVertex for better vertex representation
         {
-            //1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-            //1.0f, 1.0f, -1.0f,    1.0f, 1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-            //1.0f, -1.0f, 1.0f,    1.0f, -1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-            //1.0f, -1.0f, -1.0f,    1.0f, -1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-
-            //-1.0f, 1.0f, 1.0f,    -1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-            //-1.0f, 1.0f, -1.0f,    -1.0f, 1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-            //-1.0f, -1.0f, 1.0f,    -1.0f, -1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-            //-1.0f, -1.0f, -1.0f,    -1.0f, -1.0f, -1.0f,    1.0f, 1.0f, 0.0f, 1.0f,
-
-            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-
-            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            // X ortho faces
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,
+            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
 
             -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
             -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+            -0.5f, -0.5f, 0.5f, -1.0f,  0.0f,  0.0f,
             -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-            0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-            0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-            -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+            // Y ortho faces
+            0.5f,  0.5f, 0.5f,  0.0f,  1.0f,  0.0f,
             0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
             -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+            -0.5f,  0.5f,  -0.5f,  0.0f,  1.0f,  0.0f,
+
+            0.5f, -0.5f, 0.5f,  0.0f, -1.0f,  0.0f,
+            0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+            -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+            -0.5f, -0.5f,  -0.5f,  0.0f, -1.0f,  0.0f,
+
+            // Z ortho faces
+            0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            -0.5f,  -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+
+            0.5f, 0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            -0.5f,  -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
         };
 
         private uint[] cubeIndices =
         {
-            // X ortho planes
+            // X ortho faces
             0, 1, 2,
-            2, 3, 1,
+            1, 2, 3,
 
             4, 5, 6,
-            6, 7, 5,
+            5, 6, 7,
 
-            // Y ortho planes
-            0, 1, 4,
-            4, 5, 1,
+            // Y ortho faces
+            8, 9, 10,
+            9, 10, 11,
 
-            2, 3, 6,
-            6, 7, 3,
+            12, 13, 14,
+            13, 14, 15,
 
-            // Z ortho planes
-            0, 2, 4,
-            4, 6, 2,
+            // Z ortho faces
+            16, 17, 18,
+            17, 18, 19,
 
-            1, 3, 5,
-            5, 7, 3
+            20, 21, 22,
+            21, 22, 23
         };
 
         // all the needed entities
-        PlainModel grid, gridFloor;
-        PlainModel[] goal, path;
+        ComplexModel grid, gridFloor;
+        ComplexModel[] goal, path;
 
         HashSet<Logic.PathPlanning.Tree.Node>[] tree;
 
@@ -135,12 +118,14 @@ namespace Graphics
 
         // 3D model
         ComplexModel Crytek;
-        public static PlainModel pointMoveable;
+        public static ComplexModel pointMoveable;
         public static Vector2 pointScreen;
 
-        private PlainModel[] Cubes;
-        private PlainModel Ground;
+        private ComplexModel[] Cubes;
+        private ComplexModel Ground;
         private Physics _physics;
+
+        public static Thread MainThread = Thread.CurrentThread;
 
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
@@ -161,13 +146,26 @@ namespace Graphics
             controller = new ImGuiController(Width, Height);
 
             // Camera is 6 units back and has the proper aspect ratio
-            _camera = new Camera(Vector3.UnitZ * 6, (float)(0.75 * Width / Height));
+            _camera = new Camera((float)(0.75 * Width / Height), new Vector3(-5, 3, 5), -15, -45);
 
             // workspace grid
-            grid = new PlainModel(gridLines);
-            gridFloor = new PlainModel(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 });
+            grid = new ComplexModel(gridLines, material: new Assimp.Material
+            {
+                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 1.0f, 1.0f)
+            });
 
-            pointMoveable = new PlainModel(new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f });
+            gridFloor = new ComplexModel(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 }, new Assimp.Material
+            {
+                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 1.0f, 0.5f)
+            });
+
+            pointMoveable = new ComplexModel(new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, material: new Assimp.Material
+            {
+                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 0.0f, 1.0f)
+            });
 
             InputHandler.Widget = new AxesWidget(new Axis[3]
             {
@@ -176,10 +174,10 @@ namespace Graphics
                 new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
             }, pointMoveable);
 
-            Cubes = new PlainModel[3];
+            Cubes = new ComplexModel[3];
             for (int i = 0; i < 3; i++)
             {
-                Cubes[i] = new PlainModel(cube, material: new Assimp.Material
+                Cubes[i] = new ComplexModel(cube, cubeIndices, material: new Assimp.Material
                 {
                     ColorAmbient = new Assimp.Color4D(0.1f, 0.1f, 0.0f),
                     ColorDiffuse = new Assimp.Color4D(0.8f, 0.8f, 0.0f),
@@ -192,7 +190,7 @@ namespace Graphics
             Cubes[1].State.M24 = 4.5f;
             Cubes[2].State.M24 = 6;
 
-            Ground = new PlainModel(cube, material: new Assimp.Material
+            Ground = new ComplexModel(cube, cubeIndices, new Assimp.Material
             {
                 ColorAmbient = new Assimp.Color4D(0.02f, 0.1f, 0.0f),
                 ColorDiffuse = new Assimp.Color4D(0.1f, 0.8f, 0.0f),
@@ -225,12 +223,6 @@ namespace Graphics
 
             // render GUI
             RenderGUI();
-
-            foreach (RigidBody body in _physics.World.CollisionObjectArray)
-            {
-                if (!"Ground".Equals(body.UserObject))
-                    Cubes[body.UserIndex].State = Convert(body.WorldTransform);
-            }
 
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.RenderActions.Count;
@@ -272,31 +264,25 @@ namespace Graphics
             //    GL.PointSize(1);
             //});
 
-            foreach (var cube in Cubes)
-            {
-                cube.Render(ShaderHandler.ComplexShader, () =>
-                {
-                    GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-                    //GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
-                });
-            }
+            //foreach (var cube in Cubes)
+            //{
+            //    cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
+            //    {
+            //        GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
+            //    });
+            //}
 
-            Ground.Render(ShaderHandler.ComplexShader, () =>
-            {
-                GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
-            });
-
-            InputHandler.Widget.Render(ShaderHandler.GenericShader, () =>
-            {
-                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
-            });
+            //Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
+            //{
+            //    GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
+            //});
 
             if (ManipLoaded)
             {
                 // render obstacles
                 foreach (var obstacle in Manager.Obstacles)
                 {
-                    obstacle.Render(ShaderHandler.GenericShader, true);
+                    obstacle.Render(ShaderHandler.ComplexShader, true);
                 }
 
                 for (int i = 0; i < Manager.Manipulators.Length; i++)
@@ -309,7 +295,7 @@ namespace Graphics
                     // render goal
                     if (goal[i] != default)
                     {
-                        goal[i].Render(ShaderHandler.GenericShader, () =>
+                        goal[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
                         {
                             GL.PointSize(5);
                             GL.DrawArrays(PrimitiveType.Points, 0, 1);
@@ -319,10 +305,10 @@ namespace Graphics
                     }
 
                     // render path
-                    if (manip.Path != null)
+                    if (manip.Path != null && path[i] != null)
                     {
                         int count = manip.Path.Count;
-                        path[i].Render(ShaderHandler.GenericShader, () =>
+                        path[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
                         {
                             GL.DrawArrays(PrimitiveType.LineStrip, 0, count);
                         });
@@ -338,7 +324,7 @@ namespace Graphics
                             if (node.Model == default)
                                 node.Model = CreateTreeBranch(node.Point, node.Parent.Point);
 
-                            node.Model.Render(ShaderHandler.GenericShader, () =>
+                            node.Model.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
                             {
                                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                             });
@@ -349,7 +335,7 @@ namespace Graphics
 
             // workspace grid
             grid.State = Matrix4.Identity;
-            grid.Render(ShaderHandler.GenericShader, () =>
+            grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
             {
                 GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
                 GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
@@ -357,17 +343,17 @@ namespace Graphics
             for (int i = 1; i < 11; i++)
             {
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i);
-                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i);
-                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
 
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i);
-                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i);
-                grid.Render(ShaderHandler.GenericShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
 
-            gridFloor.Render(ShaderHandler.GenericShader, () =>  // TODO: all help should be placed in a separate document (aka documentation)
+            gridFloor.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>  // TODO: all help should be placed in a separate document (aka documentation)
             {
                 // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
                 //
@@ -387,6 +373,13 @@ namespace Graphics
                 GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
 
                 GL.Disable(EnableCap.Blend);
+            });
+
+            InputHandler.Widget.Render(ShaderHandler.GenericShader, () =>
+            {
+                GL.Disable(EnableCap.DepthTest);
+                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
+                GL.Enable(EnableCap.DepthTest);
             });
 
             //ImGui.ShowDemoWindow();
@@ -676,8 +669,15 @@ namespace Graphics
         {
             _physics.Update((float)e.Time);
 
+            // process physics
+            foreach (RigidBody body in _physics.World.CollisionObjectArray)
+            {
+                if (!"Ground".Equals(body.UserObject))
+                    Cubes[body.UserIndex].State = Convert(body.WorldTransform);
+            }
+
             // check to see if the window is focused
-            if (!Focused)
+            if (!Focused)  // TODO: this may cause weird things when window is minimized; check
             {
                 return;
             }
@@ -723,7 +723,11 @@ namespace Graphics
                         var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                         var data = new List<System.Numerics.Vector3> { goalAttr.Center };
                         data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
-                        goal[i] = new PlainModel(Utils.GLConvert(data.ToArray(), Color4.Yellow));
+                        goal[i] = new ComplexModel(Utils.GLConvert(data.ToArray()), material: new Assimp.Material
+                        {
+                            ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                            ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 0.0f, 1.0f)
+                        });
                     }
 
                     // obtained path
@@ -731,14 +735,24 @@ namespace Graphics
                     {
                         // path may change at any time in control thread; GetRange() guarantees thread sync
                         int count = manip.Path.Count;
-                        float[] data = Utils.GLConvert(manip.Path.GetRange(0, count).ToArray(), Color4.Red);
+                        //float[] data = Utils.GLConvert(manip.Path.GetRange(0, count).ToArray());
+                        var pathRange = manip.Path.GetRange(0, count).ToArray();
                         if (path[i] == default)
                         {
-                            path[i] = new PlainModel(data);
+                            path[i] = new ComplexModel(pathRange, material: new Assimp.Material
+                            {
+                                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                                ColorDiffuse = new Assimp.Color4D(1.0f, 0.0f, 0.0f, 1.0f)
+                            });
                         }
                         else
                         {
-                            path[i].Update(data);
+                            path[i].Update(0, pathRange, new uint[0]);
+                            //path[i] = new ComplexModel(pathRange, material: new Assimp.Material
+                            //{
+                            //    ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                            //    ColorDiffuse = new Assimp.Color4D(1.0f, 0.0f, 0.0f, 1.0f)
+                            //});
                         }
                     }
 
@@ -816,8 +830,8 @@ namespace Graphics
 
             // initializing all displaying entities
             int manip_length = Manager.Manipulators.Length;
-            goal = new PlainModel[manip_length];
-            path = new PlainModel[manip_length];
+            goal = new ComplexModel[manip_length];
+            path = new ComplexModel[manip_length];
             tree = new HashSet<Logic.PathPlanning.Tree.Node>[manip_length];
             for (int i = 0; i < tree.Length; i++)
             {
@@ -833,9 +847,13 @@ namespace Graphics
 
         // some specific methods for better drawing organization
         // TODO: move somewhere else
-        public static PlainModel CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
+        public static ComplexModel CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
         {
-            return new PlainModel(Utils.GLConvert(new System.Numerics.Vector3[] { p1, p2 }, Color4.Black));
+            return new ComplexModel(Utils.GLConvert(new System.Numerics.Vector3[] { p1, p2 }), material: new Assimp.Material
+            {
+                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                ColorDiffuse = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 1.0f)
+            });
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

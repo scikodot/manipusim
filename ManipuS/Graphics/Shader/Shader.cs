@@ -229,5 +229,14 @@ namespace Graphics
                 GL.Uniform3(_uniformLocations[name], data);
             }
         }
+
+        public void SetVector4(string name, Vector4 data)
+        {
+            if (_uniformLocations.ContainsKey(name))
+            {
+                GL.UseProgram(Handle);
+                GL.Uniform4(_uniformLocations[name], data);
+            }
+        }
     }
 }

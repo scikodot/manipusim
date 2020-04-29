@@ -1,5 +1,7 @@
 ﻿using System;
 using Assimp;
+using BulletSharp;
+using BulletSharp.Math;
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 
@@ -32,11 +34,12 @@ namespace Graphics
         private readonly int VAO, VBO, EBO;
 
         public Material Material { get; private set; }
+        //public Collider Collider { get; private set; }
 
         private Matrix4 _state;
         public ref Matrix4 State => ref _state;
 
-        public PlainModel(float[] vertices, uint[] indices = null, Material material = null, Matrix4 state = default)
+        public PlainModel(float[] vertices, uint[] indices = null, Material material = null, RigidBody rigidBody = null, Matrix4 state = default)
         {
             // generate array/buffer objects
             VAO = GL.GenVertexArray();
@@ -83,20 +86,35 @@ namespace Graphics
             // set material if presented
             Material = material;
 
+            //// set rigid body is presented
+            //RigidBody = rigidBody;
+
             // set initial state if presented
             State = state == default ? Matrix4.Identity : state;
         }
 
-        public void Update(float[] data)
+        public void UpdateData(float[] data)
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
             GL.BufferData(BufferTarget.ArrayBuffer, data.Length * sizeof(float), data, BufferUsageHint.StaticDraw);
         }
 
+        //public void UpdateState()
+        //{
+        //    if (RigidBody != null)
+        //        _state = RigidBody.WorldTransform;
+        //}
+
         public void Render(Shader shader, Action render)
         {
+            var mat = new Matrix4(
+                State.M11, State.M12, State.M13, State.M14,
+                State.M21, State.M22, State.M23, State.M24,
+                State.M31, State.M32, State.M33, State.M34,
+                State.M41, State.M42, State.M43, State.M44);
+
             // setup model matrix
-            shader.SetMatrix4("model", ref State, true);  // TODO: remove transpose?
+            shader.SetMatrix4("model", ref mat, true);  // TODO: remove transpose?
 
             // setup rendering mode
             if (Material == null)
@@ -107,9 +125,9 @@ namespace Graphics
                 shader.SetBool("useTextures", 0);
 
                 // set colors
-                shader.SetVector3("material.ambientCol", new Vector3(Material.ColorAmbient.R, Material.ColorAmbient.G, Material.ColorAmbient.B));
-                shader.SetVector3("material.diffuseCol", new Vector3(Material.ColorDiffuse.R, Material.ColorDiffuse.G, Material.ColorDiffuse.B));
-                shader.SetVector3("material.specularCol", new Vector3(Material.ColorSpecular.R, Material.ColorSpecular.G, Material.ColorSpecular.B));
+                shader.SetVector3("material.ambientCol", new OpenTK.Vector3(Material.ColorAmbient.R, Material.ColorAmbient.G, Material.ColorAmbient.B));
+                shader.SetVector3("material.diffuseCol", new OpenTK.Vector3(Material.ColorDiffuse.R, Material.ColorDiffuse.G, Material.ColorDiffuse.B));
+                shader.SetVector3("material.specularCol", new OpenTK.Vector3(Material.ColorSpecular.R, Material.ColorSpecular.G, Material.ColorSpecular.B));
                 shader.SetFloat("material.shininess", Material.Shininess);
             }
 

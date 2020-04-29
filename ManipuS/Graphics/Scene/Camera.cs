@@ -13,10 +13,6 @@ namespace Graphics
     // Check out the web version if you don't know why we are doing a specific thing or want to know more about the code
     public class Camera
     {
-        // camera parameters
-        public float Speed = 3f;
-        public float Sensitivity = 0.2f;
-
         // Those vectors are directions pointing outwards from the camera to define how it rotated
         private Vector3 _front = -Vector3.UnitZ;
         private Vector3 _up = Vector3.UnitY;
@@ -29,10 +25,17 @@ namespace Graphics
         // The field of view of the camera (radians)
         private float _fov = MathHelper.PiOver2;
 
-        public Camera(Vector3 position, float aspectRatio)
+        // camera parameters
+        public float Speed { get; set; } = 3f;
+        public float Sensitivity { get; set; } = 0.2f;
+
+        public Camera(float aspectRatio, Vector3 position, float pitch = 0, float yaw = 0)
         {
-            Position = position;
             AspectRatio = aspectRatio;
+            Position = position;
+
+            Pitch = pitch;
+            Yaw = yaw;
 
             UpdateViewMatrix();
             UpdateProjectionMatrix();
@@ -58,7 +61,7 @@ namespace Graphics
                 // If you want to read more about this you can try researching a topic called gimbal lock
                 var angle = MathHelper.Clamp(value, -89f, 89f);
                 _pitch = MathHelper.DegreesToRadians(angle);
-                UpdateVectors();
+                UpdateVectors();  // TODO: can be calculated once when passing pitch and yaw simultaneously
             }
         }
 
@@ -101,18 +104,6 @@ namespace Graphics
         {
             _projectionMatrix = Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
         }
-
-        //// Get the view matrix using the amazing LookAt function described more in depth on the web tutorials
-        //public Matrix4 GetViewMatrix()
-        //{
-        //    return Matrix4.LookAt(Position, Position + _front, _up);
-        //}
-
-        //// Get the projection matrix using the same method we have used up until this Vector3
-        //public Matrix4 GetProjectionMatrix()
-        //{
-        //    return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.01f, 100f);
-        //}
 
         // This function is going to update the direction vertices using some of the math learned in the web tutorials
         private void UpdateVectors()

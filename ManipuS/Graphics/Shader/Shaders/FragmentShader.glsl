@@ -7,9 +7,9 @@ struct Material {
 	sampler2D specularTex;
 
 	// lighting colors
-	vec3 ambientCol;
-	vec3 diffuseCol;
-	vec3 specularCol;
+	vec4 ambientCol;
+	vec4 diffuseCol;
+	vec4 specularCol;
 	
 	float shininess;
 };
@@ -66,8 +66,9 @@ uniform vec3 viewPos;
 uniform DirLight dirLight[NR_DIR_LIGHTS];
 uniform Material material;
 
-uniform bool useMaterial;  // switch between vertex/material colors (for vertex colors no light is applied)
-uniform bool useTextures;  // switch between material textures/colors
+uniform bool enableWireframe;  // switch between vertex/material colors (for vertex colors no light is applied)
+uniform bool enableTextures;  // switch between material textures/colors
+uniform bool enableLighting;  // enable/disable lighting
 
 // function prototypes
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -76,29 +77,37 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 void main()
 {
-    if (useMaterial)
-    {
-        // properties
-        vec3 norm = normalize(Normal);
-        vec3 viewDir = normalize(viewPos - FragPos);
+	if (enableWireframe)
+	{
+		// render wireframe in opaque black color
+        FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+	}
+	else
+	{
+		if (enableLighting)
+		{
+			// properties
+			vec3 norm = normalize(Normal);
+			vec3 viewDir = normalize(viewPos - FragPos);
 
-        // material components
-        ambientComp = useTextures ? vec3(texture(material.diffuseTex, TexCoords)) : material.ambientCol;
-        diffuseComp = useTextures ? vec3(texture(material.diffuseTex, TexCoords)) : material.diffuseCol;
-        specularComp = useTextures ? vec3(texture(material.specularTex, TexCoords)) : material.specularCol;
+			// material components
+			ambientComp = enableTextures ? vec3(texture(material.diffuseTex, TexCoords)) : vec3(material.ambientCol);
+			diffuseComp = enableTextures ? vec3(texture(material.diffuseTex, TexCoords)) : vec3(material.diffuseCol);
+			specularComp = enableTextures ? vec3(texture(material.specularTex, TexCoords)) : vec3(material.specularCol);
 
-        // directional light
-        vec3 result = vec3(0.0);
-        for (int i = 0; i < NR_DIR_LIGHTS; i++)
-            result += CalcDirLight(dirLight[i], norm, viewDir);
-
-        FragColor = vec4(result, 1.0);
-    }
-    else
-    {
-		// pass input color if the material is not presented
-        FragColor = Color;
-    }
+			// directional light
+			vec3 result = vec3(0.0);
+			for (int i = 0; i < NR_DIR_LIGHTS; i++)
+				result += CalcDirLight(dirLight[i], norm, viewDir);
+			
+			FragColor = vec4(result, material.diffuseCol[3]);
+		}
+		else
+		{
+			// render material as-is if lighting is not used
+			FragColor = material.diffuseCol + material.ambientCol;
+		}
+	}
 }
 
 // calculates the color when using a directional light.

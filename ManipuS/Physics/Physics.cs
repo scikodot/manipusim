@@ -8,10 +8,6 @@ namespace Phys
 {
     class Physics
     {
-        ///create 125 (5x5x5) dynamic objects
-        private const int ArraySizeX = 5, ArraySizeY = 5, ArraySizeZ = 5;
-        //private Vector3 _startPosition = new Vector3(-5, 1, -3) - new Vector3(ArraySizeX / 2, 0, ArraySizeZ / 2);
-
         public DiscreteDynamicsWorld World { get; }
 
         private CollisionDispatcher _dispatcher;
@@ -41,46 +37,25 @@ namespace Phys
             float mass = 1.0f;
             Vector3 localInertia = colShape.CalculateLocalInertia(mass);
 
-            var rbInfo = new RigidBodyConstructionInfo(mass, null, colShape, localInertia);
+            using (var rbInfo = new RigidBodyConstructionInfo(mass, null, colShape, localInertia))
+            {
+                // using motionstate is recommended, it provides interpolation capabilities
+                // and only synchronizes 'active' objects
+                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 3, 0)));
+                var body = new RigidBody(rbInfo);
+                body.UserIndex = 0;
+                World.AddRigidBody(body);
 
-            rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 3, 0)));
-            var body = new RigidBody(rbInfo);
-            body.UserIndex = 0;
-            World.AddRigidBody(body);
+                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 4.5f, 0)));
+                body = new RigidBody(rbInfo);
+                body.UserIndex = 1;
+                World.AddRigidBody(body);
 
-            rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 4.5f, 0)));
-            body = new RigidBody(rbInfo);
-            body.UserIndex = 1;
-            World.AddRigidBody(body);
-
-            rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 6, 0)));
-            body = new RigidBody(rbInfo);
-            body.UserIndex = 2;
-            World.AddRigidBody(body);
-
-            //for (int y = 0; y < ArraySizeY; y++)
-            //{
-            //    for (int x = 0; x < ArraySizeX; x++)
-            //    {
-            //        for (int z = 0; z < ArraySizeZ; z++)
-            //        {
-            //            Matrix startTransform = Matrix.Translation(
-            //                _startPosition + 2 * new Vector3(x, y, z));
-
-            //            // using motionstate is recommended, it provides interpolation capabilities
-            //            // and only synchronizes 'active' objects
-            //            rbInfo.MotionState = new DefaultMotionState(startTransform);
-            //            var body = new RigidBody(rbInfo);
-
-            //            // make it drop from a height
-            //            body.Translate(new Vector3(0, 15, 0));
-
-            //            World.AddRigidBody(body);
-            //        }
-            //    }
-            //}
-
-            rbInfo.Dispose();
+                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 6, 0)));
+                body = new RigidBody(rbInfo);
+                body.UserIndex = 2;
+                World.AddRigidBody(body);
+            }
         }
 
         public virtual void Update(float elapsedTime)

@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-
+using Graphics;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Logic
@@ -15,7 +15,7 @@ namespace Logic
         private Vector3[] Data;
         public ImpDualQuat State;
         public Collider Collider;
-        public Graphics.PlainModel Model;
+        public Graphics.ComplexModel Model;
 
         public Obstacle(Vector3[] data, ImpDualQuat state, ColliderShape shape)
         {
@@ -49,14 +49,18 @@ namespace Logic
             Collider.Center = State.Translation;
         }
 
-        public void Render(Graphics.Shader shader, bool showCollider = false)
+        public void Render(Shader shader, bool showCollider = false)
         {
             if (Model == default)
-                Model = new Graphics.PlainModel(Graphics.Utils.GLConvert(Data, OpenTK.Graphics.Color4.White));
+                Model = new ComplexModel(Utils.GLConvert(Data), material: new Assimp.Material
+                {
+                    ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
+                    ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 1.0f, 1.0f)
+                });
 
             var stateMatrix = State.ToMatrix();
             Model.State = stateMatrix;
-            Model.Render(shader, () =>
+            Model.Render(shader, MeshMode.Solid, () =>
             {
                 GL.DrawArrays(PrimitiveType.Points, 0, Data.Length);
             });

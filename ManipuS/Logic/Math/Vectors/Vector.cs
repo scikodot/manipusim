@@ -48,16 +48,16 @@ namespace Logic
             return new Vector(v1.Components.Zip(v2.Components, (x, y) => x - y).ToArray());
         }
 
-        public static Vector operator *(Matrix m, Vector v)  // TODO: optimize
-        {
-            float[] components = new float[m.RowsNumber];
-            for (int i = 0; i < components.Length; i++)
-            {
-                components[i] = Dot(m.Rows[i], v);
-            }
+        //public static Vector operator *(Matrix m, Vector v)  // TODO: optimize
+        //{
+        //    float[] components = new float[m.RowsNumber];
+        //    for (int i = 0; i < components.Length; i++)
+        //    {
+        //        components[i] = Dot(m.Rows[i], v);
+        //    }
 
-            return new Vector(components);
-        }
+        //    return new Vector(components);
+        //}
 
         public static Vector operator *(Vector v, float s)
         {

@@ -240,17 +240,19 @@ namespace Logic
             // joints
             for (int i = 0; i < Joints.Length; i++)
             {
-                model = Joints[i].State.ToMatrix(true);
-                shader.SetMatrix4("model", ref model);
-                Joints[i].Model.Render(shader, MeshMode.Solid | MeshMode.Wireframe);
+                //model = Joints[i].State.ToMatrix(true);
+                //shader.SetMatrix4("model", ref model);
+                Joints[i].Model.State = Joints[i].State.ToMatrix(false);
+                Joints[i].Model.Render(shader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
             }
 
             // links
             for (int i = 0; i < Links.Length; i++)
             {
-                model = Links[i].State.ToMatrix(true);
-                shader.SetMatrix4("model", ref model);
-                Links[i].Model.Render(shader, MeshMode.Solid | MeshMode.Wireframe);
+                //model = Links[i].State.ToMatrix(true);
+                //shader.SetMatrix4("model", ref model);
+                Links[i].Model.State = Links[i].State.ToMatrix(false);
+                Links[i].Model.Render(shader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
             }
         }
 

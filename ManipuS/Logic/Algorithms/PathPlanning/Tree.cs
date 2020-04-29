@@ -26,7 +26,7 @@ namespace Logic.PathPlanning
             public Vector3 Point;
             public Vector q;
 
-            public Graphics.PlainModel Model;
+            public Graphics.ComplexModel Model;
 
             public Node(Node parent, Vector3 point, Vector q)
             {
