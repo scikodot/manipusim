@@ -1,12 +1,11 @@
-﻿using System;
-using BulletSharp;
+﻿using BulletSharp;
 using BulletSharp.Math;
 using System.Collections.Generic;
 using Vector3 = BulletSharp.Math.Vector3;
 
-namespace Phys
+namespace Physics
 {
-    class Physics
+    public class PhysicsHandler
     {
         public DiscreteDynamicsWorld World { get; }
 
@@ -15,7 +14,7 @@ namespace Phys
         private List<CollisionShape> _collisionShapes = new List<CollisionShape>();
         private CollisionConfiguration _collisionConf;
 
-        public Physics()
+        public PhysicsHandler()
         {
             // collision configuration contains default setup for memory, collision setup
             _collisionConf = new DefaultCollisionConfiguration();

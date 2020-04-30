@@ -1,10 +1,12 @@
 ﻿using System.Numerics;
-using Graphics;
+
 using OpenTK.Graphics.OpenGL4;
+
+using Graphics;
 
 namespace Logic
 {
-    public enum ColliderShape
+    public enum ObstacleShape
     {
         Box,
         Sphere
@@ -14,8 +16,9 @@ namespace Logic
     {
         private Vector3[] Data;
         public ImpDualQuat State;
+
+        public Model Model;
         public Collider Collider;
-        public Graphics.Model Model;
 
         public Obstacle(Vector3[] data, ImpDualQuat state, ColliderShape shape)
         {
@@ -31,6 +34,11 @@ namespace Logic
                     Collider = new SphereCollider(Data);
                     break;
             }
+        }
+
+        public Obstacle(Model model, Collider collider)
+        {
+
         }
 
         public bool Contains(Vector3 point)

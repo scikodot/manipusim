@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Graphics;
+using System;
 using System.Numerics;
 
 namespace Logic
@@ -48,27 +49,6 @@ namespace Logic
             Weight = weight;
             Radius = radius;
             InliersCount = 0;
-        }
-    }
-
-    public static class Primitives
-    {
-        public static Vector3[] Sphere(float radius, Vector3 center, int pointsNum)
-        {
-            Vector3[] data = new Vector3[pointsNum];
-            double x, yPos, y, zPos, z;
-            for (int i = 0; i < pointsNum; i++)
-            {
-                x = radius * (2 * RandomThreadStatic.NextDouble() - 1);
-                yPos = Math.Sqrt(radius * radius - x * x);
-                y = yPos * (2 * RandomThreadStatic.NextDouble() - 1);
-                zPos = Math.Sqrt(yPos * yPos - y * y);
-                z = RandomThreadStatic.Next(0, 2) == 0 ? -zPos : zPos;
-
-                data[i] = new Vector3((float)x, (float)y, (float)z) + center;
-            }
-
-            return data;
         }
     }
 }

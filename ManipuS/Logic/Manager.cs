@@ -24,7 +24,7 @@ namespace Logic
             Obstacles = new Obstacle[OB.Length];
             for (int i = 0; i < OB.Length; i++)
             {
-                Obstacles[i] = new Obstacle(Primitives.Sphere(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
+                Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }
 
             Manipulators = new Manipulator[MB.Length];
@@ -161,6 +161,19 @@ namespace Logic
             manip.Path = resGA.Item1;
             manip.States["Path"] = true;
             manip.Configs = resGA.Item2;*/
+        }
+
+        public Obstacle CreateObstacle(ObstacleShape shape)
+        {
+            switch (shape)
+            {
+                case ObstacleShape.Box:
+                    return null;
+                case ObstacleShape.Sphere:
+                    return null;
+                default:
+                    return null;
+            }
         }
     }
 }

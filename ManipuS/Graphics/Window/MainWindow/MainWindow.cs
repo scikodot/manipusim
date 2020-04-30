@@ -13,7 +13,7 @@ using ImGuiNET;
 using Logic;
 
 using Matrix4 = Logic.Matrix4;
-using Phys;
+using Physics;
 using BulletSharp;
 using System.Threading;
 using MathNet.Numerics;
@@ -27,7 +27,7 @@ namespace Graphics
         private Camera _camera;
 
         // workspace grid
-        private MeshVertex[] gridLines =
+        private readonly MeshVertex[] gridLines =
         {
             new MeshVertex { Position = new Vector3(10.0f, 0.0f, 0.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
             new MeshVertex { Position = new Vector3(-10.0f, 0.0f, 0.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
@@ -36,72 +36,12 @@ namespace Graphics
         };
 
         // mask used to make a floor half-transparent
-        private MeshVertex[] transparencyMask =
+        private readonly MeshVertex[] transparencyMask =
         {
             new MeshVertex { Position = new Vector3(10.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
             new MeshVertex { Position = new Vector3(-10.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
             new MeshVertex { Position = new Vector3(-10.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
             new MeshVertex { Position = new Vector3(10.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) }
-        };
-
-        private MeshVertex[] cube =
-        {
-            // X ortho faces
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f,  0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f, -0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f, 0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f, -0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f, -0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f, -0.5f, 0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f, -0.5f, -0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-
-            // Y ortho faces
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f, 0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f, -0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  -0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-
-            new MeshVertex { Position = new Vector3(0.5f,  -0.5f, 0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f,  -0.5f, -0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  -0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-
-            // Z ortho faces
-            new MeshVertex { Position = new Vector3(0.5f, 0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-
-            new MeshVertex { Position = new Vector3(0.5f, 0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) }
-        };
-
-        private uint[] cubeIndices =
-        {
-            // X ortho faces
-            0, 1, 2,
-            1, 2, 3,
-
-            4, 5, 6,
-            5, 6, 7,
-
-            // Y ortho faces
-            8, 9, 10,
-            9, 10, 11,
-
-            12, 13, 14,
-            13, 14, 15,
-
-            // Z ortho faces
-            16, 17, 18,
-            17, 18, 19,
-
-            20, 21, 22,
-            21, 22, 23
         };
 
         // all the needed entities
@@ -121,14 +61,14 @@ namespace Graphics
 
         private Model[] Cubes;
         private Model Ground;
-        private Physics _physics;
+        private PhysicsHandler _physics;
 
         public static Thread MainThread = Thread.CurrentThread;
 
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
         {
-            _physics = new Physics();
+            _physics = new PhysicsHandler();
         }
 
         protected override void OnLoad(EventArgs e)
@@ -169,7 +109,7 @@ namespace Graphics
             Cubes = new Model[3];
             for (int i = 0; i < 3; i++)
             {
-                Cubes[i] = new Model(cube, cubeIndices, material: new MeshMaterial
+                Cubes[i] = Primitives.Cube(new MeshMaterial
                 {
                     Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                     Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
@@ -182,7 +122,7 @@ namespace Graphics
             Cubes[1].State.Column3 = new Vector4(0.5f, 4.5f, 0.0f, 1.0f);
             Cubes[2].State.Column3 = new Vector4(1.0f, 6.0f, 0.0f, 1.0f);
 
-            Ground = new Model(cube, cubeIndices, new MeshMaterial
+            Ground = Primitives.Cube(new MeshMaterial
             {
                 Ambient = new Vector4(0.02f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.1f, 0.8f, 0.0f, 1.0f),
@@ -195,15 +135,6 @@ namespace Graphics
             Ground.State.M22 *= 0.25f;
 
             base.OnLoad(e);
-        }
-
-        private OpenTK.Matrix4 Convert(BulletSharp.Math.Matrix m)
-        {
-            return OpenTK.Matrix4.Transpose(new OpenTK.Matrix4(
-                m.M11, m.M12, m.M13, m.M14,
-                m.M21, m.M22, m.M23, m.M24,
-                m.M31, m.M32, m.M33, m.M34,
-                m.M41, m.M42, m.M43, m.M44));
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
@@ -256,16 +187,10 @@ namespace Graphics
 
             foreach (var cube in Cubes)
             {
-                cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
-                {
-                    GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
-                });
+                cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
             }
 
-            Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
-            {
-                GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
-            });
+            Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
 
             if (ManipLoaded)
             {
@@ -658,10 +583,26 @@ namespace Graphics
             Util.CheckGLError("End of frame");
         }
 
+        private OpenTK.Matrix4 Convert(BulletSharp.Math.Matrix m)
+        {
+            return OpenTK.Matrix4.Transpose(new OpenTK.Matrix4(
+                m.M11, m.M12, m.M13, m.M14,
+                m.M21, m.M22, m.M23, m.M24,
+                m.M31, m.M32, m.M33, m.M34,
+                m.M41, m.M42, m.M43, m.M44));
+        }
+
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             // update physics controller
             _physics.Update((float)e.Time);
+
+            var monitoredBody = (RigidBody)_physics.World.CollisionObjectArray[0];
+            object context = "context";
+            _physics.World.ContactPairTest(
+                    _physics.World.CollisionObjectArray[1],
+                    _physics.World.CollisionObjectArray[0],
+                    new CollisionCallback(monitoredBody, context));
 
             // process physics
             foreach (RigidBody body in _physics.World.CollisionObjectArray)
@@ -716,7 +657,7 @@ namespace Graphics
                     {
                         var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                         var data = new List<System.Numerics.Vector3> { goalAttr.Center };
-                        data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
+                        data.AddRange(Primitives.SpherePointCloud(goalAttr.Radius, goalAttr.Center, 100));
                         goal[i] = new Model(MeshVertex.Convert(data), material: MeshMaterial.Yellow);
                     }
 

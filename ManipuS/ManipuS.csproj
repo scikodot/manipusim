@@ -131,6 +131,8 @@
     <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
     <Compile Include="Logic\Math\Quaternions\DualQuat.cs" />
     <Compile Include="Logic\Math\Special\Ziggurat.cs" />
+    <Compile Include="Logic\Workspace\Primitives.cs" />
+    <Compile Include="Physics\Callbacks\CollisionCallback.cs" />
     <Compile Include="Logic\Workspace\Manipulator.cs" />
     <Compile Include="Logic\Math\Quaternions\ImpDualQuat.cs" />
     <Compile Include="Logic\Math\Matrices\Matrix.cs" />
@@ -144,7 +146,7 @@
     <Compile Include="Logic\Workspace\Colliders\BoxCollider.cs" />
     <Compile Include="Logic\Workspace\Colliders\SphereCollider.cs" />
     <Compile Include="Logic\Workspace\Colliders\_base.cs" />
-    <Compile Include="Physics\Physics.cs" />
+    <Compile Include="Physics\PhysicsHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Graphics\Shader\Shader.cs" />
