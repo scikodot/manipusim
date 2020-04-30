@@ -52,11 +52,7 @@ namespace Logic
         public void Render(Shader shader, bool showCollider = false)
         {
             if (Model == default)
-                Model = new ComplexModel(Utils.GLConvert(Data), material: new Assimp.Material
-                {
-                    ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                    ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 1.0f, 1.0f)
-                });
+                Model = new ComplexModel(Utils.GLConvert(Data), material: MeshMaterial.White);
 
             var stateMatrix = State.ToMatrix();
             Model.State = stateMatrix;

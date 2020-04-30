@@ -20,7 +20,7 @@ namespace Graphics
         private int _vertexArray;
         private int _vertexBuffer;
         private int _vertexBufferSize;
-        private int _indexBuffer;
+        public int _indexBuffer;
         private int _indexBufferSize;
 
         private ImGuiTexture _fontTexture;
@@ -365,6 +365,9 @@ void main()
 
             GL.Disable(EnableCap.Blend);
             GL.Disable(EnableCap.ScissorTest);
+
+            // unbind vertex array to prevent accidental re-bindings when updating other buffers
+            GL.BindVertexArray(0);
         }
 
         /// <summary>

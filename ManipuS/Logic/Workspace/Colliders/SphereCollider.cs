@@ -74,11 +74,7 @@ namespace Logic
         public override void Render(Shader shader, ref Matrix4 state)
         {
             if (Model == default)
-                Model = new ComplexModel(Utils.GLConvert(Data), indicesLongitude, new Assimp.Material
-                {
-                    ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                    ColorDiffuse = new Assimp.Color4D(0.0f, 1.0f, 0.0f, 1.0f)
-                });
+                Model = new ComplexModel(Utils.GLConvert(Data), indicesLongitude, MeshMaterial.Green);
 
             Model.State = state;
             Model.Render(shader, MeshMode.Solid, () =>

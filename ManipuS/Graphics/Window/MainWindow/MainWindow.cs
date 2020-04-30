@@ -26,60 +26,57 @@ namespace Graphics
         private Camera _camera;
 
         // workspace grid
-        private float[] transparencyMask =
+        private MeshVertex[] gridLines =
         {
-            // mask used to make a floor half-transparent
-            10.0f, 0.0f, 10.0f,     0.0f, 1.0f, 0.0f,
-            -10.0f, 0.0f, 10.0f,    0.0f, 1.0f, 0.0f,
-            -10.0f, 0.0f, -10.0f,   0.0f, 1.0f, 0.0f,
-            10.0f, 0.0f, -10.0f,    0.0f, 1.0f, 0.0f
+            new MeshVertex { Position = new Vector3(10.0f, 0.0f, 0.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-10.0f, 0.0f, 0.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(0.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(0.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) }
         };
 
-        private float[] gridLines =
+        // mask used to make a floor half-transparent
+        private MeshVertex[] transparencyMask =
         {
-            // X axis lines
-            10.0f, 0.0f, 0.0f,      0.0f, 1.0f, 0.0f,
-            -10.0f, 0.0f, 0.0f,     0.0f, 1.0f, 0.0f,
-
-            // Y axis lines (Z in GL format)
-            0.0f, 0.0f, 10.0f,      0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, -10.0f,     0.0f, 1.0f, 0.0f
+            new MeshVertex { Position = new Vector3(10.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-10.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-10.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(10.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) }
         };
 
-        private float[] cube =  // TODO: use MeshVertex for better vertex representation
+        private MeshVertex[] cube =
         {
             // X ortho faces
-            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f, -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,
-            0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+            new MeshVertex { Position = new Vector3(0.5f,  0.5f,  0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(0.5f,  0.5f, -0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(0.5f, -0.5f, 0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(0.5f, -0.5f, -0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
 
-            -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-            -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f, 0.5f, -1.0f,  0.0f,  0.0f,
-            -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  0.5f, -0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f, -0.5f, 0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f, -0.5f, -0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
 
             // Y ortho faces
-            0.5f,  0.5f, 0.5f,  0.0f,  1.0f,  0.0f,
-            0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-            -0.5f,  0.5f,  -0.5f,  0.0f,  1.0f,  0.0f,
+            new MeshVertex { Position = new Vector3(0.5f,  0.5f, 0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(0.5f,  0.5f, -0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  -0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
 
-            0.5f, -0.5f, 0.5f,  0.0f, -1.0f,  0.0f,
-            0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-            -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-            -0.5f, -0.5f,  -0.5f,  0.0f, -1.0f,  0.0f,
+            new MeshVertex { Position = new Vector3(0.5f,  -0.5f, 0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(0.5f,  -0.5f, -0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  -0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
 
             // Z ortho faces
-            0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            -0.5f,  -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            new MeshVertex { Position = new Vector3(0.5f, 0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
+            new MeshVertex { Position = new Vector3(0.5f, -0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
 
-            0.5f, 0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-            -0.5f,  -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+            new MeshVertex { Position = new Vector3(0.5f, 0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
+            new MeshVertex { Position = new Vector3(0.5f, -0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
+            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) }
         };
 
         private uint[] cubeIndices =
@@ -149,23 +146,14 @@ namespace Graphics
             _camera = new Camera((float)(0.75 * Width / Height), new Vector3(-5, 3, 5), -15, -45);
 
             // workspace grid
-            grid = new ComplexModel(gridLines, material: new Assimp.Material
+            grid = new ComplexModel(gridLines, material: MeshMaterial.White);
+
+            gridFloor = new ComplexModel(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 }, new MeshMaterial
             {
-                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 1.0f, 1.0f)
+                Diffuse = new Vector4(1.0f, 1.0f, 1.0f, 0.5f)
             });
 
-            gridFloor = new ComplexModel(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 }, new Assimp.Material
-            {
-                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 1.0f, 0.5f)
-            });
-
-            pointMoveable = new ComplexModel(new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, material: new Assimp.Material
-            {
-                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 0.0f, 1.0f)
-            });
+            pointMoveable = new ComplexModel(new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, material: MeshMaterial.Yellow);
 
             InputHandler.Widget = new AxesWidget(new Axis[3]
             {
@@ -177,24 +165,24 @@ namespace Graphics
             Cubes = new ComplexModel[3];
             for (int i = 0; i < 3; i++)
             {
-                Cubes[i] = new ComplexModel(cube, cubeIndices, material: new Assimp.Material
+                Cubes[i] = new ComplexModel(cube, cubeIndices, material: new MeshMaterial
                 {
-                    ColorAmbient = new Assimp.Color4D(0.1f, 0.1f, 0.0f),
-                    ColorDiffuse = new Assimp.Color4D(0.8f, 0.8f, 0.0f),
-                    ColorSpecular = new Assimp.Color4D(0.5f, 0.5f, 0.0f),
+                    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                     Shininess = 8
                 });
             }
 
-            Cubes[0].State.M24 = 3;
-            Cubes[1].State.M24 = 4.5f;
-            Cubes[2].State.M24 = 6;
+            Cubes[0].State.Column3 = new Vector4(0.0f, 3.0f, 0.0f, 1.0f);
+            Cubes[1].State.Column3 = new Vector4(0.5f, 4.5f, 0.0f, 1.0f);
+            Cubes[2].State.Column3 = new Vector4(1.0f, 6.0f, 0.0f, 1.0f);
 
-            Ground = new ComplexModel(cube, cubeIndices, new Assimp.Material
+            Ground = new ComplexModel(cube, cubeIndices, new MeshMaterial
             {
-                ColorAmbient = new Assimp.Color4D(0.02f, 0.1f, 0.0f),
-                ColorDiffuse = new Assimp.Color4D(0.1f, 0.8f, 0.0f),
-                ColorSpecular = new Assimp.Color4D(0.1f, 0.5f, 0.0f),
+                Ambient = new Vector4(0.02f, 0.1f, 0.0f, 1.0f),
+                Diffuse = new Vector4(0.1f, 0.8f, 0.0f, 1.0f),
+                Specular = new Vector4(0.1f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
             });
 
@@ -216,13 +204,11 @@ namespace Graphics
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
-            controller.Update(this, (float)e.Time);
-
             // render main part, i.e. workspace
             RenderCore(e);
 
             // render GUI
-            RenderGUI();
+            RenderGUI(e);
 
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.RenderActions.Count;
@@ -264,18 +250,18 @@ namespace Graphics
             //    GL.PointSize(1);
             //});
 
-            //foreach (var cube in Cubes)
-            //{
-            //    cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
-            //    {
-            //        GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
-            //    });
-            //}
+            foreach (var cube in Cubes)
+            {
+                cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
+                {
+                    GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
+                });
+            }
 
-            //Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
-            //{
-            //    GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
-            //});
+            Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, () =>
+            {
+                GL.DrawElements(PrimitiveType.Triangles, cubeIndices.Length, DrawElementsType.UnsignedInt, 0);
+            });
 
             if (ManipLoaded)
             {
@@ -375,7 +361,7 @@ namespace Graphics
                 GL.Disable(EnableCap.Blend);
             });
 
-            InputHandler.Widget.Render(ShaderHandler.GenericShader, () =>
+            InputHandler.Widget.Render(ShaderHandler.ComplexShader, () =>
             {
                 GL.Disable(EnableCap.DepthTest);
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
@@ -387,12 +373,15 @@ namespace Graphics
             base.OnRenderFrame(e);
         }
 
-        protected void RenderGUI()
+        protected void RenderGUI(FrameEventArgs e)
         {
+            // update GUI controller
+            controller.Update(this, (float)e.Time);
+
             // GUI viewport
             GL.Viewport(0, 0, Width, Height);
 
-            // clearing viewport
+            // clear viewport
             GL.Enable(EnableCap.ScissorTest);
             GL.Scissor(0, 0, (int)(0.25 * Width), Height);
             GL.ClearColor(0.3f, 0.3f, 0.3f, 1.0f);
@@ -667,6 +656,7 @@ namespace Graphics
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
+            // update physics controller
             _physics.Update((float)e.Time);
 
             // process physics
@@ -723,36 +713,23 @@ namespace Graphics
                         var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                         var data = new List<System.Numerics.Vector3> { goalAttr.Center };
                         data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
-                        goal[i] = new ComplexModel(Utils.GLConvert(data.ToArray()), material: new Assimp.Material
-                        {
-                            ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                            ColorDiffuse = new Assimp.Color4D(1.0f, 1.0f, 0.0f, 1.0f)
-                        });
+                        goal[i] = new ComplexModel(Utils.GLConvert(data.ToArray()), material: MeshMaterial.Yellow);
                     }
 
                     // obtained path
                     if (manip.Path != null)
                     {
                         // path may change at any time in control thread; GetRange() guarantees thread sync
+                        // TODO: but not for the case when path shortens; fix!
                         int count = manip.Path.Count;
-                        //float[] data = Utils.GLConvert(manip.Path.GetRange(0, count).ToArray());
                         var pathRange = manip.Path.GetRange(0, count).ToArray();
                         if (path[i] == default)
                         {
-                            path[i] = new ComplexModel(pathRange, material: new Assimp.Material
-                            {
-                                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                                ColorDiffuse = new Assimp.Color4D(1.0f, 0.0f, 0.0f, 1.0f)
-                            });
+                            path[i] = new ComplexModel(pathRange, material: MeshMaterial.Red);
                         }
                         else
                         {
                             path[i].Update(0, pathRange, new uint[0]);
-                            //path[i] = new ComplexModel(pathRange, material: new Assimp.Material
-                            //{
-                            //    ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                            //    ColorDiffuse = new Assimp.Color4D(1.0f, 0.0f, 0.0f, 1.0f)
-                            //});
                         }
                     }
 
@@ -849,11 +826,7 @@ namespace Graphics
         // TODO: move somewhere else
         public static ComplexModel CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
         {
-            return new ComplexModel(Utils.GLConvert(new System.Numerics.Vector3[] { p1, p2 }), material: new Assimp.Material
-            {
-                ColorAmbient = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 0.0f),
-                ColorDiffuse = new Assimp.Color4D(0.0f, 0.0f, 0.0f, 1.0f)
-            });
+            return new ComplexModel(new System.Numerics.Vector3[] { p1, p2 }, material: MeshMaterial.Black);
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

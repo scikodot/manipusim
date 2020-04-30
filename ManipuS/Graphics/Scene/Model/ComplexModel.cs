@@ -19,28 +19,23 @@ namespace Graphics
         public ref Matrix4 State => ref _state;
 
         // create a model, consisting of a single mesh
-        public ComplexModel(float[] vertices, uint[] indices = null, Material material = null, Matrix4 state = default, string name = "")
+        public ComplexModel(float[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
         {
-            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], new MeshColor  // TODO: perhaps replace empty array with nulls?
-            {
-                Ambient = material.ColorAmbient,
-                Diffuse = material.ColorDiffuse,
-                Specular = material.ColorSpecular,
-                Shininess = material.Shininess
-            }));
+            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
 
             State = state == default ? Matrix4.Identity : state;
         }
 
-        public ComplexModel(System.Numerics.Vector3[] vertices, uint[] indices = null, Material material = null, Matrix4 state = default, string name = "")
+        public ComplexModel(System.Numerics.Vector3[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
         {
-            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], new MeshColor  // TODO: perhaps replace empty array with nulls?
-            {
-                Ambient = material.ColorAmbient,
-                Diffuse = material.ColorDiffuse,
-                Specular = material.ColorSpecular,
-                Shininess = material.Shininess
-            }));
+            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
+
+            State = state == default ? Matrix4.Identity : state;
+        }
+
+        public ComplexModel(MeshVertex[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
+        {
+            Meshes.Add(new Mesh(name, vertices, indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
 
             State = state == default ? Matrix4.Identity : state;
         }
@@ -107,7 +102,7 @@ namespace Graphics
             var vertices = new List<MeshVertex>();
             var indices = new List<uint>();
             var textures = new List<MeshTexture>();
-            var color = new MeshColor();
+            var color = new MeshMaterial();
 
             for (int i = 0; i < mesh.VertexCount; i++)
             {
@@ -125,8 +120,8 @@ namespace Graphics
                     var tex = mesh.TextureCoordinateChannels[0][i];
                     vertex.TexCoords = new Vector2(tex.X, tex.Y);
                 }
-                else
-                    vertex.TexCoords = Vector2.Zero;
+                //else
+                //    vertex.TexCoords = Vector2.Zero;
 
                 vertices.Add(vertex);
             }
@@ -157,9 +152,21 @@ namespace Graphics
                 }
 
                 // get all the needed material colors (default values if they're not presented)
-                color.Ambient = material.ColorAmbient;
-                color.Diffuse = material.ColorDiffuse;
-                color.Specular = material.ColorSpecular;
+                color.Ambient = new Vector4(
+                    material.ColorAmbient.R, 
+                    material.ColorAmbient.G, 
+                    material.ColorAmbient.B, 
+                    material.ColorAmbient.A);
+                color.Diffuse = new Vector4(
+                    material.ColorDiffuse.R, 
+                    material.ColorDiffuse.G, 
+                    material.ColorDiffuse.B, 
+                    material.ColorDiffuse.A);
+                color.Specular = new Vector4(
+                    material.ColorSpecular.R, 
+                    material.ColorSpecular.G, 
+                    material.ColorSpecular.B, 
+                    material.ColorSpecular.A);
                 color.Shininess = material.Shininess;
             }
 
@@ -173,8 +180,8 @@ namespace Graphics
             {
                 mat.GetMaterialTexture(type, i, out TextureSlot slot);
 
-                var texLoaded = TexturesLoaded.Find((t) => { return t.Path == slot.FilePath; });
-                if (texLoaded == null)
+                var texLoaded = TexturesLoaded.Find(t => t.Path == slot.FilePath);
+                if (texLoaded.Path == null)
                 {
                     MeshTexture texture = TextureFromFile(slot.FilePath, Directory, typeName);
                     textures.Add(texture);
@@ -187,7 +194,7 @@ namespace Graphics
             return textures;
         }
 
-        private MeshTexture TextureFromFile(string filename, string directory, string typeName)
+        private MeshTexture TextureFromFile(string filename, string directory, string typeName)  // TODO: return by ref
         {
             string resPath = directory + @"\" + filename;
 

@@ -115,7 +115,7 @@ namespace Graphics
 
     public class Axis
     {
-        private PlainModel Model { get; set; }
+        private ComplexModel Model { get; set; }
         private Vector3 Offset { get; set; }
         private bool FirstClick { get; set; } = true;
 
@@ -146,16 +146,16 @@ namespace Graphics
             Start = start;
             End = end;
 
-            Model = new PlainModel(new float[]
+            Model = new ComplexModel(new MeshVertex[]
             {
-                start.X, start.Y, start.Z,   color.X, color.Y, color.Z, color.W,
-                end.X, end.Y, end.Z,    color.X, color.Y, color.Z, color.W
-            });
+                new MeshVertex { Position = new Vector3(start.X, start.Y, start.Z) },
+                new MeshVertex { Position = new Vector3(end.X, end.Y, end.Z) }
+            }, material: new MeshMaterial { Diffuse = color });
         }
 
         public void Render(Shader shader, Action render)
         {
-            Model.Render(shader, render);
+            Model.Render(shader, MeshMode.Solid, render);
         }
 
         internal void Translate(Vector3 translation)

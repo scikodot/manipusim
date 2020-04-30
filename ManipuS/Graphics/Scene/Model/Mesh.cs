@@ -11,7 +11,7 @@ using System.Threading;
 
 namespace Graphics
 {
-    public struct MeshVertex  // TODO: try to use Assimp's data structures
+    public struct MeshVertex
     {
         public Vector3 Position;
         public Vector3 Normal;
@@ -42,19 +42,27 @@ namespace Graphics
         }
     }
 
-    // MeshTexture has to be class; otherwise it could not be passed by reference  // TODO: actually, it can be passed; fix!
-    class MeshTexture  // TODO: try to use Assimp's data structures
+    public struct MeshTexture
     {
         public int ID;
         public string Type;
         public string Path;
     }
 
-    struct MeshColor  // TODO: try to use Assimp's data structures
+    public struct MeshMaterial
     {
-        public Color4D Ambient;
-        public Color4D Diffuse;
-        public Color4D Specular;
+        public static MeshMaterial Black => new MeshMaterial { Diffuse = Vector4.UnitW };
+        public static MeshMaterial Red => new MeshMaterial { Diffuse = new Vector4(1.0f, 0.0f, 0.0f, 1.0f) };
+        public static MeshMaterial Green => new MeshMaterial { Diffuse = new Vector4(0.0f, 1.0f, 0.0f, 1.0f) };
+        public static MeshMaterial Blue => new MeshMaterial { Diffuse = new Vector4(0.0f, 0.0f, 1.0f, 1.0f) };
+        public static MeshMaterial Yellow => new MeshMaterial { Diffuse = new Vector4(1.0f, 1.0f, 0.0f, 1.0f) };
+        public static MeshMaterial Pink => new MeshMaterial { Diffuse = new Vector4(1.0f, 0.0f, 1.0f, 1.0f) };
+        public static MeshMaterial Cyan => new MeshMaterial { Diffuse = new Vector4(0.0f, 1.0f, 1.0f, 1.0f) };
+        public static MeshMaterial White => new MeshMaterial { Diffuse = Vector4.One };
+
+        public Vector4 Ambient;
+        public Vector4 Diffuse;
+        public Vector4 Specular;
         public float Shininess;
     }
 
@@ -66,20 +74,25 @@ namespace Graphics
         Lighting = 4
     }
 
-    class Mesh
+    public class Mesh
     {
         public string Name;
 
         public MeshVertex[] Vertices;
         public uint[] Indices;
         public MeshTexture[] Textures;
-        public MeshColor Color;
+        public MeshMaterial Color;
 
         public Vector3 Position;
 
         private int VAO, VBO, EBO;
 
-        public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshColor color)
+        public Mesh(string name, MeshVertex[] vertices, uint[] indices, Material material)
+        {
+
+        }
+
+        public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshMaterial color)
         {
             Name = name;
             Vertices = vertices;
@@ -132,8 +145,6 @@ namespace Graphics
             // vertex texture coords
             GL.EnableVertexAttribArray(3);
             GL.VertexAttribPointer(3, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("TexCoords"));
-
-
 
             GL.BindVertexArray(0);
         }
@@ -210,9 +221,9 @@ namespace Graphics
                 GL.ActiveTexture(TextureUnit.Texture0);
 
                 // set colors
-                shader.SetVector4("material.ambientCol", new Vector4(Color.Ambient.R, Color.Ambient.G, Color.Ambient.B, Color.Ambient.A));
-                shader.SetVector4("material.diffuseCol", new Vector4(Color.Diffuse.R, Color.Diffuse.G, Color.Diffuse.B, Color.Diffuse.A));
-                shader.SetVector4("material.specularCol", new Vector4(Color.Specular.R, Color.Specular.G, Color.Specular.B, Color.Specular.A));
+                shader.SetVector4("material.ambientCol", Color.Ambient/*new Vector4(Color.Ambient.R, Color.Ambient.G, Color.Ambient.B, Color.Ambient.A)*/);
+                shader.SetVector4("material.diffuseCol", Color.Diffuse/*new Vector4(Color.Diffuse.R, Color.Diffuse.G, Color.Diffuse.B, Color.Diffuse.A)*/);
+                shader.SetVector4("material.specularCol", Color.Specular/*new Vector4(Color.Specular.R, Color.Specular.G, Color.Specular.B, Color.Specular.A)*/);
                 shader.SetFloat("material.shininess", Color.Shininess);
 
                 // render mesh

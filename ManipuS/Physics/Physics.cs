@@ -41,17 +41,17 @@ namespace Phys
             {
                 // using motionstate is recommended, it provides interpolation capabilities
                 // and only synchronizes 'active' objects
-                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 3, 0)));
+                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0.0f, 3.0f, 0.0f)));
                 var body = new RigidBody(rbInfo);
                 body.UserIndex = 0;
                 World.AddRigidBody(body);
 
-                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 4.5f, 0)));
+                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0.5f, 4.5f, 0.0f)));
                 body = new RigidBody(rbInfo);
                 body.UserIndex = 1;
                 World.AddRigidBody(body);
 
-                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0, 6, 0)));
+                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(1.0f, 6.0f, 0.0f)));
                 body = new RigidBody(rbInfo);
                 body.UserIndex = 2;
                 World.AddRigidBody(body);
