@@ -1,39 +1,32 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
-using System;
 
 namespace Graphics
 {
-    public class ComplexModel : IRenderable, IDisposable
+    public class Model : IDisposable
     {
         private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
         private readonly List<Mesh> Meshes = new List<Mesh>();
 
-        public string Directory { get; private set; }
+        public string Directory { get; private set; }  // TODO: remove
 
         private Matrix4 _state;
         public ref Matrix4 State => ref _state;
 
         // create a model, consisting of a single mesh
-        public ComplexModel(float[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
-        {
-            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
+        //public ComplexModel(System.Numerics.Vector3[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
+        //{
+        //    Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
 
-            State = state == default ? Matrix4.Identity : state;
-        }
+        //    State = state == default ? Matrix4.Identity : state;
+        //}
 
-        public ComplexModel(System.Numerics.Vector3[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
-        {
-            Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
-
-            State = state == default ? Matrix4.Identity : state;
-        }
-
-        public ComplexModel(MeshVertex[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
+        public Model(MeshVertex[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
         {
             Meshes.Add(new Mesh(name, vertices, indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
 
@@ -41,7 +34,7 @@ namespace Graphics
         }
 
         // load an arbitrary model, located at the specified path
-        public ComplexModel(string path)
+        public Model(string path)
         {
             LoadModel(path);
         }
@@ -51,9 +44,14 @@ namespace Graphics
         //    Meshes[meshIndex].Update(data, indices);
         //}
 
-        public void Update(int meshIndex, System.Numerics.Vector3[] data, uint[] indices)
+        //public void Update(int meshIndex, System.Numerics.Vector3[] data, uint[] indices)
+        //{
+        //    Meshes[meshIndex].Update(MeshVertex.Convert(data), indices);
+        //}
+
+        public void Update(int meshIndex, MeshVertex[] data, uint[] indices)
         {
-            Meshes[meshIndex].Update(MeshVertex.Convert(data), indices);
+            Meshes[meshIndex].Update(data, indices);
         }
 
         public void Render(Shader shader, MeshMode mode, Action render = default)
@@ -68,7 +66,7 @@ namespace Graphics
         private void LoadModel(string path)
         {
             var importer = new AssimpContext();
-            var scene = importer.ImportFile(path, PostProcessSteps.Triangulate);  // TODO: Triangulate + FlipUVs
+            var scene = importer.ImportFile(path, PostProcessSteps.Triangulate | PostProcessSteps.FlipUVs);
 
             if (scene == null || scene.RootNode == null || (scene.SceneFlags & SceneFlags.Incomplete) == SceneFlags.Incomplete)
             {
@@ -120,8 +118,6 @@ namespace Graphics
                     var tex = mesh.TextureCoordinateChannels[0][i];
                     vertex.TexCoords = new Vector2(tex.X, tex.Y);
                 }
-                //else
-                //    vertex.TexCoords = Vector2.Zero;
 
                 vertices.Add(vertex);
             }
@@ -181,7 +177,7 @@ namespace Graphics
                 mat.GetMaterialTexture(type, i, out TextureSlot slot);
 
                 var texLoaded = TexturesLoaded.Find(t => t.Path == slot.FilePath);
-                if (texLoaded.Path == null)
+                if (texLoaded == null)
                 {
                     MeshTexture texture = TextureFromFile(slot.FilePath, Directory, typeName);
                     textures.Add(texture);
@@ -198,7 +194,7 @@ namespace Graphics
         {
             string resPath = directory + @"\" + filename;
 
-            MeshTexture texture = new MeshTexture
+            var texture = new MeshTexture
             {
                 Type = typeName,
                 Path = filename
@@ -249,16 +245,13 @@ namespace Graphics
             return texture;
         }
 
-        public void Dispose()
+        public void Dispose()  // TODO: fix finalization, it seems to be not proper
         {
-            // dispose the model
+            // dispose all meshes
             foreach (var mesh in Meshes)
             {
-                mesh.Dispose(true);
+                mesh.Dispose();
             }
-
-            // suppress additional finalization
-            GC.SuppressFinalize(this);
         }
     }
 }

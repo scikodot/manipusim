@@ -15,7 +15,7 @@ namespace Logic
         private Vector3[] Data;
         public ImpDualQuat State;
         public Collider Collider;
-        public Graphics.ComplexModel Model;
+        public Graphics.Model Model;
 
         public Obstacle(Vector3[] data, ImpDualQuat state, ColliderShape shape)
         {
@@ -52,7 +52,7 @@ namespace Logic
         public void Render(Shader shader, bool showCollider = false)
         {
             if (Model == default)
-                Model = new ComplexModel(Utils.GLConvert(Data), material: MeshMaterial.White);
+                Model = new Model(MeshVertex.Convert(Data), material: MeshMaterial.White);
 
             var stateMatrix = State.ToMatrix();
             Model.State = stateMatrix;

@@ -16,6 +16,7 @@ using Matrix4 = Logic.Matrix4;
 using Phys;
 using BulletSharp;
 using System.Threading;
+using MathNet.Numerics;
 
 namespace Graphics
 {
@@ -104,8 +105,8 @@ namespace Graphics
         };
 
         // all the needed entities
-        ComplexModel grid, gridFloor;
-        ComplexModel[] goal, path;
+        Model grid, gridFloor;
+        Model[] goal, path;
 
         HashSet<Logic.PathPlanning.Tree.Node>[] tree;
 
@@ -114,12 +115,12 @@ namespace Graphics
         private bool ManipLoaded = false;
 
         // 3D model
-        ComplexModel Crytek;
-        public static ComplexModel pointMoveable;
+        //Model Crytek;
+        public static Model pointMoveable;
         public static Vector2 pointScreen;
 
-        private ComplexModel[] Cubes;
-        private ComplexModel Ground;
+        private Model[] Cubes;
+        private Model Ground;
         private Physics _physics;
 
         public static Thread MainThread = Thread.CurrentThread;
@@ -146,14 +147,17 @@ namespace Graphics
             _camera = new Camera((float)(0.75 * Width / Height), new Vector3(-5, 3, 5), -15, -45);
 
             // workspace grid
-            grid = new ComplexModel(gridLines, material: MeshMaterial.White);
+            grid = new Model(gridLines, material: MeshMaterial.White);
 
-            gridFloor = new ComplexModel(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 }, new MeshMaterial
+            gridFloor = new Model(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 }, new MeshMaterial
             {
                 Diffuse = new Vector4(1.0f, 1.0f, 1.0f, 0.5f)
             });
 
-            pointMoveable = new ComplexModel(new float[] { 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, material: MeshMaterial.Yellow);
+            pointMoveable = new Model(new MeshVertex[] 
+            {
+                new MeshVertex { Position = new Vector3(0.0f, 0.0f, 0.0f) }
+            }, material: MeshMaterial.Yellow);
 
             InputHandler.Widget = new AxesWidget(new Axis[3]
             {
@@ -162,10 +166,10 @@ namespace Graphics
                 new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
             }, pointMoveable);
 
-            Cubes = new ComplexModel[3];
+            Cubes = new Model[3];
             for (int i = 0; i < 3; i++)
             {
-                Cubes[i] = new ComplexModel(cube, cubeIndices, material: new MeshMaterial
+                Cubes[i] = new Model(cube, cubeIndices, material: new MeshMaterial
                 {
                     Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                     Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
@@ -178,7 +182,7 @@ namespace Graphics
             Cubes[1].State.Column3 = new Vector4(0.5f, 4.5f, 0.0f, 1.0f);
             Cubes[2].State.Column3 = new Vector4(1.0f, 6.0f, 0.0f, 1.0f);
 
-            Ground = new ComplexModel(cube, cubeIndices, new MeshMaterial
+            Ground = new Model(cube, cubeIndices, new MeshMaterial
             {
                 Ambient = new Vector4(0.02f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.1f, 0.8f, 0.0f, 1.0f),
@@ -323,8 +327,7 @@ namespace Graphics
             grid.State = Matrix4.Identity;
             grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
             {
-                GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                GL.DrawArrays(PrimitiveType.LineStrip, 2, 2);
+                GL.DrawArrays(PrimitiveType.Lines, 0, 4);
             });
             for (int i = 1; i < 11; i++)
             {
@@ -399,9 +402,9 @@ namespace Graphics
                             Dispatcher.ActiveTasks.Add(Task.Run(() =>
                             {
                                 // load components' models
-                                var jointModel = new ComplexModel(InputHandler.JointPath);
-                                var linkModel = new ComplexModel(InputHandler.LinkPath);
-                                var gripperModel = new ComplexModel(InputHandler.GripperPath);
+                                var jointModel = new Model(InputHandler.JointPath);
+                                var linkModel = new Model(InputHandler.LinkPath);
+                                var gripperModel = new Model(InputHandler.GripperPath);
 
                                 var MB = WorkspaceBuffer.ManipBuffer;
                                 for (int i = 0; i < MB.Length; i++)
@@ -415,6 +418,8 @@ namespace Graphics
                                     MB[i].Joints[MB[i].N].Model = gripperModel;
                                 }
 
+                                //Crytek = new Model(InputHandler.NanosuitPath);
+
                                 // wait for loading process to finish
                                 Dispatcher.ActionsDone.Reset();
                                 Dispatcher.ActionsDone.WaitOne();
@@ -423,7 +428,6 @@ namespace Graphics
                                 UpdateWorkspace();
                                 Dispatcher.UpdateThreads();
                                 ManipLoaded = true;
-                                //Crytek = new Model(ManipPath);
 
                                 Dispatcher.RunObstacles();
                             }));
@@ -713,7 +717,7 @@ namespace Graphics
                         var goalAttr = manip.Attractors[0];  // TODO: refactor this part
                         var data = new List<System.Numerics.Vector3> { goalAttr.Center };
                         data.AddRange(Primitives.Sphere(goalAttr.Radius, goalAttr.Center, 100));
-                        goal[i] = new ComplexModel(Utils.GLConvert(data.ToArray()), material: MeshMaterial.Yellow);
+                        goal[i] = new Model(MeshVertex.Convert(data), material: MeshMaterial.Yellow);
                     }
 
                     // obtained path
@@ -722,10 +726,10 @@ namespace Graphics
                         // path may change at any time in control thread; GetRange() guarantees thread sync
                         // TODO: but not for the case when path shortens; fix!
                         int count = manip.Path.Count;
-                        var pathRange = manip.Path.GetRange(0, count).ToArray();
+                        var pathRange = MeshVertex.Convert(manip.Path.GetRange(0, count));
                         if (path[i] == default)
                         {
-                            path[i] = new ComplexModel(pathRange, material: MeshMaterial.Red);
+                            path[i] = new Model(pathRange, material: MeshMaterial.Red);
                         }
                         else
                         {
@@ -787,6 +791,7 @@ namespace Graphics
         protected override void OnUnload(EventArgs e)
         {
             // TODO: clear all unmanaged resources
+            // TODO: create a list that holds references to all models in the scene, and dispose here all models in that list
 
             // freeing all the used resources
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
@@ -807,8 +812,8 @@ namespace Graphics
 
             // initializing all displaying entities
             int manip_length = Manager.Manipulators.Length;
-            goal = new ComplexModel[manip_length];
-            path = new ComplexModel[manip_length];
+            goal = new Model[manip_length];
+            path = new Model[manip_length];
             tree = new HashSet<Logic.PathPlanning.Tree.Node>[manip_length];
             for (int i = 0; i < tree.Length; i++)
             {
@@ -824,9 +829,13 @@ namespace Graphics
 
         // some specific methods for better drawing organization
         // TODO: move somewhere else
-        public static ComplexModel CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
+        public static Model CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
         {
-            return new ComplexModel(new System.Numerics.Vector3[] { p1, p2 }, material: MeshMaterial.Black);
+            return new Model(new MeshVertex[] 
+            { 
+                new MeshVertex { Position = new Vector3(p1.X, p1.Y, p1.Z) },
+                new MeshVertex { Position = new Vector3(p2.X, p2.Y, p2.Z) }
+            }, material: MeshMaterial.Black);
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

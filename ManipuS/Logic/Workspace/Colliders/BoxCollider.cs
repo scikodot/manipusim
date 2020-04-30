@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Linq;
+using System.Numerics;
 using Graphics;
 using OpenTK.Graphics.OpenGL4;
 
@@ -95,7 +96,7 @@ namespace Logic
         public override void Render(Shader shader, ref Matrix4 state)
         {
             if (Model == default)
-                Model = new ComplexModel(Utils.GLConvert(Data), new uint[]
+                Model = new Model(MeshVertex.Convert(Data), new uint[]
                 {
                     0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
                 }, MeshMaterial.Green);

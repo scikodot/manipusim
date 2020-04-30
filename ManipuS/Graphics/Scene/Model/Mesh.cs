@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Assimp;
+using System.Threading;
+using System.Runtime.InteropServices;
+
 using OpenTK;
 using OpenTK.Graphics.OpenGL4;
-using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace Graphics
 {
@@ -17,23 +15,7 @@ namespace Graphics
         public Vector3 Normal;
         public Vector2 TexCoords;
 
-        public static MeshVertex[] Convert(float[] vertices)
-        {
-            var vertNum = vertices.Length / 6;
-            var meshVertices = new MeshVertex[vertNum];
-            for (int i = 0; i < vertNum; i++)
-            {
-                meshVertices[i] = new MeshVertex
-                {
-                    Position = new Vector3(vertices[6 * i], vertices[6 * i + 1], vertices[6 * i + 2]),
-                    Normal = new Vector3(vertices[6 * i + 3], vertices[6 * i + 4], vertices[6 * i + 5])
-                };
-            }
-
-            return meshVertices;
-        }
-
-        public static MeshVertex[] Convert(System.Numerics.Vector3[] vertices)
+        public static MeshVertex[] Convert(IEnumerable<System.Numerics.Vector3> vertices)
         {
             return vertices.Select(v => new MeshVertex
             {
@@ -42,7 +24,9 @@ namespace Graphics
         }
     }
 
-    public struct MeshTexture
+    // reference has to be hold for texture generation in GL.GenTextures() in main thread => class instead of struct;
+    // see TextureFromFile() in Model class
+    public class MeshTexture
     {
         public int ID;
         public string Type;
@@ -74,8 +58,10 @@ namespace Graphics
         Lighting = 4
     }
 
-    public class Mesh
+    public class Mesh : IDisposable
     {
+        private int VAO, VBO, EBO;
+
         public string Name;
 
         public MeshVertex[] Vertices;
@@ -83,22 +69,15 @@ namespace Graphics
         public MeshTexture[] Textures;
         public MeshMaterial Color;
 
-        public Vector3 Position;
+        public Vector3 Position;  // TODO: perhaps remove?
 
-        private int VAO, VBO, EBO;
-
-        public Mesh(string name, MeshVertex[] vertices, uint[] indices, Material material)
-        {
-
-        }
-
-        public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshMaterial color)
+        public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshMaterial material)
         {
             Name = name;
             Vertices = vertices;
             Indices = indices;
             Textures = textures;
-            Color = color;
+            Color = material;
 
             Position = new Vector3
             {
@@ -149,25 +128,13 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        //public void Update(float[] vertices, uint[] indices)
-        //{
-        //    var verts = MeshVertex.Convert(vertices);
-        //    GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-        //    GL.BufferData(BufferTarget.ArrayBuffer, verts.Length * Marshal.SizeOf<MeshVertex>(), verts, BufferUsageHint.StaticDraw);
-
-        //    GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-        //    GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
-        //}
-
         public void Update(MeshVertex[] vertices, uint[] indices)
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            //GL.InvalidateBufferData(VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * Marshal.SizeOf<MeshVertex>(), vertices, BufferUsageHint.DynamicDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * Marshal.SizeOf<MeshVertex>(), vertices, BufferUsageHint.StaticDraw);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-            //GL.InvalidateBufferData(EBO);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.DynamicDraw);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
         }
 
         public void Render(Shader shader, MeshMode mode, Action render)
@@ -221,9 +188,9 @@ namespace Graphics
                 GL.ActiveTexture(TextureUnit.Texture0);
 
                 // set colors
-                shader.SetVector4("material.ambientCol", Color.Ambient/*new Vector4(Color.Ambient.R, Color.Ambient.G, Color.Ambient.B, Color.Ambient.A)*/);
-                shader.SetVector4("material.diffuseCol", Color.Diffuse/*new Vector4(Color.Diffuse.R, Color.Diffuse.G, Color.Diffuse.B, Color.Diffuse.A)*/);
-                shader.SetVector4("material.specularCol", Color.Specular/*new Vector4(Color.Specular.R, Color.Specular.G, Color.Specular.B, Color.Specular.A)*/);
+                shader.SetVector4("material.ambientCol", Color.Ambient);  // TODO: add ref
+                shader.SetVector4("material.diffuseCol", Color.Diffuse);
+                shader.SetVector4("material.specularCol", Color.Specular);
                 shader.SetFloat("material.shininess", Color.Shininess);
 
                 // render mesh
@@ -237,7 +204,7 @@ namespace Graphics
                     if (Indices.Length != 0)
                         GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
                     else
-                        GL.DrawArrays(OpenTK.Graphics.OpenGL4.PrimitiveType.Triangles, 0, Vertices.Length);
+                        GL.DrawArrays(PrimitiveType.Triangles, 0, Vertices.Length);
                 }
             }
 
@@ -249,7 +216,16 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        public void Dispose(bool disposedByUser)
+        public void Dispose()
+        {
+            // dispose the mesh
+            Dispose(true);
+
+            // suppress additional finalization
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposedByUser)
         {
             // TODO: check for disposed; see documentation
 
@@ -268,5 +244,7 @@ namespace Graphics
 
             Console.WriteLine($"Disposed model: VAO - {VAO}, VBO - {VBO}");
         }
+
+        // TODO: any need in finalizer?
     }
 }

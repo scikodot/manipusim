@@ -21,13 +21,13 @@ namespace Logic
 
     public struct LinkData
     {
-        public ComplexModel Model;
+        public Model Model;
         public float Length;
     }
 
     public struct JointData
     {
-        public ComplexModel Model;
+        public Model Model;
         public float Length;
         public float q;
         public Vector2 qRanges;
@@ -65,7 +65,7 @@ namespace Logic
 
     public class Link
     {
-        public ComplexModel Model;
+        public Model Model;
         public float Length;  // TODO: must be names Size or something like that; Length is not suitable
 
         public ImpDualQuat State;
@@ -84,7 +84,7 @@ namespace Logic
 
     public class Joint
     {
-        public ComplexModel Model;
+        public Model Model;
         public float Length;
 
         public float q;

@@ -74,7 +74,7 @@ namespace Logic
         public override void Render(Shader shader, ref Matrix4 state)
         {
             if (Model == default)
-                Model = new ComplexModel(Utils.GLConvert(Data), indicesLongitude, MeshMaterial.Green);
+                Model = new Model(MeshVertex.Convert(Data), indicesLongitude, MeshMaterial.Green);
 
             Model.State = state;
             Model.Render(shader, MeshMode.Solid, () =>

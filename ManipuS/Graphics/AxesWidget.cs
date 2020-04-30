@@ -13,18 +13,18 @@ namespace Graphics
     {
         public Axis[] Axes { get; private set; }
         public Axis ActiveAxis { get; private set; }
-        public IRenderable Parent { get; private set; }
+        public Model Parent { get; private set; }
 
         public AxesWidget(Axis[] axes)
         {
             Axes = axes;
         }
 
-        public AxesWidget(Axis[] axes, IRenderable renderable)
+        public AxesWidget(Axis[] axes, Model model)
         {
             Axes = axes;
 
-            Attach(renderable);
+            Attach(model);
         }
 
         public void Render(Shader shader, Action render)
@@ -33,9 +33,9 @@ namespace Graphics
                 axis.Render(shader, render);
         }
 
-        public void Attach(IRenderable renderable)
+        public void Attach(Model model)
         {
-            Parent = renderable;
+            Parent = model;
         }
 
         public void Poll(Camera camera, MouseState mouseState, Vector2 cursorPos)
@@ -115,7 +115,7 @@ namespace Graphics
 
     public class Axis
     {
-        private ComplexModel Model { get; set; }
+        private Model Model { get; set; }
         private Vector3 Offset { get; set; }
         private bool FirstClick { get; set; } = true;
 
@@ -146,7 +146,7 @@ namespace Graphics
             Start = start;
             End = end;
 
-            Model = new ComplexModel(new MeshVertex[]
+            Model = new Model(new MeshVertex[]
             {
                 new MeshVertex { Position = new Vector3(start.X, start.Y, start.Z) },
                 new MeshVertex { Position = new Vector3(end.X, end.Y, end.Z) }
