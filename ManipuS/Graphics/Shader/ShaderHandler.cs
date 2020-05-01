@@ -45,8 +45,8 @@ namespace Graphics
             for (int i = 0; i < 3; i++)
             {
                 ComplexShader.SetVector3($"dirLight[{i}].ambient", new Vector3(0.05f, 0.05f, 0.05f));
-                ComplexShader.SetVector3($"dirLight[{i}].diffuse", new Vector3(0.75f, 0.75f, 0.75f));
-                ComplexShader.SetVector3($"dirLight[{i}].specular", new Vector3(0.5f, 0.5f, 0.5f));
+                ComplexShader.SetVector3($"dirLight[{i}].diffuse", new Vector3(0.7f, 0.7f, 0.7f));
+                ComplexShader.SetVector3($"dirLight[{i}].specular", new Vector3(0.2f, 0.2f, 0.2f));
             }
         }
 

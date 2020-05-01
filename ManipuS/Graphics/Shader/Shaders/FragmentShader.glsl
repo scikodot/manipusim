@@ -97,8 +97,11 @@ void main()
 
 			// directional light
 			vec3 result = vec3(0.0);
-			for (int i = 0; i < NR_DIR_LIGHTS; i++)
-				result += CalcDirLight(dirLight[i], norm, viewDir);
+			// for (int i = 0; i < NR_DIR_LIGHTS; i++)
+				// result += CalcDirLight(dirLight[i], norm, viewDir);
+			result += CalcDirLight(dirLight[0], norm, viewDir);
+			result += CalcDirLight(dirLight[1], norm, viewDir);
+			result += CalcDirLight(dirLight[2], norm, viewDir);
 			
 			FragColor = vec4(result, material.diffuseCol[3]);
 		}

@@ -1,8 +1,9 @@
-﻿using System.Linq;
-using System.Numerics;
-using BulletSharp;
-using Graphics;
+﻿using System.Numerics;
+
 using OpenTK.Graphics.OpenGL4;
+using BulletSharp;
+
+using Graphics;
 using Physics;
 
 namespace Logic
@@ -74,9 +75,9 @@ namespace Logic
             };
 
             Model = new Model(vertices, new uint[]
-                {
-                    0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
-                }, MeshMaterial.Green);
+            {
+                0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
+            }, MeshMaterial.Green);
 
             // create a rigid body
             Body = PhysicsHandler.CreateKinematicBody(BulletSharp.Math.Matrix.Identity, new BoxShape(halfX, halfY, halfZ));
@@ -87,7 +88,6 @@ namespace Logic
         public bool Contains(Vector3 point)
         {
             var center = Body.CenterOfMassPosition;
-
             return point.X >= center.X - _size.X && point.X <= center.X + _size.X &&
                    point.Y >= center.Y - _size.Y && point.Y <= center.Y + _size.Y &&
                    point.Z >= center.Z - _size.Z && point.Z <= center.Z + _size.Z;
@@ -96,7 +96,6 @@ namespace Logic
         public Vector3 Extrude(Vector3 point)  // TODO: this method behaves weirdly; repair
         {
             var center = Body.CenterOfMassPosition;
-
             Vector3 vec = point - new Vector3(center.X, center.Y, center.Z);
             Vector3 diff = _size - vec;
             float ratio;

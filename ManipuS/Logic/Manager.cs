@@ -24,13 +24,22 @@ namespace Logic
             Obstacles = new Obstacle[OB.Length];
             for (int i = 0; i < OB.Length; i++)
             {
-                Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
+                //Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
+                //{
+                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                //    Shininess = 8
+                //}), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
+
+                Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
                 {
                     Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                     Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                     Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                     Shininess = 8
-                }), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
+                }), new SphereCollider(0.5f), new ImpDualQuat(OB[i].Center));
+
                 //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }
 

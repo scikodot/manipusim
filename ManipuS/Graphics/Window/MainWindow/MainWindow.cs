@@ -125,8 +125,8 @@ namespace Graphics
             Ground = Primitives.Cube(new MeshMaterial
             {
                 Ambient = new Vector4(0.02f, 0.1f, 0.0f, 1.0f),
-                Diffuse = new Vector4(0.1f, 0.8f, 0.0f, 1.0f),
-                Specular = new Vector4(0.1f, 0.5f, 0.0f, 1.0f),
+                Diffuse = new Vector4(0.0f, 0.6f, 0.8f, 1.0f),
+                Specular = new Vector4(0.5f, 0.1f, 0.0f, 1.0f),
                 Shininess = 8
             });
 
@@ -134,7 +134,7 @@ namespace Graphics
             Ground.State.M33 *= 10;
             Ground.State.M22 *= 0.25f;
 
-            Sphere = Primitives.Sphere(1, 20, 20, new MeshMaterial
+            Sphere = Primitives.Sphere(1, 100, 100, new MeshMaterial
             {
                 Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
@@ -142,7 +142,7 @@ namespace Graphics
                 Shininess = 8
             });
 
-            Sphere.State.M24 = 3;
+            Sphere.State.Column3 = new Vector4(-3, 3, -3, 1);
 
             base.OnLoad(e);
         }
@@ -195,12 +195,12 @@ namespace Graphics
             //    GL.PointSize(1);
             //});
 
-            //foreach (var cube in Cubes)
-            //{
-            //    cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
-            //}
+            foreach (var cube in Cubes)
+            {
+                cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
+            }
 
-            //Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
+            Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
 
             Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
 
