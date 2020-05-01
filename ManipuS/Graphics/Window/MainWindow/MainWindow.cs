@@ -61,14 +61,14 @@ namespace Graphics
 
         private Model[] Cubes;
         private Model Ground;
-        private PhysicsHandler _physics;
+        private Model Sphere;
 
         public static Thread MainThread = Thread.CurrentThread;
 
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
         {
-            _physics = new PhysicsHandler();
+            
         }
 
         protected override void OnLoad(EventArgs e)
@@ -134,6 +134,16 @@ namespace Graphics
             Ground.State.M33 *= 10;
             Ground.State.M22 *= 0.25f;
 
+            Sphere = Primitives.Sphere(1, 20, 20, new MeshMaterial
+            {
+                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                Shininess = 8
+            });
+
+            Sphere.State.M24 = 3;
+
             base.OnLoad(e);
         }
 
@@ -185,19 +195,21 @@ namespace Graphics
             //    GL.PointSize(1);
             //});
 
-            foreach (var cube in Cubes)
-            {
-                cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
-            }
+            //foreach (var cube in Cubes)
+            //{
+            //    cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
+            //}
 
-            Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
+            //Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
+
+            Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
 
             if (ManipLoaded)
             {
                 // render obstacles
                 foreach (var obstacle in Manager.Obstacles)
                 {
-                    obstacle.Render(ShaderHandler.ComplexShader, true);
+                    obstacle.Render(ShaderHandler.ComplexShader, showCollider: true);
                 }
 
                 for (int i = 0; i < Manager.Manipulators.Length; i++)
@@ -595,19 +607,20 @@ namespace Graphics
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             // update physics controller
-            _physics.Update((float)e.Time);
+            PhysicsHandler.Update((float)e.Time);
 
-            var monitoredBody = (RigidBody)_physics.World.CollisionObjectArray[0];
+            var monitoredBody = (RigidBody)PhysicsHandler.World.CollisionObjectArray[0];
             object context = "context";
-            _physics.World.ContactPairTest(
-                    _physics.World.CollisionObjectArray[1],
-                    _physics.World.CollisionObjectArray[0],
+            PhysicsHandler.World.ContactPairTest(
+                    PhysicsHandler.World.CollisionObjectArray[1],
+                    PhysicsHandler.World.CollisionObjectArray[0],
                     new CollisionCallback(monitoredBody, context));
 
             // process physics
-            foreach (RigidBody body in _physics.World.CollisionObjectArray)
+            foreach (RigidBody body in PhysicsHandler.World.CollisionObjectArray)
             {
-                if (!"Ground".Equals(body.UserObject))
+                if (!"Ground".Equals(body.UserObject) && 
+                    (body.WorldArrayIndex == 1 || body.WorldArrayIndex == 2 || body.WorldArrayIndex == 3))
                     Cubes[body.UserIndex].State = Convert(body.WorldTransform);
             }
 
@@ -741,7 +754,7 @@ namespace Graphics
 
             ShaderHandler.DeleteShaders();
 
-            _physics.ExitPhysics();
+            PhysicsHandler.ExitPhysics();
 
             base.OnUnload(e);
         }

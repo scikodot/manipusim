@@ -49,10 +49,10 @@ namespace Logic
             
         }
 
-        public bool CollisionTest(PhysicsHandler physics, Collider other)
+        public bool CollisionTest(Collider other)
         {
             //physics.World.ContactPairTest(Body, other.Body, CollisionCallback);
-            return CollisionCallback.CollisionTest(physics, Body, other.Body);
+            return CollisionCallback.CollisionTest(Body, other.Body);
         }
     }
 }

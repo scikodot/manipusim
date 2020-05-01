@@ -60,9 +60,9 @@ namespace Physics
             return 0; // not actually sure if return value is used for anything...?
         }
 
-        public bool CollisionTest(PhysicsHandler physics, RigidBody body1, RigidBody body2)
+        public bool CollisionTest(RigidBody body1, RigidBody body2)
         {
-            physics.World.ContactPairTest(body1, body2, this);
+            PhysicsHandler.World.ContactPairTest(body1, body2, this);
             if (_collision)
             {
                 _collision = false;

@@ -5,16 +5,16 @@ using Vector3 = BulletSharp.Math.Vector3;
 
 namespace Physics
 {
-    public class PhysicsHandler
+    public static class PhysicsHandler
     {
-        public DiscreteDynamicsWorld World { get; }
+        public static DiscreteDynamicsWorld World { get; }
 
-        private CollisionDispatcher _dispatcher;
-        private DbvtBroadphase _broadphase;
-        private List<CollisionShape> _collisionShapes = new List<CollisionShape>();
-        private CollisionConfiguration _collisionConf;
+        private static CollisionDispatcher _dispatcher;
+        private static DbvtBroadphase _broadphase;
+        private static List<CollisionShape> _collisionShapes = new List<CollisionShape>();
+        private static CollisionConfiguration _collisionConf;
 
-        public PhysicsHandler()
+        static PhysicsHandler()
         {
             // collision configuration contains default setup for memory, collision setup
             _collisionConf = new DefaultCollisionConfiguration();
@@ -57,12 +57,12 @@ namespace Physics
             }
         }
 
-        public virtual void Update(float elapsedTime)
+        public static void Update(float elapsedTime)
         {
             World.StepSimulation(elapsedTime);
         }
 
-        public void ExitPhysics()
+        public static void ExitPhysics()
         {
             // remove/dispose constraints
             for (int i = World.NumConstraints - 1; i >= 0; i--)
@@ -101,19 +101,28 @@ namespace Physics
             _collisionConf.Dispose();
         }
 
-        private RigidBody CreateStaticBody(Matrix startTransform, CollisionShape shape)
+        public static RigidBody CreateStaticBody(Matrix startTransform, CollisionShape shape)
         {
             Vector3 localInertia = Vector3.Zero;
             return CreateBody(0, startTransform, shape, localInertia);
         }
 
-        private RigidBody CreateDynamicBody(float mass, Matrix startTransform, CollisionShape shape)
+        public static RigidBody CreateKinematicBody(Matrix startTransform, CollisionShape shape)
+        {
+            Vector3 localInertia = Vector3.Zero;
+            var body = CreateBody(0, startTransform, shape, localInertia);
+            body.CollisionFlags = CollisionFlags.KinematicObject;
+            body.ActivationState = ActivationState.DisableDeactivation;
+            return body;
+        }
+
+        public static RigidBody CreateDynamicBody(float mass, Matrix startTransform, CollisionShape shape)
         {
             Vector3 localInertia = shape.CalculateLocalInertia(mass);
             return CreateBody(mass, startTransform, shape, localInertia);
         }
 
-        private RigidBody CreateBody(float mass, Matrix startTransform, CollisionShape shape, Vector3 localInertia)
+        private static RigidBody CreateBody(float mass, Matrix startTransform, CollisionShape shape, Vector3 localInertia)
         {
             var motionState = new DefaultMotionState(startTransform);
             using (var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia))
