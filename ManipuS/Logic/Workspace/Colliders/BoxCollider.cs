@@ -15,71 +15,12 @@ namespace Logic
         public Model Model { get; }
         public RigidBody Body { get; }
 
-        //public BoxCollider(Vector3[] data)
-        //{
-        //    // retrieving boundary points
-        //    float Xmin, Xmax, Ymin, Ymax, Zmin, Zmax;
-        //    Xmin = Xmax = data[0].X;
-        //    Ymin = Ymax = data[0].Y;
-        //    Zmin = Zmax = data[0].Z;
-        //    for (int i = 0; i < data.Length; i++)
-        //    {
-        //        if (data[i].X < Xmin)
-        //            Xmin = data[i].X;
-        //        else if (data[i].X > Xmax)
-        //            Xmax = data[i].X;
-
-        //        if (data[i].Y < Ymin)
-        //            Ymin = data[i].Y;
-        //        else if (data[i].Y > Ymax)
-        //            Ymax = data[i].Y;
-
-        //        if (data[i].Z > Zmax)
-        //            Zmax = data[i].Z;
-        //        else if (data[i].Z < Zmin)
-        //            Zmin = data[i].Z;
-        //    }
-
-        //    // data
-        //    var vertices = new MeshVertex[8]
-        //    {
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmin, Ymin, Zmin) },
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmax, Ymin, Zmin) },
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmax, Ymin, Zmax) },
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmin, Ymin, Zmax) },
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmin, Ymax, Zmin) },
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmax, Ymax, Zmin) },
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmax, Ymax, Zmax) },
-        //        new MeshVertex { Position = new OpenTK.Vector3(Xmin, Ymax, Zmax) }
-        //    };
-
-        //    Model = new Model(vertices, new uint[]
-        //        {
-        //            0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
-        //        }, MeshMaterial.Green);
-        //}
-
         public BoxCollider(float halfX, float halfY, float halfZ)
         {
-            var vertices = new MeshVertex[8]
-            {
-                new MeshVertex { Position = new OpenTK.Vector3(-halfX, -halfY, -halfZ) },
-                new MeshVertex { Position = new OpenTK.Vector3(halfX, -halfY, -halfZ) },
-                new MeshVertex { Position = new OpenTK.Vector3(halfX, -halfY, halfZ) },
-                new MeshVertex { Position = new OpenTK.Vector3(-halfX, -halfY, halfZ) },
-                new MeshVertex { Position = new OpenTK.Vector3(-halfX, halfY, -halfZ) },
-                new MeshVertex { Position = new OpenTK.Vector3(halfX, halfY, -halfZ) },
-                new MeshVertex { Position = new OpenTK.Vector3(halfX, halfY, halfZ) },
-                new MeshVertex { Position = new OpenTK.Vector3(-halfX, halfY, halfZ) }
-            };
-
-            Model = new Model(vertices, new uint[]
-            {
-                0, 1, 2, 3, 0, 4, 5, 1, 5, 6, 2, 6, 7, 3, 7, 4
-            }, MeshMaterial.Green);
+            Model = Primitives.Cube(halfX, halfY, halfZ, MeshMaterial.Green);
 
             // create a rigid body
-            Body = PhysicsHandler.CreateKinematicBody(BulletSharp.Math.Matrix.Identity, new BoxShape(halfX, halfY, halfZ));
+            Body = PhysicsHandler.CreateStaticBody(BulletSharp.Math.Matrix.Identity, new BoxShape(halfX, halfY, halfZ));
 
             _size = 2 * new Vector3(halfX, halfY, halfZ);
         }
@@ -126,11 +67,13 @@ namespace Logic
             return vec * ratio;
         }
 
-        public void Render(Shader shader)
+        public void Render(Shader shader)  // TODO: perhaps make methods Render and UpdateState unified? this can be achieved with the abstract class
         {
             Model.Render(shader, MeshMode.Solid, () =>
             {
-                GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                GL.DrawElements(BeginMode.Triangles, Model.Meshes[0].Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
             });
         }
 

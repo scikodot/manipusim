@@ -8,78 +8,54 @@ namespace Logic
 {
     public static class Primitives
     {
-        private static readonly MeshVertex[] cube =
-        {
-            // X ortho faces
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f,  0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f, -0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f, 0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f, -0.5f), Normal = new Vector3(1.0f, 0.0f, 0.0f) },
-
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f, -0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f, -0.5f, 0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f, -0.5f, -0.5f), Normal = new Vector3(-1.0f, 0.0f, 0.0f) },
-
-            // Y ortho faces
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f, 0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f,  0.5f, -0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  -0.5f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-
-            new MeshVertex { Position = new Vector3(0.5f,  -0.5f, 0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.5f,  -0.5f, -0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  -0.5f), Normal = new Vector3(0.0f, -1.0f, 0.0f) },
-
-            // Z ortho faces
-            new MeshVertex { Position = new Vector3(0.5f, 0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  0.5f), Normal = new Vector3(0.0f, 0.0f, 1.0f) },
-
-            new MeshVertex { Position = new Vector3(0.5f, 0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
-            new MeshVertex { Position = new Vector3(0.5f, -0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) },
-            new MeshVertex { Position = new Vector3(-0.5f,  -0.5f,  -0.5f), Normal = new Vector3(0.0f, 0.0f, -1.0f) }
-        };
-
-        private static readonly uint[] cubeIndices =
-        {
-            // X ortho faces
-            0, 1, 2,
-            1, 2, 3,
-
-            4, 5, 6,
-            5, 6, 7,
-
-            // Y ortho faces
-            8, 9, 10,
-            9, 10, 11,
-
-            12, 13, 14,
-            13, 14, 15,
-
-            // Z ortho faces
-            16, 17, 18,
-            17, 18, 19,
-
-            20, 21, 22,
-            21, 22, 23
-        };
-
-        public static Model Cube(MeshMaterial material)
-        {
-            return new Model(cube, cubeIndices, material);
-        }
-
         public static Model Cube(float halfX, float halfY, float halfZ, MeshMaterial material)
         {
-            var model = new Model(cube, cubeIndices, material);
-            model.State.M11 = 2 * halfX;
-            model.State.M22 = 2 * halfY;
-            model.State.M33 = 2 * halfZ;
-            return model;
+            var vertices = new List<MeshVertex>();
+
+            float x, y, z;
+            foreach (var sign in new int[] { -1, 1 })
+            {
+                // X ortho faces
+                x = sign * halfX;
+                vertices.Add(new MeshVertex { Position = new Vector3(x, halfY, halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
+                vertices.Add(new MeshVertex { Position = new Vector3(x, halfY, -halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
+                vertices.Add(new MeshVertex { Position = new Vector3(x, -halfY, halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
+                vertices.Add(new MeshVertex { Position = new Vector3(x, -halfY, -halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
+
+                // Y ortho faces
+                y = sign * halfY;
+                vertices.Add(new MeshVertex { Position = new Vector3(halfX, y, halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
+                vertices.Add(new MeshVertex { Position = new Vector3(halfX, y, -halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
+                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, y, halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
+                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, y, -halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
+
+                // Z ortho faces
+                z = sign * halfZ;
+                vertices.Add(new MeshVertex { Position = new Vector3(halfX, halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
+                vertices.Add(new MeshVertex { Position = new Vector3(halfX, -halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
+                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
+                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, -halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
+            }
+
+            var indices = new List<uint>();
+
+            uint k;
+            for (uint i = 0; i < 6; i++)
+            {
+                k = 4 * i;
+
+                // lower triangle
+                indices.Add(k);
+                indices.Add(k + 1);
+                indices.Add(k + 2);
+
+                // upper triangle
+                indices.Add(k + 1);
+                indices.Add(k + 2);
+                indices.Add(k + 3);
+            }
+
+            return new Model(vertices.ToArray(), indices.ToArray(), material);
         }
 
         public static Model Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material)
@@ -87,12 +63,11 @@ namespace Logic
             float radiusInv = 1.0f / radius;
             float pi2 = (float)Math.PI / 2;
 
-            // get sphere vertices
             var vertices = new List<MeshVertex>();
 
             float x, y, z, xy;  // positions
             float nx, ny, nz;  // normals
-            float s, t;  //textures
+            //float s, t;  //textures
 
             float stackStep = (float)Math.PI / stackCount;
             float sectorStep = 2 * (float)Math.PI / sectorCount;
@@ -128,7 +103,6 @@ namespace Logic
                 }
             }
 
-            // get sphere indices
             var indices = new List<uint>();
 
             uint k1, k2;
@@ -180,11 +154,12 @@ namespace Logic
                 new MeshVertex { Position = new Vector3(0, extendUp, 0), Normal = Vector3.UnitY }
             };
 
+            float angle, cos, sin;
             for (int i = 0; i <= circleCount; i++)
             {
-                float angle = i * angleStep;
-                float cos = radius * (float)Math.Cos(angle);
-                float sin = radius * (float)Math.Sin(angle);
+                angle = i * angleStep;
+                cos = radius * (float)Math.Cos(angle);
+                sin = radius * (float)Math.Sin(angle);
 
                 // add LCi and UCi
                 vertices.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = -Vector3.UnitY });

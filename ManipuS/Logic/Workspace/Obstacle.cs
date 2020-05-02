@@ -5,10 +5,11 @@ using Graphics;
 
 namespace Logic
 {
-    public enum ObstacleShape
+    public enum PhysicsType
     {
-        Box,
-        Sphere
+        Static,
+        Kinematic,
+        Dynamic
     }
 
     public struct ObstData
@@ -29,23 +30,7 @@ namespace Logic
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
 
-        //public Obstacle(Vector3[] data, ImpDualQuat state, ColliderShape shape)
-        //{
-        //    Data = data;
-        //    State = state;
-            
-        //    switch (shape)
-        //    {
-        //        case ColliderShape.Box:
-        //            Collider = new BoxCollider(Data);
-        //            break;
-        //        case ColliderShape.Sphere:
-        //            Collider = new SphereCollider(Data);
-        //            break;
-        //    }
-        //}
-
-        public Obstacle(Model model, ICollidable collider, ImpDualQuat state)
+        public Obstacle(Model model, ICollidable collider, ImpDualQuat state)  // TODO: check collider for null; in that case, the obstacle may not participate in collision checks
         {
             Model = model;
             Collider = collider;

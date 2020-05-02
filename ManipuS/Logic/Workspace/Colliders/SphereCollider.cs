@@ -12,7 +12,6 @@ namespace Logic
     class SphereCollider : ICollidable
     {
         private float _radius;
-        private int _circleCount = 50;
 
         public Model Model { get; }
         public RigidBody Body { get; }
@@ -22,7 +21,7 @@ namespace Logic
             Model = Primitives.Sphere(radius, stackCount, sectorCount, MeshMaterial.Green);
 
             // create a rigid body
-            Body = PhysicsHandler.CreateKinematicBody(BulletSharp.Math.Matrix.Identity, new SphereShape(radius));
+            Body = PhysicsHandler.CreateStaticBody(BulletSharp.Math.Matrix.Identity, new SphereShape(radius));
 
             _radius = radius;
         }

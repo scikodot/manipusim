@@ -13,7 +13,7 @@ namespace Logic
         Sphere
     }
 
-    public class Collider
+    public class Collider  // TODO: make abstract and provide unified implementations for Render and UpdateState; see BoxCollider
     {
         public Vector3[] Data;
         public Vector3 Center { get; set; }

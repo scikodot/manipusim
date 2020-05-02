@@ -110,7 +110,7 @@ namespace Graphics
             Cubes = new Model[3];
             for (int i = 0; i < 3; i++)
             {
-                Cubes[i] = Primitives.Cube(new MeshMaterial
+                Cubes[i] = Primitives.Cube(0.5f, 0.5f, 0.5f, new MeshMaterial
                 {
                     Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                     Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
@@ -123,17 +123,13 @@ namespace Graphics
             Cubes[1].State.Column3 = new Vector4(0.5f, 4.5f, 0.0f, 1.0f);
             Cubes[2].State.Column3 = new Vector4(1.0f, 6.0f, 0.0f, 1.0f);
 
-            Ground = Primitives.Cube(new MeshMaterial
+            Ground = Primitives.Cube(5, 0.2f, 5, new MeshMaterial
             {
                 Ambient = new Vector4(0.02f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.0f, 0.6f, 0.8f, 1.0f),
                 Specular = new Vector4(0.5f, 0.1f, 0.0f, 1.0f),
                 Shininess = 8
             });
-
-            Ground.State.M11 *= 10;
-            Ground.State.M33 *= 10;
-            Ground.State.M22 *= 0.25f;
 
             Sphere = Primitives.Sphere(1, 100, 100, new MeshMaterial
             {

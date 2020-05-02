@@ -22,7 +22,7 @@ namespace Logic
             Model = Primitives.Cylinder(radius, extendDown, extendUp, circleCount, MeshMaterial.Green);
 
             // create a rigid body
-            Body = PhysicsHandler.CreateKinematicBody(new BulletSharp.Math.Matrix(
+            Body = PhysicsHandler.CreateStaticBody(new BulletSharp.Math.Matrix(
                 1, 0, 0, 0,
                 0, 1, 0, (extendUp - extendDown) / 2,
                 0, 0, 1, 0,
