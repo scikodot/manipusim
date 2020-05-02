@@ -18,7 +18,8 @@ namespace Logic
 
             var MB = WorkspaceBuffer.ManipBuffer;
             var OB = WorkspaceBuffer.ObstBuffer;
-            var AB = WorkspaceBuffer.AlgBuffer;
+            var IB = WorkspaceBuffer.InverseKinematicsBuffer;
+            var PB = WorkspaceBuffer.PathPlanningBuffer;
 
             // obstacles
             Obstacles = new Obstacle[OB.Length];
@@ -32,13 +33,21 @@ namespace Logic
                 //    Shininess = 8
                 //}), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
 
-                Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
+                //Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
+                //{
+                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                //    Shininess = 8
+                //}), new SphereCollider(0.5f), new ImpDualQuat(OB[i].Center));
+
+                Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
                 {
                     Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                     Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                     Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                     Shininess = 8
-                }), new SphereCollider(0.5f), new ImpDualQuat(OB[i].Center));
+                }), new CylinderCollider(0.27f, 1.02f, 1.02f), new ImpDualQuat(OB[i].Center));
 
                 //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }
@@ -49,21 +58,21 @@ namespace Logic
                 Manipulators[i] = new Manipulator(MB[i]);
 
                 IKSolver solver = default;
-                switch (AB.InverseKinematicsSolverID)
+                switch (IB.InverseKinematicsSolverID)
                 {
                     case 0:
-                        solver = new Jacobian(AB.Precision, AB.StepSize, AB.MaxTime);
+                        solver = new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime);
                         break;
                     case 1:
-                        solver = new HillClimbing(AB.Precision, AB.StepSize, AB.MaxTime);
+                        solver = new HillClimbing(IB.Precision, IB.StepSize, IB.MaxTime);
                         break;
                 }
 
                 PathPlanner planner = default;
-                switch (AB.PathPlannerID)
+                switch (PB.PathPlannerID)
                 {
                     case 0:
-                        planner = new DynamicRRT(AB.k, false, AB.d, AB.k / 10);
+                        planner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
                         break;
                     case 1:
                         throw new NotImplementedException("The Genetic algorithm planner is not yet implemented!");
@@ -71,7 +80,7 @@ namespace Logic
                 }
 
                 Manipulators[i].Controller = new MotionController(Obstacles, Manipulators[i], planner, solver, 
-                    new Jacobian(AB.Precision, AB.StepSize, AB.MaxTime), 2 * AB.d);
+                    new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime), 2 * PB.d);
 
                 var manip = Manipulators[i];
                 manip.Attractors = new List<Attractor>();
@@ -81,12 +90,12 @@ namespace Logic
                 // adding main attractor
                 Vector3 attrPoint = manip.Goal;
                 float attrWeight = manip.DistanceTo(manip.Goal);
-                float attrRadius = WorkspaceBuffer.AlgBuffer.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
+                float attrRadius = PB.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
 
                 manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
 
                 // adding ancillary attractors
-                while (manip.Attractors.Count < AB.AttrNum)
+                while (manip.Attractors.Count < PB.AttrNum)
                 {
                     // generating attractor point
                     x = work_radius * (2 * rng.NextDouble() - 1);
@@ -113,7 +122,7 @@ namespace Logic
                         // adding attractor to the list
                         attrPoint = point;
                         attrWeight = manip.DistanceTo(point) + manip.Goal.DistanceTo(point);
-                        attrRadius = AB.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
+                        attrRadius = PB.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
 
                         manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
                     }
@@ -123,7 +132,7 @@ namespace Logic
 
         public static void Plan(Manipulator manip)
         {
-            var AD = WorkspaceBuffer.AlgBuffer;
+            //var AD = WorkspaceBuffer.AlgBuffer;
 
             /*// generating random tree
             var solver = new HillClimbing(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!

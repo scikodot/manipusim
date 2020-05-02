@@ -147,7 +147,7 @@ namespace Graphics
 
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                 GL.PointSize(2);
-                GL.DrawElements(BeginMode.Points, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
                 GL.PointSize(1);
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
             }

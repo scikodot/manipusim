@@ -5,6 +5,14 @@ using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
+    public struct PathPlanningData
+    {
+        public int PathPlannerID;
+        public int AttrNum;
+        public int k;
+        public float d;
+    }
+
     public class PathPlanner
     {
         public static string[] Types =

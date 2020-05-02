@@ -131,6 +131,9 @@
     <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
     <Compile Include="Logic\Math\Quaternions\DualQuat.cs" />
     <Compile Include="Logic\Math\Special\Ziggurat.cs" />
+    <Compile Include="Logic\Workspace\Colliders\CylinderCollider.cs" />
+    <Compile Include="Logic\Workspace\Joint.cs" />
+    <Compile Include="Logic\Workspace\Link.cs" />
     <Compile Include="Logic\Workspace\Primitives.cs" />
     <Compile Include="Physics\Callbacks\CollisionCallback.cs" />
     <Compile Include="Logic\Workspace\Manipulator.cs" />

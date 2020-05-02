@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Numerics;
 
-using OpenTK.Graphics.OpenGL4;
-
 using Graphics;
 
 namespace Logic
@@ -13,13 +11,23 @@ namespace Logic
         Sphere
     }
 
+    public struct ObstData
+    {
+        public float Radius;
+        public Vector3 Center;
+        public int PointsNum;
+        public bool ShowCollider;
+    }
+
     public class Obstacle
     {
-        private Vector3[] Data;
         public ImpDualQuat State;
 
-        public Model Model;
-        public ICollidable Collider;
+        public Model Model { get; }
+        public ICollidable Collider { get; }
+
+        private bool _showCollider;
+        public ref bool ShowCollider => ref _showCollider;
 
         //public Obstacle(Vector3[] data, ImpDualQuat state, ColliderShape shape)
         //{
@@ -64,19 +72,12 @@ namespace Logic
             UpdateState();
         }
 
-        public void Render(Shader shader, Action render = null, bool showCollider = false)  // TODO: move showCollider to properties
+        public void Render(Shader shader, MeshMode mode, Action render = null)  // TODO: move showCollider to properties
         {
-            //if (Model == default)
-            //    Model = new Model(MeshVertex.Convert(Data), material: MeshMaterial.White);
+            Model.Render(shader, mode, render);
 
-            OpenTK.Matrix4 stateMatrix = State.ToMatrix();
-            Model.State = stateMatrix;
-            Model.Render(shader, MeshMode.Solid | MeshMode.Lighting, render);
-
-            if (showCollider)
-            {
-                Collider.Render(shader, ref stateMatrix);
-            }
+            if (_showCollider)
+                Collider.Render(shader);
         }
 
         private void UpdateState()

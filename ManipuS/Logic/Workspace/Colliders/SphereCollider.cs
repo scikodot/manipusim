@@ -100,9 +100,8 @@ namespace Logic
             return Vector3.Normalize(vec) * _radius - vec;
         }
 
-        public void Render(Shader shader, ref OpenTK.Matrix4 state)
+        public void Render(Shader shader)
         {
-            Model.State = state;
             Model.Render(shader, MeshMode.Solid, () =>
             {
                 GL.DrawArrays(PrimitiveType.LineStrip, 0, _circleCount + 1);

@@ -5,11 +5,6 @@ using Vector3 = System.Numerics.Vector3;
 
 namespace Graphics
 {
-    public interface IRenderable
-    {
-        ref Matrix4 State { get; }
-    }
-
     public interface ICollidable
     {
         Model Model { get; }
@@ -19,7 +14,7 @@ namespace Graphics
 
         Vector3 Extrude(Vector3 point);
 
-        void Render(Shader shader, ref Matrix4 state);
+        void Render(Shader shader);
 
         void UpdateState(ref Matrix4 state);
     }

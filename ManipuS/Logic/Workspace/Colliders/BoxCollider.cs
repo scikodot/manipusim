@@ -13,7 +13,6 @@ namespace Logic
         private Vector3 _size;
 
         public Model Model { get; }
-
         public RigidBody Body { get; }
 
         //public BoxCollider(Vector3[] data)
@@ -127,9 +126,8 @@ namespace Logic
             return vec * ratio;
         }
 
-        public void Render(Shader shader, ref OpenTK.Matrix4 state)
+        public void Render(Shader shader)
         {
-            Model.State = state;
             Model.Render(shader, MeshMode.Solid, () =>
             {
                 GL.DrawElements(BeginMode.LineStrip, 16, DrawElementsType.UnsignedInt, 0);

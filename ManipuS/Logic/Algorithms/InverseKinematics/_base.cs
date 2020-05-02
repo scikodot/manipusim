@@ -3,6 +3,14 @@ using System.Numerics;
 
 namespace Logic.InverseKinematics
 {
+    public struct InverseKinematicsData  // TODO: perhaps "params" is better than "data"?
+    {
+        public int InverseKinematicsSolverID;
+        public float StepSize;
+        public float Precision;
+        public int MaxTime;
+    }
+
     public class IKSolver
     {
         public static string[] Types = 

@@ -245,6 +245,11 @@ namespace Graphics
             return texture;
         }
 
+        public Model ShallowCopy()
+        {
+            return (Model)MemberwiseClone();
+        }
+
         public void Dispose()  // TODO: fix finalization, it seems to be not proper
         {
             // dispose all meshes

@@ -62,6 +62,7 @@ namespace Graphics
         private Model[] Cubes;
         private Model Ground;
         private Model Sphere;
+        private Model Cylinder;
 
         public static Thread MainThread = Thread.CurrentThread;
 
@@ -144,6 +145,16 @@ namespace Graphics
 
             Sphere.State.Column3 = new Vector4(-3, 3, -3, 1);
 
+            Cylinder = Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            {
+                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                Shininess = 8
+            });
+
+            Cylinder.State.Column3 = new Vector4(3, 4, -3, 1);
+
             base.OnLoad(e);
         }
 
@@ -202,14 +213,16 @@ namespace Graphics
 
             Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
 
-            Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
+            //Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
+
+            Cylinder.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
 
             if (ManipLoaded)
             {
                 // render obstacles
                 foreach (var obstacle in Manager.Obstacles)
                 {
-                    obstacle.Render(ShaderHandler.ComplexShader, showCollider: true);
+                    obstacle.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
                 }
 
                 for (int i = 0; i < Manager.Manipulators.Length; i++)
@@ -348,11 +361,14 @@ namespace Graphics
                                 {
                                     for (int j = 0; j < MB[i].N; j++)
                                     {
-                                        MB[i].Links[j].Model = linkModel;
-                                        MB[i].Joints[j].Model = jointModel;
+                                        MB[i].Links[j].Model = linkModel.ShallowCopy();
+                                        //MB[i].Links[j].Collider = // TODO: create cylindric collider
+                                        MB[i].Joints[j].Model = jointModel.ShallowCopy();
+                                        MB[i].Joints[j].Collider = new SphereCollider(0.2f);
                                     }
 
                                     MB[i].Joints[MB[i].N].Model = gripperModel;
+                                    MB[i].Joints[MB[i].N].Collider = new SphereCollider(0.2f);
                                 }
 
                                 //Crytek = new Model(InputHandler.NanosuitPath);
@@ -404,6 +420,9 @@ namespace Graphics
 
                             int count = Manager.Manipulators[j].Tree == null ? 0 : Manager.Manipulators[j].Tree.Count;
                             ImGui.Checkbox($"Show tree ({count} verts)", ref MB[j].ShowTree);
+
+                            ImGui.Checkbox($"Show collider", ref Manager.Manipulators[j].ShowCollider);
+
                             ImGui.InputFloat3("Goal", ref MB[j].Goal);
                             ImGui.InputInt("Links number", ref MB[j].N);
 
@@ -458,9 +477,11 @@ namespace Graphics
                 {
                     for (int i = 0; i < Manager.Obstacles.Length; i++)
                     {
+                        var obst = Manager.Obstacles[i];
                         if (ImGui.TreeNode($"Obst {i}"))
                         {
-                            ImGui.Checkbox("Show collider", ref WorkspaceBuffer.ObstBuffer[i].ShowCollider);
+                            ImGui.Checkbox("Show collider", ref obst.ShowCollider/*WorkspaceBuffer.ObstBuffer[i].ShowCollider*/);
+
                             ImGui.InputFloat("Radius", ref WorkspaceBuffer.ObstBuffer[i].Radius);
                             ImGui.InputFloat3("Center", ref WorkspaceBuffer.ObstBuffer[i].Center);
                             ImGui.InputInt("Points number", ref WorkspaceBuffer.ObstBuffer[i].PointsNum);
@@ -490,23 +511,23 @@ namespace Graphics
                 ImGui.PushID(0);
                 ImGui.Text("Inverse kinematics solver:");
                 ImGui.Combo("Type",
-                    ref WorkspaceBuffer.AlgBuffer.InverseKinematicsSolverID,
+                    ref WorkspaceBuffer.InverseKinematicsBuffer.InverseKinematicsSolverID,
                     Logic.InverseKinematics.IKSolver.Types,
                     Logic.InverseKinematics.IKSolver.Types.Length);
-                ImGui.InputFloat("Precision", ref WorkspaceBuffer.AlgBuffer.Precision);
-                ImGui.InputInt("Iterations", ref WorkspaceBuffer.AlgBuffer.MaxTime);
-                ImGui.InputFloat("Step size (deg)", ref WorkspaceBuffer.AlgBuffer.StepSize);
+                ImGui.InputFloat("Precision", ref WorkspaceBuffer.InverseKinematicsBuffer.Precision);
+                ImGui.InputInt("Iterations", ref WorkspaceBuffer.InverseKinematicsBuffer.MaxTime);
+                ImGui.InputFloat("Step size (deg)", ref WorkspaceBuffer.InverseKinematicsBuffer.StepSize);
 
                 ImGui.NewLine();
                 ImGui.PushID(1);
                 ImGui.Text("Path planner:");
                 ImGui.Combo("Type",
-                    ref WorkspaceBuffer.AlgBuffer.PathPlannerID,
+                    ref WorkspaceBuffer.PathPlanningBuffer.PathPlannerID,
                     Logic.PathPlanning.PathPlanner.Types,
                     Logic.PathPlanning.PathPlanner.Types.Length);
-                ImGui.InputInt("Attractors number", ref WorkspaceBuffer.AlgBuffer.AttrNum);
-                ImGui.InputInt("Iterations", ref WorkspaceBuffer.AlgBuffer.k);
-                ImGui.InputFloat("Step size", ref WorkspaceBuffer.AlgBuffer.d);
+                ImGui.InputInt("Attractors number", ref WorkspaceBuffer.PathPlanningBuffer.AttrNum);
+                ImGui.InputInt("Iterations", ref WorkspaceBuffer.PathPlanningBuffer.k);
+                ImGui.InputFloat("Step size", ref WorkspaceBuffer.PathPlanningBuffer.d);
 
                 ImGui.End();
             }
@@ -657,6 +678,8 @@ namespace Graphics
                 if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
                 {
                     Manager.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
+
+                    var center = Manager.Obstacles[0].Collider.Body.CenterOfMassPosition;
                     //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
                     //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
                 }
@@ -725,7 +748,7 @@ namespace Graphics
         {
             // apply zoom only if no GUI window is currently hovered over
             if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
-                _camera.Fov -= e.DeltaPrecise;  // zooming
+                _camera.Fov -= e.DeltaPrecise;
 
             base.OnMouseWheel(e);
         }

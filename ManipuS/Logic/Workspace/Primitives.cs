@@ -2,6 +2,7 @@
 using OpenTK;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Logic
 {
@@ -154,6 +155,73 @@ namespace Logic
 
             // return a model
             return new Model(vertices.ToArray(), indices.ToArray(), material);
+        }
+
+        public static Model Cylinder(float radius, float extendDown, float extendUp, int circleCount, MeshMaterial material)
+        {
+            uint offset = (uint)circleCount + 2;
+            float radiusInv = 1.0f / radius;
+
+            var verticesCircle = new List<MeshVertex>();
+            var verticesSide = new List<MeshVertex>();
+
+            // lower circle
+            verticesCircle.Add(new MeshVertex { Position = new Vector3(0, -extendDown, 0) , Normal = -Vector3.UnitY });
+            for (int i = 0; i <= circleCount; i++)
+            {
+                float angle = 2 * (float)Math.PI * i / circleCount;
+                float cos = radius * (float)Math.Cos(angle);
+                float sin = radius * (float)Math.Sin(angle);
+
+                verticesCircle.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = -Vector3.UnitY });
+                verticesSide.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+            }
+
+            // upper circle
+            verticesCircle.Add(new MeshVertex { Position = new Vector3(0, extendUp, 0), Normal = Vector3.UnitY });
+            for (int i = 0; i <= circleCount; i++)
+            {
+                float angle = 2 * (float)Math.PI * i / circleCount;
+                float cos = radius * (float)Math.Cos(angle);
+                float sin = radius * (float)Math.Sin(angle);
+
+                verticesCircle.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = Vector3.UnitY });
+                verticesSide.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+            }
+
+            var vertices = verticesCircle.Concat(verticesSide).ToArray();
+
+            var indices = new List<uint>();
+
+            // lower circle faces
+            for (uint i = 0; i < circleCount; i++)
+            {
+                indices.Add(0);
+                indices.Add(i + 1);
+                indices.Add(i + 2);
+            }
+
+            // upper circle faces
+            for (uint i = 0; i < circleCount; i++)
+            {
+                indices.Add(offset);
+                indices.Add(i + 1 + offset);
+                indices.Add(i + 2 + offset);
+            }
+
+            // side faces
+            for (uint i = 0; i < circleCount; i++)
+            {
+                indices.Add(i + 2 * offset);
+                indices.Add(i + (offset - 1) + 2 * offset);
+                indices.Add(i + 1 + 2 * offset);
+
+                indices.Add(i + (offset - 1) + 2 * offset);
+                indices.Add(i + (offset - 1) + 1 + 2 * offset);
+                indices.Add(i + 1 + 2 * offset);
+            }
+
+            return new Model(vertices, indices.ToArray(), material);
         }
 
         public static System.Numerics.Vector3[] SpherePointCloud(float radius, System.Numerics.Vector3 center, int pointsNum)

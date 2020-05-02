@@ -3,6 +3,8 @@ using System.Linq;
 using System.Numerics;
 
 using Logic;
+using Logic.InverseKinematics;
+using Logic.PathPlanning;
 
 // buffer that accepts input data from the GUI, which is later used by the Manager
 public class WorkspaceBuffer
@@ -226,13 +228,16 @@ public class WorkspaceBuffer
         //},
     };
 
-    public static AlgData AlgBuffer = new AlgData
+    public static InverseKinematicsData InverseKinematicsBuffer = new InverseKinematicsData
     {
         InverseKinematicsSolverID = 0,
         Precision = 0.02f,
         StepSize = 2,
         MaxTime = 300,
+    };
 
+    public static PathPlanningData PathPlanningBuffer = new PathPlanningData
+    {
         PathPlannerID = 0,
         AttrNum = 5000,
         k = 10000,
