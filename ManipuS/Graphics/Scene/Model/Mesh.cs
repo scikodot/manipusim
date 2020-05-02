@@ -62,14 +62,12 @@ namespace Graphics
     {
         private int VAO, VBO, EBO;
 
-        public string Name;
+        public string Name { get; }
 
-        public MeshVertex[] Vertices;
-        public uint[] Indices;
-        public MeshTexture[] Textures;
-        public MeshMaterial Color;
-
-        public Vector3 Position;  // TODO: perhaps remove?
+        public MeshVertex[] Vertices { get; }
+        public uint[] Indices { get; }
+        public MeshTexture[] Textures { get; }
+        public MeshMaterial Material { get; }
 
         public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshMaterial material)
         {
@@ -77,14 +75,7 @@ namespace Graphics
             Vertices = vertices;
             Indices = indices;
             Textures = textures;
-            Color = material;
-
-            Position = new Vector3
-            {
-                X = vertices.Sum(vertex => vertex.Position.X),
-                Y = vertices.Sum(vertex => vertex.Position.Y),
-                Z = vertices.Sum(vertex => vertex.Position.Z)
-            };
+            Material = material;
 
             // setup can be done only on the main thread, holding the GL context
             if (Thread.CurrentThread == MainWindow.MainThread)
@@ -188,10 +179,10 @@ namespace Graphics
                 GL.ActiveTexture(TextureUnit.Texture0);
 
                 // set colors
-                shader.SetVector4("material.ambientCol", Color.Ambient);  // TODO: add ref
-                shader.SetVector4("material.diffuseCol", Color.Diffuse);
-                shader.SetVector4("material.specularCol", Color.Specular);
-                shader.SetFloat("material.shininess", Color.Shininess);
+                shader.SetVector4("material.ambientCol", Material.Ambient);  // TODO: add ref
+                shader.SetVector4("material.diffuseCol", Material.Diffuse);
+                shader.SetVector4("material.specularCol", Material.Specular);
+                shader.SetFloat("material.shininess", Material.Shininess);
 
                 // render mesh
                 if (render != null)
@@ -219,32 +210,30 @@ namespace Graphics
         public void Dispose()
         {
             // dispose the mesh
-            Dispose(true);
+            DisposeInner();
 
-            // suppress additional finalization
+            // suppress additional finalization, because all unmanaged resources have already been closed
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposedByUser)
+        protected virtual void DisposeInner()
         {
             // TODO: check for disposed; see documentation
 
-            if (disposedByUser)
-            {
-                // clear managed resources
-                Vertices = null;
-                Indices = null;
-                Textures = null;
-            }
-
             // clear unmanaged resources
-            GL.DeleteBuffer(EBO);
-            GL.DeleteBuffer(VBO);
             GL.DeleteVertexArray(VAO);
+            GL.DeleteBuffer(VBO);
+            GL.DeleteBuffer(EBO);
 
-            Console.WriteLine($"Disposed model: VAO - {VAO}, VBO - {VBO}");
+            Console.WriteLine($"Disposed mesh: VAO - {VAO}, VBO - {VBO}");
         }
 
-        // TODO: any need in finalizer?
+        // TODO: finalizer runs AFTER the GL context is already deleted, 
+        // so all buffers have to be freed manually on context destruction!
+        //~Mesh()
+        //{
+        //    // clear all resources if they haven't been cleared by the user
+        //    DisposeInner();
+        //}
     }
 }

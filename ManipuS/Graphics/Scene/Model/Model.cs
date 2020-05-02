@@ -11,7 +11,7 @@ namespace Graphics
     public class Model : IDisposable
     {
         private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
-        private readonly List<Mesh> Meshes = new List<Mesh>();
+        public List<Mesh> Meshes { get; } = new List<Mesh>();
 
         public string Directory { get; private set; }  // TODO: remove
 

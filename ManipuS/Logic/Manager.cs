@@ -33,21 +33,21 @@ namespace Logic
                 //    Shininess = 8
                 //}), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
 
-                //Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
-                //{
-                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                //    Shininess = 8
-                //}), new SphereCollider(0.5f), new ImpDualQuat(OB[i].Center));
-
-                Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
+                Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
                 {
                     Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                     Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                     Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                     Shininess = 8
-                }), new CylinderCollider(0.27f, 1.02f, 1.02f), new ImpDualQuat(OB[i].Center));
+                }), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
+
+                //Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
+                //{
+                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                //    Shininess = 8
+                //}), new CylinderCollider(0.25f, 1, 1, 50), new ImpDualQuat(OB[i].Center));
 
                 //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }

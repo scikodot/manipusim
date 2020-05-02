@@ -13,61 +13,13 @@ namespace Logic
     class CylinderCollider : ICollidable
     {
         private float _radius;
-        private int _circleCount = 50;
 
         public Model Model { get; }
         public RigidBody Body { get; }
 
-        public CylinderCollider(float radius, float extendDown, float extendUp)
+        public CylinderCollider(float radius, float extendDown, float extendUp, int circleCount)
         {
-            uint offset = (uint)_circleCount + 2;
-
-            var vertices = new MeshVertex[2 * offset];
-
-            vertices[0] = new MeshVertex { Position = new OpenTK.Vector3(0, -extendDown, 0) };
-            vertices[offset] = new MeshVertex { Position = new OpenTK.Vector3(0, extendUp, 0) };
-
-            for (int i = 0; i <= _circleCount; i++)
-            {
-                float angle = 2 * (float)Math.PI * i / _circleCount;
-                float cos = radius * (float)Math.Cos(angle);
-                float sin = radius * (float)Math.Sin(angle);
-
-                vertices[i + 1] = new MeshVertex { Position = new OpenTK.Vector3(cos, -extendDown, sin) };
-                vertices[i + 1 + offset] = new MeshVertex { Position = new OpenTK.Vector3(cos, extendUp, sin) };
-            }
-
-            var indices = new List<uint>();
-
-            // lower circle faces
-            for (uint i = 0; i < _circleCount; i++)
-            {
-                indices.Add(0);
-                indices.Add(i + 1);
-                indices.Add(i + 2);
-            }
-
-            // upper circle faces
-            for (uint i = 0; i < _circleCount; i++)
-            {
-                indices.Add(offset);
-                indices.Add(i + 1 + offset);
-                indices.Add(i + 2 + offset);
-            }
-
-            // side faces
-            for (uint i = 0; i < _circleCount; i++)
-            {
-                indices.Add(i + 1);
-                indices.Add(i + 1 + offset);
-                indices.Add(i + 2);
-
-                indices.Add(i + 1 + offset);
-                indices.Add(i + 1 + offset + 1);
-                indices.Add(i + 2);
-            }
-
-            Model = new Model(vertices, indices.ToArray(), MeshMaterial.Green);
+            Model = Primitives.Cylinder(radius, extendDown, extendUp, circleCount, MeshMaterial.Green);
 
             // create a rigid body
             Body = PhysicsHandler.CreateKinematicBody(new BulletSharp.Math.Matrix(
@@ -91,7 +43,12 @@ namespace Logic
 
         public void Render(Shader shader)
         {
-            Model.Render(shader, MeshMode.Wireframe);
+            Model.Render(shader, MeshMode.Solid, () =>
+            {
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                GL.DrawElements(PrimitiveType.Triangles, Model.Meshes[0].Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+            });
         }
 
         public void UpdateState(ref OpenTK.Matrix4 state)

@@ -94,21 +94,21 @@ namespace Logic
                 Joints[i].Position = DKP[i] = quat.Translation;
             }
 
-            //// links
-            //for (int i = 0; i < Links.Length; i++)
-            //{
-            //    quat = init;
+            // links
+            for (int i = 0; i < Links.Length; i++)
+            {
+                quat = init;
 
-            //    for (int j = 0; j <= i; j++)
-            //    {
-            //        quat *= j == 0 ?
-            //            new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY) :
-            //            new ImpDualQuat(InitialPositions[j] - InitialPositions[j - 1]);
-            //        quat *= new ImpDualQuat(quat.Conjugate, InitialAxes[j], quat.Translation, Joints[j].Position, -Joints[j].q);
-            //    }
+                for (int j = 0; j <= i; j++)
+                {
+                    quat *= j == 0 ?
+                        new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY) :
+                        new ImpDualQuat(InitialPositions[j] - InitialPositions[j - 1]);
+                    quat *= new ImpDualQuat(quat.Conjugate, InitialAxes[j], quat.Translation, Joints[j].Position, -Joints[j].q);
+                }
 
-            //    Links[i].UpdateState(ref quat);
-            //}
+                Links[i].UpdateState(ref quat);
+            }
 
             // gripper
             GripperPos = DKP[Joints.Length - 1];
@@ -155,12 +155,11 @@ namespace Logic
                 Joints[i].Render(shader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, showCollider: _showCollider);
             }
 
-            //// links
-            //for (int i = 0; i < Links.Length; i++)
-            //{
-            //    Links[i].Model.State = Links[i].State.ToMatrix(false);
-            //    Links[i].Model.Render(shader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
-            //}
+            // links
+            for (int i = 0; i < Links.Length; i++)
+            {
+                Links[i].Render(shader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, showCollider: _showCollider);
+            }
         }
 
         public Manipulator DeepCopy()

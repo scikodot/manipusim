@@ -362,13 +362,13 @@ namespace Graphics
                                     for (int j = 0; j < MB[i].N; j++)
                                     {
                                         MB[i].Links[j].Model = linkModel.ShallowCopy();
-                                        //MB[i].Links[j].Collider = // TODO: create cylindric collider
+                                        MB[i].Links[j].Collider = new CylinderCollider(0.15f, 0, 1, 20);
                                         MB[i].Joints[j].Model = jointModel.ShallowCopy();
-                                        MB[i].Joints[j].Collider = new SphereCollider(0.2f);
+                                        MB[i].Joints[j].Collider = new SphereCollider(0.2f, 20, 20);
                                     }
 
                                     MB[i].Joints[MB[i].N].Model = gripperModel;
-                                    MB[i].Joints[MB[i].N].Collider = new SphereCollider(0.2f);
+                                    MB[i].Joints[MB[i].N].Collider = new SphereCollider(0.2f, 20, 20);
                                 }
 
                                 //Crytek = new Model(InputHandler.NanosuitPath);

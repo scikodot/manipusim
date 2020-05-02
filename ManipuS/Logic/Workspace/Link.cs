@@ -34,10 +34,12 @@ namespace Logic
             return (Link)MemberwiseClone();
         }
 
-        public void Render(Shader shader, MeshMode mode, Action render = null)
+        public void Render(Shader shader, MeshMode mode, Action render = null, bool showCollider = false)
         {
             Model.Render(shader, mode, render);
-            Collider.Render(shader);
+
+            if (showCollider)
+                Collider.Render(shader);
         }
 
         public void UpdateState(ref ImpDualQuat state)

@@ -82,22 +82,24 @@ namespace Logic
             return model;
         }
 
-        public static Model Sphere(float radius, int stackCount, int sectorCount, MeshMaterial material)
+        public static Model Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material)
         {
+            float radiusInv = 1.0f / radius;
+            float pi2 = (float)Math.PI / 2;
+
             // get sphere vertices
             var vertices = new List<MeshVertex>();
 
             float x, y, z, xy;  // positions
             float nx, ny, nz;  // normals
             float s, t;  //textures
-            float lengthInv = 1.0f / radius;
 
             float stackStep = (float)Math.PI / stackCount;
             float sectorStep = 2 * (float)Math.PI / sectorCount;
             float stackAngle, sectorAngle;
             for (int i = 0; i <= stackCount; i++)
             {
-                stackAngle = (float)Math.PI / 2 - i * stackStep;
+                stackAngle = pi2 - i * stackStep;
                 xy = radius * (float)Math.Cos(stackAngle);
                 z = radius * (float)Math.Sin(stackAngle);
 
@@ -110,9 +112,9 @@ namespace Logic
                     y = xy * (float)Math.Sin(sectorAngle);
 
                     // normals
-                    nx = x * lengthInv;
-                    ny = y * lengthInv;
-                    nz = z * lengthInv;
+                    nx = x * radiusInv;
+                    ny = y * radiusInv;
+                    nz = z * radiusInv;
 
                     // textures
                     //s = (float)j / sectorCount;
@@ -129,8 +131,8 @@ namespace Logic
             // get sphere indices
             var indices = new List<uint>();
 
-            int k1, k2;
-            for (int i = 0; i < stackCount; i++)
+            uint k1, k2;
+            for (uint i = 0; i < stackCount; i++)
             {
                 k1 = i * (sectorCount + 1);
                 k2 = k1 + sectorCount + 1;
@@ -139,16 +141,16 @@ namespace Logic
                 {
                     if (i != 0)
                     {
-                        indices.Add((uint)k1);
-                        indices.Add((uint)k2);
-                        indices.Add((uint)k1 + 1);
+                        indices.Add(k1);
+                        indices.Add(k2);
+                        indices.Add(k1 + 1);
                     }
 
                     if (i != stackCount - 1)
                     {
-                        indices.Add((uint)k1 + 1);
-                        indices.Add((uint)k2);
-                        indices.Add((uint)k2 + 1);
+                        indices.Add(k1 + 1);
+                        indices.Add(k2);
+                        indices.Add(k2 + 1);
                     }
                 }
             }
@@ -159,37 +161,39 @@ namespace Logic
 
         public static Model Cylinder(float radius, float extendDown, float extendUp, int circleCount, MeshMaterial material)
         {
-            uint offset = (uint)circleCount + 2;
             float radiusInv = 1.0f / radius;
+            float angleStep = 2 * (float)Math.PI / circleCount;
 
-            var verticesCircle = new List<MeshVertex>();
-            var verticesSide = new List<MeshVertex>();
+            // the order of the vertices:
+            // [L, U, LC1, UC1, LS1, US1, LC2, UC2, LS2, US2, ...],
+            // where
+            //      L - central point of the lower circle,
+            //      U - central point of the upper circle,
+            //      LCi - i-th point of the lower circle with central normal,
+            //      UCi - i-th point of the upper circle with central normal,
+            //      LSi - i-th point of the lower circle with side normal,
+            //      USi - i-th point of the upper circle with side normal
+            var vertices = new List<MeshVertex>
+            {
+                // add L and U
+                new MeshVertex { Position = new Vector3(0, -extendDown, 0), Normal = -Vector3.UnitY },
+                new MeshVertex { Position = new Vector3(0, extendUp, 0), Normal = Vector3.UnitY }
+            };
 
-            // lower circle
-            verticesCircle.Add(new MeshVertex { Position = new Vector3(0, -extendDown, 0) , Normal = -Vector3.UnitY });
             for (int i = 0; i <= circleCount; i++)
             {
-                float angle = 2 * (float)Math.PI * i / circleCount;
+                float angle = i * angleStep;
                 float cos = radius * (float)Math.Cos(angle);
                 float sin = radius * (float)Math.Sin(angle);
 
-                verticesCircle.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = -Vector3.UnitY });
-                verticesSide.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+                // add LCi and UCi
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = -Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = Vector3.UnitY });
+
+                // add LSi and USi
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
             }
-
-            // upper circle
-            verticesCircle.Add(new MeshVertex { Position = new Vector3(0, extendUp, 0), Normal = Vector3.UnitY });
-            for (int i = 0; i <= circleCount; i++)
-            {
-                float angle = 2 * (float)Math.PI * i / circleCount;
-                float cos = radius * (float)Math.Cos(angle);
-                float sin = radius * (float)Math.Sin(angle);
-
-                verticesCircle.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = Vector3.UnitY });
-                verticesSide.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
-            }
-
-            var vertices = verticesCircle.Concat(verticesSide).ToArray();
 
             var indices = new List<uint>();
 
@@ -197,31 +201,33 @@ namespace Logic
             for (uint i = 0; i < circleCount; i++)
             {
                 indices.Add(0);
-                indices.Add(i + 1);
-                indices.Add(i + 2);
+                indices.Add(4 * i + 2);
+                indices.Add(4 * i + 6);
             }
 
             // upper circle faces
             for (uint i = 0; i < circleCount; i++)
             {
-                indices.Add(offset);
-                indices.Add(i + 1 + offset);
-                indices.Add(i + 2 + offset);
+                indices.Add(1);
+                indices.Add(4 * i + 3);
+                indices.Add(4 * i + 7);
             }
 
             // side faces
             for (uint i = 0; i < circleCount; i++)
             {
-                indices.Add(i + 2 * offset);
-                indices.Add(i + (offset - 1) + 2 * offset);
-                indices.Add(i + 1 + 2 * offset);
+                // lower triangle
+                indices.Add(4 * i + 4);
+                indices.Add(4 * i + 5);
+                indices.Add(4 * i + 8);
 
-                indices.Add(i + (offset - 1) + 2 * offset);
-                indices.Add(i + (offset - 1) + 1 + 2 * offset);
-                indices.Add(i + 1 + 2 * offset);
+                // upper triangle
+                indices.Add(4 * i + 5);
+                indices.Add(4 * i + 8);
+                indices.Add(4 * i + 9);
             }
 
-            return new Model(vertices, indices.ToArray(), material);
+            return new Model(vertices.ToArray(), indices.ToArray(), material);
         }
 
         public static System.Numerics.Vector3[] SpherePointCloud(float radius, System.Numerics.Vector3 center, int pointsNum)
