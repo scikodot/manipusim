@@ -2,9 +2,12 @@
 
 using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
 using Physics;
+
+using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
@@ -13,16 +16,39 @@ namespace Logic
         private Vector3 _size;
 
         public Model Model { get; }
-        public RigidBody Body { get; }
+        public RigidBody Body { get; private set; }
 
-        public BoxCollider(float halfX, float halfY, float halfZ)
+        public BoxCollider(float halfX, float halfY, float halfZ, ref Matrix state, out BoxShape bodyShape)
         {
             Model = Primitives.Cube(halfX, halfY, halfZ, MeshMaterial.Green);
 
-            // create a rigid body
-            Body = PhysicsHandler.CreateStaticBody(BulletSharp.Math.Matrix.Identity, new BoxShape(halfX, halfY, halfZ));
+            bodyShape = new BoxShape(halfX, halfY, halfZ);
 
             _size = 2 * new Vector3(halfX, halfY, halfZ);
+        }
+
+        public static BoxCollider CreateStatic(float halfX, float halfY, float halfZ, Matrix state)
+        {
+            return new BoxCollider(halfX, halfY, halfZ, ref state, out BoxShape bodyShape)
+            {
+                Body = PhysicsHandler.CreateStaticBody(state, bodyShape)
+            };
+        }
+
+        public static BoxCollider CreateKinematic(float halfX, float halfY, float halfZ, Matrix state)
+        {
+            return new BoxCollider(halfX, halfY, halfZ, ref state, out BoxShape bodyShape)
+            {
+                Body = PhysicsHandler.CreateKinematicBody(state, bodyShape)
+            };
+        }
+
+        public static BoxCollider CreateDynamic(float halfX, float halfY, float halfZ, float mass, Matrix state)
+        {
+            return new BoxCollider(halfX, halfY, halfZ, ref state, out BoxShape bodyShape)
+            {
+                Body = PhysicsHandler.CreateDynamicBody(mass, state, bodyShape)
+            };
         }
 
         public bool Contains(Vector3 point)

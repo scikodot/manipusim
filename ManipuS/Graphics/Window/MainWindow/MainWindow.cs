@@ -13,10 +13,13 @@ using ImGuiNET;
 using Logic;
 
 using Matrix4 = Logic.Matrix4;
+using Vector3 = OpenTK.Vector3;
+using Vector4 = OpenTK.Vector4;
 using Physics;
 using BulletSharp;
 using System.Threading;
 using MathNet.Numerics;
+using BulletSharp.Math;
 
 namespace Graphics
 {
@@ -59,7 +62,7 @@ namespace Graphics
         public static Model pointMoveable;
         public static Vector2 pointScreen;
 
-        private Model[] Cubes;
+        private Obstacle[] Cubes;
         private Model Ground;
         private Model Sphere;
         private Model Cylinder;
@@ -107,21 +110,31 @@ namespace Graphics
                 new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
             }, pointMoveable);
 
-            Cubes = new Model[3];
+            Cubes = new Obstacle[3];
             for (int i = 0; i < 3; i++)
             {
-                Cubes[i] = Primitives.Cube(0.5f, 0.5f, 0.5f, new MeshMaterial
+                Matrix stateInit = default;
+                switch (i)
+                {
+                    case 0:
+                        stateInit = Matrix.Translation(0.0f, 3.0f, 0.0f);
+                        break;
+                    case 1:
+                        stateInit = Matrix.Translation(0.5f, 4.5f, 0.0f);
+                        break;
+                    case 2:
+                        stateInit = Matrix.Translation(1.0f, 6.0f, 0.0f);
+                        break;
+                }
+
+                Cubes[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new MeshMaterial
                 {
                     Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                     Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                     Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                     Shininess = 8
-                });
+                }), BoxCollider.CreateDynamic(0.5f, 0.5f, 0.5f, 1, stateInit));
             }
-
-            Cubes[0].State.Column3 = new Vector4(0.0f, 3.0f, 0.0f, 1.0f);
-            Cubes[1].State.Column3 = new Vector4(0.5f, 4.5f, 0.0f, 1.0f);
-            Cubes[2].State.Column3 = new Vector4(1.0f, 6.0f, 0.0f, 1.0f);
 
             Ground = Primitives.Cube(5, 0.2f, 5, new MeshMaterial
             {
@@ -358,13 +371,13 @@ namespace Graphics
                                     for (int j = 0; j < MB[i].N; j++)
                                     {
                                         MB[i].Links[j].Model = linkModel.ShallowCopy();
-                                        MB[i].Links[j].Collider = new CylinderCollider(0.15f, 0, 1, 20);
+                                        MB[i].Links[j].Collider = CylinderCollider.CreateKinematic(0.15f, 0, 1, 20);
                                         MB[i].Joints[j].Model = jointModel.ShallowCopy();
-                                        MB[i].Joints[j].Collider = new SphereCollider(0.2f, 20, 20);
+                                        MB[i].Joints[j].Collider = SphereCollider.CreateKinematic(0.2f, 20, 20);
                                     }
 
                                     MB[i].Joints[MB[i].N].Model = gripperModel;
-                                    MB[i].Joints[MB[i].N].Collider = new SphereCollider(0.2f, 20, 20);
+                                    MB[i].Joints[MB[i].N].Collider = SphereCollider.CreateKinematic(0.2f, 20, 20);
                                 }
 
                                 //Crytek = new Model(InputHandler.NanosuitPath);
@@ -612,7 +625,7 @@ namespace Graphics
             Util.CheckGLError("End of frame");
         }
 
-        private OpenTK.Matrix4 Convert(BulletSharp.Math.Matrix m)
+        private OpenTK.Matrix4 Convert(Matrix m)
         {
             return OpenTK.Matrix4.Transpose(new OpenTK.Matrix4(
                 m.M11, m.M12, m.M13, m.M14,
@@ -634,12 +647,12 @@ namespace Graphics
                     new CollisionCallback(monitoredBody, context));
 
             // process physics
-            foreach (RigidBody body in PhysicsHandler.World.CollisionObjectArray)
-            {
-                if (!"Ground".Equals(body.UserObject) && 
-                    (body.WorldArrayIndex == 1 || body.WorldArrayIndex == 2 || body.WorldArrayIndex == 3))
-                    Cubes[body.UserIndex].State = Convert(body.WorldTransform);
-            }
+            //foreach (RigidBody body in PhysicsHandler.World.CollisionObjectArray)
+            //{
+            //    if (!"Ground".Equals(body.UserObject) &&
+            //        (body.WorldArrayIndex == 1 || body.WorldArrayIndex == 2 || body.WorldArrayIndex == 3))
+            //        Cubes[body.UserIndex].State = Convert(body.WorldTransform);
+            //}
 
             // check to see if the window is focused
             if (!Focused)  // TODO: this may cause weird things when window is minimized; check

@@ -29,32 +29,32 @@ namespace Physics
             CollisionObject ground = CreateStaticBody(Matrix.Identity, groundShape);
             ground.UserObject = "Ground";
 
-            // create a few dynamic rigidbodies
-            var colShape = new BoxShape(0.5f);
-            _collisionShapes.Add(colShape);
+            //// create a few dynamic rigidbodies
+            //var colShape = new BoxShape(0.5f);
+            //_collisionShapes.Add(colShape);
 
-            float mass = 1.0f;
-            Vector3 localInertia = colShape.CalculateLocalInertia(mass);
+            //float mass = 1.0f;
+            //Vector3 localInertia = colShape.CalculateLocalInertia(mass);
 
-            using (var rbInfo = new RigidBodyConstructionInfo(mass, null, colShape, localInertia))
-            {
-                // using motionstate is recommended, it provides interpolation capabilities
-                // and only synchronizes 'active' objects
-                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0.0f, 3.0f, 0.0f)));
-                var body = new RigidBody(rbInfo);
-                body.UserIndex = 0;
-                World.AddRigidBody(body);
+            //using (var rbInfo = new RigidBodyConstructionInfo(mass, null, colShape, localInertia))
+            //{
+            //    // using motionstate is recommended, it provides interpolation capabilities
+            //    // and only synchronizes 'active' objects
+            //    rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0.0f, 3.0f, 0.0f)));
+            //    var body = new RigidBody(rbInfo);
+            //    body.UserIndex = 0;
+            //    World.AddRigidBody(body);
 
-                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0.5f, 4.5f, 0.0f)));
-                body = new RigidBody(rbInfo);
-                body.UserIndex = 1;
-                World.AddRigidBody(body);
+            //    rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(0.5f, 4.5f, 0.0f)));
+            //    body = new RigidBody(rbInfo);
+            //    body.UserIndex = 1;
+            //    World.AddRigidBody(body);
 
-                rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(1.0f, 6.0f, 0.0f)));
-                body = new RigidBody(rbInfo);
-                body.UserIndex = 2;
-                World.AddRigidBody(body);
-            }
+            //    rbInfo.MotionState = new DefaultMotionState(Matrix.Translation(new Vector3(1.0f, 6.0f, 0.0f)));
+            //    body = new RigidBody(rbInfo);
+            //    body.UserIndex = 2;
+            //    World.AddRigidBody(body);
+            //}
         }
 
         public static void Update(float elapsedTime)

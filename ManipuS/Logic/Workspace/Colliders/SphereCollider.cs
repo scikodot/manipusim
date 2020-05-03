@@ -3,27 +3,55 @@ using System.Numerics;
 
 using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
 using Physics;
+
+using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
     class SphereCollider : ICollidable
     {
-        private float _radius;
+        private readonly float _radius;
 
         public Model Model { get; }
-        public RigidBody Body { get; }
+        public RigidBody Body { get; private set; }
 
-        public SphereCollider(float radius, uint stackCount, uint sectorCount)
+        private SphereCollider(float radius, uint stackCount, uint sectorCount, out Matrix state, out SphereShape bodyShape)
         {
             Model = Primitives.Sphere(radius, stackCount, sectorCount, MeshMaterial.Green);
 
-            // create a rigid body
-            Body = PhysicsHandler.CreateStaticBody(BulletSharp.Math.Matrix.Identity, new SphereShape(radius));
+            state = Matrix.Identity;
+
+            bodyShape = new SphereShape(radius);
 
             _radius = radius;
+        }
+
+        public static SphereCollider CreateStatic(float radius, uint stackCount, uint sectorCount)
+        {
+            return new SphereCollider(radius, stackCount, sectorCount, out Matrix state, out SphereShape bodyShape)
+            {
+                Body = PhysicsHandler.CreateStaticBody(state, bodyShape)
+            };
+        }
+
+        public static SphereCollider CreateKinematic(float radius, uint stackCount, uint sectorCount)
+        {
+            return new SphereCollider(radius, stackCount, sectorCount, out Matrix state, out SphereShape bodyShape)
+            {
+                Body = PhysicsHandler.CreateKinematicBody(state, bodyShape)
+            };
+        }
+
+        public static SphereCollider CreateDynamic(float radius, uint stackCount, uint sectorCount, float mass)
+        {
+            return new SphereCollider(radius, stackCount, sectorCount, out Matrix state, out SphereShape bodyShape)
+            {
+                Body = PhysicsHandler.CreateDynamicBody(mass, state, bodyShape)
+            };
         }
 
         public bool Contains(Vector3 point)
