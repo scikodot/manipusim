@@ -63,7 +63,7 @@ namespace Graphics
         public static Vector2 pointScreen;
 
         private Obstacle[] Cubes;
-        private Model Ground;
+        private Obstacle Ground;
         private Obstacle Sphere;
         private Obstacle Cylinder;
 
@@ -133,16 +133,16 @@ namespace Graphics
                     Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                     Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                     Shininess = 8
-                }), Collider.Create(PhysicsHandler.CreateDynamicBody(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit)));
+                }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
             }
 
-            Ground = Primitives.Cube(5, 0.2f, 5, new MeshMaterial
+            Ground = new Obstacle(Primitives.Cube(5, 0.2f, 5, new MeshMaterial
             {
                 Ambient = new Vector4(0.02f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.0f, 0.6f, 0.8f, 1.0f),
                 Specular = new Vector4(0.5f, 0.1f, 0.0f, 1.0f),
                 Shininess = 8
-            });
+            }), PhysicsHandler.CreateStaticCollider(new BoxShape(5, 0.2f, 5)));
 
             Sphere = new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
             {
@@ -150,7 +150,7 @@ namespace Graphics
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                 Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
-            }), Collider.Create(PhysicsHandler.CreateDynamicBody(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3))));
+            }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3)));
 
             Cylinder = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
             {
@@ -158,7 +158,12 @@ namespace Graphics
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                 Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
-            }), Collider.Create(PhysicsHandler.CreateStaticBody(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(3, 4, -3))));
+            }), PhysicsHandler.CreateStaticCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(3, 4, -3)));
+
+            ObstacleHandler.Add(Cubes);
+            ObstacleHandler.Add(Ground);
+            ObstacleHandler.Add(Sphere);
+            ObstacleHandler.Add(Cylinder);
 
             base.OnLoad(e);
         }
@@ -211,21 +216,23 @@ namespace Graphics
             //    GL.PointSize(1);
             //});
 
-            foreach (var cube in Cubes)
-            {
-                cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
-            }
+            ObstacleHandler.RenderAll(ShaderHandler.ComplexShader);
 
-            Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
+            //foreach (var cube in Cubes)
+            //{
+            //    cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
+            //}
 
-            Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
+            //Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
 
-            Cylinder.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
+            //Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
+
+            //Cylinder.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
 
             if (ManipLoaded)
             {
                 // render obstacles
-                foreach (var obstacle in Manager.Obstacles)
+                foreach (var obstacle in ObstacleHandler.Obstacles)
                 {
                     obstacle.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
                 }
@@ -367,13 +374,13 @@ namespace Graphics
                                     for (int j = 0; j < MB[i].N; j++)
                                     {
                                         MB[i].Links[j].Model = linkModel.ShallowCopy();
-                                        MB[i].Links[j].Collider = Collider.Create(PhysicsHandler.CreateKinematicBody(new CylinderShape(0.15f, 0.15f, 1)));
+                                        MB[i].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 1, 0.15f));
                                         MB[i].Joints[j].Model = jointModel.ShallowCopy();
-                                        MB[i].Joints[j].Collider = Collider.Create(PhysicsHandler.CreateKinematicBody(new SphereShape(0.2f)));
+                                        MB[i].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
                                     }
 
                                     MB[i].Joints[MB[i].N].Model = gripperModel;
-                                    MB[i].Joints[MB[i].N].Collider = Collider.Create(PhysicsHandler.CreateKinematicBody(new SphereShape(0.2f)));
+                                    MB[i].Joints[MB[i].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
                                 }
 
                                 //Crytek = new Model(InputHandler.NanosuitPath);
@@ -478,19 +485,16 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.25 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                if (Manager.Obstacles != null)
+                if (ObstacleHandler.Obstacles != null)
                 {
-                    for (int i = 0; i < Manager.Obstacles.Length; i++)
+                    for (int i = 0; i < ObstacleHandler.Count; i++)
                     {
-                        var obst = Manager.Obstacles[i];
+                        var obst = ObstacleHandler.Obstacles[i];
                         if (ImGui.TreeNode($"Obst {i}"))
                         {
-                            ImGui.Checkbox("Show collider", ref obst.ShowCollider/*WorkspaceBuffer.ObstBuffer[i].ShowCollider*/);
-
-                            ImGui.InputFloat("Radius", ref WorkspaceBuffer.ObstBuffer[i].Radius);
-                            ImGui.InputFloat3("Center", ref WorkspaceBuffer.ObstBuffer[i].Center);
-                            ImGui.InputInt("Points number", ref WorkspaceBuffer.ObstBuffer[i].PointsNum);
-                            ImGui.TreePop();
+                            ImGui.Checkbox("Show collider", ref obst.ShowCollider);
+                            ImGui.InputFloat3("Translation", ref obst.Translation);
+                            ImGui.InputFloat3("Scale", ref obst.Scale);
                         }
                     }
                 }
@@ -635,12 +639,12 @@ namespace Graphics
             // update physics controller
             PhysicsHandler.Update((float)e.Time);
 
-            var monitoredBody = (RigidBody)PhysicsHandler.World.CollisionObjectArray[0];
-            object context = "context";
-            PhysicsHandler.World.ContactPairTest(
-                    PhysicsHandler.World.CollisionObjectArray[1],
-                    PhysicsHandler.World.CollisionObjectArray[0],
-                    new CollisionCallback(monitoredBody, context));
+            //var monitoredBody = (RigidBody)PhysicsHandler.World.CollisionObjectArray[0];
+            //object context = "context";
+            //PhysicsHandler.World.ContactPairTest(
+            //        PhysicsHandler.World.CollisionObjectArray[1],
+            //        PhysicsHandler.World.CollisionObjectArray[0],
+            //        new CollisionCallback(monitoredBody, context));
 
             // process physics
             //foreach (RigidBody body in PhysicsHandler.World.CollisionObjectArray)
@@ -682,9 +686,11 @@ namespace Graphics
 
                 if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
                 {
-                    Manager.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
+                    ObstacleHandler.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
 
-                    var center = Manager.Obstacles[0].Collider.Body.CenterOfMassPosition;
+                    var center = ObstacleHandler.Obstacles[0].Collider.Body.CenterOfMassPosition;
+                    Console.SetCursorPosition(0, 10);
+                    Console.WriteLine("Center: ({0}, {1}, {2})", center.X, center.Y, center.Z);
                     //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
                     //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
                 }

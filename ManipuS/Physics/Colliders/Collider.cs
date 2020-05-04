@@ -1,12 +1,12 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
 
 using Graphics;
-using Physics;
 
-namespace Logic
+namespace Physics
 {
     public enum ColliderShape
     {
@@ -14,12 +14,14 @@ namespace Logic
         Sphere
     }
 
-    public abstract class Collider  // TODO: make abstract and provide unified implementations for Render and UpdateState; see BoxCollider
+    public abstract class Collider : IDisposable
     {
         public Model Model { get; protected set; }
         public RigidBody Body { get; protected set; }
 
-        public CollisionCallback CollisionCallback;
+        public CollisionCallback CollisionCallback { get; }
+
+        public BroadphaseNativeType Shape => Body.CollisionShape.ShapeType;
 
         public static Collider Create(RigidBody body)
         {
@@ -75,6 +77,16 @@ namespace Logic
         {
             //physics.World.ContactPairTest(Body, other.Body, CollisionCallback);
             return CollisionCallback.CollisionTest(Body, other.Body);
+        }
+
+        public void Dispose()
+        {
+            // clear managed resources
+            Model.Dispose();
+            Body.DisposeFromWorld();
+
+            // suppress finalization
+            GC.SuppressFinalize(this);
         }
     }
 }

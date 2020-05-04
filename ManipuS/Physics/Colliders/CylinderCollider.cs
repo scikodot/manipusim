@@ -1,17 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
 
 using BulletSharp;
-using BulletSharp.Math;
-using OpenTK.Graphics.OpenGL4;
 
 using Graphics;
-using Physics;
+using Logic;
 
 using Vector3 = System.Numerics.Vector3;
 
-namespace Logic
+namespace Physics
 {
     class CylinderCollider : Collider
     {
@@ -24,7 +20,7 @@ namespace Logic
             if (shape == null)
                 throw new ArgumentException("The body shape does not match the collider!", "body.CollisionShape");
 
-            Model = Primitives.Cylinder(shape.Radius, shape.HalfExtentsWithMargin.Z, shape.HalfExtentsWithMargin.Z, 20, MeshMaterial.Green);
+            Model = Primitives.Cylinder(shape.Radius, shape.HalfExtentsWithMargin.Y, shape.HalfExtentsWithMargin.Y, 20, MeshMaterial.Green);
             Body = body;
 
             _radius = shape.Radius;

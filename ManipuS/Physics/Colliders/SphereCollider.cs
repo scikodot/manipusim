@@ -3,10 +3,11 @@
 using BulletSharp;
 
 using Graphics;
+using Logic;
 
 using Vector3 = System.Numerics.Vector3;
 
-namespace Logic
+namespace Physics
 {
     class SphereCollider : Collider
     {

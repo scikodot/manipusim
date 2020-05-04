@@ -131,7 +131,8 @@
     <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
     <Compile Include="Logic\Math\Quaternions\DualQuat.cs" />
     <Compile Include="Logic\Math\Special\Ziggurat.cs" />
-    <Compile Include="Logic\Workspace\Colliders\CylinderCollider.cs" />
+    <Compile Include="Logic\Workspace\Obstacles\ObstacleHandler.cs" />
+    <Compile Include="Physics\Colliders\CylinderCollider.cs" />
     <Compile Include="Logic\Workspace\Joint.cs" />
     <Compile Include="Logic\Workspace\Link.cs" />
     <Compile Include="Logic\Workspace\Primitives.cs" />
@@ -146,9 +147,9 @@
     <Compile Include="Logic\Workspace\Obstacles\Obstacle.cs" />
     <Compile Include="Logic\Manager.cs" />
     <Compile Include="Logic\Helper.cs" />
-    <Compile Include="Logic\Workspace\Colliders\BoxCollider.cs" />
-    <Compile Include="Logic\Workspace\Colliders\SphereCollider.cs" />
-    <Compile Include="Logic\Workspace\Colliders\Collider.cs" />
+    <Compile Include="Physics\Colliders\BoxCollider.cs" />
+    <Compile Include="Physics\Colliders\SphereCollider.cs" />
+    <Compile Include="Physics\Colliders\Collider.cs" />
     <Compile Include="Physics\PhysicsHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

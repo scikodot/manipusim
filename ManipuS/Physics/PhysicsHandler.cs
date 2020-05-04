@@ -23,11 +23,11 @@ namespace Physics
             _broadphase = new DbvtBroadphase();
             World = new DiscreteDynamicsWorld(_dispatcher, _broadphase, null, _collisionConf);
 
-            // create the ground
-            var groundShape = new BoxShape(5, 0.125f, 5);
-            _collisionShapes.Add(groundShape);
-            CollisionObject ground = CreateStaticBody(groundShape, Matrix.Identity);
-            ground.UserObject = "Ground";
+            //// create the ground
+            //var groundShape = new BoxShape(5, 0.125f, 5);
+            //_collisionShapes.Add(groundShape);
+            //Collider ground = CreateStaticCollider(groundShape, Matrix.Identity);
+            //ground.Body.UserObject = "Ground";
 
             //// create a few dynamic rigidbodies
             //var colShape = new BoxShape(0.5f);
@@ -101,25 +101,39 @@ namespace Physics
             _collisionConf.Dispose();
         }
 
-        public static RigidBody CreateStaticBody(CollisionShape shape, Matrix startTransform = default)
+        public static void RemoveRigidBody(RigidBody body)
         {
-            Vector3 localInertia = Vector3.Zero;
-            return CreateBody(0, startTransform, shape, localInertia);
+            if (body != null && body.MotionState != null)
+            {
+                body.MotionState.Dispose();
+            }
+            World.RemoveRigidBody(body);
+            body.Dispose();
         }
 
-        public static RigidBody CreateKinematicBody(CollisionShape shape, Matrix startTransform = default)
+        public static Collider CreateStaticCollider(CollisionShape shape, Matrix startTransform = default)
         {
             Vector3 localInertia = Vector3.Zero;
-            var body = CreateBody(0, startTransform, shape, localInertia);
+            RigidBody body = CreateBody(0, startTransform, shape, localInertia);
+            return Collider.Create(body);
+        }
+
+        public static Collider CreateKinematicCollider(CollisionShape shape, Matrix startTransform = default)
+        {
+            Vector3 localInertia = Vector3.Zero;
+            RigidBody body = CreateBody(0, startTransform, shape, localInertia);
+
             body.CollisionFlags = CollisionFlags.KinematicObject;
             body.ActivationState = ActivationState.DisableDeactivation;
-            return body;
+
+            return Collider.Create(body);
         }
 
-        public static RigidBody CreateDynamicBody(CollisionShape shape, float mass, Matrix startTransform = default)
+        public static Collider CreateDynamicCollider(CollisionShape shape, float mass, Matrix startTransform = default)
         {
             Vector3 localInertia = shape.CalculateLocalInertia(mass);
-            return CreateBody(mass, startTransform, shape, localInertia);
+            RigidBody body = CreateBody(mass, startTransform, shape, localInertia);
+            return Collider.Create(body);
         }
 
         private static RigidBody CreateBody(float mass, Matrix startTransform, CollisionShape shape, Vector3 localInertia)

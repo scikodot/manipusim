@@ -13,7 +13,6 @@ namespace Logic
     class Manager
     {
         public static Manipulator[] Manipulators;
-        public static Obstacle[] Obstacles;
 
         public static void Initialize()
         {
@@ -25,7 +24,7 @@ namespace Logic
             var PB = WorkspaceBuffer.PathPlanningBuffer;
 
             // obstacles
-            Obstacles = new Obstacle[OB.Length];
+            //Obstacles = new Obstacle[OB.Length];
             for (int i = 0; i < OB.Length; i++)
             {
                 //Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
@@ -44,13 +43,13 @@ namespace Logic
                 //    Shininess = 8
                 //}), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
 
-                Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
-                {
-                    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                    Shininess = 8
-                }), Collider.Create(PhysicsHandler.CreateKinematicBody(new CylinderShape(0.25f, 0.25f, 1), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z))));
+                //Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
+                //{
+                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                //    Shininess = 8
+                //}), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z)));
 
                 //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }
@@ -82,7 +81,7 @@ namespace Logic
                         break;
                 }
 
-                Manipulators[i].Controller = new MotionController(Obstacles, Manipulators[i], planner, solver, 
+                Manipulators[i].Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), Manipulators[i], planner, solver, 
                     new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime), 2 * PB.d);
 
                 var manip = Manipulators[i];
@@ -111,7 +110,7 @@ namespace Logic
 
                     // checking whether the attractor is inside any obstacle or not
                     bool collision = false;
-                    foreach (var obst in Obstacles)
+                    foreach (var obst in ObstacleHandler.Obstacles)
                     {
                         if (obst.Contains(point))
                         {

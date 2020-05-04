@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BulletSharp;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -132,5 +133,13 @@ public static class Vector3Extensions
     public static Vector3 Sum(this IEnumerable<Vector3> source)
     {
         return source.Aggregate((x, y) => x + y);
+    }
+}
+
+public static class RigidBodyExtensions
+{
+    public static void DisposeFromWorld(this RigidBody body)
+    {
+        Physics.PhysicsHandler.RemoveRigidBody(body);
     }
 }
