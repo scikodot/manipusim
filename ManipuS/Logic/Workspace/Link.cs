@@ -7,7 +7,7 @@ namespace Logic
     public struct LinkData
     {
         public Model Model;
-        public ICollidable Collider;
+        public Collider Collider;
 
         public float Length;
     }
@@ -15,7 +15,7 @@ namespace Logic
     public class Link
     {
         public Model Model { get; }
-        public ICollidable Collider { get; }
+        public Collider Collider { get; }
 
         public float Length;  // TODO: must be names Size or something like that; Length is not suitable
 

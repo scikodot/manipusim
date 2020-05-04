@@ -26,7 +26,7 @@ namespace Physics
             // create the ground
             var groundShape = new BoxShape(5, 0.125f, 5);
             _collisionShapes.Add(groundShape);
-            CollisionObject ground = CreateStaticBody(Matrix.Identity, groundShape);
+            CollisionObject ground = CreateStaticBody(groundShape, Matrix.Identity);
             ground.UserObject = "Ground";
 
             //// create a few dynamic rigidbodies
@@ -101,13 +101,13 @@ namespace Physics
             _collisionConf.Dispose();
         }
 
-        public static RigidBody CreateStaticBody(Matrix startTransform, CollisionShape shape)
+        public static RigidBody CreateStaticBody(CollisionShape shape, Matrix startTransform = default)
         {
             Vector3 localInertia = Vector3.Zero;
             return CreateBody(0, startTransform, shape, localInertia);
         }
 
-        public static RigidBody CreateKinematicBody(Matrix startTransform, CollisionShape shape)
+        public static RigidBody CreateKinematicBody(CollisionShape shape, Matrix startTransform = default)
         {
             Vector3 localInertia = Vector3.Zero;
             var body = CreateBody(0, startTransform, shape, localInertia);
@@ -116,7 +116,7 @@ namespace Physics
             return body;
         }
 
-        public static RigidBody CreateDynamicBody(float mass, Matrix startTransform, CollisionShape shape)
+        public static RigidBody CreateDynamicBody(CollisionShape shape, float mass, Matrix startTransform = default)
         {
             Vector3 localInertia = shape.CalculateLocalInertia(mass);
             return CreateBody(mass, startTransform, shape, localInertia);
@@ -124,7 +124,7 @@ namespace Physics
 
         private static RigidBody CreateBody(float mass, Matrix startTransform, CollisionShape shape, Vector3 localInertia)
         {
-            var motionState = new DefaultMotionState(startTransform);
+            var motionState = new DefaultMotionState(startTransform == default ? Matrix.Identity : startTransform);
             using (var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia))
             {
                 var body = new RigidBody(rbInfo);

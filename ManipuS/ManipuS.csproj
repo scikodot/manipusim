@@ -148,7 +148,7 @@
     <Compile Include="Logic\Helper.cs" />
     <Compile Include="Logic\Workspace\Colliders\BoxCollider.cs" />
     <Compile Include="Logic\Workspace\Colliders\SphereCollider.cs" />
-    <Compile Include="Logic\Workspace\Colliders\_base.cs" />
+    <Compile Include="Logic\Workspace\Colliders\Collider.cs" />
     <Compile Include="Physics\PhysicsHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

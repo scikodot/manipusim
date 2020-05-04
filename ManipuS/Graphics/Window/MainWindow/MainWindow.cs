@@ -64,8 +64,8 @@ namespace Graphics
 
         private Obstacle[] Cubes;
         private Model Ground;
-        private Model Sphere;
-        private Model Cylinder;
+        private Obstacle Sphere;
+        private Obstacle Cylinder;
 
         public static Thread MainThread = Thread.CurrentThread;
 
@@ -133,7 +133,7 @@ namespace Graphics
                     Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                     Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                     Shininess = 8
-                }), BoxCollider.CreateDynamic(0.5f, 0.5f, 0.5f, 1, stateInit));
+                }), Collider.Create(PhysicsHandler.CreateDynamicBody(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit)));
             }
 
             Ground = Primitives.Cube(5, 0.2f, 5, new MeshMaterial
@@ -144,25 +144,21 @@ namespace Graphics
                 Shininess = 8
             });
 
-            Sphere = Primitives.Sphere(1, 100, 100, new MeshMaterial
+            Sphere = new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
             {
                 Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                 Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
-            });
+            }), Collider.Create(PhysicsHandler.CreateDynamicBody(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3))));
 
-            Sphere.State.Column3 = new Vector4(-3, 3, -3, 1);
-
-            Cylinder = Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            Cylinder = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
             {
                 Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                 Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
-            });
-
-            Cylinder.State.Column3 = new Vector4(3, 4, -3, 1);
+            }), Collider.Create(PhysicsHandler.CreateStaticBody(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(3, 4, -3))));
 
             base.OnLoad(e);
         }
@@ -222,7 +218,7 @@ namespace Graphics
 
             Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
 
-            //Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
+            Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
 
             Cylinder.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
 
@@ -371,13 +367,13 @@ namespace Graphics
                                     for (int j = 0; j < MB[i].N; j++)
                                     {
                                         MB[i].Links[j].Model = linkModel.ShallowCopy();
-                                        MB[i].Links[j].Collider = CylinderCollider.CreateKinematic(0.15f, 0, 1, 20);
+                                        MB[i].Links[j].Collider = Collider.Create(PhysicsHandler.CreateKinematicBody(new CylinderShape(0.15f, 0.15f, 1)));
                                         MB[i].Joints[j].Model = jointModel.ShallowCopy();
-                                        MB[i].Joints[j].Collider = SphereCollider.CreateKinematic(0.2f, 20, 20);
+                                        MB[i].Joints[j].Collider = Collider.Create(PhysicsHandler.CreateKinematicBody(new SphereShape(0.2f)));
                                     }
 
                                     MB[i].Joints[MB[i].N].Model = gripperModel;
-                                    MB[i].Joints[MB[i].N].Collider = SphereCollider.CreateKinematic(0.2f, 20, 20);
+                                    MB[i].Joints[MB[i].N].Collider = Collider.Create(PhysicsHandler.CreateKinematicBody(new SphereShape(0.2f)));
                                 }
 
                                 //Crytek = new Model(InputHandler.NanosuitPath);

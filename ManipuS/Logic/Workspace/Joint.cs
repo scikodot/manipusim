@@ -17,7 +17,7 @@ namespace Logic
     public struct JointData
     {
         public Model Model;
-        public ICollidable Collider;
+        public Collider Collider;
 
         public float Length;
         public float q;
@@ -27,7 +27,7 @@ namespace Logic
     public class Joint
     {
         public Model Model { get; }
-        public ICollidable Collider { get; }
+        public Collider Collider { get; }
 
         public float Length;
 

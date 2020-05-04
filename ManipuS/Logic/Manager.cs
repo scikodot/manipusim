@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using BulletSharp;
 using BulletSharp.Math;
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
-
+using Physics;
 using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
@@ -43,13 +44,13 @@ namespace Logic
                 //    Shininess = 8
                 //}), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
 
-                //Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
-                //{
-                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                //    Shininess = 8
-                //}), CylinderCollider.CreateKinematic(0.25f, 1, 1, 50), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z));
+                Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
+                {
+                    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                    Shininess = 8
+                }), Collider.Create(PhysicsHandler.CreateKinematicBody(new CylinderShape(0.25f, 0.25f, 1), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z))));
 
                 //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
             }

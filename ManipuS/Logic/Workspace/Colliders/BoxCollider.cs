@@ -1,57 +1,31 @@
-﻿using System.Numerics;
+﻿using System;
 
-using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
-using BulletSharp.Math;
 
 using Graphics;
-using Physics;
 
 using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
-    class BoxCollider : ICollidable
+    public class BoxCollider : Collider
     {
         private Vector3 _size;
 
-        public Model Model { get; }
-        public RigidBody Body { get; private set; }
-
-        public BoxCollider(float halfX, float halfY, float halfZ, ref Matrix state, out BoxShape bodyShape)
+        public BoxCollider(RigidBody body)
         {
-            Model = Primitives.Cube(halfX, halfY, halfZ, MeshMaterial.Green);
+            var shape = (BoxShape)body.CollisionShape;
 
-            bodyShape = new BoxShape(halfX, halfY, halfZ);
+            if (shape == null)
+                throw new ArgumentException("The body shape does not match the collider!", "body.CollisionShape");
 
-            _size = 2 * new Vector3(halfX, halfY, halfZ);
+            Model = Primitives.Cube(shape.HalfExtentsWithMargin.X, shape.HalfExtentsWithMargin.Y, shape.HalfExtentsWithMargin.Z, MeshMaterial.Green);
+            Body = body;
+
+            _size = new Vector3(shape.HalfExtentsWithMargin.X, shape.HalfExtentsWithMargin.Y, shape.HalfExtentsWithMargin.Z);
         }
 
-        public static BoxCollider CreateStatic(float halfX, float halfY, float halfZ, Matrix state)
-        {
-            return new BoxCollider(halfX, halfY, halfZ, ref state, out BoxShape bodyShape)
-            {
-                Body = PhysicsHandler.CreateStaticBody(state, bodyShape)
-            };
-        }
-
-        public static BoxCollider CreateKinematic(float halfX, float halfY, float halfZ, Matrix state)
-        {
-            return new BoxCollider(halfX, halfY, halfZ, ref state, out BoxShape bodyShape)
-            {
-                Body = PhysicsHandler.CreateKinematicBody(state, bodyShape)
-            };
-        }
-
-        public static BoxCollider CreateDynamic(float halfX, float halfY, float halfZ, float mass, Matrix state)
-        {
-            return new BoxCollider(halfX, halfY, halfZ, ref state, out BoxShape bodyShape)
-            {
-                Body = PhysicsHandler.CreateDynamicBody(mass, state, bodyShape)
-            };
-        }
-
-        public bool Contains(Vector3 point)
+        public override bool Contains(Vector3 point)
         {
             var center = Body.CenterOfMassPosition;
             return point.X >= center.X - _size.X && point.X <= center.X + _size.X &&
@@ -59,7 +33,7 @@ namespace Logic
                    point.Z >= center.Z - _size.Z && point.Z <= center.Z + _size.Z;
         }
 
-        public Vector3 Extrude(Vector3 point)  // TODO: this method behaves weirdly; repair
+        public override Vector3 Extrude(Vector3 point)  // TODO: this method behaves weirdly; repair
         {
             var center = Body.CenterOfMassPosition;
             Vector3 vec = point - new Vector3(center.X, center.Y, center.Z);
@@ -91,29 +65,6 @@ namespace Logic
             }
 
             return vec * ratio;
-        }
-
-        public void Render(Shader shader)  // TODO: perhaps make methods Render and UpdateState unified? this can be achieved with the abstract class
-        {
-            Model.Render(shader, MeshMode.Solid, () =>
-            {
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                GL.DrawElements(BeginMode.Triangles, Model.Meshes[0].Indices.Length, DrawElementsType.UnsignedInt, 0);
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-            });
-        }
-
-        public void UpdateState(ref OpenTK.Matrix4 state)
-        {
-            Model.State = state;
-
-            var stateMatrix = new BulletSharp.Math.Matrix(
-                state.M11, state.M12, state.M13, state.M14,
-                state.M21, state.M22, state.M23, state.M24,
-                state.M31, state.M32, state.M33, state.M34,
-                state.M41, state.M42, state.M43, state.M44);
-            stateMatrix.Transpose();
-            Body.MotionState.SetWorldTransform(ref stateMatrix);
         }
     }
 }

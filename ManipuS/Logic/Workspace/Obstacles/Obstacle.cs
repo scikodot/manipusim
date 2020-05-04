@@ -5,7 +5,7 @@ using BulletSharp;
 using BulletSharp.Math;
 
 using Graphics;
-
+using Physics;
 using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
@@ -28,7 +28,7 @@ namespace Logic
     public class Obstacle
     {
         public Model Model { get; }
-        public ICollidable Collider { get; }
+        public Collider Collider { get; }
 
         public Matrix State
         {
@@ -46,7 +46,7 @@ namespace Logic
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
 
-        public Obstacle(Model model, ICollidable collider)  // TODO: check collider for null; in that case, the obstacle may not participate in collision checks
+        public Obstacle(Model model, Collider collider)  // TODO: check collider for null; in that case, the obstacle may not participate in collision checks
         {
             Model = model;
             Collider = collider;
