@@ -128,6 +128,32 @@ namespace Graphics
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
         }
 
+        public void UpdateVertices(uint offset, int size, MeshVertex[] vertices)
+        {
+            var stride = Marshal.SizeOf<MeshVertex>();  // TODO: move stride to static variable in struct!
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+
+            GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(offset * stride), size * stride, vertices);
+
+            //if (vertices != null)
+            //    GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(offset * stride), size * stride, vertices);
+            //else
+            //    GL.InvalidateBufferSubData(EBO, (IntPtr)(offset * stride), size * stride);
+        }
+
+        public void UpdateIndices(uint offset, int size, uint[] indices)
+        {
+            var stride = sizeof(uint);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
+
+            GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * stride), size * stride, indices);
+
+            //if (indices != null)
+            //    GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * stride), size * stride, indices);
+            //else
+            //    GL.InvalidateBufferSubData(EBO, (IntPtr)(offset * stride), size * stride);
+        }
+
         public void Render(Shader shader, MeshMode mode, Action render)
         {
             GL.BindVertexArray(VAO);

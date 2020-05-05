@@ -34,7 +34,7 @@ namespace Logic.PathPlanning
                 if (i % period == 0 && i != 0)
                     agent.Tree.Trim(Obstacles, contestant, Solver);
 
-                // generating normally distributed value with Box-Muller transform
+                // generating normally distributed value
                 float num = RandomThreadStatic.NextGaussian(attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
 
                 // extracting the index of the most relevant attractor
@@ -98,8 +98,8 @@ namespace Logic.PathPlanning
                 }
 
                 // stopping in case the main attractor has been hit
-                if (attractors[0].InliersCount != 0)
-                    break;
+                //if (attractors[0].InliersCount != 0)
+                //    break;
             }
 
             // retrieving resultant path along with respective configurations

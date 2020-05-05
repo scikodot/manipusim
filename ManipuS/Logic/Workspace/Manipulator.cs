@@ -42,6 +42,8 @@ namespace Logic
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
 
+        public bool IsOriginal { get; private set; }
+
         public Manipulator(ManipData data)
         {
             Base = data.JointPositions[0];
@@ -58,6 +60,8 @@ namespace Logic
             }
 
             _q = new Vector(Joints.Select(x => x.q).ToArray());
+
+            IsOriginal = true;
 
             UpdateState();
 
@@ -88,26 +92,31 @@ namespace Logic
 
                 quat *= ImpDualQuat.Align(Joints[0].Axis, InitialAxes[i]);
 
-                Joints[i].UpdateState(ref quat);
+                // update physics and graphics only if the current manipulator is the real one
+                if (IsOriginal)
+                    Joints[i].UpdateState(ref quat);
 
                 Joints[i].Axis = quat.Rotate(Joints[0].Axis);
                 Joints[i].Position = DKP[i] = quat.Translation;
             }
 
             // links
-            for (int i = 0; i < Links.Length; i++)
+            if (IsOriginal)
             {
-                quat = init;
-
-                for (int j = 0; j <= i; j++)
+                for (int i = 0; i < Links.Length; i++)
                 {
-                    quat *= j == 0 ?
-                        new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY) :
-                        new ImpDualQuat(InitialPositions[j] - InitialPositions[j - 1]);
-                    quat *= new ImpDualQuat(quat.Conjugate, InitialAxes[j], quat.Translation, Joints[j].Position, -Joints[j].q);
-                }
+                    quat = init;
 
-                Links[i].UpdateState(ref quat);
+                    for (int j = 0; j <= i; j++)
+                    {
+                        quat *= j == 0 ?
+                            new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY) :
+                            new ImpDualQuat(InitialPositions[j] - InitialPositions[j - 1]);
+                        quat *= new ImpDualQuat(quat.Conjugate, InitialAxes[j], quat.Translation, Joints[j].Position, -Joints[j].q);
+                    }
+
+                    Links[i].UpdateState(ref quat);
+                }
             }
 
             // gripper
@@ -144,7 +153,7 @@ namespace Logic
 
         public void Render(Shader shader)
         {
-            if (Configs != null)
+            if (Configs != null)  // TODO: move to UpdateFrame() !!!
                 q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
 
             shader.Use();
@@ -171,6 +180,10 @@ namespace Logic
 
             if (Path != null)
                 manip.Path = new List<Vector3>(Path);
+
+            manip.IsOriginal = false;
+
+            // TODO: clone colliders!
 
             return manip;
         }

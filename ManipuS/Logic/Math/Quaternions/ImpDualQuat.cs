@@ -178,6 +178,39 @@ namespace Logic
                 );
         }
 
+        public BulletSharp.Math.Matrix ToBulletMatrix(bool transpose = false)
+        {
+            float w = Real.W, w2 = Real.W * Real.W;
+            float x = Real.X, x2 = Real.X * Real.X;
+            float y = Real.Y, y2 = Real.Y * Real.Y;
+            float z = Real.Z, z2 = Real.Z * Real.Z;
+
+            var rxx = w2 + x2 - y2 - z2;
+            var rxy = 2 * x * y - 2 * w * z;
+            var rxz = 2 * x * z + 2 * w * y;
+            var ryx = 2 * x * y + 2 * w * z;
+            var ryy = w2 - x2 + y2 - z2;
+            var ryz = 2 * y * z - 2 * w * x;
+            var rzx = 2 * x * z - 2 * w * y;
+            var rzy = 2 * y * z + 2 * w * x;
+            var rzz = w2 - x2 - y2 + z2;
+
+            if (!transpose)
+                return new BulletSharp.Math.Matrix(
+                    rxx, ryx, rzx, 0,
+                    rxy, ryy, rzy, 0,
+                    rxz, ryz, rzz, 0,
+                    Dual.X, Dual.Y, Dual.Z, 1
+                );
+            else
+                return new BulletSharp.Math.Matrix(
+                    rxx, rxy, rxz, Dual.X,
+                    ryx, ryy, ryz, Dual.Y,
+                    rzx, rzy, rzz, Dual.Z,
+                    0, 0, 0, 1
+                );
+        }
+
         public static ImpDualQuat operator +(ImpDualQuat q1, ImpDualQuat q2)
         {
             return new ImpDualQuat(q1.Real + q2.Real, q1.Dual + q2.Dual);

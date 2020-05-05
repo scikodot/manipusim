@@ -20,6 +20,8 @@ using BulletSharp;
 using System.Threading;
 using MathNet.Numerics;
 using BulletSharp.Math;
+using System.Runtime.InteropServices;
+using Logic.PathPlanning;
 
 namespace Graphics
 {
@@ -57,9 +59,10 @@ namespace Graphics
 
         // all the needed entities
         Model grid, gridFloor;
-        Model[] goal, path;
-
-        HashSet<Logic.PathPlanning.Tree.Node>[] tree;
+        Model[] goal, path;  // TODO: make single models, same as for Tree
+        Model TreeModel;
+        Queue<uint> FreeIndices = new Queue<uint>();
+        uint Top;
 
         public static float time = 0;
         public static bool forward;
@@ -78,6 +81,49 @@ namespace Graphics
         public static Thread MainThread = Thread.CurrentThread;
         public InteractionModes Mode = InteractionModes.Design;
 
+        public void AddNodes(List<Tree.Node> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                var point = node.Point;
+
+                // add the node to the vertex buffer
+                uint index = FreeIndices.Count == 0 ? Top++ : FreeIndices.Dequeue();
+                TreeModel.Meshes[0].UpdateVertices(index, 1, new MeshVertex[]
+                {
+                    new MeshVertex { Position = new Vector3(point.X, point.Y, point.Z) }
+                });
+
+                // memoize the index of the node for later use
+                node.ID = index;
+
+                if (node.Parent != null)
+                {
+                    // add new indices pair to the element buffer
+                    TreeModel.Meshes[0].UpdateIndices(2 * (node.ID - 1), 2, new uint[] { node.Parent.ID, node.ID });
+                }
+            }
+        }
+
+        public void RemoveNodes(List<Tree.Node> nodes)
+        {
+            // sort nodes list for later sequential fill
+            nodes = nodes.OrderBy(x => x.ID).ToList();
+
+            foreach (var node in nodes)
+            {
+                // remove the node from the vertex buffer
+                //TreeModel.Meshes[0].UpdateVertices(node.ID, 1, new MeshVertex[0]);
+
+                // add the freed index to the list
+                FreeIndices.Enqueue(node.ID);
+
+                // remove the indices pair from the element buffer by setting it to all-zero
+                // TODO: this may cause performance damage if indices do not avoid duplicating vertices; check!
+                TreeModel.Meshes[0].UpdateIndices(2 * (node.ID - 1), 2, new uint[2] { 0, 0 });
+            }
+        }
+
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
         {
@@ -86,6 +132,8 @@ namespace Graphics
 
         protected override void OnLoad(EventArgs e)
         {
+            TreeModel = new Model(new MeshVertex[10000], new uint[20000], MeshMaterial.Black);
+
             //var unptr = Assimp.Unmanaged.AssimpLibrary.Instance.ImportFile(JointPath, Assimp.PostProcessSteps.None, Assimp.Unmanaged.AssimpLibrary.Instance.CreatePropertyStore());
             //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
             //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.Triangulate);
@@ -218,12 +266,17 @@ namespace Graphics
 
             ShaderHandler.SetupShaders(_camera);
 
-            //pointMoveable.Render(ShaderHandler.GenericShader, () =>
+            //pointMoveable.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
             //{
             //    GL.PointSize(20);
             //    GL.DrawArrays(PrimitiveType.Points, 0, 1);
             //    GL.PointSize(1);
             //});
+
+            //var model = OpenTK.Matrix4.Identity;  //OpenTK.Matrix4.CreateTranslation(0, 2, 0);
+            //ShaderHandler.ComplexShader.SetMatrix4("model", ref model, false);
+            //ShaderHandler.ComplexShader.SetVector4("material.ambientCol", new Vector4(0.0f, 0.0f, 0.0f, 1.0f));  // TODO: add ref
+            //ShaderHandler.ComplexShader.SetVector4("material.diffuseCol", new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
 
             ObstacleHandler.RenderAll(ShaderHandler.ComplexShader);
 
@@ -237,6 +290,10 @@ namespace Graphics
             //Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
 
             //Cylinder.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
+
+            //ShaderHandler.GenericShader.Use();
+            //var model = OpenTK.Matrix4.Identity;
+            //ShaderHandler.GenericShader.SetMatrix4("model", ref model);
 
             if (ManipLoaded)
             {
@@ -276,18 +333,10 @@ namespace Graphics
                     // render tree
                     if (WorkspaceBuffer.ManipBuffer[i].ShowTree)
                     {
-                        foreach (var node in tree[i])  // TODO: node can become null; reason - Null in Add/Del buffers; inspect why!
-                                                       // this may be a problem with either thread communication, or queue extension,
-                                                       // because internally in tree no Null appears (tested on a single manipulator)
+                        TreeModel.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
                         {
-                            if (node.Model == default)
-                                node.Model = CreateTreeBranch(node.Point, node.Parent.Point);
-
-                            node.Model.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
-                            {
-                                GL.DrawArrays(PrimitiveType.LineStrip, 0, 2);
-                            });
-                        }
+                            GL.DrawElements(BeginMode.Lines, 2 * ((int)Top - 1), DrawElementsType.UnsignedInt, 0);
+                        });
                     }
                 }
             }
@@ -673,15 +722,6 @@ namespace Graphics
             Util.CheckGLError("End of frame");
         }
 
-        private OpenTK.Matrix4 Convert(Matrix m)
-        {
-            return OpenTK.Matrix4.Transpose(new OpenTK.Matrix4(
-                m.M11, m.M12, m.M13, m.M14,
-                m.M21, m.M22, m.M23, m.M24,
-                m.M31, m.M32, m.M33, m.M34,
-                m.M41, m.M42, m.M43, m.M44));
-        }
-
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             // update physics controller
@@ -772,20 +812,30 @@ namespace Graphics
                         if (manip.Tree != null)
                         {
                             // add all elements from addition buffer to the hash set
-                            if (manip.Tree.AddBuffer.Contains(null))
-                            {
-                                int a = 2;  // here, Null does not appear
-                            }
-                            tree[i].UnionWith(manip.Tree.AddBuffer.DequeueAll());
-                            if (manip.Tree.AddBuffer.Contains(null))
-                            {
-                                int a = 2;  // and here Null appears; 
-                                            // seems like AddBuffer loses reference while trimming the tree,
-                                            // though it's still not clear why; maybe finalization of a node?
-                            }
+                            //if (manip.Tree.AddBuffer.Contains(null))
+                            //{
+                            //    int a = 2;  // here, Null does not appear
+                            //}
+                            //var toAdd = manip.Tree.AddBuffer.DequeueAll();
+                            //tree[i].UnionWith(toAdd);
+
+                            //if (manip.Tree.AddBuffer.Contains(null))
+                            //{
+                            //    int a = 2;  // and here Null appears; 
+                            //                // seems like AddBuffer loses reference while trimming the tree,
+                            //                // though it's still not clear why; maybe finalization of a node?
+                            //}
 
                             // delete all elements contained in deletion buffer from the hash set
-                            tree[i].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
+                            //var toRemove = manip.Tree.DelBuffer.DequeueAll();
+                            //tree[i].ExceptWith(toRemove);
+
+                            var toAdd = manip.Tree.AddBuffer.DequeueAll().ToList();
+                            var toRemove = manip.Tree.DelBuffer.DequeueAll().ToList();
+
+                            // update tree state
+                            AddNodes(toAdd);
+                            RemoveNodes(toRemove);
                         }
                     }
 
@@ -889,22 +939,6 @@ namespace Graphics
             int manipCount = ManipHandler.Count;
             goal = new Model[manipCount];
             path = new Model[manipCount];
-            tree = new HashSet<Logic.PathPlanning.Tree.Node>[manipCount];
-            for (int i = 0; i < tree.Length; i++)
-            {
-                tree[i] = new HashSet<Logic.PathPlanning.Tree.Node>();
-            }
-        }
-
-        // some specific methods for better drawing organization
-        // TODO: move somewhere else
-        public static Model CreateTreeBranch(System.Numerics.Vector3 p1, System.Numerics.Vector3 p2)
-        {
-            return new Model(new MeshVertex[] 
-            { 
-                new MeshVertex { Position = new Vector3(p1.X, p1.Y, p1.Z) },
-                new MeshVertex { Position = new Vector3(p2.X, p2.Y, p2.Z) }
-            }, material: MeshMaterial.Black);
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

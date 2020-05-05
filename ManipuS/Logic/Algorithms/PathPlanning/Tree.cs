@@ -7,6 +7,7 @@ using System.Numerics;
 using Logic.InverseKinematics;
 
 using MoreLinq.Extensions;
+using ImGuiNET;
 
 namespace Logic.PathPlanning
 {
@@ -20,13 +21,12 @@ namespace Logic.PathPlanning
     {
         public class Node  // cannot be a struct, because cyclic references (Node Parent) are not supported by structs
         {
+            public uint ID;
             public Node Parent;
             public List<Node> Childs;
 
             public Vector3 Point;
             public Vector q;
-
-            public Graphics.Model Model;
 
             public Node(Node parent, Vector3 point, Vector q)
             {
@@ -50,17 +50,9 @@ namespace Logic.PathPlanning
                 unchecked
                 {
                     var hashCode = Point.X.GetHashCode();
-                    hashCode = (hashCode * 397) ^ Point.X.GetHashCode();
-                    hashCode = (hashCode * 397) ^ Point.X.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Point.Y.GetHashCode();
+                    hashCode = (hashCode * 397) ^ Point.Z.GetHashCode();
                     return hashCode;
-                }
-            }
-
-            ~Node()
-            {
-                if (Model != default)
-                {
-                    Dispatcher.RenderActions.Enqueue(Model.Dispose);
                 }
             }
         }
@@ -77,6 +69,8 @@ namespace Logic.PathPlanning
 
             AddBuffer = new ConcurrentQueue<Node>();
             DelBuffer = new ConcurrentQueue<Node>();
+
+            AddBuffer.Enqueue(root);
 
             Mode = mode;
         }

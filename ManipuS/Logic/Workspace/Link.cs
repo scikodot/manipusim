@@ -1,5 +1,5 @@
 ﻿using System;
-
+using BulletSharp.Math;
 using Graphics;
 using Physics;
 
@@ -20,7 +20,18 @@ namespace Logic
 
         public float Length;  // TODO: must be names Size or something like that; Length is not suitable
 
-        public ImpDualQuat State;
+        public Matrix State
+        {
+            get
+            {
+                Collider.Body.MotionState.GetWorldTransform(out Matrix state);
+                return state;
+            }
+            set
+            {
+                Collider.Body.MotionState.SetWorldTransform(ref value);
+            }
+        }
 
         public Link(LinkData data)
         {
@@ -45,11 +56,17 @@ namespace Logic
 
         public void UpdateState(ref ImpDualQuat state)
         {
-            State = state;
+            var stateMatrix = state.ToBulletMatrix();
+            State = stateMatrix;
 
-            OpenTK.Matrix4 stateMatrix = state.ToMatrix();
-            Model.State = stateMatrix;
-            Collider.UpdateState(ref stateMatrix);
+            OpenTK.Matrix4 stateMatrixOpenTK = new OpenTK.Matrix4(
+                stateMatrix.M11, stateMatrix.M21, stateMatrix.M31, stateMatrix.M41,
+                stateMatrix.M12, stateMatrix.M22, stateMatrix.M32, stateMatrix.M42,
+                stateMatrix.M13, stateMatrix.M23, stateMatrix.M33, stateMatrix.M43,
+                stateMatrix.M14, stateMatrix.M24, stateMatrix.M34, stateMatrix.M44);
+
+            Model.State = stateMatrixOpenTK;
+            Collider.UpdateState(ref stateMatrixOpenTK);
         }
     }
 }

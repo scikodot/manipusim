@@ -61,6 +61,7 @@ namespace Logic
                 try
                 {
                     // start measuring execution time
+                    Timer.Reset();
                     Timer.Start();
 
                     // turn the controller on
@@ -80,7 +81,7 @@ namespace Logic
                 finally
                 {
                     // stop measuring execution time
-                    Timer.Reset();
+                    Timer.Stop();
                 }
             });
         }
