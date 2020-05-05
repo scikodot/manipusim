@@ -10,54 +10,60 @@ using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
-    class Manager
+    public static class ManipHandler
     {
-        public static Manipulator[] Manipulators;
+        public static List<Manipulator> Manipulators { get; } = new List<Manipulator>();
+
+        public static int Count => Manipulators.Count;
+
+        public static void Add(Manipulator manipulator)
+        {
+            Manipulators.Add(manipulator);
+        }
+
+        public static void Remove(Manipulator manipulator)
+        {
+            // TODO: implement
+        }
 
         public static void Initialize()
         {
-            Random rng = new Random();
+            //Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
+            //{
+            //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
+
+            //Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
+            //{
+            //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
+
+            //Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
+            //{
+            //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z)));
+
+            //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
 
             var MB = WorkspaceBuffer.ManipBuffer;
-            var OB = WorkspaceBuffer.ObstBuffer;
             var IB = WorkspaceBuffer.InverseKinematicsBuffer;
             var PB = WorkspaceBuffer.PathPlanningBuffer;
 
-            // obstacles
-            //Obstacles = new Obstacle[OB.Length];
-            for (int i = 0; i < OB.Length; i++)
+            foreach (var mb in MB)
             {
-                //Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
-                //{
-                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                //    Shininess = 8
-                //}), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
+                var manip = new Manipulator(mb);
 
-                //Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
-                //{
-                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                //    Shininess = 8
-                //}), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
-
-                //Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
-                //{
-                //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                //    Shininess = 8
-                //}), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z)));
-
-                //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
-            }
-
-            Manipulators = new Manipulator[MB.Length];
-            for (int i = 0; i < MB.Length; i++)
-            {
-                Manipulators[i] = new Manipulator(MB[i]);
+                // add manipulators to the list
+                Manipulators.Add(manip);
 
                 IKSolver solver = default;
                 switch (IB.InverseKinematicsSolverID)
@@ -81,10 +87,19 @@ namespace Logic
                         break;
                 }
 
-                Manipulators[i].Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), Manipulators[i], planner, solver, 
+                manip.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manip, planner, solver, 
                     new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime), 2 * PB.d);
+            }            
+        }
 
-                var manip = Manipulators[i];
+        public static void CreateAttractors()
+        {
+            Random rng = new Random();
+
+            var PB = WorkspaceBuffer.PathPlanningBuffer;
+
+            foreach (var manip in Manipulators)
+            {
                 manip.Attractors = new List<Attractor>();
 
                 double work_radius = manip.WorkspaceRadius, x, yPos, y, zPos, z;
@@ -129,7 +144,7 @@ namespace Logic
                         manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
                     }
                 }
-            }            
+            }
         }
 
         public static void Plan(Manipulator manip)

@@ -8,10 +8,11 @@ using Graphics;
 
 namespace Physics
 {
-    public enum ColliderShape
+    public enum RigidBodyType
     {
-        Box,
-        Sphere
+        Static,
+        Kinematic,
+        Dynamic
     }
 
     public abstract class Collider : IDisposable
@@ -23,19 +24,37 @@ namespace Physics
 
         public BroadphaseNativeType Shape => Body.CollisionShape.ShapeType;
 
+        private RigidBodyType _type;
+        public ref RigidBodyType Type => ref _type;
+
         public static Collider Create(RigidBody body)
         {
+            Collider collider = default;
             switch (body.CollisionShape.ShapeType)
             {
                 case BroadphaseNativeType.BoxShape:
-                    return new BoxCollider(body);
+                    collider = new BoxCollider(body);
+                    break;
                 case BroadphaseNativeType.SphereShape:
-                    return new SphereCollider(body);
+                    collider = new SphereCollider(body);
+                    break;
                 case BroadphaseNativeType.CylinderShape:
-                    return new CylinderCollider(body);
+                    collider = new CylinderCollider(body);
+                    break;
             }
 
-            return default;
+            // memoize collider type
+            if (body.IsStaticObject)
+                collider._type = RigidBodyType.Static;
+            else if (body.IsKinematicObject)
+                collider._type = RigidBodyType.Kinematic;
+            else
+                collider._type = RigidBodyType.Dynamic;
+
+            // convert collider to kinematic for design mode
+            collider.Convert(RigidBodyType.Kinematic);
+
+            return collider;
         }
 
         public abstract bool Contains(Vector3 point);
@@ -71,6 +90,25 @@ namespace Physics
             //    stateMatrix.M41, stateMatrix.M42, stateMatrix.M43, stateMatrix.M44);
 
             Model.State = state;
+        }
+
+        public void Convert(RigidBodyType type)
+        {
+            switch (type)
+            {
+                case RigidBodyType.Static:
+                    Body.CollisionFlags = CollisionFlags.StaticObject;
+                    Body.ActivationState = ActivationState.ActiveTag;
+                    break;
+                case RigidBodyType.Kinematic:
+                    Body.CollisionFlags = CollisionFlags.KinematicObject;
+                    Body.ActivationState = ActivationState.DisableDeactivation;
+                    break;
+                case RigidBodyType.Dynamic:
+                    Body.CollisionFlags = CollisionFlags.None;
+                    Body.ActivationState = ActivationState.ActiveTag;
+                    break;
+            }
         }
 
         public bool CollisionTest(Collider other)

@@ -24,6 +24,7 @@ namespace Logic
         public Collider Collider { get; }
 
         public BroadphaseNativeType ShapeType => Collider.Shape;
+        public ref RigidBodyType Type => ref Collider.Type;
 
         public Matrix State
         {
@@ -83,6 +84,11 @@ namespace Logic
 
             if (_showCollider)
                 Collider.Render(shader);
+        }
+
+        public void Convert(RigidBodyType type)
+        {
+            Collider.Convert(type);
         }
 
         public void UpdateState()

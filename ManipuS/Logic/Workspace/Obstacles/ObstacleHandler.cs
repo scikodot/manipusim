@@ -32,6 +32,22 @@ namespace Logic
                 obstacle.Dispose();
         }
 
+        public static void ToDesignAll()
+        {
+            foreach (var obst in Obstacles)
+            {
+                obst.Convert(RigidBodyType.Kinematic);
+            }
+        }
+
+        public static void ToAnimateAll()
+        {
+            foreach (var obst in Obstacles)
+            {
+                obst.Convert(obst.Type);
+            }
+        }
+
         public static void RenderAll(Shader shader)
         {
             foreach (var obst in Obstacles)

@@ -70,8 +70,8 @@ public static class Dispatcher  // TODO: threads are not synchronized;
     public static void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
     {
         // enabling/disabling specific threads for calculating paths for manipulators
-        threads = new Thread[Manager.Manipulators.Length];
-        ThreadsRunning = new bool[Manager.Manipulators.Length];
+        threads = new Thread[ManipHandler.Count];
+        ThreadsRunning = new bool[ManipHandler.Count];
         for (int i = 0; i < threads.Length; i++)
         {
             int index = i;
@@ -81,7 +81,13 @@ public static class Dispatcher  // TODO: threads are not synchronized;
                 try
                 {
                     ThreadsRunning[index] = true;
-                    Manager.Manipulators[index].Controller.Execute(Manager.Manipulators[index].Goal);
+
+                    // create attractors for all manipulators
+                    ManipHandler.CreateAttractors();
+
+                    // execute manipulators path planning
+                    ManipHandler.Manipulators[index].Controller.Execute(ManipHandler.Manipulators[index].Goal);
+
                     ThreadsRunning[index] = false;
                 }
                 catch (ThreadAbortException e)  // checking for abort query

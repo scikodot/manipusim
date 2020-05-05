@@ -23,6 +23,14 @@ using BulletSharp.Math;
 
 namespace Graphics
 {
+    public enum InteractionModes
+    {
+        Design,
+        Animate,
+        ToDesign,
+        ToAnimate
+    }
+
     public class MainWindow : GameWindow
     {
         // main graphics objects
@@ -68,6 +76,7 @@ namespace Graphics
         private Obstacle Cylinder;
 
         public static Thread MainThread = Thread.CurrentThread;
+        public InteractionModes Mode = InteractionModes.Design;
 
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
@@ -237,9 +246,9 @@ namespace Graphics
                     obstacle.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
                 }
 
-                for (int i = 0; i < Manager.Manipulators.Length; i++)
+                for (int i = 0; i < ManipHandler.Count; i++)
                 {
-                    Manipulator manip = Manager.Manipulators[i];
+                    Manipulator manip = ManipHandler.Manipulators[i];
 
                     // render manipulator
                     manip.Render(ShaderHandler.ComplexShader);
@@ -247,13 +256,11 @@ namespace Graphics
                     // render goal
                     if (goal[i] != default)
                     {
-                        goal[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
-                        {
-                            GL.PointSize(5);
-                            GL.DrawArrays(PrimitiveType.Points, 0, 1);
-                            GL.PointSize(1);
-                            GL.DrawArrays(PrimitiveType.Points, 1, 100);
-                        });
+                        goal[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
+                        //GL.PointSize(5);
+                        //GL.DrawArrays(PrimitiveType.Points, 0, 1);
+                        //GL.PointSize(1);
+                        //GL.DrawArrays(PrimitiveType.Points, 1, 100);
                     }
 
                     // render path
@@ -421,19 +428,19 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, 20));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height - 20)));
 
-                if (Manager.Manipulators != null)
+                if (ManipHandler.Manipulators != null)
                 {
                     var MB = WorkspaceBuffer.ManipBuffer;
-                    for (int j = 0; j < Manager.Manipulators.Length; j++)
+                    for (int j = 0; j < ManipHandler.Count; j++)
                     {
                         if (ImGui.TreeNode($"Manip {j}"))
                         {
                             ImGui.Text($"Time spent: {Dispatcher.timers[j].ElapsedMilliseconds / 1000.0f} s");
 
-                            int count = Manager.Manipulators[j].Tree == null ? 0 : Manager.Manipulators[j].Tree.Count;
+                            int count = ManipHandler.Manipulators[j].Tree == null ? 0 : ManipHandler.Manipulators[j].Tree.Count;
                             ImGui.Checkbox($"Show tree ({count} verts)", ref MB[j].ShowTree);
 
-                            ImGui.Checkbox($"Show collider", ref Manager.Manipulators[j].ShowCollider);
+                            ImGui.Checkbox($"Show collider", ref ManipHandler.Manipulators[j].ShowCollider);
 
                             ImGui.InputFloat3("Goal", ref MB[j].Goal);
                             ImGui.InputInt("Links number", ref MB[j].N);
@@ -550,14 +557,24 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.75 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                if (ImGui.Button("Execute"))
+                if (ImGui.Button("Animate"))
                 {
-                    Dispatcher.RunThreads();
+                    Mode = InteractionModes.ToAnimate;
                 }
                 if (ImGui.IsItemHovered())
                 {
                     ImGui.SameLine();
                     ImGui.TextWrapped("Runs path searching process");
+                }
+
+                if (ImGui.Button("Design"))
+                {
+                    Mode = InteractionModes.ToDesign;
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SameLine();
+                    ImGui.TextWrapped("Stops path searching process");
                 }
 
                 if (ImGui.Button("Update"))
@@ -667,82 +684,123 @@ namespace Graphics
             // process all the input events
             InputHandler.PollEvents(this, _camera, Mouse.GetCursorState(), Keyboard.GetState(), e);
 
+            switch (Mode)
+            {
+                case InteractionModes.Design:
+                    break;
+                case InteractionModes.Animate:
+
+                    float dt;
+                    if (forward)
+                    {
+                        dt = (float)e.Time;
+                        if (time > 1)
+                            forward = false;
+                    }
+                    else
+                    {
+                        dt = -(float)e.Time;
+                        if (time < -1)
+                            forward = true;
+                    }
+                    time += dt;
+
+                    if (!ManipHandler.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+                    {
+                        ObstacleHandler.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
+
+                        var center = ObstacleHandler.Obstacles[0].Collider.Body.CenterOfMassPosition;
+                        Console.SetCursorPosition(0, 10);
+                        Console.WriteLine("Center: ({0}, {1}, {2})", center.X, center.Y, center.Z);
+                        //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                        //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                    }
+
+                    for (int i = 0; i < ManipHandler.Count; i++)
+                    {
+                        Manipulator manip = ManipHandler.Manipulators[i];
+
+                        // obtained path
+                        if (manip.Path != null)
+                        {
+                            // path may change at any time in control thread; GetRange() guarantees thread sync
+                            // TODO: but not for the case when path shortens; fix!
+                            int count = manip.Path.Count;
+                            var pathRange = MeshVertex.Convert(manip.Path.GetRange(0, count));
+                            if (path[i] == default)
+                            {
+                                path[i] = new Model(pathRange, material: MeshMaterial.Red);
+                            }
+                            else
+                            {
+                                path[i].Update(0, pathRange, new uint[0]);
+                            }
+                        }
+
+                        // random tree
+                        if (manip.Tree != null)
+                        {
+                            // add all elements from addition buffer to the hash set
+                            if (manip.Tree.AddBuffer.Contains(null))
+                            {
+                                int a = 2;  // here, Null does not appear
+                            }
+                            tree[i].UnionWith(manip.Tree.AddBuffer.DequeueAll());
+                            if (manip.Tree.AddBuffer.Contains(null))
+                            {
+                                int a = 2;  // and here Null appears; 
+                                            // seems like AddBuffer loses reference while trimming the tree,
+                                            // though it's still not clear why; maybe finalization of a node?
+                            }
+
+                            // delete all elements contained in deletion buffer from the hash set
+                            tree[i].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
+                        }
+                    }
+
+                    break;
+                case InteractionModes.ToDesign:
+
+                    // convert all obstacles to kinematic type to allow free displacement
+                    ObstacleHandler.ToDesignAll();
+
+                    // stop threads for all manipulators
+                    Dispatcher.AbortThreads();
+
+                    Mode = InteractionModes.Design;
+
+                    break;
+                case InteractionModes.ToAnimate:
+
+                    // convert all obstacles to their native physics types
+                    ObstacleHandler.ToAnimateAll();
+
+                    // run threads for all manipulators
+                    Dispatcher.RunThreads();
+
+                    Mode = InteractionModes.Animate;
+
+                    break;
+            }
+
             if (ManipLoaded)
             {
-                float dt;
-                if (forward)
+                for (int i = 0; i < ManipHandler.Count; i++)
                 {
-                    dt = (float)e.Time;
-                    if (time > 1)
-                        forward = false;
-                }
-                else
-                {
-                    dt = -(float)e.Time;
-                    if (time < -1)
-                        forward = true;
-                }
-                time += dt;
-
-                if (!Manager.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-                {
-                    ObstacleHandler.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
-
-                    var center = ObstacleHandler.Obstacles[0].Collider.Body.CenterOfMassPosition;
-                    Console.SetCursorPosition(0, 10);
-                    Console.WriteLine("Center: ({0}, {1}, {2})", center.X, center.Y, center.Z);
-                    //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                    //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-                }
-
-                for (int i = 0; i < Manager.Manipulators.Length; i++)
-                {
-                    Manipulator manip = Manager.Manipulators[i];
+                    Manipulator manip = ManipHandler.Manipulators[i];
 
                     // goal
                     if (goal[i] == default)
                     {
-                        var goalAttr = manip.Attractors[0];  // TODO: refactor this part
-                        var data = new List<System.Numerics.Vector3> { goalAttr.Center };
-                        data.AddRange(Primitives.SpherePointCloud(goalAttr.Radius, goalAttr.Center, 100));
-                        goal[i] = new Model(MeshVertex.Convert(data), material: MeshMaterial.Yellow);
-                    }
+                        //var goalAttr = manip.Attractors[0];  // TODO: refactor this part
+                        //var data = new List<System.Numerics.Vector3> { goalAttr.Center };
+                        //data.AddRange(Primitives.SpherePointCloud(goalAttr.Radius, goalAttr.Center, 100));
+                        //goal[i] = new Model(MeshVertex.Convert(data), material: MeshMaterial.Yellow);
 
-                    // obtained path
-                    if (manip.Path != null)
-                    {
-                        // path may change at any time in control thread; GetRange() guarantees thread sync
-                        // TODO: but not for the case when path shortens; fix!
-                        int count = manip.Path.Count;
-                        var pathRange = MeshVertex.Convert(manip.Path.GetRange(0, count));
-                        if (path[i] == default)
+                        goal[i] = Primitives.Sphere(0.05f, 5, 5, new MeshMaterial
                         {
-                            path[i] = new Model(pathRange, material: MeshMaterial.Red);
-                        }
-                        else
-                        {
-                            path[i].Update(0, pathRange, new uint[0]);
-                        }
-                    }
-
-                    // random tree
-                    if (manip.Tree != null)
-                    {
-                        // add all elements from addition buffer to the hash set
-                        if (manip.Tree.AddBuffer.Contains(null))
-                        {
-                            int a = 2;  // here, Null does not appear
-                        }
-                        tree[i].UnionWith(manip.Tree.AddBuffer.DequeueAll());
-                        if (manip.Tree.AddBuffer.Contains(null))
-                        {
-                            int a = 2;  // and here Null appears; 
-                                        // seems like AddBuffer loses reference while trimming the tree,
-                                        // though it's still not clear why; maybe finalization of a node?
-                        }
-
-                        // delete all elements contained in deletion buffer from the hash set
-                        tree[i].ExceptWith(manip.Tree.DelBuffer.DequeueAll());
+                            Diffuse = new Vector4(1.0f, 1.0f, 0.0f, 1.0f)
+                        });
                     }
                 }
             }
@@ -795,21 +853,21 @@ namespace Graphics
 
         protected void UpdateWorkspace()  // TODO: move somewhere else
         {
-            // initializing manager
-            Manager.Initialize();
+            // initialize manipulators manager
+            ManipHandler.Initialize();
 
             // initializing all displaying entities
-            int manip_length = Manager.Manipulators.Length;
-            goal = new Model[manip_length];
-            path = new Model[manip_length];
-            tree = new HashSet<Logic.PathPlanning.Tree.Node>[manip_length];
+            int manipCount = ManipHandler.Count;
+            goal = new Model[manipCount];
+            path = new Model[manipCount];
+            tree = new HashSet<Logic.PathPlanning.Tree.Node>[manipCount];
             for (int i = 0; i < tree.Length; i++)
             {
                 tree[i] = new HashSet<Logic.PathPlanning.Tree.Node>();
             }
 
-            Dispatcher.timers = new Stopwatch[manip_length];
-            for (int i = 0; i < manip_length; i++)
+            Dispatcher.timers = new Stopwatch[manipCount];
+            for (int i = 0; i < manipCount; i++)
             {
                 Dispatcher.timers[i] = new Stopwatch();
             }

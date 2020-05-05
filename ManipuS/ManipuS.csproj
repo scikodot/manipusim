@@ -145,7 +145,7 @@
     <Compile Include="Logic\Math\Quaternions\Quaternion.cs" />
     <Compile Include="Logic\Math\Vectors\Vector.cs" />
     <Compile Include="Logic\Workspace\Obstacles\Obstacle.cs" />
-    <Compile Include="Logic\Manager.cs" />
+    <Compile Include="Logic\ManipHandler.cs" />
     <Compile Include="Logic\Helper.cs" />
     <Compile Include="Physics\Colliders\BoxCollider.cs" />
     <Compile Include="Physics\Colliders\SphereCollider.cs" />
