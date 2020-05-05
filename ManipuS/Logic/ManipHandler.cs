@@ -19,6 +19,34 @@ namespace Logic
         public static void Add(Manipulator manipulator)
         {
             Manipulators.Add(manipulator);
+
+            var IB = WorkspaceBuffer.InverseKinematicsBuffer;
+            var PB = WorkspaceBuffer.PathPlanningBuffer;
+
+            IKSolver solver = default;
+            switch (IB.InverseKinematicsSolverID)
+            {
+                case 0:
+                    solver = new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime);
+                    break;
+                case 1:
+                    solver = new HillClimbing(IB.Precision, IB.StepSize, IB.MaxTime);
+                    break;
+            }
+
+            PathPlanner planner = default;
+            switch (PB.PathPlannerID)
+            {
+                case 0:
+                    planner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
+                    break;
+                case 1:
+                    throw new NotImplementedException("The Genetic algorithm planner is not yet implemented!");
+                    break;
+            }
+
+            manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
+                   new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime), 2 * PB.d);
         }
 
         public static void Remove(Manipulator manipulator)
@@ -26,124 +54,48 @@ namespace Logic
             // TODO: implement
         }
 
-        public static void Initialize()
+        //public static void Initialize()
+        //{
+        //    Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
+        //    {
+        //        Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+        //        Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+        //        Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+        //        Shininess = 8
+        //    }), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
+
+        //    Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
+        //    {
+        //        Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+        //        Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+        //        Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+        //        Shininess = 8
+        //    }), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
+
+        //    Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
+        //    {
+        //        Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+        //        Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+        //        Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+        //        Shininess = 8
+        //    }), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z)));
+
+        //    Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
+        //}
+
+        public static void RunControl()
         {
-            //Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
-            //{
-            //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-            //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-            //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-            //    Shininess = 8
-            //}), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
-
-            //Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
-            //{
-            //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-            //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-            //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-            //    Shininess = 8
-            //}), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
-
-            //Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
-            //{
-            //    Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-            //    Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-            //    Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-            //    Shininess = 8
-            //}), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z)));
-
-            //Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
-
-            var MB = WorkspaceBuffer.ManipBuffer;
-            var IB = WorkspaceBuffer.InverseKinematicsBuffer;
-            var PB = WorkspaceBuffer.PathPlanningBuffer;
-
-            foreach (var mb in MB)
-            {
-                var manip = new Manipulator(mb);
-
-                // add manipulators to the list
-                Manipulators.Add(manip);
-
-                IKSolver solver = default;
-                switch (IB.InverseKinematicsSolverID)
-                {
-                    case 0:
-                        solver = new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime);
-                        break;
-                    case 1:
-                        solver = new HillClimbing(IB.Precision, IB.StepSize, IB.MaxTime);
-                        break;
-                }
-
-                PathPlanner planner = default;
-                switch (PB.PathPlannerID)
-                {
-                    case 0:
-                        planner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
-                        break;
-                    case 1:
-                        throw new NotImplementedException("The Genetic algorithm planner is not yet implemented!");
-                        break;
-                }
-
-                manip.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manip, planner, solver, 
-                    new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime), 2 * PB.d);
-            }            
-        }
-
-        public static void CreateAttractors()
-        {
-            Random rng = new Random();
-
-            var PB = WorkspaceBuffer.PathPlanningBuffer;
-
             foreach (var manip in Manipulators)
             {
-                manip.Attractors = new List<Attractor>();
+                manip.Controller.Run();
+            }
+        }
 
-                double work_radius = manip.WorkspaceRadius, x, yPos, y, zPos, z;
-
-                // adding main attractor
-                Vector3 attrPoint = manip.Goal;
-                float attrWeight = manip.DistanceTo(manip.Goal);
-                float attrRadius = PB.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
-
-                manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
-
-                // adding ancillary attractors
-                while (manip.Attractors.Count < PB.AttrNum)
-                {
-                    // generating attractor point
-                    x = work_radius * (2 * rng.NextDouble() - 1);
-                    yPos = Math.Sqrt(work_radius * work_radius - x * x);
-                    y = yPos * (2 * rng.NextDouble() - 1);
-                    zPos = Math.Sqrt(yPos * yPos - y * y);
-                    z = zPos * (2 * rng.NextDouble() - 1);
-
-                    Vector3 point = new Vector3((float)x, (float)y, (float)z) + manip.Base;
-
-                    // checking whether the attractor is inside any obstacle or not
-                    bool collision = false;
-                    foreach (var obst in ObstacleHandler.Obstacles)
-                    {
-                        if (obst.Contains(point))
-                        {
-                            collision = true;
-                            break;
-                        }
-                    }
-
-                    if (!collision)  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
-                    {
-                        // adding attractor to the list
-                        attrPoint = point;
-                        attrWeight = manip.DistanceTo(point) + manip.Goal.DistanceTo(point);
-                        attrRadius = PB.d * (float)Math.Pow(attrWeight / manip.DistanceTo(manip.Goal), 4);
-
-                        manip.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
-                    }
-                }
+        public static void AbortControl()
+        {
+            foreach (var manip in Manipulators)
+            {
+                manip.Controller.Abort();
             }
         }
 

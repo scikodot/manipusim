@@ -25,11 +25,11 @@ public static class Dispatcher  // TODO: threads are not synchronized;
     public static ConcurrentQueue<Action> RenderActions = new ConcurrentQueue<Action>();
 
     // manipulators' calculating threads
-    public static Thread[] threads;
-    public static bool[] ThreadsRunning;
-    public static Task[] tasks;
+    public static List<(Manipulator, Thread)> Threads { get; } = new List<(Manipulator, Thread)>();
+    //public static List<bool> ThreadsRunning { get; } = new List<bool>();
+    //public static List<Stopwatch> timers { get; } = new List<Stopwatch>();
+
     public static CancellationTokenSource tokenSource = new CancellationTokenSource();
-    public static Stopwatch[] timers;
 
     // obstacles' threads
     public static Timer obstThread;
@@ -67,67 +67,63 @@ public static class Dispatcher  // TODO: threads are not synchronized;
         obstThread = new Timer(MoveObstacles, null, 0, 10);
     }
 
-    public static void UpdateThreads()  // TODO: for WaitHandles Tasks would be better than Threads
-    {
-        // enabling/disabling specific threads for calculating paths for manipulators
-        threads = new Thread[ManipHandler.Count];
-        ThreadsRunning = new bool[ManipHandler.Count];
-        for (int i = 0; i < threads.Length; i++)
-        {
-            int index = i;
-            threads[i] = new Thread(() =>
-            {
-                timers[index].Start();
-                try
-                {
-                    ThreadsRunning[index] = true;
+    //public static void AddThread(Manipulator manipulator)
+    //{
+    //    Threads.Add((manipulator, new Thread(() =>
+    //    {
+    //        try
+    //        {
+    //            // start measuring execution time
+    //            manipulator.Controller.Timer.Start();
 
-                    // create attractors for all manipulators
-                    ManipHandler.CreateAttractors();
+    //            // turn the controller on
+    //            manipulator.Controller.State = ControllerState.Running;
 
-                    // execute manipulators path planning
-                    ManipHandler.Manipulators[index].Controller.Execute(ManipHandler.Manipulators[index].Goal);
+    //            // execute manipulator control process
+    //            manipulator.Controller.ExecuteMotion(manipulator.Goal);
 
-                    ThreadsRunning[index] = false;
-                }
-                catch (ThreadAbortException e)  // checking for abort query
-                {
-                    ThreadsRunning[index] = false;
-                }
-                finally
-                {
-                    timers[index].Stop();
-                }
-            })
-            {
-                Name = $"Manipulator {index}",
-                IsBackground = true
-            };
-        }
-    }
+    //            // turn the controller off
+    //            manipulator.Controller.State = ControllerState.Finished;
+    //        }
+    //        catch (ThreadAbortException e)  // checking for abort query
+    //        {
+    //            // indicate that the process has been aborted
+    //            manipulator.Controller.State = ControllerState.Aborted;
+    //        }
+    //        finally
+    //        {
+    //            // stop measuring execution time
+    //            manipulator.Controller.Timer.Reset();
+    //        }
+    //    })
+    //    {
+    //        Name = $"Manipulator",
+    //        IsBackground = true
+    //    }));
+    //}
 
-    public static void RunThreads()
-    {
-        // running all threads
-        for (int i = 0; i < threads.Length; i++)
-        {
-            threads[i].Start();
-        }
-    }
+    //public static void RunThreads()
+    //{
+    //    // running all threads
+    //    foreach (var thread in Threads)
+    //    {
+    //        thread.Item2.Start();
+    //    }
+    //}
 
-    public static void AbortThreads()
-    {
-        // aborting all running threads if presented
-        if (threads != null)
-        {
-            for (int i = 0; i < threads.Length; i++)
-            {
-                if (ThreadsRunning[i] == true)
-                    threads[i].Abort();
-            }
+    //public static void AbortThreads()
+    //{
+    //    // aborting all running threads if presented
+    //    if (Threads.Count != 0)
+    //    {
+    //        foreach (var thread in Threads)
+    //        {
+    //            if (thread.Item1.Controller.State == ControllerState.Running)
+    //                thread.Item2.Abort();
+    //        }
 
-            // wait until all threads abort
-            while (ThreadsRunning.Contains(true)) { }
-        }
-    }
+    //        // wait until all threads abort
+    //        while (Threads.All(x => x.Item1.Controller.State == ControllerState.Running)) { }
+    //    }
+    //}
 }

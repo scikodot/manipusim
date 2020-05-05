@@ -169,7 +169,7 @@ namespace Graphics
                 Shininess = 8
             }), PhysicsHandler.CreateStaticCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(3, 4, -3)));
 
-            ObstacleHandler.Add(Cubes);
+            //ObstacleHandler.Add(Cubes);
             ObstacleHandler.Add(Ground);
             ObstacleHandler.Add(Sphere);
             ObstacleHandler.Add(Cylinder);
@@ -340,8 +340,6 @@ namespace Graphics
                 GL.Enable(EnableCap.DepthTest);
             });
 
-            //ImGui.ShowDemoWindow();
-
             base.OnRenderFrame(e);
         }
 
@@ -349,6 +347,8 @@ namespace Graphics
         {
             // update GUI controller
             controller.Update(this, (float)e.Time);
+
+            //ImGui.ShowDemoWindow();
 
             // GUI viewport
             GL.Viewport(0, 0, Width, Height);
@@ -398,10 +398,9 @@ namespace Graphics
 
                                 // update workspace with newly loaded model
                                 UpdateWorkspace();
-                                Dispatcher.UpdateThreads();
                                 ManipLoaded = true;
 
-                                Dispatcher.RunObstacles();
+                                //Dispatcher.RunObstacles();
                             }));
                         }
 
@@ -428,19 +427,53 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, 20));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height - 20)));
 
+                if (ImGui.Button("Create"))
+                {
+                    Dispatcher.ActiveTasks.Add(Task.Run(() =>
+                    {
+                        // load components' models
+                        var jointModel = new Model(InputHandler.JointPath);
+                        var linkModel = new Model(InputHandler.LinkPath);
+                        var gripperModel = new Model(InputHandler.GripperPath);
+
+                        var MB = WorkspaceBuffer.ManipBuffer;
+                        for (int j = 0; j < MB[0].N; j++)
+                        {
+                            MB[0].Links[j].Model = linkModel.ShallowCopy();
+                            MB[0].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 1, 0.15f));
+                            MB[0].Joints[j].Model = jointModel.ShallowCopy();
+                            MB[0].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+                        }
+
+                        MB[0].Joints[MB[0].N].Model = gripperModel;
+                        MB[0].Joints[MB[0].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+
+                        ManipHandler.Add(new Manipulator(MB[0]));
+
+                        // wait for loading process to finish
+                        Dispatcher.ActionsDone.Reset();
+                        Dispatcher.ActionsDone.WaitOne();
+
+                        // update workspace with newly loaded model
+                        UpdateWorkspace();
+                        ManipLoaded = true;
+                    }));
+                }
+
                 if (ManipHandler.Manipulators != null)
                 {
                     var MB = WorkspaceBuffer.ManipBuffer;
                     for (int j = 0; j < ManipHandler.Count; j++)
                     {
+                        var manip = ManipHandler.Manipulators[j];
                         if (ImGui.TreeNode($"Manip {j}"))
                         {
-                            ImGui.Text($"Time spent: {Dispatcher.timers[j].ElapsedMilliseconds / 1000.0f} s");
+                            ImGui.Text($"Time spent: {manip.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");
 
-                            int count = ManipHandler.Manipulators[j].Tree == null ? 0 : ManipHandler.Manipulators[j].Tree.Count;
+                            int count = manip.Tree == null ? 0 : manip.Tree.Count;
                             ImGui.Checkbox($"Show tree ({count} verts)", ref MB[j].ShowTree);
 
-                            ImGui.Checkbox($"Show collider", ref ManipHandler.Manipulators[j].ShowCollider);
+                            ImGui.Checkbox($"Show collider", ref manip.ShowCollider);
 
                             ImGui.InputFloat3("Goal", ref MB[j].Goal);
                             ImGui.InputInt("Links number", ref MB[j].N);
@@ -597,9 +630,7 @@ namespace Graphics
                     if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
                     {
                         // updating workspace and resetting threads
-                        Dispatcher.AbortThreads();
                         UpdateWorkspace();
-                        Dispatcher.UpdateThreads();
 
                         ImGui.CloseCurrentPopup();
                     }
@@ -690,31 +721,31 @@ namespace Graphics
                     break;
                 case InteractionModes.Animate:
 
-                    float dt;
-                    if (forward)
-                    {
-                        dt = (float)e.Time;
-                        if (time > 1)
-                            forward = false;
-                    }
-                    else
-                    {
-                        dt = -(float)e.Time;
-                        if (time < -1)
-                            forward = true;
-                    }
-                    time += dt;
+                    //float dt;
+                    //if (forward)
+                    //{
+                    //    dt = (float)e.Time;
+                    //    if (time > 1)
+                    //        forward = false;
+                    //}
+                    //else
+                    //{
+                    //    dt = -(float)e.Time;
+                    //    if (time < -1)
+                    //        forward = true;
+                    //}
+                    //time += dt;
 
-                    if (!ManipHandler.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-                    {
-                        ObstacleHandler.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
+                    //if (!ManipHandler.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
+                    //{
+                    //    ObstacleHandler.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
 
-                        var center = ObstacleHandler.Obstacles[0].Collider.Body.CenterOfMassPosition;
-                        Console.SetCursorPosition(0, 10);
-                        Console.WriteLine("Center: ({0}, {1}, {2})", center.X, center.Y, center.Z);
-                        //Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                        //Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-                    }
+                    //    var center = ObstacleHandler.Obstacles[0].Collider.Body.CenterOfMassPosition;
+                    //    Console.SetCursorPosition(0, 10);
+                    //    Console.WriteLine("Center: ({0}, {1}, {2})", center.X, center.Y, center.Z);
+                    //    Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
+                    //    Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
+                    //}
 
                     for (int i = 0; i < ManipHandler.Count; i++)
                     {
@@ -765,7 +796,10 @@ namespace Graphics
                     ObstacleHandler.ToDesignAll();
 
                     // stop threads for all manipulators
-                    Dispatcher.AbortThreads();
+                    ManipHandler.AbortControl();
+
+                    // update workspace
+                    UpdateWorkspace();
 
                     Mode = InteractionModes.Design;
 
@@ -776,7 +810,7 @@ namespace Graphics
                     ObstacleHandler.ToAnimateAll();
 
                     // run threads for all manipulators
-                    Dispatcher.RunThreads();
+                    ManipHandler.RunControl();
 
                     Mode = InteractionModes.Animate;
 
@@ -797,10 +831,8 @@ namespace Graphics
                         //data.AddRange(Primitives.SpherePointCloud(goalAttr.Radius, goalAttr.Center, 100));
                         //goal[i] = new Model(MeshVertex.Convert(data), material: MeshMaterial.Yellow);
 
-                        goal[i] = Primitives.Sphere(0.05f, 5, 5, new MeshMaterial
-                        {
-                            Diffuse = new Vector4(1.0f, 1.0f, 0.0f, 1.0f)
-                        });
+                        goal[i] = Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow);
+                        goal[i].State = Matrix4.CreateTranslation(manip.Goal);
                     }
                 }
             }
@@ -853,9 +885,6 @@ namespace Graphics
 
         protected void UpdateWorkspace()  // TODO: move somewhere else
         {
-            // initialize manipulators manager
-            ManipHandler.Initialize();
-
             // initializing all displaying entities
             int manipCount = ManipHandler.Count;
             goal = new Model[manipCount];
@@ -864,12 +893,6 @@ namespace Graphics
             for (int i = 0; i < tree.Length; i++)
             {
                 tree[i] = new HashSet<Logic.PathPlanning.Tree.Node>();
-            }
-
-            Dispatcher.timers = new Stopwatch[manipCount];
-            for (int i = 0; i < manipCount; i++)
-            {
-                Dispatcher.timers[i] = new Stopwatch();
             }
         }
 

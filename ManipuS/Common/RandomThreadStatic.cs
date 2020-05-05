@@ -38,6 +38,16 @@ public static class RandomThreadStatic
         return Instance.NextDouble();
     }
 
+    public static double NextDouble(double rangeLimit)
+    {
+        return NextDouble(-rangeLimit, rangeLimit);
+    }
+
+    public static double NextDouble(double minValue, double maxValue)
+    {
+        return minValue + Instance.NextDouble() * (maxValue - minValue);
+    }
+
     public static float NextGaussian(float mu, float sigma)
     {
         return Instance.NextGaussian(mu, sigma);

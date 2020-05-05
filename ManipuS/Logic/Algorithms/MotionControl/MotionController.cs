@@ -2,6 +2,9 @@
 using System.Numerics;
 using Logic.PathPlanning;
 using Logic.InverseKinematics;
+using System.Diagnostics;
+using System;
+using System.Threading;
 
 namespace Logic
 {
@@ -21,7 +24,10 @@ namespace Logic
         public IKSolver PlanSolver;
         public IKSolver ControlSolver;
         public float DeformThreshold;
-        public ControllerState State = ControllerState.Idle;
+
+        public ControllerState State { get; private set; } = ControllerState.Idle;
+        public Stopwatch Timer { get; } = new Stopwatch();
+        public Thread Thread { get; private set; }
 
         public MotionController(Obstacle[] obstacles, Manipulator agent, PathPlanner pathPlanner, IKSolver planSolver, IKSolver controlSolver, float deformThreshold)
         {
@@ -33,12 +39,61 @@ namespace Logic
             DeformThreshold = deformThreshold;
         }
 
-        public void Execute(Vector3 goal)
+        public void Run()
         {
-            State = ControllerState.Running;
+            // update thread
+            UpdateThread();
 
+            // run thread
+            Thread.Start();
+        }
+
+        public void Abort()
+        {
+            if (State == ControllerState.Running)
+                Thread.Abort();
+        }
+
+        private void UpdateThread()
+        {
+            Thread = new Thread(() =>
+            {
+                try
+                {
+                    // start measuring execution time
+                    Timer.Start();
+
+                    // turn the controller on
+                    State = ControllerState.Running;
+
+                    // execute manipulator control process
+                    ExecuteMotion(Agent.Goal);
+
+                    // turn the controller off
+                    State = ControllerState.Finished;
+                }
+                catch (ThreadAbortException e)  // checking for abort query
+                {
+                    // indicate that the process has been aborted
+                    State = ControllerState.Aborted;
+                }
+                finally
+                {
+                    // stop measuring execution time
+                    Timer.Reset();
+                }
+            });
+        }
+
+        private void ExecuteMotion(Vector3 goal)
+        {
+            // create attractors for the current manipulator
+            CreateAttractors();
+
+            // execute path planning
             var res = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
 
+            // accumulate results
             Agent.Path = res.Item1;
             Agent.Configs = res.Item2;
 
@@ -50,6 +105,7 @@ namespace Logic
                 jointPaths.Add(contestant.DKP);
             }
 
+            // execute motion control
             int gripperPos = Agent.posCounter;
             while (gripperPos < Agent.Configs.Count - 1)
             {
@@ -73,11 +129,9 @@ namespace Logic
 
                 gripperPos = Agent.posCounter;
             }
-
-            State = ControllerState.Finished;
         }
 
-        public void Deform(Obstacle obstacle, Manipulator contestant, List<Vector3[]> jointPaths, int point, int joint)
+        private void Deform(Obstacle obstacle, Manipulator contestant, List<Vector3[]> jointPaths, int point, int joint)
         {
             Vector3 dx = obstacle.Extrude(jointPaths[point][joint]);
 
@@ -92,7 +146,7 @@ namespace Logic
             Agent.Configs[point] = cNew;
         }
 
-        public List<Vector3[]> Discretize(Manipulator contestant, List<Vector3[]> jointPaths, int gripperPos)
+        private List<Vector3[]> Discretize(Manipulator contestant, List<Vector3[]> jointPaths, int gripperPos)
         {
             var discretizedPath = Agent.Path.GetRange(0, gripperPos + 1);
             var discretizedPaths = jointPaths.GetRange(0, gripperPos + 1);
@@ -122,6 +176,65 @@ namespace Logic
             Agent.Configs = discretizedConfigs;
 
             return discretizedPaths;
+        }
+
+        public void CreateAttractors()
+        {
+            Agent.Attractors = new List<Attractor>();
+
+            double workRadius = Agent.WorkspaceRadius;
+            double x, yPos, y, zPos, z;
+
+            // adding main attractor
+            Vector3 attrPoint = Agent.Goal;
+            float attrWeight = CalculateAttractorWeight(attrPoint);
+            float attrRadius = CalculateAttractorRadius(attrWeight);
+
+            Agent.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
+
+            // adding ancillary attractors
+            while (Agent.Attractors.Count < WorkspaceBuffer.PathPlanningBuffer.AttrNum)
+            {
+                // generating attractor point
+                x = RandomThreadStatic.NextDouble(workRadius);
+                yPos = Math.Sqrt(workRadius * workRadius - x * x);
+                y = RandomThreadStatic.NextDouble(yPos);
+                zPos = Math.Sqrt(yPos * yPos - y * y);
+                z = RandomThreadStatic.NextDouble(zPos);
+
+                Vector3 point = new Vector3((float)x, (float)y, (float)z) + Agent.Base;
+
+                // checking whether the attractor is inside any obstacle or not
+                bool collision = false;
+                foreach (var obst in ObstacleHandler.Obstacles)
+                {
+                    if (obst.Contains(point))
+                    {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                if (!collision)  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
+                {
+                    // adding attractor to the list
+                    attrPoint = point;
+                    attrWeight = CalculateAttractorWeight(attrPoint);
+                    attrRadius = CalculateAttractorRadius(attrWeight);
+
+                    Agent.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
+                }
+            }
+        }
+
+        private float CalculateAttractorWeight(Vector3 point)
+        {
+            return Agent.DistanceTo(point) + Agent.Goal.DistanceTo(point);
+        }
+
+        private float CalculateAttractorRadius(float weight)
+        {
+            return WorkspaceBuffer.PathPlanningBuffer.d * (float)Math.Pow(weight / Agent.DistanceTo(Agent.Goal), 4);
         }
     }
 }
