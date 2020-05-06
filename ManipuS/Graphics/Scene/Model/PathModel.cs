@@ -4,6 +4,7 @@ using System.Linq;
 using OpenTK.Graphics.OpenGL4;
 
 using Logic.PathPlanning;
+using Logic;
 
 namespace Graphics
 {
@@ -34,7 +35,16 @@ namespace Graphics
             Model.Meshes[0].UpdateIndices(0, 20000, new uint[20000]);
         }
 
-        public void AddNodes(List<Path.Node> nodes)
+        public void Update(int manipulatorNumber)
+        {
+            var toAdd = ManipHandler.Manipulators[manipulatorNumber].Path.AddBuffer.DequeueAll().ToList();
+            var toRemove = ManipHandler.Manipulators[manipulatorNumber].Path.DelBuffer.DequeueAll().ToList();
+
+            AddNodes(toAdd);
+            RemoveNodes(toRemove);
+        }
+
+        private void AddNodes(List<Path.Node> nodes)
         {
             foreach (var node in nodes)
             {
@@ -64,7 +74,7 @@ namespace Graphics
             }
         }
 
-        public void RemoveNodes(List<Path.Node> nodes)
+        private void RemoveNodes(List<Path.Node> nodes)
         {
             // sort nodes list for sequential buffer filling
             nodes = nodes.OrderBy(x => x.ID).ToList();

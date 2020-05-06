@@ -25,10 +25,9 @@ namespace Logic
         public Joint[] Joints;
         public float WorkspaceRadius;
 
-        public Vector3[] InitialAxes;
-        public Vector3[] InitialPositions;
+        private Vector3 _goal;
+        public ref Vector3 Goal => ref _goal;
 
-        public Vector3 Goal;
         public Path Path;
         public Tree Tree;
         public List<Attractor> Attractors;
@@ -38,7 +37,28 @@ namespace Logic
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
 
+        private bool _showTree = true;
+        public ref bool ShowTree => ref _showTree;
+
         public bool IsOriginal { get; private set; }
+
+        public Vector3 GripperPos { get; private set; }
+
+        public Vector3[] DKP { get; private set; }
+
+        private Vector _q;
+        public Vector q
+        {
+            get => _q;
+            set
+            {
+                _q = value;
+                for (int i = 0; i < Joints.Length; i++)
+                    Joints[i].q = value[i];
+
+                UpdateState();
+            }
+        }
 
         public Manipulator(ManipData data)
         {
@@ -46,8 +66,11 @@ namespace Logic
             Links = Array.ConvertAll(data.Links, x => new Link(x));
             Joints = Array.ConvertAll(data.Joints, x => new Joint(x));
 
-            InitialAxes = data.JointAxes;
-            InitialPositions = data.JointPositions;
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                Joints[i].InitialAxis = data.JointAxes[i];
+                Joints[i].InitialPosition = data.JointPositions[i];
+            }
 
             for (int i = 0; i < Joints.Length; i++)
             {
@@ -80,13 +103,13 @@ namespace Logic
 
                 for (int j = 0; j < i; j++)
                 {
-                    quat *= new ImpDualQuat(InitialPositions[j + 1] - InitialPositions[j]);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
-                    quat *= new ImpDualQuat(quat.Conjugate, InitialAxes[j], quat.Translation, Joints[j].Position, -Joints[j].q);  // TODO: optimize; probably, conjugation can be avoided
+                    quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
+                    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);  // TODO: optimize; probably, conjugation can be avoided
                 }
 
-                quat *= new ImpDualQuat(InitialAxes[i], -Joints[i].q);
+                quat *= new ImpDualQuat(Joints[i].InitialAxis, -Joints[i].q);
 
-                quat *= ImpDualQuat.Align(Joints[0].Axis, InitialAxes[i]);
+                quat *= ImpDualQuat.Align(Joints[0].Axis, Joints[i].InitialAxis);
 
                 // update physics and graphics only if the current manipulator is the real one
                 if (IsOriginal)
@@ -107,8 +130,8 @@ namespace Logic
                     {
                         quat *= j == 0 ?
                             new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY) :
-                            new ImpDualQuat(InitialPositions[j] - InitialPositions[j - 1]);
-                        quat *= new ImpDualQuat(quat.Conjugate, InitialAxes[j], quat.Translation, Joints[j].Position, -Joints[j].q);
+                            new ImpDualQuat(Joints[j].InitialPosition - Joints[j - 1].InitialPosition);
+                        quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);
                     }
 
                     Links[i].UpdateState(ref quat);
@@ -119,22 +142,14 @@ namespace Logic
             GripperPos = DKP[Joints.Length - 1];
         }
 
-        public Vector3 GripperPos { get; private set; }
-
-        public Vector3[] DKP { get; private set; }
-
-        private Vector _q;
-        public Vector q
+        public void Reset()
         {
-            get => _q;
-            set
-            {
-                _q = value;
-                for (int i = 0; i < Joints.Length; i++)
-                    Joints[i].q = value[i];
+            // reset GCs to default values
+            q = new Vector(Joints.Select(x => x.InitialCoordinate).ToArray());
 
-                UpdateState();
-            }
+            // clear tree and path
+            Tree = null;
+            Path = null;
         }
 
         public bool InWorkspace(Vector3 point)  // TODO: not used anywhere; fix

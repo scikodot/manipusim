@@ -32,7 +32,7 @@ namespace Logic
                 obstacle.Dispose();
         }
 
-        public static void ToDesignAll()
+        public static void ToDesign()
         {
             foreach (var obst in Obstacles)
             {
@@ -40,7 +40,7 @@ namespace Logic
             }
         }
 
-        public static void ToAnimateAll()
+        public static void ToAnimate()
         {
             foreach (var obst in Obstacles)
             {

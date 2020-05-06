@@ -273,7 +273,7 @@ namespace Graphics
                     }
 
                     // render tree
-                    if (WorkspaceBuffer.ManipBuffer[i].ShowTree)
+                    if (manip.ShowTree)
                     {
                         trees[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
                     }
@@ -358,37 +358,37 @@ namespace Graphics
                         {
                             Dispatcher.ActiveTasks.Add(Task.Run(() =>
                             {
-                                // load components' models
-                                var jointModel = new Model(InputHandler.JointPath);
-                                var linkModel = new Model(InputHandler.LinkPath);
-                                var gripperModel = new Model(InputHandler.GripperPath);
+                                //// load components' models
+                                //var jointModel = new Model(InputHandler.JointPath);
+                                //var linkModel = new Model(InputHandler.LinkPath);
+                                //var gripperModel = new Model(InputHandler.GripperPath);
 
-                                var MB = WorkspaceBuffer.ManipBuffer;
-                                for (int i = 0; i < MB.Length; i++)
-                                {
-                                    for (int j = 0; j < MB[i].N; j++)
-                                    {
-                                        MB[i].Links[j].Model = linkModel.ShallowCopy();
-                                        MB[i].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 1, 0.15f));
-                                        MB[i].Joints[j].Model = jointModel.ShallowCopy();
-                                        MB[i].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-                                    }
+                                //var MB = WorkspaceBuffer.ManipBuffer;
+                                //for (int i = 0; i < MB.Length; i++)
+                                //{
+                                //    for (int j = 0; j < MB[i].N; j++)
+                                //    {
+                                //        MB[i].Links[j].Model = linkModel.ShallowCopy();
+                                //        MB[i].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 1, 0.15f));
+                                //        MB[i].Joints[j].Model = jointModel.ShallowCopy();
+                                //        MB[i].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+                                //    }
 
-                                    MB[i].Joints[MB[i].N].Model = gripperModel;
-                                    MB[i].Joints[MB[i].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-                                }
+                                //    MB[i].Joints[MB[i].N].Model = gripperModel;
+                                //    MB[i].Joints[MB[i].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+                                //}
 
-                                //Crytek = new Model(InputHandler.NanosuitPath);
+                                ////Crytek = new Model(InputHandler.NanosuitPath);
 
-                                // wait for loading process to finish
-                                Dispatcher.ActionsDone.Reset();
-                                Dispatcher.ActionsDone.WaitOne();
+                                //// wait for loading process to finish
+                                //Dispatcher.ActionsDone.Reset();
+                                //Dispatcher.ActionsDone.WaitOne();
 
-                                // update scene
-                                UpdateScene();
-                                ManipLoaded = true;
+                                //// update scene
+                                //UpdateScene();
+                                //ManipLoaded = true;
 
-                                //Dispatcher.RunObstacles();
+                                ////Dispatcher.RunObstacles();
                             }));
                         }
 
@@ -454,7 +454,7 @@ namespace Graphics
                     }));
                 }
 
-                if (ManipHandler.Manipulators != null)
+                if (ManipHandler.Count != 0)
                 {
                     var MB = WorkspaceBuffer.ManipBuffer;
                     for (int j = 0; j < ManipHandler.Count; j++)
@@ -464,13 +464,13 @@ namespace Graphics
                         {
                             ImGui.Text($"Time spent: {manip.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");
 
-                            int count = manip.Tree == null ? 0 : manip.Tree.Count;
-                            ImGui.Checkbox($"Show tree ({count} verts)", ref MB[j].ShowTree);
+                            int treeCount = manip.Tree == null ? 0 : manip.Tree.Count;
+                            ImGui.Checkbox($"Show tree ({treeCount} verts)", ref manip.ShowTree);
 
                             ImGui.Checkbox($"Show collider", ref manip.ShowCollider);
 
-                            ImGui.InputFloat3("Goal", ref MB[j].Goal);
-                            ImGui.InputInt("Links number", ref MB[j].N);
+                            ImGui.InputFloat3("Goal", ref manip.Goal);
+                            //ImGui.InputInt("Links number", ref MB[j].N);
 
                             WorkspaceBuffer.ConfigureArrays(j);
 
@@ -485,14 +485,14 @@ namespace Graphics
 
                             if (ImGui.TreeNode("Joints"))
                             {
-                                for (int i = 0; i < MB[j].N + 1; i++)
+                                for (int i = 0; i < manip.Joints.Length; i++)
                                 {
                                     if (ImGui.TreeNode(i == 0 ? "Base" : $"Joint {i}"))
                                     {
-                                        ImGui.InputFloat3("Axis", ref WorkspaceBuffer.JointAxes[j][i]);
-                                        ImGui.InputFloat3("Position", ref WorkspaceBuffer.JointPositions[j][i]);
-                                        ImGui.InputFloat("Initial GC (deg)", ref MB[j].Joints[i].q);
-                                        ImGui.InputFloat2("GC range", ref MB[j].Joints[i].qRanges);
+                                        ImGui.InputFloat3("Axis", ref manip.Joints[i].InitialAxis);
+                                        ImGui.InputFloat3("Position", ref manip.Joints[i].InitialPosition);
+                                        ImGui.InputFloat("Initial GC (deg)", ref manip.Joints[i].InitialCoordinate);
+                                        ImGui.InputFloat2("GC range", ref manip.Joints[i].CoordinateRange);
                                         ImGui.TreePop();
                                     }
                                 }
@@ -703,6 +703,9 @@ namespace Graphics
             switch (Mode)
             {
                 case InteractionModes.Design:
+
+
+
                     break;
                 case InteractionModes.Animate:
 
@@ -736,29 +739,21 @@ namespace Graphics
                     {
                         Manipulator manip = ManipHandler.Manipulators[i];
 
-                        // obtained path
+                        // manipulator's path
                         if (manip.Path != null)
                         {
                             // move along the path
                             manip.FollowPath();
 
-                            var toAdd = manip.Path.AddBuffer.DequeueAll().ToList();
-                            var toRemove = manip.Path.DelBuffer.DequeueAll().ToList();
-
-                            // update tree state
-                            paths[i].AddNodes(toAdd);
-                            paths[i].RemoveNodes(toRemove);
+                            // update path model state
+                            paths[i].Update(i);
                         }
 
                         // random tree
                         if (manip.Tree != null)
                         {
-                            var toAdd = manip.Tree.AddBuffer.DequeueAll().ToList();
-                            var toRemove = manip.Tree.DelBuffer.DequeueAll().ToList();
-
-                            // update tree state
-                            trees[i].AddNodes(toAdd);
-                            trees[i].RemoveNodes(toRemove);
+                            // update tree model state
+                            trees[i].Update(i);
                         }
                     }
 
@@ -766,10 +761,9 @@ namespace Graphics
                 case InteractionModes.ToDesign:
 
                     // convert all obstacles to kinematic type to allow free displacement
-                    ObstacleHandler.ToDesignAll();
+                    ObstacleHandler.ToDesign();
 
-                    // stop threads for all manipulators
-                    ManipHandler.AbortControl();
+                    ManipHandler.ToDesign();
 
                     // update workspace
                     UpdateScene();
@@ -780,10 +774,10 @@ namespace Graphics
                 case InteractionModes.ToAnimate:
 
                     // convert all obstacles to their native physics types
-                    ObstacleHandler.ToAnimateAll();
+                    ObstacleHandler.ToAnimate();
 
                     // run threads for all manipulators
-                    ManipHandler.RunControl();
+                    ManipHandler.ToAnimate();
 
                     Mode = InteractionModes.Animate;
 
@@ -792,7 +786,14 @@ namespace Graphics
 
             base.OnUpdateFrame(e);
         }
-        
+
+        protected void UpdateScene()
+        {
+            // reset trees and paths
+            trees.ForEach(x => x.Reset());
+            paths.ForEach(x => x.Reset());
+        }
+
         protected override void OnMouseMove(MouseMoveEventArgs e)
         {
             base.OnMouseMove(e);
@@ -834,13 +835,6 @@ namespace Graphics
             PhysicsHandler.ExitPhysics();
 
             base.OnUnload(e);
-        }
-
-        protected void UpdateScene()
-        {
-            // reset trees and paths
-            trees.ForEach(x => x.Reset());
-            paths.ForEach(x => x.Reset());
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

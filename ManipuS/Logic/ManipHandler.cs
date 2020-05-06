@@ -83,20 +83,34 @@ namespace Logic
         //    Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
         //}
 
+        public static void ToDesign()
+        {
+            // stop threads
+            AbortControl();
+
+            // reset positions
+            Reset();
+        }
+
+        public static void ToAnimate()
+        {
+            // start threads
+            RunControl();
+        }
+
+        public static void Reset()
+        {
+            Manipulators.ForEach(x => x.Reset());
+        }
+
         public static void RunControl()
         {
-            foreach (var manip in Manipulators)
-            {
-                manip.Controller.Run();
-            }
+            Manipulators.ForEach(x => x.Controller.Run());
         }
 
         public static void AbortControl()
         {
-            foreach (var manip in Manipulators)
-            {
-                manip.Controller.Abort();
-            }
+            Manipulators.ForEach(x => x.Controller.Abort());
         }
 
         public static void Plan(Manipulator manip)

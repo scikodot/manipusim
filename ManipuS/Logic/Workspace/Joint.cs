@@ -34,7 +34,14 @@ namespace Logic
 
         public float Length;
 
+        private float _initialCoordinate;
+        public ref float InitialCoordinate => ref _initialCoordinate;
+
         public float q;
+
+        private Vector2 _coordinateRange;
+        public ref Vector2 CoordinateRange => ref _coordinateRange;
+
         public float[] qRanges;  // TODO: consider switching to Vector2 instead of array; array has a bit of overhead
 
         public Matrix State
@@ -49,6 +56,12 @@ namespace Logic
                 Collider.Body.MotionState.SetWorldTransform(ref value);
             }
         }
+
+        private Vector3 _initialPosition;
+        public ref Vector3 InitialPosition => ref _initialPosition;
+
+        private Vector3 _initialAxis;
+        public ref Vector3 InitialAxis => ref _initialAxis;
 
         public Vector3 Position { get; set; }
         public Vector3 Axis { get; set; }
