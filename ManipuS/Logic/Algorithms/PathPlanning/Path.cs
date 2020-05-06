@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel.Design.Serialization;
-using System.Drawing;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.Remoting.Messaging;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Logic.PathPlanning
 {
@@ -15,11 +10,12 @@ namespace Logic.PathPlanning
     {
         public class Node
         {
-            public uint ID;
-            public Node Parent, Child;
+            public uint ID { get; set; }
+            public Node Parent { get; set; }
+            public Node Child { get; set; }
 
-            public Vector3[] Points;
-            public Vector q;
+            public Vector3[] Points { get; private set; }
+            public Vector q { get; private set; }
 
             public Node(Node parent, Vector3[] point, Vector q)
             {
@@ -69,18 +65,15 @@ namespace Logic.PathPlanning
                     return hashCode;
                 }
             }
-
-            //public Node ShallowCopy()
-            //{
-            //    return (Node)MemberwiseClone();
-            //}
         }
 
-        public HashSet<Node> Nodes;  // TODO: consider switching to List for maintaining order
-        public ConcurrentQueue<Node> AddBuffer, DelBuffer;
+        public HashSet<Node> Nodes = new HashSet<Node>();
+        public ConcurrentQueue<Node> AddBuffer = new ConcurrentQueue<Node>();
+        public ConcurrentQueue<Node> DelBuffer = new ConcurrentQueue<Node>();
 
-        public Node First => Nodes.First();
+        public Node First { get; private set; }
         public Node Last { get; private set; }
+        public Node Current { get; private set; }
         public int Count => Nodes.Count();
 
         public Path(IEnumerable<Vector3[]> points, IEnumerable<Vector> configs) : this(ConstructPath(points, configs)) { }
@@ -93,28 +86,17 @@ namespace Logic.PathPlanning
                 var current = new Node(parent, p, c);
                 parent = current;
                 return current;
-            });
-            //using (var pointsIter = points.GetEnumerator())
-            //using (var configsIter = configs.GetEnumerator())
-            //{
-            //    Node parent = null;
-            //    while (pointsIter.MoveNext() && configsIter.MoveNext())
-            //    {
-            //        var current = new Node(parent, pointsIter.Current, configsIter.Current);
-            //        yield return current;
-            //        parent = current;
-            //    }
-            //}
+            }).ToList();  // force evaluation to prevent losing references between nodes
         }
 
-        public Path(IEnumerable<Node> nodes)
+        private Path(IEnumerable<Node> nodes)
         {
-            Nodes = new HashSet<Node>(nodes);
+            AddNodeRange(nodes);
 
-            AddBuffer = new ConcurrentQueue<Node>();
-            DelBuffer = new ConcurrentQueue<Node>();
+            First = nodes.First();
 
-            AddBuffer.EnqueueBatch(nodes);
+            // on construction, current node is the first node
+            Current = First;
         }
 
         public IEnumerable<T> Select<T>(Func<Node, T> func)
@@ -123,7 +105,7 @@ namespace Logic.PathPlanning
             while (current != null)
             {
                 yield return func(current);
-                current = current.Child;
+                current = current.Child;  // TODO: might be not executed; check
             }
         }
 
@@ -137,6 +119,14 @@ namespace Logic.PathPlanning
                 Last = node;
 
             AddBuffer.Enqueue(node);
+        }
+
+        public void AddNodeRange(IEnumerable<Node> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                AddNode(node);
+            }
         }
 
         public void RemoveNode(Node node)
@@ -160,6 +150,16 @@ namespace Logic.PathPlanning
             node.Change(point, config);
 
             AddBuffer.Enqueue(node);
+        }
+
+        public Vector Follow()
+        {
+            // move to the next node
+            if (Current.Child != null)
+                Current = Current.Child;
+
+            // return the config of that node
+            return Current.q;
         }
     }
 }

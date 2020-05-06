@@ -59,10 +59,10 @@ namespace Graphics
 
         // all the needed entities
         private Model grid, gridFloor;
-        private Model[] goal;  // TODO: make single models, same as for Tree
 
-        private readonly List<TreeModel> tree = new List<TreeModel>();
-        private readonly List<PathModel> path = new List<PathModel>();
+        private readonly List<TreeModel> trees = new List<TreeModel>();
+        private readonly List<PathModel> paths = new List<PathModel>();
+        private readonly List<Model> goals = new List<Model>();
 
         public static float time = 0;
         public static bool forward;
@@ -261,25 +261,21 @@ namespace Graphics
                     manip.Render(ShaderHandler.ComplexShader);
 
                     // render goal
-                    if (goal[i] != default)
+                    if (goals[i] != default)
                     {
-                        goal[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
-                        //GL.PointSize(5);
-                        //GL.DrawArrays(PrimitiveType.Points, 0, 1);
-                        //GL.PointSize(1);
-                        //GL.DrawArrays(PrimitiveType.Points, 1, 100);
+                        goals[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
                     }
 
                     // render path
                     if (manip.Path != null)
                     {
-                        path[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
+                        paths[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
                     }
 
                     // render tree
                     if (WorkspaceBuffer.ManipBuffer[i].ShowTree)
                     {
-                        tree[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
+                        trees[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
                     }
                 }
             }
@@ -388,8 +384,8 @@ namespace Graphics
                                 Dispatcher.ActionsDone.Reset();
                                 Dispatcher.ActionsDone.WaitOne();
 
-                                // update workspace with newly loaded model
-                                UpdateWorkspace();
+                                // update scene
+                                UpdateScene();
                                 ManipLoaded = true;
 
                                 //Dispatcher.RunObstacles();
@@ -440,18 +436,20 @@ namespace Graphics
                         MB[0].Joints[MB[0].N].Model = gripperModel;
                         MB[0].Joints[MB[0].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
 
-                        ManipHandler.Add(new Manipulator(MB[0]));
+                        var manip = new Manipulator(MB[0]);
+                        ManipHandler.Add(manip);
 
                         // create a new model for the manipulator goal, path and tree
-                        tree.Add(new TreeModel(10000, MeshMaterial.Black));
-                        path.Add(new PathModel(10000, MeshMaterial.Red));
+                        trees.Add(new TreeModel(10000, MeshMaterial.Black));
+                        paths.Add(new PathModel(10000, MeshMaterial.Red));
+                        goals.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manip.Goal)));
 
                         // wait for loading process to finish
                         Dispatcher.ActionsDone.Reset();
                         Dispatcher.ActionsDone.WaitOne();
 
                         // update workspace with newly loaded model
-                        UpdateWorkspace();
+                        UpdateScene();
                         ManipLoaded = true;
                     }));
                 }
@@ -625,8 +623,8 @@ namespace Graphics
                     ImGui.SetCursorPos(new System.Numerics.Vector2(ImGui.GetWindowSize().X / 2 - 104, ImGui.GetCursorPosY()));
                     if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
                     {
-                        // updating workspace and resetting threads
-                        UpdateWorkspace();
+                        // update scene
+                        UpdateScene();
 
                         ImGui.CloseCurrentPopup();
                     }
@@ -741,25 +739,15 @@ namespace Graphics
                         // obtained path
                         if (manip.Path != null)
                         {
+                            // move along the path
+                            manip.FollowPath();
+
                             var toAdd = manip.Path.AddBuffer.DequeueAll().ToList();
                             var toRemove = manip.Path.DelBuffer.DequeueAll().ToList();
 
                             // update tree state
-                            path[i].AddNodes(toAdd);
-                            path[i].RemoveNodes(toRemove);
-
-                            // path may change at any time in control thread; GetRange() guarantees thread sync
-                            // TODO: but not for the case when path shortens; fix!
-                            //int count = manip.Path.Count;
-                            //var pathRange = MeshVertex.Convert(manip.Path.GetRange(0, count));
-                            //if (path[i] == default)
-                            //{
-                            //    path[i] = new Model(pathRange, material: MeshMaterial.Red);
-                            //}
-                            //else
-                            //{
-                            //    path[i].Update(0, pathRange, new uint[0]);
-                            //}
+                            paths[i].AddNodes(toAdd);
+                            paths[i].RemoveNodes(toRemove);
                         }
 
                         // random tree
@@ -769,8 +757,8 @@ namespace Graphics
                             var toRemove = manip.Tree.DelBuffer.DequeueAll().ToList();
 
                             // update tree state
-                            tree[i].AddNodes(toAdd);
-                            tree[i].RemoveNodes(toRemove);
+                            trees[i].AddNodes(toAdd);
+                            trees[i].RemoveNodes(toRemove);
                         }
                     }
 
@@ -784,7 +772,7 @@ namespace Graphics
                     ManipHandler.AbortControl();
 
                     // update workspace
-                    UpdateWorkspace();
+                    UpdateScene();
 
                     Mode = InteractionModes.Design;
 
@@ -800,26 +788,6 @@ namespace Graphics
                     Mode = InteractionModes.Animate;
 
                     break;
-            }
-
-            if (ManipLoaded)
-            {
-                for (int i = 0; i < ManipHandler.Count; i++)
-                {
-                    Manipulator manip = ManipHandler.Manipulators[i];
-
-                    // goal
-                    if (goal[i] == default)
-                    {
-                        //var goalAttr = manip.Attractors[0];  // TODO: refactor this part
-                        //var data = new List<System.Numerics.Vector3> { goalAttr.Center };
-                        //data.AddRange(Primitives.SpherePointCloud(goalAttr.Radius, goalAttr.Center, 100));
-                        //goal[i] = new Model(MeshVertex.Convert(data), material: MeshMaterial.Yellow);
-
-                        goal[i] = Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow);
-                        goal[i].State = Matrix4.CreateTranslation(manip.Goal);
-                    }
-                }
             }
 
             base.OnUpdateFrame(e);
@@ -868,11 +836,11 @@ namespace Graphics
             base.OnUnload(e);
         }
 
-        protected void UpdateWorkspace()  // TODO: move somewhere else
+        protected void UpdateScene()
         {
-            // initializing all displaying entities
-            int manipCount = ManipHandler.Count;
-            goal = new Model[manipCount];
+            // reset trees and paths
+            trees.ForEach(x => x.Reset());
+            paths.ForEach(x => x.Reset());
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e)

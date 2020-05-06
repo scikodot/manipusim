@@ -121,15 +121,6 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        public void Update(MeshVertex[] vertices, uint[] indices)
-        {
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * MeshVertex.Size, vertices, BufferUsageHint.StaticDraw);
-
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
-        }
-
         public void UpdateVertices(uint offset, int size, MeshVertex[] vertices)
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);

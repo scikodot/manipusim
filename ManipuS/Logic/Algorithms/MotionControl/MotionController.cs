@@ -104,18 +104,9 @@ namespace Logic
                 return contestant.DKP;  // TODO: rename to DirectKinematics or JointPositions
             }), res.Item2);
 
-            //Agent.Path = res.Item1;
-            //Agent.Configs = res.Item2;
-
-            //for (int i = 0; i < Agent.Path.Count; i++)
-            //{
-            //    contestant.q = Agent.Configs[i];
-            //    jointPaths.Add(contestant.DKP);
-            //}
-
             // execute motion control
-            Path.Node gripperPos = Agent.CurrentPosition;
-            while (gripperPos != null)
+            Path.Node gripperPos = Agent.Path.Current;
+            while (gripperPos.Child != null)
             {
                 var current = gripperPos.Child;
                 while (current.Child != null)  // last point may not be deformed, since it is a goal point
@@ -137,7 +128,7 @@ namespace Logic
 
                 Discretize(contestant, gripperPos);
 
-                gripperPos = Agent.CurrentPosition;
+                gripperPos = Agent.Path.Current;
             }
         }
 
@@ -151,14 +142,13 @@ namespace Logic
             contestant.q = cNew;
             Vector3[] dkpNew = contestant.DKP;
 
-            current.Points = dkpNew;
-            current.q = cNew;
+            Agent.Path.ChangeNode(current, dkpNew, cNew);
         }
 
         private void Discretize(Manipulator contestant, Path.Node gripperPos)
         {
-            Path.Node prev = gripperPos.Parent;
-            Path.Node curr = gripperPos;
+            Path.Node prev = gripperPos;
+            Path.Node curr = gripperPos.Child;
             while (curr != null)
             {
                 Vector3 prevPos = prev.Points[prev.Points.Length - 1];

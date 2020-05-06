@@ -13,20 +13,20 @@ namespace Logic.PathPlanning
 {
     public enum TreeBehaviour
     {
-        Cyclic = 0,
-        Recursive = 1
+        Cyclic,
+        Recursive
     }
 
     public class Tree
     {
-        public class Node  // cannot be a struct, because cyclic references (Node Parent) are not supported by structs
+        public class Node
         {
-            public uint ID;
-            public Node Parent;
-            public List<Node> Childs;
+            public uint ID { get; set; }
+            public Node Parent { get; set; }
+            public List<Node> Childs { get; set; }
 
-            public Vector3 Point;
-            public Vector q;
+            public Vector3 Point { get; private set; }
+            public Vector q { get; private set; }
 
             public Node(Node parent, Vector3 point, Vector q)
             {
@@ -57,19 +57,19 @@ namespace Logic.PathPlanning
             }
         }
 
-        public HashSet<Node> Nodes;
-        public ConcurrentQueue<Node> AddBuffer, DelBuffer;
+        public HashSet<Node> Nodes = new HashSet<Node>();
+        public ConcurrentQueue<Node> AddBuffer = new ConcurrentQueue<Node>();
+        public ConcurrentQueue<Node> DelBuffer = new ConcurrentQueue<Node>();
         public TreeBehaviour Mode;
 
-        public Node Root => Nodes.First();
+        public Node Root { get; private set; }
         public int Count => Nodes.Count;
 
         public Tree(Node root, TreeBehaviour mode = TreeBehaviour.Cyclic)
         {
-            Nodes = new HashSet<Node> { root };
+            Nodes.Add(root);
 
-            AddBuffer = new ConcurrentQueue<Node>();
-            DelBuffer = new ConcurrentQueue<Node>();
+            Root = root;
 
             AddBuffer.Enqueue(root);
 

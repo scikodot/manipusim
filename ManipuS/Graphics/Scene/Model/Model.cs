@@ -39,21 +39,6 @@ namespace Graphics
             LoadModel(path);
         }
 
-        //public void Update(int meshIndex, float[] data, uint[] indices)
-        //{
-        //    Meshes[meshIndex].Update(data, indices);
-        //}
-
-        //public void Update(int meshIndex, System.Numerics.Vector3[] data, uint[] indices)
-        //{
-        //    Meshes[meshIndex].Update(MeshVertex.Convert(data), indices);
-        //}
-
-        public void Update(int meshIndex, MeshVertex[] data, uint[] indices)
-        {
-            Meshes[meshIndex].Update(data, indices);
-        }
-
         public void Render(Shader shader, MeshMode mode, Action render = default)
         {
             // setup model matrix

@@ -28,6 +28,12 @@ namespace Graphics
             });
         }
 
+        public void Reset()
+        {
+            Model.Meshes[0].UpdateVertices(0, 10000, new MeshVertex[10000]);
+            Model.Meshes[0].UpdateIndices(0, 20000, new uint[20000]);
+        }
+
         public void AddNodes(List<Path.Node> nodes)
         {
             foreach (var node in nodes)

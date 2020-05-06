@@ -29,16 +29,11 @@ namespace Logic
         public Vector3[] InitialPositions;
 
         public Vector3 Goal;
-        //public List<Vector3> Path;
-        //public List<Vector> Configs;
         public Path Path;
         public Tree Tree;
         public List<Attractor> Attractors;
 
         public MotionController Controller { get; set; }
-
-        public Path.Node CurrentPosition;
-        public int posCounter = 0;
 
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
@@ -152,24 +147,16 @@ namespace Logic
             return GripperPos.DistanceTo(p);
         }
 
+        public void FollowPath()
+        {
+            if (Path != null)
+            {
+                q = Path.Follow();
+            }
+        }
+
         public void Render(Shader shader)
         {
-            if (Path != null)  // TODO: move to UpdateFrame() !!!
-            {
-                if (CurrentPosition != null)
-                {
-                    q = CurrentPosition.q;  // TODO: path is traverse twice; fix!
-
-                    if (CurrentPosition.Child != null)
-                        CurrentPosition = CurrentPosition.Child;
-                }
-                else
-                {
-                    CurrentPosition = Path.First;
-                }
-            }
-                //q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
-
             shader.Use();
 
             // joints
