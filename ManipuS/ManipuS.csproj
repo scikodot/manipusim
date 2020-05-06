@@ -116,6 +116,8 @@
     <Compile Include="Graphics\ImGUI\ImGuiTexture.cs" />
     <Compile Include="Graphics\Scene\Model\Model.cs" />
     <Compile Include="Graphics\Scene\Model\Mesh.cs" />
+    <Compile Include="Graphics\Scene\Model\PathModel.cs" />
+    <Compile Include="Graphics\Scene\Model\TreeModel.cs" />
     <Compile Include="Graphics\Utils\Utils.cs" />
     <Compile Include="Common\WorkspaceBuffer.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\_base.cs" />
@@ -125,6 +127,7 @@
     <Compile Include="Logic\Algorithms\PathPlanning\DynamicRRT.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\GeneticAlgorithm.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\GeneticAlgorithmD.cs" />
+    <Compile Include="Logic\Algorithms\PathPlanning\Path.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\Tree.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\_base.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />

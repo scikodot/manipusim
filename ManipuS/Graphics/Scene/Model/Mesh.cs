@@ -11,6 +11,8 @@ namespace Graphics
 {
     public struct MeshVertex
     {
+        public static int Size => Marshal.SizeOf<MeshVertex>();
+
         public Vector3 Position;
         public Vector3 Normal;
         public Vector2 TexCoords;
@@ -99,22 +101,22 @@ namespace Graphics
             GL.BindVertexArray(VAO);
 
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * Marshal.SizeOf<MeshVertex>(), Vertices, BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * MeshVertex.Size, Vertices, BufferUsageHint.StaticDraw);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Length * sizeof(uint), Indices, BufferUsageHint.StaticDraw);
 
             // vertex positions
             GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), 0);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, MeshVertex.Size, 0);
 
             // vertex normals
             GL.EnableVertexAttribArray(1);
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("Normal"));
+            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, MeshVertex.Size, Marshal.OffsetOf<MeshVertex>("Normal"));
 
             // vertex texture coords
             GL.EnableVertexAttribArray(3);
-            GL.VertexAttribPointer(3, 2, VertexAttribPointerType.Float, false, Marshal.SizeOf<MeshVertex>(), Marshal.OffsetOf<MeshVertex>("TexCoords"));
+            GL.VertexAttribPointer(3, 2, VertexAttribPointerType.Float, false, MeshVertex.Size, Marshal.OffsetOf<MeshVertex>("TexCoords"));
 
             GL.BindVertexArray(0);
         }
@@ -122,7 +124,7 @@ namespace Graphics
         public void Update(MeshVertex[] vertices, uint[] indices)
         {
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * Marshal.SizeOf<MeshVertex>(), vertices, BufferUsageHint.StaticDraw);
+            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * MeshVertex.Size, vertices, BufferUsageHint.StaticDraw);
 
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
@@ -130,28 +132,14 @@ namespace Graphics
 
         public void UpdateVertices(uint offset, int size, MeshVertex[] vertices)
         {
-            var stride = Marshal.SizeOf<MeshVertex>();  // TODO: move stride to static variable in struct!
             GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-
-            GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(offset * stride), size * stride, vertices);
-
-            //if (vertices != null)
-            //    GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(offset * stride), size * stride, vertices);
-            //else
-            //    GL.InvalidateBufferSubData(EBO, (IntPtr)(offset * stride), size * stride);
+            GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)(offset * MeshVertex.Size), size * MeshVertex.Size, vertices);
         }
 
         public void UpdateIndices(uint offset, int size, uint[] indices)
         {
-            var stride = sizeof(uint);
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-
-            GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * stride), size * stride, indices);
-
-            //if (indices != null)
-            //    GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * stride), size * stride, indices);
-            //else
-            //    GL.InvalidateBufferSubData(EBO, (IntPtr)(offset * stride), size * stride);
+            GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * sizeof(uint)), size * sizeof(uint), indices);
         }
 
         public void Render(Shader shader, MeshMode mode, Action render)
@@ -189,7 +177,8 @@ namespace Graphics
                 int specularNr = 1;
                 for (int i = 0; i < Textures.Length; i++)
                 {
-                    GL.ActiveTexture(TextureUnit.Texture0 + i);  //activate proper texture unit before binding
+                    //activate proper texture unit before binding
+                    GL.ActiveTexture(TextureUnit.Texture0 + i);
 
                     // retrieve texture number
                     string number = "";

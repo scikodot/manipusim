@@ -5,6 +5,8 @@ using Logic.InverseKinematics;
 using System.Diagnostics;
 using System;
 using System.Threading;
+using System.Linq;
+using Assimp;
 
 namespace Logic
 {
@@ -95,88 +97,86 @@ namespace Logic
             var res = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
 
             // accumulate results
-            Agent.Path = res.Item1;
-            Agent.Configs = res.Item2;
-
             var contestant = Agent.DeepCopy();
-            var jointPaths = new List<Vector3[]>();
-            for (int i = 0; i < Agent.Path.Count; i++)
+            Agent.Path = new Path(res.Item2.Select(x =>
             {
-                contestant.q = Agent.Configs[i];
-                jointPaths.Add(contestant.DKP);
-            }
+                contestant.q = x;
+                return contestant.DKP;  // TODO: rename to DirectKinematics or JointPositions
+            }), res.Item2);
+
+            //Agent.Path = res.Item1;
+            //Agent.Configs = res.Item2;
+
+            //for (int i = 0; i < Agent.Path.Count; i++)
+            //{
+            //    contestant.q = Agent.Configs[i];
+            //    jointPaths.Add(contestant.DKP);
+            //}
 
             // execute motion control
-            int gripperPos = Agent.posCounter;
-            while (gripperPos < Agent.Configs.Count - 1)
+            Path.Node gripperPos = Agent.CurrentPosition;
+            while (gripperPos != null)
             {
-                // last point may not be deformed, since it is a goal point
-                for (int i = gripperPos + 1; i < Agent.Path.Count - 1; i++)
+                var current = gripperPos.Child;
+                while (current.Child != null)  // last point may not be deformed, since it is a goal point
                 {
-                    for (int j = jointPaths[i].Length - 1; j > 0; j--)
+                    for (int j = current.Points.Length - 1; j > 0; j--)
                     {
                         foreach (var obst in Obstacles)
                         {
-                            if (obst.Contains(jointPaths[i][j]))
+                            if (obst.Contains(current.Points[j]))
                             {
-                                Deform(obst, contestant, jointPaths, i, j);
+                                Deform(obst, contestant, current, j);
                                 break;
                             }
                         }
                     }
+
+                    current = current.Child;
                 }
 
-                jointPaths = Discretize(contestant, jointPaths, gripperPos);
+                Discretize(contestant, gripperPos);
 
-                gripperPos = Agent.posCounter;
+                gripperPos = Agent.CurrentPosition;
             }
         }
 
-        private void Deform(Obstacle obstacle, Manipulator contestant, List<Vector3[]> jointPaths, int point, int joint)
+        private void Deform(Obstacle obstacle, Manipulator contestant, Path.Node current, int joint)
         {
-            Vector3 dx = obstacle.Extrude(jointPaths[point][joint]);
+            Vector3 dx = obstacle.Extrude(current.Points[joint]);
 
-            Vector3 pNew = jointPaths[point][joint] + dx;
-            contestant.q = Agent.Configs[point];
+            Vector3 pNew = current.Points[joint] + dx;
+            contestant.q = current.q;
             Vector cNew = contestant.q + ControlSolver.Execute(Obstacles, contestant, pNew, joint).Item3;
             contestant.q = cNew;
             Vector3[] dkpNew = contestant.DKP;
 
-            Agent.Path[point] = dkpNew[Agent.Joints.Length - 1];
-            jointPaths[point] = dkpNew;
-            Agent.Configs[point] = cNew;
+            current.Points = dkpNew;
+            current.q = cNew;
         }
 
-        private List<Vector3[]> Discretize(Manipulator contestant, List<Vector3[]> jointPaths, int gripperPos)
+        private void Discretize(Manipulator contestant, Path.Node gripperPos)
         {
-            var discretizedPath = Agent.Path.GetRange(0, gripperPos + 1);
-            var discretizedPaths = jointPaths.GetRange(0, gripperPos + 1);
-            var discretizedConfigs = Agent.Configs.GetRange(0, gripperPos + 1);
-
-            for (int i = gripperPos + 1; i < Agent.Path.Count; i++)
+            Path.Node prev = gripperPos.Parent;
+            Path.Node curr = gripperPos;
+            while (curr != null)
             {
-                if (Agent.Path[i].DistanceTo(Agent.Path[i - 1]) > DeformThreshold)
+                Vector3 prevPos = prev.Points[prev.Points.Length - 1];
+                Vector3 currPos = curr.Points[curr.Points.Length - 1];
+                if (currPos.DistanceTo(prevPos) > DeformThreshold)
                 {
-                    Vector3 pPrev = (Agent.Path[i] + Agent.Path[i - 1]) / 2;
-                    contestant.q = Agent.Configs[i];
+                    Vector3 pPrev = (currPos + prevPos) / 2;
+                    contestant.q = curr.q;
                     Vector cPrev = contestant.q + ControlSolver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
                     contestant.q = cPrev;
                     Vector3[] dkpPrev = contestant.DKP;
 
-                    discretizedPath.Add(dkpPrev[Agent.Joints.Length - 1]);
-                    discretizedPaths.Add(dkpPrev);
-                    discretizedConfigs.Add(cPrev);
+                    Agent.Path.AddNode(new Path.Node(prev, dkpPrev, cPrev));
                 }
 
-                discretizedPath.Add(jointPaths[i][Agent.Joints.Length - 1]);
-                discretizedPaths.Add(jointPaths[i]);
-                discretizedConfigs.Add(Agent.Configs[i]);
+                curr = curr.Child;
+                prev = prev.Child;
             }
-
-            Agent.Path = discretizedPath;
-            Agent.Configs = discretizedConfigs;
-
-            return discretizedPaths;
         }
 
         public void CreateAttractors()

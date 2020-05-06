@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
 using Graphics;
 using Logic.PathPlanning;
 
@@ -30,13 +29,15 @@ namespace Logic
         public Vector3[] InitialPositions;
 
         public Vector3 Goal;
-        public List<Vector3> Path;
-        public List<Vector> Configs;
+        //public List<Vector3> Path;
+        //public List<Vector> Configs;
+        public Path Path;
         public Tree Tree;
         public List<Attractor> Attractors;
 
         public MotionController Controller { get; set; }
 
+        public Path.Node CurrentPosition;
         public int posCounter = 0;
 
         private bool _showCollider;
@@ -153,8 +154,21 @@ namespace Logic
 
         public void Render(Shader shader)
         {
-            if (Configs != null)  // TODO: move to UpdateFrame() !!!
-                q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
+            if (Path != null)  // TODO: move to UpdateFrame() !!!
+            {
+                if (CurrentPosition != null)
+                {
+                    q = CurrentPosition.q;  // TODO: path is traverse twice; fix!
+
+                    if (CurrentPosition.Child != null)
+                        CurrentPosition = CurrentPosition.Child;
+                }
+                else
+                {
+                    CurrentPosition = Path.First;
+                }
+            }
+                //q = Configs[posCounter < Configs.Count - 1 ? posCounter++ : posCounter];
 
             shader.Use();
 
@@ -178,8 +192,8 @@ namespace Logic
             manip.Links = Array.ConvertAll(Links, x => x.ShallowCopy());
             manip.Joints = Array.ConvertAll(Joints, x => x.ShallowCopy());
 
-            if (Path != null)
-                manip.Path = new List<Vector3>(Path);
+            //if (Path != null)
+            //    manip.Path = new List<Vector3>(Path);
 
             manip.IsOriginal = false;
 

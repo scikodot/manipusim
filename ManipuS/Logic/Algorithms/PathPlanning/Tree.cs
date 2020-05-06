@@ -61,6 +61,7 @@ namespace Logic.PathPlanning
         public ConcurrentQueue<Node> AddBuffer, DelBuffer;
         public TreeBehaviour Mode;
 
+        public Node Root => Nodes.First();
         public int Count => Nodes.Count;
 
         public Tree(Node root, TreeBehaviour mode = TreeBehaviour.Cyclic)
@@ -74,8 +75,6 @@ namespace Logic.PathPlanning
 
             Mode = mode;
         }
-
-        public Node Root => Nodes.First();
 
         public void AddNode(Node node)
         {
