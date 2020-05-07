@@ -42,10 +42,13 @@ namespace Logic
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
 
+        private Vector3 _orientation;
+        public ref Vector3 Orientation => ref _orientation;
+
         private Vector3 _translation;
         public ref Vector3 Translation => ref _translation;
 
-        private Vector3 _scale;
+        private Vector3 _scale = Vector3.One;
         public ref Vector3 Scale => ref _scale;
 
         public Obstacle(Model model, Collider collider)  // TODO: check collider for null; in that case, the obstacle may not participate in collision checks
@@ -53,11 +56,11 @@ namespace Logic
             Model = model;
             Collider = collider;
 
-            var trans = Collider.Body.WorldTransform.Row4;
-            _translation = new Vector3(trans.X, trans.Y, trans.Z);
+            //var trans = Collider.Body.WorldTransform.Row4;
+            //_translation = new Vector3(trans.X, trans.Y, trans.Z);
 
-            var scale = Collider.Body.WorldTransform.ScaleVector;
-            _scale = new Vector3(scale.X, scale.Y, scale.Z);
+            //var scale = Collider.Body.WorldTransform.ScaleVector;
+            //_scale = new Vector3(scale.X, scale.Y, scale.Z);
         }
 
         public bool Contains(Vector3 point)
@@ -91,9 +94,24 @@ namespace Logic
             Collider.Convert(type);
         }
 
+        public void Reset()
+        {
+
+        }
+
+        public void UpdateStateDesign()
+        {
+            Collider.Scale();
+
+            var degToRad = (float)Math.PI / 180;
+            State = 
+                Matrix.RotationYawPitchRoll(_orientation.Z * degToRad, _orientation.X * degToRad, _orientation.Y * degToRad) *
+                Matrix.Translation(_translation.X, _translation.Y, _translation.Z);
+        }
+
         public void UpdateState()
         {
-            var state = State;
+            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
 
             OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
                 state.M11, state.M21, state.M31, state.M41,

@@ -32,6 +32,14 @@ namespace Logic
                 obstacle.Dispose();
         }
 
+        public static void DesignUpdate()
+        {
+            foreach (var obst in Obstacles)
+            {
+                obst.UpdateStateDesign();
+            }
+        }
+
         public static void ToDesign()
         {
             foreach (var obst in Obstacles)

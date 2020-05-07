@@ -1,12 +1,22 @@
 ﻿using BulletSharp;
 using BulletSharp.Math;
+using System;
 using System.Collections.Generic;
 using Vector3 = BulletSharp.Math.Vector3;
 
 namespace Physics
 {
+    public enum RigidBodyType
+    {
+        Static,
+        Kinematic,
+        Dynamic
+    }
+
     public static class PhysicsHandler
     {
+        public static string[] RigidBodyTypes = Enum.GetNames(typeof(RigidBodyType));
+
         public static DiscreteDynamicsWorld World { get; }
 
         private static CollisionDispatcher _dispatcher;

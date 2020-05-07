@@ -12,6 +12,8 @@ namespace Physics
     public class BoxCollider : Collider
     {
         private Vector3 _size;
+        public ref Vector3 Size => ref _size;
+
 
         public BoxCollider(RigidBody body)
         {
@@ -24,6 +26,11 @@ namespace Physics
             Body = body;
 
             _size = new Vector3(shape.HalfExtentsWithMargin.X, shape.HalfExtentsWithMargin.Y, shape.HalfExtentsWithMargin.Z);
+        }
+
+        public override void Scale()
+        {
+            Body.CollisionShape.LocalScaling *= new BulletSharp.Math.Vector3(_size.X, _size.Y, _size.Z) / ((BoxShape)Body.CollisionShape).HalfExtentsWithMargin;
         }
 
         public override bool Contains(Vector3 point)

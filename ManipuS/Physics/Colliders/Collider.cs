@@ -8,13 +8,6 @@ using Graphics;
 
 namespace Physics
 {
-    public enum RigidBodyType
-    {
-        Static,
-        Kinematic,
-        Dynamic
-    }
-
     public abstract class Collider : IDisposable
     {
         public Model Model { get; protected set; }
@@ -91,6 +84,8 @@ namespace Physics
 
             Model.State = state;
         }
+
+        public abstract void Scale();
 
         public void Convert(RigidBodyType type)
         {

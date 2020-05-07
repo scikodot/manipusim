@@ -122,31 +122,31 @@ namespace Graphics
                 new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
             }, pointMoveable);
 
-            Cubes = new Obstacle[3];
-            for (int i = 0; i < 3; i++)
-            {
-                Matrix stateInit = default;
-                switch (i)
-                {
-                    case 0:
-                        stateInit = Matrix.Translation(0.0f, 3.0f, 0.0f);
-                        break;
-                    case 1:
-                        stateInit = Matrix.Translation(0.5f, 4.5f, 0.0f);
-                        break;
-                    case 2:
-                        stateInit = Matrix.Translation(1.0f, 6.0f, 0.0f);
-                        break;
-                }
+            //Cubes = new Obstacle[3];
+            //for (int i = 0; i < 3; i++)
+            //{
+            //    Matrix stateInit = default;
+            //    switch (i)
+            //    {
+            //        case 0:
+            //            stateInit = Matrix.Translation(0.0f, 3.0f, 0.0f);
+            //            break;
+            //        case 1:
+            //            stateInit = Matrix.Translation(0.5f, 4.5f, 0.0f);
+            //            break;
+            //        case 2:
+            //            stateInit = Matrix.Translation(1.0f, 6.0f, 0.0f);
+            //            break;
+            //    }
 
-                Cubes[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new MeshMaterial
-                {
-                    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                    Shininess = 8
-                }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
-            }
+            //    Cubes[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new MeshMaterial
+            //    {
+            //        Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //        Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //        Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //        Shininess = 8
+            //    }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
+            //}
 
             Ground = new Obstacle(Primitives.Cube(5, 0.2f, 5, new MeshMaterial
             {
@@ -154,7 +154,7 @@ namespace Graphics
                 Diffuse = new Vector4(0.0f, 0.6f, 0.8f, 1.0f),
                 Specular = new Vector4(0.5f, 0.1f, 0.0f, 1.0f),
                 Shininess = 8
-            }), PhysicsHandler.CreateStaticCollider(new BoxShape(5, 0.2f, 5)));
+            }), PhysicsHandler.CreateStaticCollider(new BoxShape(5, 0.2f, 5)/*, Matrix.Scaling(5, 0.2f, 5)*/));
 
             Sphere = new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
             {
@@ -164,18 +164,18 @@ namespace Graphics
                 Shininess = 8
             }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3)));
 
-            Cylinder = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
-            {
-                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                Shininess = 8
-            }), PhysicsHandler.CreateStaticCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(3, 4, -3)));
+            //Cylinder = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            //{
+            //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), PhysicsHandler.CreateStaticCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(3, 4, -3)));
 
             //ObstacleHandler.Add(Cubes);
             ObstacleHandler.Add(Ground);
             ObstacleHandler.Add(Sphere);
-            ObstacleHandler.Add(Cylinder);
+            //ObstacleHandler.Add(Cylinder);
 
             base.OnLoad(e);
         }
@@ -519,16 +519,38 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.25 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                if (ObstacleHandler.Obstacles != null)
+                if (ObstacleHandler.Count != 0)
                 {
                     for (int i = 0; i < ObstacleHandler.Count; i++)
                     {
                         var obst = ObstacleHandler.Obstacles[i];
                         if (ImGui.TreeNode($"Obst {i}"))
                         {
+                            ImGui.Text($"Shape type: {obst.ShapeType}");
+
+                            int type = (int)obst.Type;
+                            ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);
+                            obst.Type = (RigidBodyType)type;
+
                             ImGui.Checkbox("Show collider", ref obst.ShowCollider);
+
+                            ImGui.InputFloat3("Orientation", ref obst.Orientation);
+
                             ImGui.InputFloat3("Translation", ref obst.Translation);
-                            ImGui.InputFloat3("Scale", ref obst.Scale);
+
+                            switch (obst.ShapeType)
+                            {
+                                case BroadphaseNativeType.BoxShape:
+                                    ImGui.InputFloat3("Half extents", ref (obst.Collider as BoxCollider).Size);
+                                    break;
+                                case BroadphaseNativeType.SphereShape:
+                                    ImGui.InputFloat("Radius", ref (obst.Collider as SphereCollider).Radius);
+                                    break;
+                                case BroadphaseNativeType.CylinderShape:
+                                    break;
+                            }
+
+                            ImGui.TreePop();
                         }
                     }
                 }
@@ -704,7 +726,7 @@ namespace Graphics
             {
                 case InteractionModes.Design:
 
-
+                    ObstacleHandler.DesignUpdate();
 
                     break;
                 case InteractionModes.Animate:

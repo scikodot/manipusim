@@ -11,7 +11,8 @@ namespace Physics
 {
     class SphereCollider : Collider
     {
-        private readonly float _radius;
+        private float _radius;
+        public ref float Radius => ref _radius;
 
         public SphereCollider(RigidBody body)
         {
@@ -22,6 +23,13 @@ namespace Physics
 
             Model = Primitives.Sphere(shape.Radius, 20, 20, MeshMaterial.Green);
             Body = body;
+
+            _radius = shape.Radius;
+        }
+
+        public override void Scale()
+        {
+            Body.CollisionShape.LocalScaling = Radius * BulletSharp.Math.Vector3.One;
         }
 
         public override bool Contains(Vector3 point)
