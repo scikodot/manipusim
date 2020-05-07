@@ -48,19 +48,18 @@ namespace Logic
         private Vector3 _translation;
         public ref Vector3 Translation => ref _translation;
 
-        private Vector3 _scale = Vector3.One;
-        public ref Vector3 Scale => ref _scale;
-
         public Obstacle(Model model, Collider collider)  // TODO: check collider for null; in that case, the obstacle may not participate in collision checks
         {
             Model = model;
             Collider = collider;
 
-            //var trans = Collider.Body.WorldTransform.Row4;
-            //_translation = new Vector3(trans.X, trans.Y, trans.Z);
+            ObstacleHandler.Add(this);  // TODO: perhaps remove and use ObstacleHandler.Add(new Obstacle(...)) ?
 
-            //var scale = Collider.Body.WorldTransform.ScaleVector;
-            //_scale = new Vector3(scale.X, scale.Y, scale.Z);
+            var position = Collider.Body.WorldTransform.Origin;
+            _translation = new Vector3(position.X, position.Y, position.Z);
+
+            //var orientation = Collider.Body.Orientation.  /*Collider.Body.Orientation.Angle * BulletSharp.Math.Vector3.Normalize(Collider.Body.Orientation.Axis);*/
+            //_orientation = new Vector3(orientation.X, orientation.Y, orientation.Z) * MathUtil.SIMD_DEGS_PER_RAD;
         }
 
         public bool Contains(Vector3 point)
@@ -96,17 +95,26 @@ namespace Logic
 
         public void Reset()
         {
-
+            UpdateStateDesign();
         }
 
         public void UpdateStateDesign()
         {
             Collider.Scale();
 
-            var degToRad = (float)Math.PI / 180;
-            State = 
-                Matrix.RotationYawPitchRoll(_orientation.Z * degToRad, _orientation.X * degToRad, _orientation.Y * degToRad) *
-                Matrix.Translation(_translation.X, _translation.Y, _translation.Z);
+            var inverse = Collider.Body.Orientation.Inverse;
+
+            // TODO: optimize; consider using ImpDualQuats
+            // TODO: create separate method RotateWorld() that will create rotation matrix about world XYZ axes
+            var matX = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitX), _orientation.X * MathUtil.SIMD_RADS_PER_DEG);
+            var matY = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitY), _orientation.Y * MathUtil.SIMD_RADS_PER_DEG);
+            var matZ = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitZ), _orientation.Z * MathUtil.SIMD_RADS_PER_DEG);
+
+            State = matX * matY * matZ * 
+                Matrix.Translation(
+                    _translation.X,
+                    _translation.Y, 
+                    _translation.Z);
         }
 
         public void UpdateState()

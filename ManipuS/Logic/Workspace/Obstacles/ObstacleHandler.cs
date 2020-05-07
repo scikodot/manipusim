@@ -45,6 +45,8 @@ namespace Logic
             foreach (var obst in Obstacles)
             {
                 obst.Convert(RigidBodyType.Kinematic);
+
+                obst.Reset();
             }
         }
 

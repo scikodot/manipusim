@@ -29,7 +29,7 @@ namespace Physics
 
         public override void Scale()
         {
-            Body.CollisionShape.LocalScaling = Radius * BulletSharp.Math.Vector3.One;
+            Body.CollisionShape.LocalScaling *= (Radius / ((SphereShape)Body.CollisionShape).Radius) * BulletSharp.Math.Vector3.One;
         }
 
         public override bool Contains(Vector3 point)

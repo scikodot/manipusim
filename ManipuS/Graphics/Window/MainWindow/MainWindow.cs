@@ -154,7 +154,7 @@ namespace Graphics
                 Diffuse = new Vector4(0.0f, 0.6f, 0.8f, 1.0f),
                 Specular = new Vector4(0.5f, 0.1f, 0.0f, 1.0f),
                 Shininess = 8
-            }), PhysicsHandler.CreateStaticCollider(new BoxShape(5, 0.2f, 5)/*, Matrix.Scaling(5, 0.2f, 5)*/));
+            }), PhysicsHandler.CreateStaticCollider(new BoxShape(5, 0.2f, 5)));
 
             Sphere = new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
             {
@@ -164,18 +164,13 @@ namespace Graphics
                 Shininess = 8
             }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3)));
 
-            //Cylinder = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
-            //{
-            //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-            //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-            //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-            //    Shininess = 8
-            //}), PhysicsHandler.CreateStaticCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(3, 4, -3)));
-
-            //ObstacleHandler.Add(Cubes);
-            ObstacleHandler.Add(Ground);
-            ObstacleHandler.Add(Sphere);
-            //ObstacleHandler.Add(Cylinder);
+            Cylinder = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            {
+                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                Shininess = 8
+            }), PhysicsHandler.CreateDynamicCollider(new CylinderShape(0.25f, 1, 0.25f), 1, Matrix.Translation(3, 4, -3)));
 
             base.OnLoad(e);
         }
@@ -336,7 +331,7 @@ namespace Graphics
             // update GUI controller
             controller.Update(this, (float)e.Time);
 
-            //ImGui.ShowDemoWindow();
+            ImGui.ShowDemoWindow();
 
             // GUI viewport
             GL.Viewport(0, 0, Width, Height);
@@ -454,6 +449,8 @@ namespace Graphics
                     }));
                 }
 
+                ImGui.Separator();
+
                 if (ManipHandler.Count != 0)
                 {
                     var MB = WorkspaceBuffer.ManipBuffer;
@@ -519,6 +516,13 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.25 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
+                if (ImGui.Button("Create"))
+                {
+
+                }
+
+                ImGui.Separator();
+
                 if (ObstacleHandler.Count != 0)
                 {
                     for (int i = 0; i < ObstacleHandler.Count; i++)
@@ -547,6 +551,8 @@ namespace Graphics
                                     ImGui.InputFloat("Radius", ref (obst.Collider as SphereCollider).Radius);
                                     break;
                                 case BroadphaseNativeType.CylinderShape:
+                                    ImGui.InputFloat("Radius", ref (obst.Collider as CylinderCollider).Radius);
+                                    ImGui.InputFloat("Length", ref (obst.Collider as CylinderCollider).Length);
                                     break;
                             }
 

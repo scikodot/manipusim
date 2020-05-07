@@ -143,3 +143,23 @@ public static class RigidBodyExtensions
         Physics.PhysicsHandler.RemoveRigidBody(body);
     }
 }
+
+public static class BulletSharpQuaternionExtensions
+{
+    public static BulletSharp.Math.Vector3 ToEuler(this BulletSharp.Math.Quaternion quat)
+    {
+        var eulers = new BulletSharp.Math.Vector3
+        {
+            X = (float)Math.Atan2(2 * (quat.W * quat.X + quat.Y * quat.Z), 1 - 2 * (quat.X * quat.X + quat.Y * quat.Y)),
+            Z = (float)Math.Atan2(2 * (quat.W * quat.Z + quat.X * quat.Y), 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z))
+        };
+
+        var expr = 2 * (quat.W * quat.Y - quat.Z * quat.X);
+        if (Math.Abs(expr) >= 1)
+            eulers.Y = (float)(Math.Sign(expr) * Math.PI / 2);
+        else
+            eulers.Y = (float)Math.Asin(expr);
+
+        return eulers;
+    }
+}
