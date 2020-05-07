@@ -6,6 +6,10 @@ using System.Drawing.Imaging;
 using OpenTK;
 using OpenTK.Input;
 using OpenTK.Graphics.OpenGL4;
+using Assimp;
+using BulletSharp;
+using Physics;
+using System.Collections.Generic;
 
 namespace Graphics
 {
@@ -28,18 +32,32 @@ namespace Graphics
         // variables for mouse state processing
         private static bool _firstMove;
         private static Vector2 _lastPos;
+        private static MouseState _lastState;
 
-        public static AxesWidget Widget;
+        public static Vector2 CursorPositionNDC { get; private set; }
+        public static Ray RaycastResult { get; private set; }
+        public static bool TextIsEdited { get; set; }
 
-        public static bool TextIsEdited;
+        public static AxesWidget Widget { get; set; }
 
-        public static void PollEvents(GameWindow window, Camera camera, MouseState mouse, KeyboardState keyboard, FrameEventArgs e)
+        public static List<CollisionObject> SelectedObjects = new List<CollisionObject>();
+
+        public static void PollEvents(GameWindow window, Camera camera, MouseState mouseState, KeyboardState keyboardState, FrameEventArgs e)
         {
+            // update cursor position in NDC space
+            CursorPositionNDC = MouseToNDC(window, mouseState);  // TODO: consider creating an extension method CursorPositionNDC() for MouseState
+
+            // perform a raycast and store the result for later use
+            RaycastResult = Ray.Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
+
+            // check whether any physical object is being selected
+            PollSelection(mouseState, keyboardState);
+
             // poll the mouse for events
-            PollMouse(window, camera, mouse);
+            PollMouse(window, camera, mouseState);
 
             // poll the keyboard for events
-            PollKeyboard(window, camera, keyboard, e);
+            PollKeyboard(window, camera, keyboardState, e);
 
             // poll the screen for events
             PollScreen(window);
@@ -54,19 +72,19 @@ namespace Graphics
             else if (mouse.MiddleButton == ButtonState.Pressed)  // update camera orientation if the middle button is pressed
             {
                 // Calculate the offset of the mouse position
-                var deltaX = mouse.X - _lastPos.X;
-                var deltaY = mouse.Y - _lastPos.Y;
+                var deltaX = mouse.X - _lastState.X;
+                var deltaY = mouse.Y - _lastState.Y;
 
                 // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
                 camera.Yaw += deltaX * camera.Sensitivity;
                 camera.Pitch -= deltaY * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
             }
 
-            // updating last mouse position
-            _lastPos = new Vector2(mouse.X, mouse.Y);
-
             // poll widget for interaction
-            Widget.Poll(camera, mouse, MouseToNDC(window, mouse));
+            Widget.Poll(camera, mouse);
+
+            // update last mouse state after all necessary queries
+            _lastState = mouse;
         }
 
         private static Vector2 MouseToNDC(GameWindow window, MouseState mouse)
@@ -82,6 +100,32 @@ namespace Graphics
             return new Vector2(
                 (cursorWindow.X / (0.75f * window.Width) - 0.5f) * 2,
                 ((float)(window.Height - cursorWindow.Y) / window.Height - 0.5f) * 2);
+        }
+
+        private static void PollSelection(MouseState mouseState, KeyboardState keyboardState)
+        {
+            var startWorld = RaycastResult.StartWorld.ToBullet3();
+            var endWorld = RaycastResult.EndWorld.ToBullet3();
+
+            using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
+            {
+                PhysicsHandler.World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
+                if (raycastCallback.HasHit && mouseState.LeftButton == ButtonState.Pressed && _lastState.LeftButton == ButtonState.Released)
+                {
+                    if (keyboardState.IsKeyDown(Key.ControlLeft))
+                    {
+                        // add the object to the list of selected objects if it's not there already
+                        if (!SelectedObjects.Contains(raycastCallback.CollisionObject))
+                            SelectedObjects.Add(raycastCallback.CollisionObject);
+                    }
+                    else
+                    {
+                        // only one object is selected ---> clear list and add that object
+                        SelectedObjects.Clear();
+                        SelectedObjects.Add(raycastCallback.CollisionObject);
+                    }
+                }
+            }
         }
 
         private static void PollKeyboard(GameWindow window, Camera camera, KeyboardState keyboard, FrameEventArgs e)

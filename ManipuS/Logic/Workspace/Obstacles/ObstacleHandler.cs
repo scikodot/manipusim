@@ -10,6 +10,13 @@ namespace Logic
 {
     public static class ObstacleHandler
     {
+        public static string[] ObstacleShapes = new string[]
+        {
+            "Box",
+            "Sphere",
+            "Cylinder"
+        };
+
         public static List<Obstacle> Obstacles { get; } = new List<Obstacle>();
 
         public static int Count => Obstacles.Count;

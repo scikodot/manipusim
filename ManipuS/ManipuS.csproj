@@ -108,7 +108,8 @@
     <Compile Include="Graphics\Input\InputHandler.cs" />
     <Compile Include="Common\RandomCustom.cs" />
     <Compile Include="Common\RandomThreadStatic.cs" />
-    <Compile Include="Graphics\AxesWidget.cs" />
+    <Compile Include="Graphics\Input\AxesWidget.cs" />
+    <Compile Include="Graphics\Input\Ray.cs" />
     <Compile Include="Graphics\Scene\Camera.cs" />
     <Compile Include="Common\Dispatcher.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiController.cs" />

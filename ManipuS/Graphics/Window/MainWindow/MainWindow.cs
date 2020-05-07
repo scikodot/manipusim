@@ -115,11 +115,11 @@ namespace Graphics
                 new MeshVertex { Position = new Vector3(0.0f, 0.0f, 0.0f) }
             }, material: MeshMaterial.Yellow);
 
-            InputHandler.Widget = new AxesWidget(new Axis[3]
+            InputHandler.Widget = new AxesWidget(new AxesWidget.Axis[3]
             {
-                new Axis(Vector4.UnitW, new Vector4(0.3f, 0, 0, 1), new Vector4(1, 0, 0, 1)),
-                new Axis(Vector4.UnitW, new Vector4(0, 0.3f, 0, 1), new Vector4(0, 1, 0, 1)),
-                new Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
+                new AxesWidget.Axis(Vector4.UnitW, new Vector4(0.3f, 0, 0, 1), new Vector4(1, 0, 0, 1)),
+                new AxesWidget.Axis(Vector4.UnitW, new Vector4(0, 0.3f, 0, 1), new Vector4(0, 1, 0, 1)),
+                new AxesWidget.Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
             }, pointMoveable);
 
             //Cubes = new Obstacle[3];
@@ -275,6 +275,15 @@ namespace Graphics
                 }
             }
 
+            // TODO: render selections, i.e. highlights of the currently selected objects;
+            // Tips for GUI:
+            // - if there's only one selected object, render a properties tab with that object's properties
+            // --- obstacle properties: type, position, orientation and unique properties that define dimensions
+            // --- joint properties: coordinate and its range, position and axis (position can be changed directly only for manipulators with straight links)
+            // --- links properties are not specified for straight links, because they just connect adjacent joints; for arbitrarily formed links, some future research is needed
+            // - if there are multiple objects, only their positions and orientations can be changed (relatively, not absolutely), e.g. with widgets
+            // - only a group of common objects can be selected, i.e. obstacles/obstacles, manipulators/manipulators, joints/joints, links/links, etc.
+
             // workspace grid
             grid.State = Matrix4.Identity;
             grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
@@ -412,6 +421,8 @@ namespace Graphics
 
                 if (ImGui.Button("Create"))
                 {
+                    // TODO: create the default manipulator
+
                     Dispatcher.ActiveTasks.Add(Task.Run(() =>
                     {
                         // load components' models
@@ -450,6 +461,9 @@ namespace Graphics
                 }
 
                 ImGui.Separator();
+
+                ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
+                ImGui.BeginChild("Obstacles' list", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 138), true);
 
                 if (ManipHandler.Count != 0)
                 {
@@ -503,6 +517,9 @@ namespace Graphics
                 {
                     ImGui.Text("No manipulators at the scene.");
                 }
+
+                ImGui.EndChild();
+
                 ImGui.End();
             }
 
@@ -518,10 +535,26 @@ namespace Graphics
 
                 if (ImGui.Button("Create"))
                 {
+                    ImGui.OpenPopup("obstCreate");
+                }
 
+                if (ImGui.BeginPopup("obstCreate"))
+                {
+                    foreach (var shape in ObstacleHandler.ObstacleShapes)
+                    {
+                        if (ImGui.Selectable(shape))
+                        {
+                            // TODO: create an obstacle with the specified shape
+                        }
+                    }
+
+                    ImGui.EndPopup();
                 }
 
                 ImGui.Separator();
+
+                ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
+                ImGui.BeginChild("Obstacles' list", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 138), true);
 
                 if (ObstacleHandler.Count != 0)
                 {
@@ -542,7 +575,7 @@ namespace Graphics
 
                             ImGui.InputFloat3("Translation", ref obst.Translation);
 
-                            switch (obst.ShapeType)
+                            switch (obst.ShapeType)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
                             {
                                 case BroadphaseNativeType.BoxShape:
                                     ImGui.InputFloat3("Half extents", ref (obst.Collider as BoxCollider).Size);
@@ -564,6 +597,9 @@ namespace Graphics
                 {
                     ImGui.Text("No obstacles at the scene.");
                 }
+
+                ImGui.EndChild();
+
                 ImGui.End();
             }
 

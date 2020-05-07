@@ -136,6 +136,19 @@ public static class Vector3Extensions
     }
 }
 
+public static class Vector4Extensions
+{
+    public static BulletSharp.Math.Vector4 ToBullet4(this OpenTK.Vector4 vec)
+    {
+        return new BulletSharp.Math.Vector4(vec.X, vec.Y, vec.Z, vec.W);
+    }
+
+    public static BulletSharp.Math.Vector3 ToBullet3(this OpenTK.Vector4 vec)
+    {
+        return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
+    }
+}
+
 public static class RigidBodyExtensions
 {
     public static void DisposeFromWorld(this RigidBody body)
