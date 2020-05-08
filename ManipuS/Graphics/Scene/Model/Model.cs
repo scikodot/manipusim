@@ -8,6 +8,15 @@ using StbImageSharp;
 
 namespace Graphics
 {
+    [Flags]
+    public enum RenderFlags
+    {
+        Solid = 1,
+        Wireframe = 2,
+        Lighting = 4,
+        Selected = 8
+    }
+
     public class Model : IDisposable
     {
         private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
@@ -18,6 +27,8 @@ namespace Graphics
         private Matrix4 _state;
         public ref Matrix4 State => ref _state;
 
+        public RenderFlags RenderFlags { get; set; } = RenderFlags.Solid;
+
         // create a model, consisting of a single mesh
         //public ComplexModel(System.Numerics.Vector3[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
         //{
@@ -26,11 +37,13 @@ namespace Graphics
         //    State = state == default ? Matrix4.Identity : state;
         //}
 
-        public Model(MeshVertex[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
+        public Model(MeshVertex[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "", RenderFlags renderFlags = RenderFlags.Solid)
         {
             Meshes.Add(new Mesh(name, vertices, indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
 
             State = state == default ? Matrix4.Identity : state;
+
+            RenderFlags = renderFlags;
         }
 
         // load an arbitrary model, located at the specified path
@@ -39,13 +52,13 @@ namespace Graphics
             LoadModel(path);
         }
 
-        public void Render(Shader shader, MeshMode mode, Action render = default)
+        public void Render(Shader shader, Action render = default)
         {
             // setup model matrix
             shader.SetMatrix4("model", ref State, true);
 
             foreach (var mesh in Meshes)
-                mesh.Render(shader, mode, render);
+                mesh.Render(shader, RenderFlags, render);
         }
 
         private void LoadModel(string path)

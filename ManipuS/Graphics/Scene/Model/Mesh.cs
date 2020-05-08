@@ -52,14 +52,6 @@ namespace Graphics
         public float Shininess;
     }
 
-    [Flags]
-    public enum MeshMode
-    {
-        Solid = 1,
-        Wireframe = 2,
-        Lighting = 4
-    }
-
     public class Mesh : IDisposable
     {
         private int VAO, VBO, EBO;
@@ -69,7 +61,7 @@ namespace Graphics
         public MeshVertex[] Vertices { get; }
         public uint[] Indices { get; }
         public MeshTexture[] Textures { get; }
-        public MeshMaterial Material { get; }
+        public MeshMaterial Material { get; private set; }
 
         public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshMaterial material)
         {
@@ -133,11 +125,11 @@ namespace Graphics
             GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * sizeof(uint)), size * sizeof(uint), indices);
         }
 
-        public void Render(Shader shader, MeshMode mode, Action render)
+        public void Render(Shader shader, RenderFlags mode, Action render)
         {
             GL.BindVertexArray(VAO);
 
-            if ((mode & MeshMode.Wireframe) == MeshMode.Wireframe)
+            if (mode.HasFlag(RenderFlags.Wireframe))  // TODO: replace with single-pass render, i.e. through geometry shader or anything
             {
                 shader.SetBool("enableWireframe", 1);
 
@@ -148,11 +140,11 @@ namespace Graphics
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
             }
 
-            if ((mode & MeshMode.Solid) == MeshMode.Solid)
+            if (mode.HasFlag(RenderFlags.Solid))
             {
                 shader.SetBool("enableWireframe", 0);
 
-                if ((mode & MeshMode.Lighting) == MeshMode.Lighting)
+                if (mode.HasFlag(RenderFlags.Lighting))
                 {
                     shader.SetBool("enableLighting", 1);
                 }
@@ -162,6 +154,16 @@ namespace Graphics
                 }
 
                 shader.SetBool("enableTextures", Textures.Length == 0 ? 0u : 1u);
+
+                var material = Material;
+                if (mode.HasFlag(RenderFlags.Selected))
+                {
+                    GL.Enable(EnableCap.Blend);
+                    GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+                    // add some transparency to the object
+                    material.Diffuse.W = 0.3f;
+                }
 
                 // set textures
                 int diffuseNr = 1;
@@ -185,10 +187,10 @@ namespace Graphics
                 GL.ActiveTexture(TextureUnit.Texture0);
 
                 // set colors
-                shader.SetVector4("material.ambientCol", Material.Ambient);  // TODO: add ref
-                shader.SetVector4("material.diffuseCol", Material.Diffuse);
-                shader.SetVector4("material.specularCol", Material.Specular);
-                shader.SetFloat("material.shininess", Material.Shininess);
+                shader.SetVector4("material.ambientCol", material.Ambient);  // TODO: add ref
+                shader.SetVector4("material.diffuseCol", material.Diffuse);
+                shader.SetVector4("material.specularCol", material.Specular);
+                shader.SetFloat("material.shininess", material.Shininess);
 
                 // render mesh
                 if (render != null)
@@ -202,6 +204,15 @@ namespace Graphics
                         GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
                     else
                         GL.DrawArrays(PrimitiveType.Triangles, 0, Vertices.Length);
+                }
+
+                if (mode.HasFlag(RenderFlags.Selected))
+                {
+                    GL.Disable(EnableCap.Blend);
+
+                    // restore original alpha channel value
+                    material.Diffuse.W = Material.Diffuse.W;
+                    Material = material;
                 }
             }
 

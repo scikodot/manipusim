@@ -177,13 +177,13 @@ namespace Logic
             // joints
             for (int i = 0; i < Joints.Length; i++)
             {
-                Joints[i].Render(shader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, showCollider: _showCollider);
+                Joints[i].Render(shader, showCollider: _showCollider);
             }
 
             // links
             for (int i = 0; i < Links.Length; i++)
             {
-                Links[i].Render(shader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting, showCollider: _showCollider);
+                Links[i].Render(shader, showCollider: _showCollider);
             }
         }
 

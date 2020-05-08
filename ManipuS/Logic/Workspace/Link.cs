@@ -39,6 +39,8 @@ namespace Logic
             Collider = data.Collider;
 
             Length = data.Length;
+
+            Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
 
         public Link ShallowCopy()
@@ -46,9 +48,9 @@ namespace Logic
             return (Link)MemberwiseClone();
         }
 
-        public void Render(Shader shader, MeshMode mode, Action render = null, bool showCollider = false)
+        public void Render(Shader shader, Action render = null, bool showCollider = false)
         {
-            Model.Render(shader, mode, render);
+            Model.Render(shader, render);
 
             if (showCollider)
                 Collider.Render(shader);

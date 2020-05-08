@@ -21,9 +21,9 @@ namespace Graphics
             Model = new Model(new MeshVertex[maxSize], new uint[2 * maxSize], material);
         }
 
-        public void Render(Shader shader, MeshMode mode)
+        public void Render(Shader shader)
         {
-            Model.Render(shader, mode, () =>
+            Model.Render(shader, () =>
             {
                 GL.DrawElements(BeginMode.Lines, 2 * ((int)_freeTop - 1), DrawElementsType.UnsignedInt, 0);
             });

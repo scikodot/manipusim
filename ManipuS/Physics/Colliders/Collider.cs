@@ -56,7 +56,7 @@ namespace Physics
 
         public void Render(Shader shader)
         {
-            Model.Render(shader, MeshMode.Solid, () =>
+            Model.Render(shader, () =>
             {
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                 GL.DrawElements(PrimitiveType.Triangles, Model.Meshes[0].Indices.Length, DrawElementsType.UnsignedInt, 0);

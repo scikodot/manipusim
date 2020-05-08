@@ -74,6 +74,8 @@ namespace Logic
             Length = data.Length;
             q = data.q;
             qRanges = new float[2] { data.qRanges.X, data.qRanges.Y };
+
+            Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
 
         public Joint ShallowCopy()
@@ -81,9 +83,9 @@ namespace Logic
             return (Joint)MemberwiseClone();
         }
 
-        public void Render(Shader shader, MeshMode mode, Action render = null, bool showCollider = false)
+        public void Render(Shader shader, Action render = null, bool showCollider = false)
         {
-            Model.Render(shader, mode, render);
+            Model.Render(shader, render);
 
             if (showCollider)
                 Collider.Render(shader);

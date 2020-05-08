@@ -53,7 +53,7 @@ namespace Graphics
 
             public void Render(Shader shader, Action render)
             {
-                Model.Render(shader, MeshMode.Solid, render);
+                Model.Render(shader, render);
             }
 
             internal void Translate(Vector3 translation)

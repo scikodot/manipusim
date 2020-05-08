@@ -40,7 +40,7 @@ namespace Graphics
 
         public static AxesWidget Widget { get; set; }
 
-        public static List<CollisionObject> SelectedObjects = new List<CollisionObject>();
+        public static List<CollisionObject> SelectedObjects { get; } = new List<CollisionObject>();
 
         public static void PollEvents(GameWindow window, Camera camera, MouseState mouseState, KeyboardState keyboardState, FrameEventArgs e)
         {
@@ -102,7 +102,7 @@ namespace Graphics
                 ((float)(window.Height - cursorWindow.Y) / window.Height - 0.5f) * 2);
         }
 
-        private static void PollSelection(MouseState mouseState, KeyboardState keyboardState)
+        private static void PollSelection(MouseState mouseState, KeyboardState keyboardState)  // TODO: raycast is performed wrong on shapes' edges; check!
         {
             var startWorld = RaycastResult.StartWorld.ToBullet3();
             var endWorld = RaycastResult.EndWorld.ToBullet3();
@@ -110,22 +110,57 @@ namespace Graphics
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
                 PhysicsHandler.World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (raycastCallback.HasHit && mouseState.LeftButton == ButtonState.Pressed && _lastState.LeftButton == ButtonState.Released)
+                if (mouseState.LeftButton == ButtonState.Pressed && _lastState.LeftButton == ButtonState.Released)
                 {
-                    if (keyboardState.IsKeyDown(Key.ControlLeft))
+                    if (raycastCallback.HasHit)
                     {
-                        // add the object to the list of selected objects if it's not there already
-                        if (!SelectedObjects.Contains(raycastCallback.CollisionObject))
-                            SelectedObjects.Add(raycastCallback.CollisionObject);
+                        if (!keyboardState.IsKeyDown(Key.ControlLeft) && SelectedObjects.Find(x => x != raycastCallback.CollisionObject) != null)
+                        {
+                            // Control is not pressed and other objects are already selected ---> clear selection and add the new object to the selection
+                            ClearSelection();
+                            AddSelection(raycastCallback.CollisionObject);
+                        }
+                        else
+                        {
+                            // add the object to the selection if it's not there yet
+                            if (!SelectedObjects.Contains(raycastCallback.CollisionObject))
+                            {
+                                AddSelection(raycastCallback.CollisionObject);
+                            }
+                            else
+                            {
+                                RemoveSelection(raycastCallback.CollisionObject);
+                            }
+                        }
                     }
                     else
                     {
-                        // only one object is selected ---> clear list and add that object
-                        SelectedObjects.Clear();
-                        SelectedObjects.Add(raycastCallback.CollisionObject);
+                        // no object is selected ---> clear selection
+                        ClearSelection();
                     }
                 }
             }
+
+            Console.SetCursorPosition(0, 10);
+            Console.WriteLine($"Selected count: {SelectedObjects.Count}");
+        }
+
+        private static void AddSelection(CollisionObject collisionObject)
+        {
+            SelectedObjects.Add(collisionObject);
+            (collisionObject.UserObject as Model).RenderFlags |= RenderFlags.Selected;
+        }
+
+        private static void RemoveSelection(CollisionObject collisionObject)
+        {
+            (collisionObject.UserObject as Model).RenderFlags &= ~RenderFlags.Selected;
+            SelectedObjects.Remove(collisionObject);
+        }
+
+        private static void ClearSelection()
+        {
+            SelectedObjects.ForEach(x => (x.UserObject as Model).RenderFlags &= ~RenderFlags.Selected);
+            SelectedObjects.Clear();
         }
 
         private static void PollKeyboard(GameWindow window, Camera camera, KeyboardState keyboard, FrameEventArgs e)

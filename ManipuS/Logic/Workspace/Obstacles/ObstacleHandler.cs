@@ -69,7 +69,7 @@ namespace Logic
         {
             foreach (var obst in Obstacles)
             {
-                obst.Render(shader, MeshMode.Solid | MeshMode.Lighting);
+                obst.Render(shader);
             }
         }
     }

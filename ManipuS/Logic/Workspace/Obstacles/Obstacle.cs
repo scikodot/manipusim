@@ -26,7 +26,7 @@ namespace Logic
         public BroadphaseNativeType ShapeType => Collider.Shape;
         public ref RigidBodyType Type => ref Collider.Type;
 
-        public Matrix State
+        public Matrix State  // TODO: change to WorldTransform
         {
             get
             {
@@ -58,6 +58,9 @@ namespace Logic
             var position = Collider.Body.WorldTransform.Origin;
             _translation = new Vector3(position.X, position.Y, position.Z);
 
+            Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
+            Collider.Body.UserObject = Model;
+
             //var orientation = Collider.Body.Orientation.  /*Collider.Body.Orientation.Angle * BulletSharp.Math.Vector3.Normalize(Collider.Body.Orientation.Axis);*/
             //_orientation = new Vector3(orientation.X, orientation.Y, orientation.Z) * MathUtil.SIMD_DEGS_PER_RAD;
         }
@@ -77,12 +80,12 @@ namespace Logic
             State *= Matrix.Translation(offset.X, offset.Y, offset.Z);
         }
 
-        public void Render(Shader shader, MeshMode mode, Action render = null)
+        public void Render(Shader shader, Action render = null)
         {
             // update obstacle and collider models to reflect object's current state
             UpdateState();
 
-            Model.Render(shader, mode, render);
+            Model.Render(shader, render);
 
             if (_showCollider)
                 Collider.Render(shader);

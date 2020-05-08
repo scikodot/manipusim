@@ -223,6 +223,7 @@ namespace Graphics
             //    GL.PointSize(1);
             //});
 
+            // render obstacles
             ObstacleHandler.RenderAll(ShaderHandler.ComplexShader);
 
             //foreach (var cube in Cubes)
@@ -242,12 +243,6 @@ namespace Graphics
 
             if (ManipLoaded)
             {
-                // render obstacles
-                foreach (var obstacle in ObstacleHandler.Obstacles)
-                {
-                    obstacle.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
-                }
-
                 for (int i = 0; i < ManipHandler.Count; i++)
                 {
                     Manipulator manip = ManipHandler.Manipulators[i];
@@ -258,22 +253,24 @@ namespace Graphics
                     // render goal
                     if (goals[i] != default)
                     {
-                        goals[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
+                        goals[i].Render(ShaderHandler.ComplexShader);
                     }
 
                     // render path
                     if (manip.Path != null)
                     {
-                        paths[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
+                        paths[i].Render(ShaderHandler.ComplexShader);
                     }
 
                     // render tree
                     if (manip.ShowTree)
                     {
-                        trees[i].Render(ShaderHandler.ComplexShader, MeshMode.Solid);
+                        trees[i].Render(ShaderHandler.ComplexShader);
                     }
                 }
             }
+
+
 
             // TODO: render selections, i.e. highlights of the currently selected objects;
             // Tips for GUI:
@@ -286,24 +283,24 @@ namespace Graphics
 
             // workspace grid
             grid.State = Matrix4.Identity;
-            grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
+            grid.Render(ShaderHandler.ComplexShader, () =>
             {
                 GL.DrawArrays(PrimitiveType.Lines, 0, 4);
             });
             for (int i = 1; i < 11; i++)
             {
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i);
-                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i);
-                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
+                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
 
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i);
-                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i);
-                grid.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
+                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
 
-            gridFloor.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>  // TODO: all help should be placed in a separate document (aka documentation)
+            gridFloor.Render(ShaderHandler.ComplexShader, () =>  // TODO: all help should be placed in a separate document (aka documentation)
             {
                 // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
                 //
@@ -340,7 +337,7 @@ namespace Graphics
             // update GUI controller
             controller.Update(this, (float)e.Time);
 
-            ImGui.ShowDemoWindow();
+            //ImGui.ShowDemoWindow();
 
             // GUI viewport
             GL.Viewport(0, 0, Width, Height);

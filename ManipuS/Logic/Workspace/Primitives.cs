@@ -8,7 +8,7 @@ namespace Logic
 {
     public static class Primitives
     {
-        public static Model Cube(float halfX, float halfY, float halfZ, MeshMaterial material, OpenTK.Matrix4 state = default)
+        public static Model Cube(float halfX, float halfY, float halfZ, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             var vertices = new List<MeshVertex>();
 
@@ -55,10 +55,10 @@ namespace Logic
                 indices.Add(k + 3);
             }
 
-            return new Model(vertices.ToArray(), indices.ToArray(), material, state);
+            return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
         }
 
-        public static Model Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material, OpenTK.Matrix4 state = default)
+        public static Model Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float radiusInv = 1.0f / radius;
             float pi2 = (float)Math.PI / 2;
@@ -130,10 +130,10 @@ namespace Logic
             }
 
             // return a model
-            return new Model(vertices.ToArray(), indices.ToArray(), material, state);
+            return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
         }
 
-        public static Model Cylinder(float radius, float extendDown, float extendUp, int circleCount, MeshMaterial material, OpenTK.Matrix4 state = default)
+        public static Model Cylinder(float radius, float extendDown, float extendUp, int circleCount, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float radiusInv = 1.0f / radius;
             float angleStep = 2 * (float)Math.PI / circleCount;
@@ -202,7 +202,7 @@ namespace Logic
                 indices.Add(4 * i + 9);
             }
 
-            return new Model(vertices.ToArray(), indices.ToArray(), material, state);
+            return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
         }
 
         public static System.Numerics.Vector3[] SpherePointCloud(float radius, System.Numerics.Vector3 center, int pointsNum)

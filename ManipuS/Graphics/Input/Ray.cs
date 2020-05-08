@@ -36,7 +36,7 @@ namespace Graphics
             rayEndWorld /= rayEndWorld.W;
 
             var rayDir = Vector4.Normalize(rayEndWorld - rayStartWorld);
-            rayEndWorld = rayDir * 1000;
+            rayEndWorld = rayStartWorld + rayDir * 1000;
 
             return new Ray(rayStartWorld, rayEndWorld, rayDir);
         }
