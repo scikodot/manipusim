@@ -120,7 +120,7 @@ namespace Graphics
                 new AxesWidget.Axis(Vector4.UnitW, new Vector4(0.3f, 0, 0, 1), new Vector4(1, 0, 0, 1)),
                 new AxesWidget.Axis(Vector4.UnitW, new Vector4(0, 0.3f, 0, 1), new Vector4(0, 1, 0, 1)),
                 new AxesWidget.Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
-            }, pointMoveable);
+            });
 
             //Cubes = new Obstacle[3];
             //for (int i = 0; i < 3; i++)
@@ -223,8 +223,7 @@ namespace Graphics
             //    GL.PointSize(1);
             //});
 
-            // render obstacles
-            ObstacleHandler.RenderAll(ShaderHandler.ComplexShader);
+
 
             //foreach (var cube in Cubes)
             //{
@@ -240,6 +239,29 @@ namespace Graphics
             //ShaderHandler.GenericShader.Use();
             //var model = OpenTK.Matrix4.Identity;
             //ShaderHandler.GenericShader.SetMatrix4("model", ref model);
+
+            RenderCoreOpaque();
+
+            // TODO: render selections, i.e. highlights of the currently selected objects;
+            // Tips for GUI:
+            // - if there's only one selected object, render a properties tab with that object's properties
+            // --- obstacle properties: type, position, orientation and unique properties that define dimensions
+            // --- joint properties: coordinate and its range, position and axis (position can be changed directly only for manipulators with straight links)
+            // --- links properties are not specified for straight links, because they just connect adjacent joints; for arbitrarily formed links, some future research is needed
+            // - if there are multiple objects, only their positions and orientations can be changed (relatively, not absolutely), e.g. with widgets
+            // - only a group of common objects can be selected, i.e. obstacles/obstacles, manipulators/manipulators, joints/joints, links/links, etc.
+
+            RenderCoreTransparent();
+
+            RenderCoreIndependent();
+
+            base.OnRenderFrame(e);
+        }
+
+        private void RenderCoreOpaque()
+        {
+            // render the unselected obstacles
+            ObstacleHandler.RenderOpaque(ShaderHandler.ComplexShader);
 
             if (ManipLoaded)
             {
@@ -270,17 +292,6 @@ namespace Graphics
                 }
             }
 
-
-
-            // TODO: render selections, i.e. highlights of the currently selected objects;
-            // Tips for GUI:
-            // - if there's only one selected object, render a properties tab with that object's properties
-            // --- obstacle properties: type, position, orientation and unique properties that define dimensions
-            // --- joint properties: coordinate and its range, position and axis (position can be changed directly only for manipulators with straight links)
-            // --- links properties are not specified for straight links, because they just connect adjacent joints; for arbitrarily formed links, some future research is needed
-            // - if there are multiple objects, only their positions and orientations can be changed (relatively, not absolutely), e.g. with widgets
-            // - only a group of common objects can be selected, i.e. obstacles/obstacles, manipulators/manipulators, joints/joints, links/links, etc.
-
             // workspace grid
             grid.State = Matrix4.Identity;
             grid.Render(ShaderHandler.ComplexShader, () =>
@@ -299,21 +310,28 @@ namespace Graphics
                 grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i);
                 grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
             }
+        }
 
-            gridFloor.Render(ShaderHandler.ComplexShader, () =>  // TODO: all help should be placed in a separate document (aka documentation)
+        private void RenderCoreTransparent()
+        {
+            // render the selected obstacles
+            ObstacleHandler.RenderTransparent(ShaderHandler.ComplexShader);
+
+            // TODO: all help should be placed in a separate document (aka documentation)
+            // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
+            //
+            // the blending function is determined as follows:
+            // Color = SourceColor * SourceFactor + DestColor * DestFactor,
+            // where
+            //     SourceColor - color of the currently rendering fragment,
+            //     SourceFactor - its factor,
+            //     DestColor - color of the already rendered fragment (the one in the color buffer),
+            //     DestFactor - its factor.
+            //
+            // so, to render transparent floor, we take SourceFactor as source's alpha (floor's alpha) and DestFactor as the remainder of the source's alpha
+            // (the visible amount of the opaque object behind the floor)
+            gridFloor.Render(ShaderHandler.ComplexShader, () =>
             {
-                // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
-                //
-                // the blending function is determined as follows:
-                // Color = SourceColor * SourceFactor + DestColor * DestFactor,
-                // where
-                //     SourceColor - color of the currently rendering fragment,
-                //     SourceFactor - its factor,
-                //     DestColor - color of the already rendered fragment (the one in the color buffer),
-                //     DestFactor - its factor.
-                //
-                // so, to render transparent floor, we take SourceFactor as source's alpha (floor's alpha) and DestFactor as the remainder of the source's alpha
-                // (the visible amount of the opaque object behind the floor)
                 GL.Enable(EnableCap.Blend);
                 GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
@@ -321,15 +339,16 @@ namespace Graphics
 
                 GL.Disable(EnableCap.Blend);
             });
+        }
 
+        private void RenderCoreIndependent()
+        {
             InputHandler.Widget.Render(ShaderHandler.ComplexShader, () =>
             {
                 GL.Disable(EnableCap.DepthTest);
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
                 GL.Enable(EnableCap.DepthTest);
             });
-
-            base.OnRenderFrame(e);
         }
 
         protected void RenderGUI(FrameEventArgs e)
@@ -723,6 +742,62 @@ namespace Graphics
                 ImGui.End();
             }
 
+            if (InputHandler.SelectedObjects.Count == 1)
+            {
+                var selectedObject = InputHandler.SelectedObjects[0].UserObject;
+
+                // attach the widget if it's not already attached
+                if (!InputHandler.Widget.IsAttached)
+                    InputHandler.Widget.Attach(selectedObject as ISelectable);
+
+                if (ImGui.Begin("Properties",
+                ImGuiWindowFlags.NoCollapse |
+                ImGuiWindowFlags.NoMove |
+                ImGuiWindowFlags.NoResize |
+                ImGuiWindowFlags.HorizontalScrollbar))
+                {
+                    ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
+                    ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+
+                    if (selectedObject is Obstacle obstacle)
+                    {
+                        ImGui.Text($"Shape type: {obstacle.ShapeType}");
+
+                        int type = (int)obstacle.Type;
+                        ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);
+                        obstacle.Type = (RigidBodyType)type;
+
+                        ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
+
+                        ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
+
+                        ImGui.InputFloat3("Translation", ref obstacle.Translation);
+
+                        if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
+                        {
+                            ImGui.InputFloat3("Half extents", ref box.Size);
+                        }
+                        else if (obstacle.Collider is SphereCollider sphere)
+                        {
+                            ImGui.InputFloat("Radius", ref sphere.Radius);
+                        }
+                        else if (obstacle.Collider is CylinderCollider cylinder)
+                        {
+                            ImGui.InputFloat("Radius", ref cylinder.Radius);
+                            ImGui.InputFloat("Length", ref cylinder.Length);
+                        }
+                    }
+                    else if (selectedObject is Joint joint)
+                    {
+                        // TODO: show joint properties
+                    }
+                    else if (selectedObject is Link link)
+                    {
+                        // TODO: show link properties
+                    }
+                }
+            }
+
             // rendering controller and checking for errors
             controller.Render();
             Util.CheckGLError("End of frame");
@@ -837,7 +912,6 @@ namespace Graphics
                     // convert all obstacles to their native physics types
                     ObstacleHandler.ToAnimate();
 
-                    // run threads for all manipulators
                     ManipHandler.ToAnimate();
 
                     Mode = InteractionModes.Animate;
@@ -850,9 +924,17 @@ namespace Graphics
 
         protected void UpdateScene()
         {
-            // reset trees and paths
-            trees.ForEach(x => x.Reset());
-            paths.ForEach(x => x.Reset());
+            // reset trees
+            foreach (var tree in trees)
+            {
+                tree.Reset();
+            }
+
+            // reset paths
+            foreach (var path in paths)
+            {
+                path.Reset();
+            }
         }
 
         protected override void OnMouseMove(MouseMoveEventArgs e)

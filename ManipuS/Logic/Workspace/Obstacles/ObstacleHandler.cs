@@ -65,11 +65,21 @@ namespace Logic
             }
         }
 
-        public static void RenderAll(Shader shader)
+        public static void RenderOpaque(Shader shader)
         {
             foreach (var obst in Obstacles)
             {
-                obst.Render(shader);
+                if (!obst.Model.RenderFlags.HasFlag(RenderFlags.Selected))
+                    obst.Render(shader);
+            }
+        }
+
+        public static void RenderTransparent(Shader shader)
+        {
+            foreach (var obst in Obstacles)
+            {
+                if (obst.Model.RenderFlags.HasFlag(RenderFlags.Selected))
+                    obst.Render(shader);
             }
         }
     }

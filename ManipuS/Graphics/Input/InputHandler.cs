@@ -10,6 +10,7 @@ using Assimp;
 using BulletSharp;
 using Physics;
 using System.Collections.Generic;
+using ImGuiNET;
 
 namespace Graphics
 {
@@ -51,7 +52,8 @@ namespace Graphics
             RaycastResult = Ray.Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
 
             // check whether any physical object is being selected
-            PollSelection(mouseState, keyboardState);
+            if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow | ImGuiHoveredFlags.AllowWhenBlockedByPopup))
+                PollSelection(mouseState, keyboardState);
 
             // poll the mouse for events
             PollMouse(window, camera, mouseState);
@@ -148,18 +150,18 @@ namespace Graphics
         private static void AddSelection(CollisionObject collisionObject)
         {
             SelectedObjects.Add(collisionObject);
-            (collisionObject.UserObject as Model).RenderFlags |= RenderFlags.Selected;
+            (collisionObject.UserObject as ISelectable).Model.RenderFlags |= RenderFlags.Selected;
         }
 
         private static void RemoveSelection(CollisionObject collisionObject)
         {
-            (collisionObject.UserObject as Model).RenderFlags &= ~RenderFlags.Selected;
+            (collisionObject.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected;
             SelectedObjects.Remove(collisionObject);
         }
 
         private static void ClearSelection()
         {
-            SelectedObjects.ForEach(x => (x.UserObject as Model).RenderFlags &= ~RenderFlags.Selected);
+            SelectedObjects.ForEach(x => (x.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected);
             SelectedObjects.Clear();
         }
 

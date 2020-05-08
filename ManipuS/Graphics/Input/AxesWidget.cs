@@ -244,14 +244,16 @@ namespace Graphics
 
         public Axis[] Axes { get; private set; }
         public Axis ActiveAxis { get; private set; }
-        public Model Parent { get; private set; }
+        public ISelectable Parent { get; private set; }
+
+        public bool IsAttached => Parent is null;
 
         public AxesWidget(Axis[] axes)
         {
             Axes = axes;
         }
 
-        public AxesWidget(Axis[] axes, Model model)
+        public AxesWidget(Axis[] axes, ISelectable model)
         {
             Axes = axes;
 
@@ -264,7 +266,7 @@ namespace Graphics
                 axis.Render(shader, render);
         }
 
-        public void Attach(Model model)
+        public void Attach(ISelectable model)
         {
             Parent = model;
         }
@@ -297,7 +299,7 @@ namespace Graphics
         private void Translate(Vector3 translation)
         {
             // translate the parent object
-            ref var parentState = ref Parent.State;
+            ref var parentState = ref Parent.Model.State;  // TODO: can become null; check!
             parentState.M14 += translation.X;
             parentState.M24 += translation.Y;
             parentState.M34 += translation.Z;

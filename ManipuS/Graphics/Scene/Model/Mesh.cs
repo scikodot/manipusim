@@ -155,14 +155,16 @@ namespace Graphics
 
                 shader.SetBool("enableTextures", Textures.Length == 0 ? 0u : 1u);
 
-                var material = Material;
                 if (mode.HasFlag(RenderFlags.Selected))
                 {
                     GL.Enable(EnableCap.Blend);
                     GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-                    // add some transparency to the object
-                    material.Diffuse.W = 0.3f;
+                    shader.SetBool("isSelected", 1);
+                }
+                else
+                {
+                    shader.SetBool("isSelected", 0);
                 }
 
                 // set textures
@@ -187,10 +189,10 @@ namespace Graphics
                 GL.ActiveTexture(TextureUnit.Texture0);
 
                 // set colors
-                shader.SetVector4("material.ambientCol", material.Ambient);  // TODO: add ref
-                shader.SetVector4("material.diffuseCol", material.Diffuse);
-                shader.SetVector4("material.specularCol", material.Specular);
-                shader.SetFloat("material.shininess", material.Shininess);
+                shader.SetVector4("material.ambientCol", Material.Ambient);  // TODO: add ref
+                shader.SetVector4("material.diffuseCol", Material.Diffuse);
+                shader.SetVector4("material.specularCol", Material.Specular);
+                shader.SetFloat("material.shininess", Material.Shininess);
 
                 // render mesh
                 if (render != null)
@@ -209,10 +211,6 @@ namespace Graphics
                 if (mode.HasFlag(RenderFlags.Selected))
                 {
                     GL.Disable(EnableCap.Blend);
-
-                    // restore original alpha channel value
-                    material.Diffuse.W = Material.Diffuse.W;
-                    Material = material;
                 }
             }
 

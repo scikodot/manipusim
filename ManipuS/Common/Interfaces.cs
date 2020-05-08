@@ -18,4 +18,9 @@ namespace Graphics
 
         void UpdateState(ref Matrix4 state);
     }
+
+    public interface ISelectable
+    {
+        Model Model { get; }
+    }
 }

@@ -69,6 +69,7 @@ uniform Material material;
 uniform bool enableWireframe;  // switch between vertex/material colors (for vertex colors no light is applied)
 uniform bool enableTextures;  // switch between material textures/colors
 uniform bool enableLighting;  // enable/disable lighting
+uniform bool isSelected;
 
 // function prototypes
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -110,6 +111,11 @@ void main()
 			// render material as-is if lighting is not used
 			FragColor = material.diffuseCol + material.ambientCol;
 		}
+	}
+
+	if (isSelected)
+	{
+		FragColor[3] = 0.3;
 	}
 }
 

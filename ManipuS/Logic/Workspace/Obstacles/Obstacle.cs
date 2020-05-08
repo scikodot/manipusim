@@ -18,7 +18,7 @@ namespace Logic
         public bool ShowCollider;
     }
 
-    public class Obstacle : IDisposable
+    public class Obstacle : IDisposable, ISelectable
     {
         public Model Model { get; }
         public Collider Collider { get; }
@@ -59,7 +59,7 @@ namespace Logic
             _translation = new Vector3(position.X, position.Y, position.Z);
 
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
-            Collider.Body.UserObject = Model;
+            Collider.Body.UserObject = this;
 
             //var orientation = Collider.Body.Orientation.  /*Collider.Body.Orientation.Angle * BulletSharp.Math.Vector3.Normalize(Collider.Body.Orientation.Axis);*/
             //_orientation = new Vector3(orientation.X, orientation.Y, orientation.Z) * MathUtil.SIMD_DEGS_PER_RAD;

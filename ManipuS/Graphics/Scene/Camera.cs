@@ -23,7 +23,7 @@ namespace Graphics
         // Rotation around the Y axis (radians)
         private float _yaw = -MathHelper.PiOver2; // Without this you would be started rotated 90 degrees right
         // The field of view of the camera (radians)
-        private float _fov = MathHelper.PiOver2;
+        private float _fov = MathHelper.PiOver3;
 
         // camera parameters
         public float Speed { get; set; } = 3f;
@@ -84,7 +84,7 @@ namespace Graphics
             get => MathHelper.RadiansToDegrees(_fov);
             set
             {
-                var angle = MathHelper.Clamp(value, 1f, 90f);
+                var angle = MathHelper.Clamp(value, 1f, 60f);
                 _fov = MathHelper.DegreesToRadians(angle);
             }
         }
