@@ -147,6 +147,36 @@ public static class Vector4Extensions
     {
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
     }
+
+    public static System.Numerics.Vector4 ToNumerics4(this OpenTK.Vector4 vec)
+    {
+        return new Vector4(vec.X, vec.Y, vec.Z, vec.W);
+    }
+
+    public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Vector4 vec)
+    {
+        return new Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Vector3 vec)
+    {
+        return new Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    public static OpenTK.Vector3 ToBullet3(this BulletSharp.Math.Vector3 vec)
+    {
+        return new OpenTK.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    //public static System.Numerics.Vector3 XYZ(this System.Numerics.Vector4 vec)
+    //{
+    //    return new Vector3(vec.X, vec.Y, vec.Z);
+    //}
+
+    //public static System.Numerics.Vector2 XY(this System.Numerics.Vector3 vec)
+    //{
+    //    return new Vector2(vec.X, vec.Y);
+    //}
 }
 
 public static class RigidBodyExtensions

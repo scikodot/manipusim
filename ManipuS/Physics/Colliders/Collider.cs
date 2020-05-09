@@ -5,6 +5,8 @@ using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
 
 using Graphics;
+using BulletSharp.Math;
+using Vector3 = System.Numerics.Vector3;
 
 namespace Physics
 {
@@ -86,6 +88,14 @@ namespace Physics
         }
 
         public abstract void Scale();
+
+        public void Translate(Vector3 translation)
+        {
+            //Body.MotionState.GetWorldTransform(out Matrix worldTransform);
+            //var transMatrix = worldTransform * Matrix.Translation(translation.X, translation.Y, translation.Z);
+            //Body.MotionState.SetWorldTransform(ref transMatrix);
+            Body.MotionState.WorldTransform *= Matrix.Translation(translation.X, translation.Y, translation.Z);
+        }
 
         public void Convert(RigidBodyType type)
         {

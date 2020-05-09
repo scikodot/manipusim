@@ -115,11 +115,11 @@ namespace Graphics
                 new MeshVertex { Position = new Vector3(0.0f, 0.0f, 0.0f) }
             }, material: MeshMaterial.Yellow);
 
-            InputHandler.Widget = new AxesWidget(new AxesWidget.Axis[3]
+            InputHandler.Widget = new AxesWidget(Vector3.Zero, new (Vector3, Vector4)[3]
             {
-                new AxesWidget.Axis(Vector4.UnitW, new Vector4(0.3f, 0, 0, 1), new Vector4(1, 0, 0, 1)),
-                new AxesWidget.Axis(Vector4.UnitW, new Vector4(0, 0.3f, 0, 1), new Vector4(0, 1, 0, 1)),
-                new AxesWidget.Axis(Vector4.UnitW, new Vector4(0, 0, 0.3f, 1), new Vector4(0, 0, 1, 1))
+                (new Vector3(0.3f, 0, 0), new Vector4(1, 0, 0, 1)),
+                (new Vector3(0, 0.3f, 0), new Vector4(0, 1, 0, 1)),
+                (new Vector3(0, 0, 0.3f), new Vector4(0, 0, 1, 1))
             });
 
             //Cubes = new Obstacle[3];
@@ -746,9 +746,8 @@ namespace Graphics
             {
                 var selectedObject = InputHandler.SelectedObjects[0].UserObject;
 
-                // attach the widget if it's not already attached
-                if (!InputHandler.Widget.IsAttached)
-                    InputHandler.Widget.Attach(selectedObject as ISelectable);
+                // attach the widget
+                InputHandler.Widget.Attach(selectedObject as ISelectable);
 
                 if (ImGui.Begin("Properties",
                 ImGuiWindowFlags.NoCollapse |
@@ -797,6 +796,11 @@ namespace Graphics
                     }
                 }
             }
+            else
+            {
+                // detach the widget
+                InputHandler.Widget.Detach();
+            }
 
             // rendering controller and checking for errors
             controller.Render();
@@ -840,7 +844,8 @@ namespace Graphics
             {
                 case InteractionModes.Design:
 
-                    ObstacleHandler.DesignUpdate();
+                    if (!InputHandler.Widget.IsActive)
+                        ObstacleHandler.DesignUpdate();
 
                     break;
                 case InteractionModes.Animate:

@@ -51,8 +51,11 @@ namespace Graphics
             // perform a raycast and store the result for later use
             RaycastResult = Ray.Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
 
+            // poll widget for interaction
+            Widget.Poll(camera, RaycastResult, mouseState);
+
             // check whether any physical object is being selected
-            if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow | ImGuiHoveredFlags.AllowWhenBlockedByPopup))
+            if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow | ImGuiHoveredFlags.AllowWhenBlockedByPopup) && !Widget.IsActive)
                 PollSelection(mouseState, keyboardState);
 
             // poll the mouse for events
@@ -65,34 +68,31 @@ namespace Graphics
             PollScreen(window);
         }
 
-        private static void PollMouse(GameWindow window, Camera camera, MouseState mouse)
+        private static void PollMouse(GameWindow window, Camera camera, MouseState mouseState)
         {
             if (_firstMove) // this bool variable is initially set to true
             {
                 _firstMove = false;
             }
-            else if (mouse.MiddleButton == ButtonState.Pressed)  // update camera orientation if the middle button is pressed
+            else if (mouseState.MiddleButton == ButtonState.Pressed)  // update camera orientation if the middle button is pressed
             {
                 // Calculate the offset of the mouse position
-                var deltaX = mouse.X - _lastState.X;
-                var deltaY = mouse.Y - _lastState.Y;
+                var deltaX = mouseState.X - _lastState.X;
+                var deltaY = mouseState.Y - _lastState.Y;
 
                 // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
                 camera.Yaw += deltaX * camera.Sensitivity;
                 camera.Pitch -= deltaY * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
             }
 
-            // poll widget for interaction
-            Widget.Poll(camera, mouse);
-
             // update last mouse state after all necessary queries
-            _lastState = mouse;
+            _lastState = mouseState;
         }
 
-        private static Vector2 MouseToNDC(GameWindow window, MouseState mouse)
+        private static Vector2 MouseToNDC(GameWindow window, MouseState mouseState)
         {
             // cursor position relative to window
-            var cursorWindow = new Point(mouse.X - window.X, mouse.Y - window.Y);
+            var cursorWindow = new Point(mouseState.X - window.X, mouseState.Y - window.Y);
 
             // take into account window borders
             cursorWindow.X -= (int)(0.25 * window.Width + 8);  // 8 - indent for resizing feature
@@ -143,8 +143,8 @@ namespace Graphics
                 }
             }
 
-            Console.SetCursorPosition(0, 10);
-            Console.WriteLine($"Selected count: {SelectedObjects.Count}");
+            //Console.SetCursorPosition(0, 10);
+            //Console.WriteLine($"Selected count: {SelectedObjects.Count}");
         }
 
         private static void AddSelection(CollisionObject collisionObject)
@@ -165,10 +165,10 @@ namespace Graphics
             SelectedObjects.Clear();
         }
 
-        private static void PollKeyboard(GameWindow window, Camera camera, KeyboardState keyboard, FrameEventArgs e)
+        private static void PollKeyboard(GameWindow window, Camera camera, KeyboardState keyboardState, FrameEventArgs e)
         {
             // exit program if queried
-            if (keyboard.IsKeyDown(Key.Escape))
+            if (keyboardState.IsKeyDown(Key.Escape))
             {
                 window.Exit();
             }
@@ -176,13 +176,13 @@ namespace Graphics
             if (!TextIsEdited)
             {
                 // panning
-                if (keyboard.IsKeyDown(Key.W))
+                if (keyboardState.IsKeyDown(Key.W))
                     camera.Position += camera.Up * camera.Speed * (float)e.Time; // Up 
-                if (keyboard.IsKeyDown(Key.S))
+                if (keyboardState.IsKeyDown(Key.S))
                     camera.Position -= camera.Up * camera.Speed * (float)e.Time; // Down
-                if (keyboard.IsKeyDown(Key.A))
+                if (keyboardState.IsKeyDown(Key.A))
                     camera.Position -= camera.Right * camera.Speed * (float)e.Time; // Left
-                if (keyboard.IsKeyDown(Key.D))
+                if (keyboardState.IsKeyDown(Key.D))
                     camera.Position += camera.Right * camera.Speed * (float)e.Time; // Right
             }
         }

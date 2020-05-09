@@ -1,6 +1,8 @@
 ﻿using BulletSharp;
 using OpenTK;
 
+using Physics;
+
 using Vector3 = System.Numerics.Vector3;
 
 namespace Graphics
@@ -22,5 +24,6 @@ namespace Graphics
     public interface ISelectable
     {
         Model Model { get; }
+        Collider Collider { get; }
     }
 }

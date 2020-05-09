@@ -6,6 +6,7 @@ using BulletSharp.Math;
 
 using Graphics;
 using Physics;
+
 using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
@@ -75,7 +76,7 @@ namespace Logic
             return Collider.Extrude(point);
         }
 
-        public void Move(Vector3 offset)
+        public void Translate(Vector3 offset)
         {
             State *= Matrix.Translation(offset.X, offset.Y, offset.Z);
         }
