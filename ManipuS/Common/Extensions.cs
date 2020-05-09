@@ -136,7 +136,7 @@ public static class Vector3Extensions
     }
 }
 
-public static class Vector4Extensions
+public static class VectorConversionExtensions
 {
     public static BulletSharp.Math.Vector4 ToBullet4(this OpenTK.Vector4 vec)
     {
@@ -144,6 +144,11 @@ public static class Vector4Extensions
     }
 
     public static BulletSharp.Math.Vector3 ToBullet3(this OpenTK.Vector4 vec)
+    {
+        return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    public static BulletSharp.Math.Vector3 ToBullet3(this System.Numerics.Vector3 vec)
     {
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
     }
@@ -163,7 +168,12 @@ public static class Vector4Extensions
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static OpenTK.Vector3 ToBullet3(this BulletSharp.Math.Vector3 vec)
+    public static System.Numerics.Vector3 ToNumerics3(this BulletSharp.Math.Vector3 vec)
+    {
+        return new Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    public static OpenTK.Vector3 ToOpenTK3(this BulletSharp.Math.Vector3 vec)
     {
         return new OpenTK.Vector3(vec.X, vec.Y, vec.Z);
     }

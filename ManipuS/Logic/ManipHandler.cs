@@ -98,19 +98,36 @@ namespace Logic
             RunControl();
         }
 
+        public static void UpdateDesign()
+        {
+            foreach (var manipulator in Manipulators)
+            {
+                manipulator.UpdateState();
+            }
+        }
+
         public static void Reset()
         {
-            Manipulators.ForEach(x => x.Reset());
+            foreach (var manipulator in Manipulators)
+            {
+                manipulator.Reset();
+            }
         }
 
         public static void RunControl()
         {
-            Manipulators.ForEach(x => x.Controller.Run());
+            foreach (var manipulator in Manipulators)
+            {
+                manipulator.Controller.Run();
+            }
         }
 
         public static void AbortControl()
         {
-            Manipulators.ForEach(x => x.Controller.Abort());
+            foreach (var manipulator in Manipulators)
+            {
+                manipulator.Controller.Abort();
+            }
         }
 
         public static void Plan(Manipulator manip)

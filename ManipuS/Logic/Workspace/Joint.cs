@@ -27,12 +27,15 @@ namespace Logic
         public Vector2 qRanges;
     }
 
-    public class Joint
+    public class Joint : ISelectable, ITranslatable  // TODO: implement IDisposable
     {
         public Model Model { get; }
         public Collider Collider { get; }
 
         public float Length;
+
+        private bool _showCollider;
+        public ref bool ShowCollider => ref _showCollider;
 
         private float _initialCoordinate;
         public ref float InitialCoordinate => ref _initialCoordinate;
@@ -46,16 +49,22 @@ namespace Logic
 
         public Matrix State
         {
-            get
-            {
-                Collider.Body.MotionState.GetWorldTransform(out Matrix state);
-                return state;
-            }
-            set
-            {
-                Collider.Body.MotionState.SetWorldTransform(ref value);
-            }
+            get => Collider.Body.MotionState.WorldTransform;
+            set => Collider.Body.MotionState.WorldTransform = value;
         }
+
+        //public Matrix State
+        //{
+        //    get
+        //    {
+        //        Collider.Body.MotionState.GetWorldTransform(out Matrix state);
+        //        return state;
+        //    }
+        //    set
+        //    {
+        //        Collider.Body.MotionState.SetWorldTransform(ref value);
+        //    }
+        //}
 
         private Vector3 _initialPosition;
         public ref Vector3 InitialPosition => ref _initialPosition;
@@ -71,6 +80,8 @@ namespace Logic
             Model = data.Model;
             Collider = data.Collider;
 
+            Collider.Body.UserObject = this;
+
             Length = data.Length;
             q = data.q;
             qRanges = new float[2] { data.qRanges.X, data.qRanges.Y };
@@ -78,16 +89,23 @@ namespace Logic
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
 
+        public void Translate(Vector3 translation)
+        {
+            State *= Matrix.Translation(translation.X, translation.Y, translation.Z);
+
+            InitialPosition += translation;
+        }
+
         public Joint ShallowCopy()
         {
             return (Joint)MemberwiseClone();
         }
 
-        public void Render(Shader shader, Action render = null, bool showCollider = false)
+        public void Render(Shader shader, Action render = null)
         {
             Model.Render(shader, render);
 
-            if (showCollider)
+            if (ShowCollider)
                 Collider.Render(shader);
         }
 
@@ -96,7 +114,7 @@ namespace Logic
             var stateMatrix = state.ToBulletMatrix();
             State = stateMatrix;
 
-            OpenTK.Matrix4 stateMatrixOpenTK = new OpenTK.Matrix4(
+            OpenTK.Matrix4 stateMatrixOpenTK = new OpenTK.Matrix4(  // TODO: refactor
                 stateMatrix.M11, stateMatrix.M21, stateMatrix.M31, stateMatrix.M41,
                 stateMatrix.M12, stateMatrix.M22, stateMatrix.M32, stateMatrix.M42,
                 stateMatrix.M13, stateMatrix.M23, stateMatrix.M33, stateMatrix.M43,

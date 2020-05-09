@@ -39,7 +39,7 @@ namespace Logic
                 obstacle.Dispose();
         }
 
-        public static void DesignUpdate()
+        public static void UpdateDesign()
         {
             foreach (var obst in Obstacles)
             {
@@ -65,7 +65,7 @@ namespace Logic
             }
         }
 
-        public static void RenderOpaque(Shader shader)
+        public static void RenderDesignUnselected(Shader shader)
         {
             foreach (var obst in Obstacles)
             {
@@ -74,13 +74,18 @@ namespace Logic
             }
         }
 
-        public static void RenderTransparent(Shader shader)
+        public static void RenderDesignSelected(Shader shader)
         {
             foreach (var obst in Obstacles)
             {
                 if (obst.Model.RenderFlags.HasFlag(RenderFlags.Selected))
                     obst.Render(shader);
             }
+        }
+
+        public static void RenderAnimate(Shader shader)
+        {
+
         }
     }
 }

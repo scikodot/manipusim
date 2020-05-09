@@ -42,7 +42,7 @@ namespace Logic
 
         public bool IsOriginal { get; private set; }
 
-        public Vector3 GripperPos { get; private set; }
+        public Vector3 GripperPos { get; private set; }  // TODO: create a separate class Gripper/Tool/etc.
 
         public Vector3[] DKP { get; private set; }
 
@@ -177,7 +177,7 @@ namespace Logic
             // joints
             for (int i = 0; i < Joints.Length; i++)
             {
-                Joints[i].Render(shader, showCollider: _showCollider);
+                Joints[i].Render(shader);
             }
 
             // links

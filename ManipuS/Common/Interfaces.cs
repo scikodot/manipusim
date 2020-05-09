@@ -26,4 +26,14 @@ namespace Graphics
         Model Model { get; }
         Collider Collider { get; }
     }
+
+    public interface ITranslatable
+    {
+        Model Model { get; }
+        Collider Collider { get; }
+
+        ref Vector3 InitialPosition { get; }
+
+        void Translate(Vector3 translation);
+    }
 }

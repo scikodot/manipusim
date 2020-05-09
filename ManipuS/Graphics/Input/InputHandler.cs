@@ -32,16 +32,33 @@ namespace Graphics
 
         // variables for mouse state processing
         private static bool _firstMove;
-        private static Vector2 _lastPos;
         private static MouseState _lastState;
 
         public static Vector2 CursorPositionNDC { get; private set; }
         public static Ray RaycastResult { get; private set; }
         public static bool TextIsEdited { get; set; }
 
-        public static AxesWidget Widget { get; set; }
+        public static TranslationalWidget Widget { get; set; }
 
         public static List<CollisionObject> SelectedObjects { get; } = new List<CollisionObject>();
+
+        public static void ToAnimate()
+        {
+            // clear Selected flag for selected objects
+            foreach (var select in SelectedObjects)
+            {
+                (select.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected;
+            }
+        }
+
+        public static void ToDesign()
+        {
+            // restore Selected flag for selected objects
+            foreach (var select in SelectedObjects)
+            {
+                (select.UserObject as ISelectable).Model.RenderFlags |= RenderFlags.Selected;
+            }
+        }
 
         public static void PollEvents(GameWindow window, Camera camera, MouseState mouseState, KeyboardState keyboardState, FrameEventArgs e)
         {
@@ -50,13 +67,18 @@ namespace Graphics
 
             // perform a raycast and store the result for later use
             RaycastResult = Ray.Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
+            
+            if (MainWindow.Mode == InteractionModes.Design && !ImGui.IsWindowHovered(
+                ImGuiHoveredFlags.AnyWindow | 
+                ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?
+            {
+                // poll widget for interaction
+                Widget.Poll(camera, RaycastResult, mouseState, _lastState);
 
-            // poll widget for interaction
-            Widget.Poll(camera, RaycastResult, mouseState);
-
-            // check whether any physical object is being selected
-            if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow | ImGuiHoveredFlags.AllowWhenBlockedByPopup) && !Widget.IsActive)
-                PollSelection(mouseState, keyboardState);
+                // check whether any physical object is being selected
+                if (!Widget.IsActive)
+                    PollSelection(mouseState, keyboardState);
+            }
 
             // poll the mouse for events
             PollMouse(window, camera, mouseState);
@@ -112,7 +134,7 @@ namespace Graphics
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
                 PhysicsHandler.World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (mouseState.LeftButton == ButtonState.Pressed && _lastState.LeftButton == ButtonState.Released)
+                if (mouseState.RightButton == ButtonState.Pressed && _lastState.RightButton == ButtonState.Released)  // TODO: consider using right button for selecting objects
                 {
                     if (raycastCallback.HasHit)
                     {
@@ -150,18 +172,18 @@ namespace Graphics
         private static void AddSelection(CollisionObject collisionObject)
         {
             SelectedObjects.Add(collisionObject);
-            (collisionObject.UserObject as ISelectable).Model.RenderFlags |= RenderFlags.Selected;
+            (collisionObject.UserObject as ITranslatable).Model.RenderFlags |= RenderFlags.Selected;
         }
 
         private static void RemoveSelection(CollisionObject collisionObject)
         {
-            (collisionObject.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected;
+            (collisionObject.UserObject as ITranslatable).Model.RenderFlags &= ~RenderFlags.Selected;
             SelectedObjects.Remove(collisionObject);
         }
 
         private static void ClearSelection()
         {
-            SelectedObjects.ForEach(x => (x.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected);
+            SelectedObjects.ForEach(x => (x.UserObject as ITranslatable).Model.RenderFlags &= ~RenderFlags.Selected);
             SelectedObjects.Clear();
         }
 

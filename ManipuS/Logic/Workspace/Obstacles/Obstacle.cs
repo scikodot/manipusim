@@ -19,7 +19,7 @@ namespace Logic
         public bool ShowCollider;
     }
 
-    public class Obstacle : IDisposable, ISelectable
+    public class Obstacle : IDisposable, ISelectable, ITranslatable
     {
         public Model Model { get; }
         public Collider Collider { get; }
@@ -27,18 +27,24 @@ namespace Logic
         public BroadphaseNativeType ShapeType => Collider.Shape;
         public ref RigidBodyType Type => ref Collider.Type;
 
-        public Matrix State  // TODO: change to WorldTransform
+        public Matrix State
         {
-            get
-            {
-                Collider.Body.MotionState.GetWorldTransform(out Matrix state);
-                return state;
-            }
-            set
-            {
-                Collider.Body.MotionState.SetWorldTransform(ref value);
-            }
+            get => Collider.Body.MotionState.WorldTransform;
+            set => Collider.Body.MotionState.WorldTransform = value;
         }
+
+        //public Matrix State  // TODO: change to WorldTransform
+        //{
+        //    get
+        //    {
+        //        Collider.Body.MotionState.GetWorldTransform(out Matrix state);
+        //        return state;
+        //    }
+        //    set
+        //    {
+        //        Collider.Body.MotionState.SetWorldTransform(ref value);
+        //    }
+        //}
 
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
@@ -46,8 +52,8 @@ namespace Logic
         private Vector3 _orientation;
         public ref Vector3 Orientation => ref _orientation;
 
-        private Vector3 _translation;
-        public ref Vector3 Translation => ref _translation;
+        private Vector3 _initialPosition;
+        public ref Vector3 InitialPosition => ref _initialPosition;
 
         public Obstacle(Model model, Collider collider)  // TODO: check collider for null; in that case, the obstacle may not participate in collision checks
         {
@@ -56,8 +62,7 @@ namespace Logic
 
             ObstacleHandler.Add(this);  // TODO: perhaps remove and use ObstacleHandler.Add(new Obstacle(...)) ?
 
-            var position = Collider.Body.WorldTransform.Origin;
-            _translation = new Vector3(position.X, position.Y, position.Z);
+            _initialPosition = Collider.Body.WorldTransform.Origin.ToNumerics3();
 
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
             Collider.Body.UserObject = this;
@@ -76,9 +81,9 @@ namespace Logic
             return Collider.Extrude(point);
         }
 
-        public void Translate(Vector3 offset)
+        public void Translate(Vector3 translation)
         {
-            State *= Matrix.Translation(offset.X, offset.Y, offset.Z);
+            _initialPosition += translation;
         }
 
         public void Render(Shader shader, Action render = null)
@@ -114,14 +119,10 @@ namespace Logic
             var matY = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitY), _orientation.Y * MathUtil.SIMD_RADS_PER_DEG);
             var matZ = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitZ), _orientation.Z * MathUtil.SIMD_RADS_PER_DEG);
 
-            State = matX * matY * matZ * 
-                Matrix.Translation(
-                    _translation.X,
-                    _translation.Y, 
-                    _translation.Z);
+            State = matX * matY * matZ * Matrix.Translation(_initialPosition.ToBullet3());
         }
 
-        public void UpdateState()
+        public void UpdateState()  // TODO: move to UpdateFrame!
         {
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
 

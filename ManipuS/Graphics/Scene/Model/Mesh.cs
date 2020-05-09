@@ -129,17 +129,6 @@ namespace Graphics
         {
             GL.BindVertexArray(VAO);
 
-            if (mode.HasFlag(RenderFlags.Wireframe))  // TODO: replace with single-pass render, i.e. through geometry shader or anything
-            {
-                shader.SetBool("enableWireframe", 1);
-
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                GL.PointSize(2);
-                GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
-                GL.PointSize(1);
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-            }
-
             if (mode.HasFlag(RenderFlags.Solid))
             {
                 shader.SetBool("enableWireframe", 0);
@@ -212,6 +201,17 @@ namespace Graphics
                 {
                     GL.Disable(EnableCap.Blend);
                 }
+            }
+
+            if (mode.HasFlag(RenderFlags.Wireframe))  // TODO: replace with single-pass render, i.e. through geometry shader or anything
+            {
+                shader.SetBool("enableWireframe", 1);  // TODO: use the same words as for RenderFlags
+
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                GL.PointSize(2);
+                GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
+                GL.PointSize(1);
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
             }
 
             if (mode == 0)

@@ -79,7 +79,7 @@ namespace Graphics
         private Obstacle Cylinder;
 
         public static Thread MainThread = Thread.CurrentThread;
-        public InteractionModes Mode = InteractionModes.Design;
+        public static InteractionModes Mode = InteractionModes.Design;
 
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
@@ -115,7 +115,7 @@ namespace Graphics
                 new MeshVertex { Position = new Vector3(0.0f, 0.0f, 0.0f) }
             }, material: MeshMaterial.Yellow);
 
-            InputHandler.Widget = new AxesWidget(Vector3.Zero, new (Vector3, Vector4)[3]
+            InputHandler.Widget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
             {
                 (new Vector3(0.3f, 0, 0), new Vector4(1, 0, 0, 1)),
                 (new Vector3(0, 0.3f, 0), new Vector4(0, 1, 0, 1)),
@@ -261,7 +261,7 @@ namespace Graphics
         private void RenderCoreOpaque()
         {
             // render the unselected obstacles
-            ObstacleHandler.RenderOpaque(ShaderHandler.ComplexShader);
+            ObstacleHandler.RenderDesignUnselected(ShaderHandler.ComplexShader);
 
             if (ManipLoaded)
             {
@@ -315,7 +315,7 @@ namespace Graphics
         private void RenderCoreTransparent()
         {
             // render the selected obstacles
-            ObstacleHandler.RenderTransparent(ShaderHandler.ComplexShader);
+            ObstacleHandler.RenderDesignSelected(ShaderHandler.ComplexShader);
 
             // TODO: all help should be placed in a separate document (aka documentation)
             // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
@@ -589,7 +589,7 @@ namespace Graphics
 
                             ImGui.InputFloat3("Orientation", ref obst.Orientation);
 
-                            ImGui.InputFloat3("Translation", ref obst.Translation);
+                            ImGui.InputFloat3("Translation", ref obst.InitialPosition);
 
                             switch (obst.ShapeType)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
                             {
@@ -742,18 +742,18 @@ namespace Graphics
                 ImGui.End();
             }
 
-            if (InputHandler.SelectedObjects.Count == 1)
+            if (Mode == InteractionModes.Design && InputHandler.SelectedObjects.Count == 1)
             {
-                var selectedObject = InputHandler.SelectedObjects[0].UserObject;
+                var selectedObject = InputHandler.SelectedObjects[0].UserObject as ITranslatable;
 
                 // attach the widget
-                InputHandler.Widget.Attach(selectedObject as ISelectable);
+                InputHandler.Widget.Attach(selectedObject);
 
                 if (ImGui.Begin("Properties",
-                ImGuiWindowFlags.NoCollapse |
-                ImGuiWindowFlags.NoMove |
-                ImGuiWindowFlags.NoResize |
-                ImGuiWindowFlags.HorizontalScrollbar))
+                    ImGuiWindowFlags.NoCollapse |
+                    ImGuiWindowFlags.NoMove |
+                    ImGuiWindowFlags.NoResize |
+                    ImGuiWindowFlags.HorizontalScrollbar))
                 {
                     ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
                     ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
@@ -770,7 +770,7 @@ namespace Graphics
 
                         ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
 
-                        ImGui.InputFloat3("Translation", ref obstacle.Translation);
+                        ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
 
                         if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
                         {
@@ -779,6 +779,7 @@ namespace Graphics
                         else if (obstacle.Collider is SphereCollider sphere)
                         {
                             ImGui.InputFloat("Radius", ref sphere.Radius);
+                            Console.WriteLine(obstacle.InitialPosition);
                         }
                         else if (obstacle.Collider is CylinderCollider cylinder)
                         {
@@ -788,7 +789,16 @@ namespace Graphics
                     }
                     else if (selectedObject is Joint joint)
                     {
-                        // TODO: show joint properties
+                        ImGui.Checkbox("Show collider", ref joint.ShowCollider);
+
+                        ImGui.InputFloat3("Axis", ref joint.InitialAxis);
+
+                        ImGui.InputFloat3("Position", ref joint.InitialPosition);
+
+                        if (joint.Collider is SphereCollider sphere)
+                        {
+                            ImGui.InputFloat("Radius", ref sphere.Radius);
+                        }
                     }
                     else if (selectedObject is Link link)
                     {
@@ -844,8 +854,9 @@ namespace Graphics
             {
                 case InteractionModes.Design:
 
-                    if (!InputHandler.Widget.IsActive)
-                        ObstacleHandler.DesignUpdate();
+                    ObstacleHandler.UpdateDesign();
+
+                    ManipHandler.UpdateDesign();
 
                     break;
                 case InteractionModes.Animate:
@@ -906,6 +917,8 @@ namespace Graphics
 
                     ManipHandler.ToDesign();
 
+                    InputHandler.ToDesign();
+
                     // update workspace
                     UpdateScene();
 
@@ -918,6 +931,8 @@ namespace Graphics
                     ObstacleHandler.ToAnimate();
 
                     ManipHandler.ToAnimate();
+
+                    InputHandler.ToAnimate();
 
                     Mode = InteractionModes.Animate;
 

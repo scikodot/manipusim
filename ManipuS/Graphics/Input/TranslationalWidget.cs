@@ -6,10 +6,13 @@ using OpenTK;
 using OpenTK.Input;
 
 using MoreLinq;
+using Logic;
+
+using Matrix4 = OpenTK.Matrix4;
 
 namespace Graphics
 {
-    public class AxesWidget
+    public class TranslationalWidget
     {
         private class Axis
         {
@@ -77,16 +80,25 @@ namespace Graphics
                 modelX.M11 = modelX.M22 = modelX.M33 = _scale;
             }
 
-            public Vector3 Poll(Camera camera, Ray ray, MouseState stateCurr)  // TODO: optimize
+            public Vector3 Poll(Camera camera, Ray ray, MouseState currState, MouseState prevState)  // TODO: optimize
             {
-                if (stateCurr.LeftButton == ButtonState.Pressed)
+                if (currState.LeftButton == ButtonState.Pressed && prevState.LeftButton == ButtonState.Released)
                 {
                     // button was pressed ---> start transformation
                     Active = true;
+                }
+                else if (currState.LeftButton == ButtonState.Released && prevState.LeftButton == ButtonState.Pressed)
+                {
+                    // button was released ---> stop transformation
+                    Active = false;
+                    FirstClick = true;
+                }
 
+                if (Active)
+                {
                     // project axis onto the view plane
                     var axisView = Logic.Geometry.VectorPlaneProjection(  // TODO: refactor?
-                        Direction.ToNumerics3(), 
+                        Direction.ToNumerics3(),
                         camera.Front.ToNumerics3()).ToOpenTK();
 
                     // find vector orthogonal to the projected axis
@@ -97,9 +109,9 @@ namespace Graphics
 
                     // find the point of intersection between the ray plane and the axis
                     var intersection = Logic.Geometry.LinePlaneIntersection(  // TODO: refactor?
-                        Origin.ToNumerics3(), 
-                        Direction.ToNumerics3(), 
-                        ray.StartWorld.Xyz.ToNumerics3(), 
+                        Origin.ToNumerics3(),
+                        Direction.ToNumerics3(),
+                        ray.StartWorld.Xyz.ToNumerics3(),
                         planeNormal.ToNumerics3()).ToOpenTK();
 
                     if (FirstClick)
@@ -113,12 +125,6 @@ namespace Graphics
                         // retrieve translation for the axis (in World space)
                         return intersection - Offset - End;
                     }
-                }
-                else
-                {
-                    // button was released ---> stop transformation
-                    Active = false;
-                    FirstClick = true;
                 }
 
                 return default;
@@ -143,17 +149,17 @@ namespace Graphics
 
         private Axis[] Axes { get; set; }
         private Axis ActiveAxis { get; set; }
-        public ISelectable Parent { get; private set; }
+        public ITranslatable Parent { get; private set; }
 
         public bool IsAttached => Parent != null;
         public bool IsActive => ActiveAxis != null;
 
-        public AxesWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors)
+        public TranslationalWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors)
         {
             Axes = axesDirectionsColors.Select(((Vector3 dir, Vector4 col) axis) => new Axis(origin, axis.dir, axis.col)).ToArray();
         }
 
-        public AxesWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors, ISelectable selectable)
+        public TranslationalWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors, ITranslatable selectable)
         {
             Axes = axesDirectionsColors.Select(((Vector3 dir, Vector4 col) axis) => new Axis(origin, axis.dir, axis.col)).ToArray();
 
@@ -162,12 +168,12 @@ namespace Graphics
 
         public void Render(Shader shader, Action render)
         {
-            if (IsAttached)
+            if (IsAttached && Parent.Model.RenderFlags.HasFlag(RenderFlags.Selected))
                 foreach (var axis in Axes)
                     axis.Render(shader, render);
         }
 
-        public void Attach(ISelectable selectable)
+        public void Attach(ITranslatable selectable)
         {
             if (selectable == Parent)
                 return;
@@ -175,7 +181,7 @@ namespace Graphics
             var selectablePosition = selectable.Collider.Body.MotionState.WorldTransform.Origin;
             foreach (var axis in Axes)
             {
-                axis.SetOrigin(selectablePosition.ToBullet3());
+                axis.SetOrigin(selectablePosition.ToOpenTK3());
             }
 
             Parent = selectable;
@@ -186,13 +192,10 @@ namespace Graphics
             Parent = null;
         }
 
-        public void Poll(Camera camera, Ray ray, MouseState mouseState)
+        public void Poll(Camera camera, Ray ray, MouseState currState, MouseState prevState)
         {
             if (IsAttached)
             {
-                Console.SetCursorPosition(0, 10);
-                Console.WriteLine(Parent.Collider.Body.MotionState.WorldTransform.Origin);
-
                 // scale all axes so that their size on screen remains fixed
                 Scale(camera);  // TODO: try to implement event-based system
 
@@ -209,23 +212,19 @@ namespace Graphics
                 if (ActiveAxis != null)
                 {
                     // poll axis for interaction
-                    var translation = ActiveAxis.Poll(camera, ray, mouseState);
+                    var translation = ActiveAxis.Poll(camera, ray, currState, prevState);
 
                     // translate the parent object and the widget with the acquired translation
                     Translate(translation);
                 }
+
             }
         }
 
         private void Translate(Vector3 translation)
         {
             // translate the parent object
-            Console.WriteLine(translation);
-            Parent.Collider.Translate(translation.ToNumerics3());
-            //ref var parentState = ref Parent.Model.State;  // TODO: State is a Model, while actually the object's Body has to be translated!
-            //parentState.M14 += translation.X;
-            //parentState.M24 += translation.Y;
-            //parentState.M34 += translation.Z;
+            Parent.Translate(translation.ToNumerics3());
 
             // translate the widget axes
             foreach (var axis in Axes)
