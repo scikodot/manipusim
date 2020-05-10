@@ -25,7 +25,7 @@ using Logic.PathPlanning;
 
 namespace Graphics
 {
-    public enum InteractionModes
+    public enum InteractionMode
     {
         Design,
         Animate,
@@ -35,21 +35,19 @@ namespace Graphics
 
     public class MainWindow : GameWindow
     {
-        private ImGuiController controller;  // TODO: create ImGuiHandler!
         private Camera _camera;
 
-        private readonly List<TreeModel> trees = new List<TreeModel>();
-        private readonly List<PathModel> paths = new List<PathModel>();
-        private readonly List<Model> goals = new List<Model>();
+        private readonly List<Model> _goalModels = new List<Model>();
+        private readonly List<TreeModel> _treeModels = new List<TreeModel>();
+        private readonly List<PathModel> _pathModels = new List<PathModel>();
 
-        public static float time = 0;
-        public static bool forward;
-        private bool ManipLoaded = false;
+        private static float time = 0;
+        private static bool forward;
 
         //Model Crytek;
 
-        public static Thread MainThread = Thread.CurrentThread;
-        public static InteractionModes Mode = InteractionModes.Design;
+        public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
+        public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
 
         public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
             base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
@@ -66,8 +64,8 @@ namespace Graphics
 
             ShaderHandler.InitializeShaders();
 
-            // defining ImGui controller
-            controller = new ImGuiController(Width, Height);
+            // attach ImGUI to this window
+            ImGuiHandler.AttachWindow(this);
 
             // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera((float)(0.75 * Width / Height), new Vector3(-5, 3, 5), -15, -45);
@@ -155,7 +153,7 @@ namespace Graphics
             // workspace viewport
             GL.Viewport((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
 
-            GL.Enable(EnableCap.DepthTest);  // TODO: fix depth test so that it doesn't hide objects behind alpha-fragments
+            GL.Enable(EnableCap.DepthTest);
 
             // clearing viewport
             GL.Enable(EnableCap.ScissorTest);
@@ -186,36 +184,31 @@ namespace Graphics
 
         private void RenderCoreOpaque()
         {
+            // render the unselected parts of the manipulators
+            ManipulatorHandler.RenderUnselected(ShaderHandler.ComplexShader);
+
             // render the unselected obstacles
-            ObstacleHandler.RenderDesignUnselected(ShaderHandler.ComplexShader);
+            ObstacleHandler.RenderUnselected(ShaderHandler.ComplexShader);
 
-            if (ManipLoaded)
+            // render goals
+            foreach (var goal in _goalModels)
             {
-                for (int i = 0; i < ManipHandler.Count; i++)
-                {
-                    Manipulator manip = ManipHandler.Manipulators[i];
+                if (goal.IsSetup)
+                    goal.Render(ShaderHandler.ComplexShader);
+            }
 
-                    // render manipulator
-                    manip.Render(ShaderHandler.ComplexShader);
+            // render paths
+            foreach (var path in _pathModels)
+            {
+                if (path.IsSetup)
+                    path.Render(ShaderHandler.ComplexShader);
+            }
 
-                    // render goal
-                    if (goals[i] != default)
-                    {
-                        goals[i].Render(ShaderHandler.ComplexShader);
-                    }
-
-                    // render path
-                    if (manip.Path != null)
-                    {
-                        paths[i].Render(ShaderHandler.ComplexShader);
-                    }
-
-                    // render tree
-                    if (manip.ShowTree)
-                    {
-                        trees[i].Render(ShaderHandler.ComplexShader);
-                    }
-                }
+            // render RRT trees
+            foreach (var tree in _treeModels)
+            {
+                if (tree.IsSetup)
+                    tree.Render(ShaderHandler.ComplexShader);
             }
 
             // workspace grid
@@ -227,13 +220,7 @@ namespace Graphics
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-            // render the ground
-            ObstacleHandler.RenderGround(ShaderHandler.ComplexShader);
-
-            // render the selected obstacles
-            ObstacleHandler.RenderDesignSelected(ShaderHandler.ComplexShader);
-
-            // TODO: all help should be placed in a separate document (aka documentation)
+            // TODO: all help should be placed in a separate document (documentation)
             // the workspace grid rendering is done lastly, because it's common to render all transparent objects at last
             //
             // the blending function is determined as follows:
@@ -246,6 +233,15 @@ namespace Graphics
             //
             // so, to render transparent floor, we take SourceFactor as source's alpha (floor's alpha) and DestFactor as the remainder of the source's alpha
             // (the visible amount of the opaque object behind the floor)
+
+            // render the ground
+            ObstacleHandler.RenderGround(ShaderHandler.ComplexShader);
+
+            // render the selected parts of the manipulators
+            ManipulatorHandler.RenderSelected(ShaderHandler.ComplexShader);
+
+            // render the selected obstacles
+            ObstacleHandler.RenderSelected(ShaderHandler.ComplexShader);
 
             GL.Disable(EnableCap.Blend);
         }
@@ -262,8 +258,8 @@ namespace Graphics
 
         protected void RenderGUI(FrameEventArgs e)
         {
-            // update GUI controller
-            controller.Update(this, (float)e.Time);
+            // update GUI
+            ImGuiHandler.Update(this, (float)e.Time);
 
             //ImGui.ShowDemoWindow();
 
@@ -277,6 +273,21 @@ namespace Graphics
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
 
+            // render all the necessary windows
+            RenderMenu();
+            RenderManipulatorsWindow();
+            RenderObstaclesWindow();
+            RenderAlgorithmsWindow();
+            RenderOptionsWindow();
+            RenderPropertiesWindow();
+
+            // render controller and check for errors
+            ImGuiHandler.Render();
+            Util.CheckGLError("End of frame");
+        }
+
+        private void RenderMenu()
+        {
             if (ImGui.BeginMainMenuBar())
             {
                 if (ImGui.BeginMenu("File"))
@@ -333,7 +344,10 @@ namespace Graphics
 
                 ImGui.EndMainMenuBar();
             }
+        }
 
+        private void RenderManipulatorsWindow()
+        {
             // manipulators window
             if (ImGui.Begin("Manipulators",
                 ImGuiWindowFlags.NoCollapse |
@@ -346,43 +360,7 @@ namespace Graphics
 
                 if (ImGui.Button("Create"))
                 {
-                    // TODO: create the default manipulator
-
-                    Dispatcher.ActiveTasks.Add(Task.Run(() =>
-                    {
-                        // load components' models
-                        var jointModel = new Model(InputHandler.JointPath);
-                        var linkModel = new Model(InputHandler.LinkPath);
-                        var gripperModel = new Model(InputHandler.GripperPath);
-
-                        var MB = WorkspaceBuffer.ManipBuffer;
-                        for (int j = 0; j < MB[0].N; j++)
-                        {
-                            MB[0].Links[j].Model = linkModel.ShallowCopy();
-                            MB[0].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 0.5f, 0.15f));
-                            MB[0].Joints[j].Model = jointModel.ShallowCopy();
-                            MB[0].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-                        }
-
-                        MB[0].Joints[MB[0].N].Model = gripperModel;
-                        MB[0].Joints[MB[0].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-
-                        var manip = new Manipulator(MB[0]);
-                        ManipHandler.Add(manip);
-
-                        // create a new model for the manipulator goal, path and tree
-                        trees.Add(new TreeModel(10000, MeshMaterial.Black));
-                        paths.Add(new PathModel(10000, MeshMaterial.Red));
-                        goals.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manip.Goal)));
-
-                        // wait for loading process to finish
-                        Dispatcher.ActionsDone.Reset();
-                        Dispatcher.ActionsDone.WaitOne();
-
-                        // update workspace with newly loaded model
-                        UpdateScene();
-                        ManipLoaded = true;
-                    }));
+                    LoadManipulator();
                 }
 
                 ImGui.Separator();
@@ -390,12 +368,12 @@ namespace Graphics
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
                 ImGui.BeginChild("Obstacles' list", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 138), true);
 
-                if (ManipHandler.Count != 0)
+                if (ManipulatorHandler.Count != 0)
                 {
                     var MB = WorkspaceBuffer.ManipBuffer;
-                    for (int j = 0; j < ManipHandler.Count; j++)
+                    for (int j = 0; j < ManipulatorHandler.Count; j++)
                     {
-                        var manip = ManipHandler.Manipulators[j];
+                        var manip = ManipulatorHandler.Manipulators[j];
                         if (ImGui.TreeNode($"Manip {j}"))
                         {
                             ImGui.Text($"Time spent: {manip.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");
@@ -447,7 +425,50 @@ namespace Graphics
 
                 ImGui.End();
             }
+        }
 
+        public void LoadManipulator()  // TODO: consider moving to ManipHandler
+        {
+            // TODO: create the default manipulator
+
+            Dispatcher.ActiveTasks.Add(Task.Run(() =>
+            {
+                // load components' models
+                var jointModel = new Model(InputHandler.JointPath);
+                var linkModel = new Model(InputHandler.LinkPath);
+                var gripperModel = new Model(InputHandler.GripperPath);
+
+                var MB = WorkspaceBuffer.ManipBuffer;
+                for (int j = 0; j < MB[0].N; j++)
+                {
+                    MB[0].Links[j].Model = linkModel.ShallowCopy();
+                    MB[0].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 0.5f, 0.15f));
+                    MB[0].Joints[j].Model = jointModel.ShallowCopy();
+                    MB[0].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+                }
+
+                MB[0].Joints[MB[0].N].Model = gripperModel;
+                MB[0].Joints[MB[0].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+
+                var manip = new Manipulator(MB[0]);
+                ManipulatorHandler.Add(manip);
+
+                // create a new model for the manipulator goal, path and tree
+                _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manip.Goal)));
+                _treeModels.Add(new TreeModel(10000, MeshMaterial.Black));
+                _pathModels.Add(new PathModel(10000, MeshMaterial.Red));
+
+                // wait for loading process to finish
+                Dispatcher.ActionsDone.Reset();
+                Dispatcher.ActionsDone.WaitOne();
+
+                // update workspace with newly loaded model
+                ResetScene();
+            }));
+        }
+
+        private void RenderObstaclesWindow()
+        {
             // obstacles window
             if (ImGui.Begin("Obstacles",
                 ImGuiWindowFlags.NoCollapse |
@@ -527,8 +548,10 @@ namespace Graphics
 
                 ImGui.End();
             }
+        }
 
-
+        private void RenderAlgorithmsWindow()
+        {
             // algorithm window
             if (ImGui.Begin("Algorithm",
                 ImGuiWindowFlags.NoCollapse |
@@ -563,8 +586,11 @@ namespace Graphics
 
                 ImGui.End();
             }
+        }
 
-            // options & info window
+        private void RenderOptionsWindow()
+        {
+            // options and info window
             if (ImGui.Begin("Options & Info",
                 ImGuiWindowFlags.NoCollapse |
                 ImGuiWindowFlags.NoMove |
@@ -573,62 +599,37 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.75 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                if (ImGui.Button("Animate"))
+                string targetMode;
+                switch (Mode)
                 {
-                    Mode = InteractionModes.ToAnimate;
+                    case InteractionMode.Animate:
+                    case InteractionMode.ToDesign:
+                        targetMode = "Design";
+                        break;
+                    case InteractionMode.Design:
+                    case InteractionMode.ToAnimate:
+                        targetMode = "Animate";
+                        break;
+                    default:
+                        throw new ArgumentException("The given mode is unsupported!", "MainWindow.Mode");
+                }
+
+                if (ImGui.Button(targetMode))
+                {
+                    if (Mode == InteractionMode.Design)
+                        Mode = InteractionMode.ToAnimate;
+                    else if (Mode == InteractionMode.Animate)
+                        Mode = InteractionMode.ToDesign;
                 }
                 if (ImGui.IsItemHovered())
                 {
                     ImGui.SameLine();
-                    ImGui.TextWrapped("Runs path searching process");
-                }
-
-                if (ImGui.Button("Design"))
-                {
-                    Mode = InteractionModes.ToDesign;
-                }
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SameLine();
-                    ImGui.TextWrapped("Stops path searching process");
-                }
-
-                if (ImGui.Button("Update"))
-                {
-                    // make pop-up to prevent undesired changes
-                    ImGui.OpenPopup("Update?");
-                }
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SameLine();
-                    ImGui.TextWrapped("Updates the entire workspace");
-                }
-
-                bool dummy = true;
-                if (ImGui.BeginPopupModal("Update?", ref dummy, ImGuiWindowFlags.NoResize))  // TODO: move to separate method
-                {
-                    ImGui.Text("Do you really want to update the workspace?\nThis will reset the current process.");
-                    ImGui.Spacing();
-                    ImGui.SetCursorPos(new System.Numerics.Vector2(ImGui.GetWindowSize().X / 2 - 104, ImGui.GetCursorPosY()));
-                    if (ImGui.Button("OK", new System.Numerics.Vector2(100, 0)))
-                    {
-                        // update scene
-                        UpdateScene();
-
-                        ImGui.CloseCurrentPopup();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Button("Cancel", new System.Numerics.Vector2(100, 0)))
-                    {
-                        ImGui.CloseCurrentPopup();
-                    }
-
-                    ImGui.EndPopup();
+                    ImGui.TextWrapped("Switch between design/animate modes");
                 }
 
                 if (ImGui.Button("Screenshot"))
                 {
-                    // inform the program that the window capture has been queried
+                    // inform the input handler that the window capture has been queried
                     InputHandler.Capture = true;
                 }
                 if (ImGui.IsItemHovered())
@@ -637,12 +638,9 @@ namespace Graphics
                     ImGui.TextWrapped("Takes a picture of the entire window");
                 }
 
-                // save path for captured screenshot
-                ImGui.InputText("Save path", ref InputHandler.ScreenshotsPath, 100);
+                // savepath for captured screenshot
+                ImGui.InputText("Savepath", ref InputHandler.ScreenshotsPath, 100);
                 InputHandler.TextIsEdited = ImGui.IsItemActive();
-
-                //if (Manager.Obstacles != null && Manager.Obstacles[0] != null)
-                //    ImGui.Text($"Center: {Manager.Obstacles[0].Collider.Center}");  // TODO: when scene is updated, obstacle center is not reset! fix
 
                 // application current framerate
                 ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Height - 8 - ImGui.CalcTextSize("Framerate:").Y));
@@ -650,8 +648,11 @@ namespace Graphics
 
                 ImGui.End();
             }
+        }
 
-            if (Mode == InteractionModes.Design && InputHandler.SelectedObjects.Count == 1)
+        private void RenderPropertiesWindow()
+        {
+            if (Mode == InteractionMode.Design && InputHandler.SelectedObjects.Count == 1)
             {
                 var selectedObject = InputHandler.SelectedObjects[0].UserObject as ISelectable;
 
@@ -688,7 +689,6 @@ namespace Graphics
                         else if (obstacle.Collider is SphereCollider sphere)
                         {
                             ImGui.InputFloat("Radius", ref sphere.Radius);
-                            Console.WriteLine(obstacle.InitialPosition);
                         }
                         else if (obstacle.Collider is CylinderCollider cylinder)
                         {
@@ -712,6 +712,8 @@ namespace Graphics
                     else if (selectedObject is Link link)
                     {
                         ImGui.Checkbox("Show collider", ref link.ShowCollider);
+
+                        // TODO: add length property
                     }
                 }
             }
@@ -720,10 +722,6 @@ namespace Graphics
                 // detach the widget
                 InputHandler.TranslationalWidget.Detach();
             }
-
-            // rendering controller and checking for errors
-            controller.Render();
-            Util.CheckGLError("End of frame");
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -761,13 +759,13 @@ namespace Graphics
 
             switch (Mode)
             {
-                case InteractionModes.Design:
+                case InteractionMode.Design:
 
-                    ManipHandler.UpdateDesign();
+                    ManipulatorHandler.UpdateDesign();
                     ObstacleHandler.UpdateDesign();
 
                     break;
-                case InteractionModes.Animate:
+                case InteractionMode.Animate:
 
                     //float dt;
                     //if (forward)
@@ -795,9 +793,9 @@ namespace Graphics
                     //    Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
                     //}
 
-                    for (int i = 0; i < ManipHandler.Count; i++)
+                    for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        Manipulator manip = ManipHandler.Manipulators[i];
+                        Manipulator manip = ManipulatorHandler.Manipulators[i];
 
                         // manipulator's path
                         if (manip.Path != null)
@@ -806,58 +804,58 @@ namespace Graphics
                             manip.FollowPath();
 
                             // update path model state
-                            paths[i].Update(i);
+                            _pathModels[i].Update(i);
                         }
 
                         // random tree
                         if (manip.Tree != null)
                         {
                             // update tree model state
-                            trees[i].Update(i);
+                            _treeModels[i].Update(i);
                         }
                     }
 
                     break;
-                case InteractionModes.ToDesign:
+                case InteractionMode.ToDesign:
 
-                    ManipHandler.ToDesign();
+                    ManipulatorHandler.ToDesign();
                     ObstacleHandler.ToDesign();
                     InputHandler.ToDesign();
 
                     // update workspace
-                    UpdateScene();
+                    ResetScene();
 
-                    Mode = InteractionModes.Design;
+                    Mode = InteractionMode.Design;
 
                     break;
-                case InteractionModes.ToAnimate:
+                case InteractionMode.ToAnimate:
 
-                    ManipHandler.ToAnimate();
+                    ManipulatorHandler.ToAnimate();
                     ObstacleHandler.ToAnimate();
                     InputHandler.ToAnimate();
 
-                    Mode = InteractionModes.Animate;
+                    Mode = InteractionMode.Animate;
 
                     break;
             }
 
             // update all models of all the objects
-            ManipHandler.UpdateModel();
+            ManipulatorHandler.UpdateModel();
             ObstacleHandler.UpdateModel();
 
             base.OnUpdateFrame(e);
         }
 
-        protected void UpdateScene()
+        protected void ResetScene()
         {
             // reset trees
-            foreach (var tree in trees)
+            foreach (var tree in _treeModels)
             {
                 tree.Reset();
             }
 
             // reset paths
-            foreach (var path in paths)
+            foreach (var path in _pathModels)
             {
                 path.Reset();
             }
@@ -884,7 +882,7 @@ namespace Graphics
             _camera.AspectRatio = (float)(0.75 * Width / Height);
 
             // report to GUI controller about resizing
-            controller.WindowResized(Width, Height);
+            ImGuiHandler.WindowResized(Width, Height);
 
             base.OnResize(e);
         }
@@ -892,28 +890,29 @@ namespace Graphics
         protected override void OnUnload(EventArgs e)
         {
             // dispose of all the handlers
-            ManipHandler.Dispose();
+            ManipulatorHandler.Dispose();
             ObstacleHandler.Dispose();
             PhysicsHandler.Dispose();
             InputHandler.Dispose();
             ShaderHandler.Dispose();
+            ImGuiHandler.Dispose();
+
+            // remove goals models
+            foreach (var goal in _goalModels)
+            {
+                goal.Dispose();
+            }
 
             // remove trees models
-            foreach (var tree in trees)
+            foreach (var tree in _treeModels)
             {
                 tree.Dispose();
             }
 
             // remove paths models
-            foreach (var path in paths)
+            foreach (var path in _pathModels)
             {
                 path.Dispose();
-            }
-
-            // remove goals models
-            foreach (var goal in goals)
-            {
-                goal.Dispose();
             }
 
             // free buffers and program
@@ -927,7 +926,7 @@ namespace Graphics
 
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
-            controller.PressChar(e.KeyChar);
+            ImGuiHandler.PressChar(e.KeyChar);
 
             base.OnKeyPress(e);            
         }

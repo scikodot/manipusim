@@ -124,7 +124,7 @@ namespace Logic
             Ground.RenderGround(shader);
         }
 
-        public static void RenderDesignUnselected(Shader shader)
+        public static void RenderUnselected(Shader shader)
         {
             foreach (var obst in Obstacles)
             {
@@ -133,7 +133,7 @@ namespace Logic
             }
         }
 
-        public static void RenderDesignSelected(Shader shader)
+        public static void RenderSelected(Shader shader)
         {
             foreach (var obst in Obstacles)
             {

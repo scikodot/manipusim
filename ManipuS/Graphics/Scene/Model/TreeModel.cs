@@ -16,6 +16,7 @@ namespace Graphics
         private uint _freeTop;
 
         public Model Model { get; }
+        public bool IsSetup => Model.IsSetup;
 
         public TreeModel(int maxSize, MeshMaterial material)
         {
@@ -35,12 +36,15 @@ namespace Graphics
         {
             Model.Meshes[0].UpdateVertices(0, 10000, new MeshVertex[10000]);
             Model.Meshes[0].UpdateIndices(0, 20000, new uint[20000]);
+
+            _freeIndices.Clear();
+            _freeTop = 0;
         }
 
         public void Update(int manipulatorNumber)
         {
-            var toAdd = ManipHandler.Manipulators[manipulatorNumber].Tree.AddBuffer.DequeueAll().ToList();
-            var toRemove = ManipHandler.Manipulators[manipulatorNumber].Tree.DelBuffer.DequeueAll().ToList();
+            var toAdd = ManipulatorHandler.Manipulators[manipulatorNumber].Tree.AddBuffer.DequeueAll().ToList();
+            var toRemove = ManipulatorHandler.Manipulators[manipulatorNumber].Tree.DelBuffer.DequeueAll().ToList();
 
             AddNodes(toAdd);
             RemoveNodes(toRemove);

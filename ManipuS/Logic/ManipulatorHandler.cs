@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 using BulletSharp;
 using BulletSharp.Math;
+using Graphics;
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
 using Physics;
@@ -10,7 +12,7 @@ using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
-    public static class ManipHandler
+    public static class ManipulatorHandler
     {
         public static List<Manipulator> Manipulators { get; } = new List<Manipulator>();
 
@@ -111,6 +113,22 @@ namespace Logic
             foreach(var manipulator in Manipulators)
             {
                 manipulator.UpdateModel();
+            }
+        }
+
+        public static void RenderUnselected(Shader shader)
+        {
+            foreach (var manipulator in Manipulators)
+            {
+                manipulator.RenderUnselected(shader);
+            }
+        }
+
+        public static void RenderSelected(Shader shader)
+        {
+            foreach (var manipulator in Manipulators)
+            {
+                manipulator.RenderSelected(shader);
             }
         }
 

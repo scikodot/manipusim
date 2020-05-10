@@ -5,6 +5,7 @@ using OpenTK;
 using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
+using System.Linq;
 
 namespace Graphics
 {
@@ -21,6 +22,7 @@ namespace Graphics
     {
         private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
         public List<Mesh> Meshes { get; } = new List<Mesh>();
+        public bool IsSetup => Meshes.All(mesh => mesh.IsSetup);
 
         public string Directory { get; private set; }  // TODO: remove
 

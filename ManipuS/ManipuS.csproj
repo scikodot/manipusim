@@ -112,7 +112,7 @@
     <Compile Include="Graphics\Input\Ray.cs" />
     <Compile Include="Graphics\Scene\Camera.cs" />
     <Compile Include="Common\Dispatcher.cs" />
-    <Compile Include="Graphics\ImGUI\ImGuiController.cs" />
+    <Compile Include="Graphics\ImGUI\ImGuiHandler.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiShader.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiTexture.cs" />
     <Compile Include="Graphics\Scene\Model\Model.cs" />
@@ -150,7 +150,7 @@
     <Compile Include="Logic\Math\Quaternions\Quaternion.cs" />
     <Compile Include="Logic\Math\Vectors\Vector.cs" />
     <Compile Include="Logic\Workspace\Obstacles\Obstacle.cs" />
-    <Compile Include="Logic\ManipHandler.cs" />
+    <Compile Include="Logic\ManipulatorHandler.cs" />
     <Compile Include="Logic\Helper.cs" />
     <Compile Include="Physics\Colliders\BoxCollider.cs" />
     <Compile Include="Physics\Colliders\SphereCollider.cs" />

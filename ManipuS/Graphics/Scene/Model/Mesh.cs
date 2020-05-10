@@ -55,6 +55,7 @@ namespace Graphics
     public class Mesh : IDisposable
     {
         private int VAO, VBO, EBO;
+        public bool IsSetup { get; private set; }
 
         public string Name { get; }
 
@@ -111,6 +112,8 @@ namespace Graphics
             GL.VertexAttribPointer(3, 2, VertexAttribPointerType.Float, false, MeshVertex.Size, Marshal.OffsetOf<MeshVertex>("TexCoords"));
 
             GL.BindVertexArray(0);
+
+            IsSetup = true;
         }
 
         public void UpdateVertices(uint offset, int size, MeshVertex[] vertices)
@@ -132,29 +135,9 @@ namespace Graphics
             if (mode.HasFlag(RenderFlags.Solid))
             {
                 shader.SetBool("enableWireframe", 0);
-
-                if (mode.HasFlag(RenderFlags.Lighting))
-                {
-                    shader.SetBool("enableLighting", 1);
-                }
-                else
-                {
-                    shader.SetBool("enableLighting", 0);
-                }
-
+                shader.SetBool("enableLighting", mode.HasFlag(RenderFlags.Lighting) ? 1u : 0u);
                 shader.SetBool("enableTextures", Textures.Length == 0 ? 0u : 1u);
-
-                if (mode.HasFlag(RenderFlags.Selected))
-                {
-                    //GL.Enable(EnableCap.Blend);
-                    //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
-                    shader.SetBool("isSelected", 1);
-                }
-                else
-                {
-                    shader.SetBool("isSelected", 0);
-                }
+                shader.SetBool("isSelected", mode.HasFlag(RenderFlags.Selected) ? 1u : 0u);
 
                 // set textures
                 int diffuseNr = 1;
@@ -196,11 +179,6 @@ namespace Graphics
                     else
                         GL.DrawArrays(PrimitiveType.Triangles, 0, Vertices.Length);
                 }
-
-                //if (mode.HasFlag(RenderFlags.Selected))
-                //{
-                //    GL.Disable(EnableCap.Blend);
-                //}
             }
 
             if (mode.HasFlag(RenderFlags.Wireframe))  // TODO: replace with single-pass render, i.e. through geometry shader or anything

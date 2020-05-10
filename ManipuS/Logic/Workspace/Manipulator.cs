@@ -103,6 +103,8 @@ namespace Logic
                 (Links[i].Collider as CylinderCollider).HalfLength = jointDistance / 2;
                 Links[i].UpdateStateDesign();
             }
+
+            // TODO: add joints scaling and rotation!
         }
 
         public void UpdateModel()
@@ -238,20 +240,37 @@ namespace Logic
             }
         }
 
-        public void Render(Shader shader)
+        public void RenderUnselected(Shader shader)
         {
-            shader.Use();
-
             // joints
-            for (int i = 0; i < Joints.Length; i++)
+            foreach (var joint in Joints)
             {
-                Joints[i].Render(shader);
+                if (!joint.Model.RenderFlags.HasFlag(RenderFlags.Selected))
+                    joint.Render(shader);
             }
 
             // links
-            for (int i = 0; i < Links.Length; i++)
+            foreach (var link in Links)
             {
-                Links[i].Render(shader);
+                if (!link.Model.RenderFlags.HasFlag(RenderFlags.Selected))
+                    link.Render(shader);
+            }
+        }
+
+        public void RenderSelected(Shader shader)
+        {
+            // joints
+            foreach (var joint in Joints)
+            {
+                if (joint.Model.RenderFlags.HasFlag(RenderFlags.Selected))
+                    joint.Render(shader);
+            }
+
+            // links
+            foreach (var link in Links)
+            {
+                if (link.Model.RenderFlags.HasFlag(RenderFlags.Selected))
+                    link.Render(shader);
             }
         }
 
@@ -261,9 +280,6 @@ namespace Logic
 
             manip.Links = Array.ConvertAll(Links, x => x.ShallowCopy());
             manip.Joints = Array.ConvertAll(Joints, x => x.ShallowCopy());
-
-            //if (Path != null)
-            //    manip.Path = new List<Vector3>(Path);
 
             manip.IsOriginal = false;
 

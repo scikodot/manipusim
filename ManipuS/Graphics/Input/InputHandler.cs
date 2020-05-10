@@ -69,7 +69,7 @@ namespace Graphics
             // perform a raycast and store the result for later use
             RaycastResult = Ray.Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
             
-            if (MainWindow.Mode == InteractionModes.Design && !ImGui.IsWindowHovered(
+            if (MainWindow.Mode == InteractionMode.Design && !ImGui.IsWindowHovered(
                 ImGuiHoveredFlags.AnyWindow | 
                 ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?
             {
@@ -77,8 +77,7 @@ namespace Graphics
                 TranslationalWidget.Poll(camera, RaycastResult, mouseState, _lastState);
 
                 // check whether any physical object is being selected
-                if (!TranslationalWidget.IsActive)
-                    PollSelection(mouseState, keyboardState);
+                PollSelection(mouseState, keyboardState);
             }
 
             // poll the mouse for events
