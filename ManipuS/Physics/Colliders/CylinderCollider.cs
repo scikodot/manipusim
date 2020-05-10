@@ -14,8 +14,8 @@ namespace Physics
         private float _radius;
         public ref float Radius => ref _radius;
 
-        private float _length;
-        public ref float Length => ref _length;
+        private float _halfLength;
+        public ref float HalfLength => ref _halfLength;
 
         public CylinderCollider(RigidBody body)
         {
@@ -28,12 +28,12 @@ namespace Physics
             Body = body;
 
             _radius = shape.Radius;
-            _length = shape.HalfExtentsWithMargin.Y;
+            _halfLength = shape.HalfExtentsWithMargin.Y;
         }
 
         public override void Scale()
         {
-            Body.CollisionShape.LocalScaling *= new BulletSharp.Math.Vector3(_radius, _length, _radius) / ((CylinderShape)Body.CollisionShape).HalfExtentsWithMargin;
+            Body.CollisionShape.LocalScaling *= new BulletSharp.Math.Vector3(_radius, _halfLength, _radius) / ((CylinderShape)Body.CollisionShape).HalfExtentsWithMargin;
         }
 
         public override bool Contains(Vector3 point)

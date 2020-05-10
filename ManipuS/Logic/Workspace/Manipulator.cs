@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using Graphics;
 using Logic.PathPlanning;
+using Physics;
 
 namespace Logic
 {
@@ -42,9 +43,9 @@ namespace Logic
 
         public bool IsOriginal { get; private set; }
 
-        public Vector3 GripperPos { get; private set; }  // TODO: create a separate class Gripper/Tool/etc.
+        public Vector3 GripperPos { get; private set; }  // TODO: create a separate class Gripper/Tool/etc. and probably use DKP[Joints.Length - 1]
 
-        public Vector3[] DKP { get; private set; }
+        public Vector3[] DKP { get; private set; }  // TODO: rename to JointPositions/DirectKinematics/etc.
 
         private Vector _q;
         public Vector q
@@ -89,6 +90,21 @@ namespace Logic
             Goal = data.Goal;
         }
 
+        public void UpdateStateDesign()
+        {
+            UpdateState();
+
+            // update links lengths
+            for (int i = 0; i < Links.Length; i++)
+            {
+                var jointDistance = Vector3.Distance(Joints[i + 1].Position, Joints[i].Position);
+                jointDistance -= (Joints[i + 1].Length + Joints[i].Length) / 2;
+
+                (Links[i].Collider as CylinderCollider).HalfLength = jointDistance / 2;
+                Links[i].UpdateStateDesign();
+            }
+        }
+
         public void UpdateState()
         {
             DKP = new Vector3[Joints.Length];
@@ -97,7 +113,7 @@ namespace Logic
             ImpDualQuat init = new ImpDualQuat(Base);
 
             // joints
-            for (int i = 0; i < Joints.Length; i++)
+            for (int i = 0; i < Joints.Length; i++)  // TODO: move to DirectKinematics() methods?
             {
                 quat = init;
 
@@ -124,21 +140,58 @@ namespace Logic
             {
                 for (int i = 0; i < Links.Length; i++)
                 {
-                    quat = init;
+                    //quat = init;
 
-                    for (int j = 0; j <= i; j++)
-                    {
-                        quat *= j == 0 ?
-                            new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY) :
-                            new ImpDualQuat(Joints[j].InitialPosition - Joints[j - 1].InitialPosition);
-                        quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);
-                    }
+                    quat = new ImpDualQuat(Joints[i].Position);
+
+                    quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[i + 1].Position - Joints[i].Position);
+
+                    quat *= new ImpDualQuat(
+                        (Joints[i].Length / 2 + Links[i].Length / 2) * quat.Conjugate.Rotate(Vector3.Normalize(Joints[i + 1].Position - Joints[i].Position)));
+
+                    //quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);
+
+                    //for (int j = 0; j <= i; j++)
+                    //{
+                    //    quat *= j == 0 ?
+                    //        ImpDualQuat.Align(
+                    //            Vector3.UnitY,
+                    //            Joints[j + 1].InitialPosition - Joints[j].InitialPosition) :
+                    //        ImpDualQuat.Align(
+                    //            Joints[j].InitialPosition - Joints[j - 1].InitialPosition,
+                    //            Joints[j + 1].InitialPosition - Joints[j].InitialPosition);
+
+                    //    quat *= j == 0 ?
+                    //        new ImpDualQuat(Joints[0].Length / 2 * Vector3.UnitY) :
+                    //        new ImpDualQuat(Joints[j].InitialPosition - Joints[j - 1].InitialPosition);
+
+                    //    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);
+                    //}
 
                     Links[i].UpdateState(ref quat);
                 }
             }
 
             // gripper
+            quat = init;
+
+            var last = Joints.Length - 1;
+            for (int j = 0; j < last; j++)
+            {
+                quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
+                quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);  // TODO: optimize; probably, conjugation can be avoided
+            }
+
+            quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].q);
+
+            quat *= ImpDualQuat.Align(Joints[last].InitialAxis, quat.Conjugate.Rotate(Joints[last].Position - Joints[last - 1].Position));
+
+            if (IsOriginal)
+                Joints[last].UpdateState(ref quat);
+
+            Joints[last].Axis = quat.Rotate(Joints[0].Axis);
+            Joints[last].Position = DKP[last] = quat.Translation;
+
             GripperPos = DKP[Joints.Length - 1];
         }
 

@@ -102,7 +102,7 @@ namespace Logic
         {
             foreach (var manipulator in Manipulators)
             {
-                manipulator.UpdateState();
+                manipulator.UpdateStateDesign();
             }
         }
 

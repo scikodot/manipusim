@@ -32,7 +32,7 @@ namespace Logic
         public Model Model { get; }
         public Collider Collider { get; }
 
-        public float Length;
+        public float Length { get; }  // TODO: replace with Radius
 
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
@@ -107,6 +107,11 @@ namespace Logic
 
             if (ShowCollider)
                 Collider.Render(shader);
+        }
+
+        public void UpdateStateDesign()
+        {
+            Collider.Scale();
         }
 
         public void UpdateState(ref ImpDualQuat state)

@@ -13,24 +13,17 @@ namespace Logic
         public float Length;
     }
 
-    public class Link
+    public class Link : ISelectable
     {
         public Model Model { get; }
         public Collider Collider { get; }
 
-        public float Length;  // TODO: must be names Size or something like that; Length is not suitable
+        public float Length => 2 * (Collider as CylinderCollider).HalfLength;  // TODO: perhaps optimize? or use another approach?
 
         public Matrix State
         {
-            get
-            {
-                Collider.Body.MotionState.GetWorldTransform(out Matrix state);
-                return state;
-            }
-            set
-            {
-                Collider.Body.MotionState.SetWorldTransform(ref value);
-            }
+            get => Collider.Body.MotionState.WorldTransform;
+            set => Collider.Body.MotionState.WorldTransform = value;
         }
 
         public Link(LinkData data)
@@ -38,7 +31,9 @@ namespace Logic
             Model = data.Model;
             Collider = data.Collider;
 
-            Length = data.Length;
+            Collider.Body.UserObject = this;
+
+            //Length = data.Length;
 
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
@@ -50,10 +45,31 @@ namespace Logic
 
         public void Render(Shader shader, Action render = null, bool showCollider = false)
         {
+            UpdateState();
+
             Model.Render(shader, render);
 
             if (showCollider)
                 Collider.Render(shader);
+        }
+
+        public void UpdateStateDesign()
+        {
+            Collider.Scale();
+        }
+
+        public void UpdateState()
+        {
+            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
+
+            OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
+                state.M11, state.M21, state.M31, state.M41,
+                state.M12, state.M22, state.M32, state.M42,
+                state.M13, state.M23, state.M33, state.M43,
+                state.M14, state.M24, state.M34, state.M44);
+
+            Model.State = stateMatrix;
+            Collider.UpdateState(ref stateMatrix);
         }
 
         public void UpdateState(ref ImpDualQuat state)

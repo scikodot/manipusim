@@ -450,7 +450,7 @@ namespace Graphics
                         for (int j = 0; j < MB[0].N; j++)
                         {
                             MB[0].Links[j].Model = linkModel.ShallowCopy();
-                            MB[0].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 1, 0.15f));
+                            MB[0].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 0.5f, 0.15f));
                             MB[0].Joints[j].Model = jointModel.ShallowCopy();
                             MB[0].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
                         }
@@ -601,7 +601,7 @@ namespace Graphics
                                     break;
                                 case BroadphaseNativeType.CylinderShape:
                                     ImGui.InputFloat("Radius", ref (obst.Collider as CylinderCollider).Radius);
-                                    ImGui.InputFloat("Length", ref (obst.Collider as CylinderCollider).Length);
+                                    ImGui.InputFloat("Length", ref (obst.Collider as CylinderCollider).HalfLength);
                                     break;
                             }
 
@@ -784,7 +784,7 @@ namespace Graphics
                         else if (obstacle.Collider is CylinderCollider cylinder)
                         {
                             ImGui.InputFloat("Radius", ref cylinder.Radius);
-                            ImGui.InputFloat("Length", ref cylinder.Length);
+                            ImGui.InputFloat("Length", ref cylinder.HalfLength);
                         }
                     }
                     else if (selectedObject is Joint joint)

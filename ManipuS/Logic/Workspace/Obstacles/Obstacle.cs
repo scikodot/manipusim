@@ -33,19 +33,6 @@ namespace Logic
             set => Collider.Body.MotionState.WorldTransform = value;
         }
 
-        //public Matrix State  // TODO: change to WorldTransform
-        //{
-        //    get
-        //    {
-        //        Collider.Body.MotionState.GetWorldTransform(out Matrix state);
-        //        return state;
-        //    }
-        //    set
-        //    {
-        //        Collider.Body.MotionState.SetWorldTransform(ref value);
-        //    }
-        //}
-
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
 
@@ -89,7 +76,7 @@ namespace Logic
         public void Render(Shader shader, Action render = null)
         {
             // update obstacle and collider models to reflect object's current state
-            UpdateState();
+            UpdateState();  // TODO: move to UpdateFrame!
 
             Model.Render(shader, render);
 
