@@ -5,10 +5,11 @@ using OpenTK.Graphics.OpenGL4;
 
 using Logic.PathPlanning;
 using Logic;
+using System;
 
 namespace Graphics
 {
-    public class PathModel
+    public class PathModel : IDisposable
     {
         private readonly Queue<uint> _freeIndices = new Queue<uint>();
         private uint _freeTop;
@@ -94,6 +95,15 @@ namespace Graphics
                     Model.Meshes[0].UpdateIndices(2 * (node.Child.ID - 1), 1, new uint[1] { node.Parent.ID });
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            // clear managed resources
+            Model.Dispose();
+
+            // suppress finalization
+            GC.SuppressFinalize(this);
         }
     }
 }

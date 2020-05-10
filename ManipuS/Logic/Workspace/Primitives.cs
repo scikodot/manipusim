@@ -6,8 +6,53 @@ using System.Linq;
 
 namespace Logic
 {
-    public static class Primitives
+    public static class Primitives  // TODO: perhaps unify?
     {
+        public static Model Grid(int lines, float stride, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        {
+            float lineLengthHalf = (lines - 1) * stride / 2;
+
+            var vertices = new List<MeshVertex>();
+            for (int i = 0; i < lines; i++)
+            {
+                var current = -lineLengthHalf + i * stride;
+
+                // Z parallel lines
+                vertices.Add(new MeshVertex { Position = new Vector3(current, 0, -lineLengthHalf), Normal = Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(current, 0, lineLengthHalf), Normal = Vector3.UnitY });
+
+                // X parallel lines
+                vertices.Add(new MeshVertex { Position = new Vector3(-lineLengthHalf, 0, current), Normal = Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(lineLengthHalf, 0, current), Normal = Vector3.UnitY });
+            }
+
+            var indices = new uint[vertices.Count];
+            for (uint i = 0; i < indices.Length; i++)
+            {
+                indices[i] = i;
+            }
+
+            return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
+        }
+
+        public static Model Plane(float width, float height, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        {
+            var vertices = new MeshVertex[]
+            {
+                new MeshVertex { Position = new Vector3(-width, 0.0f, -height), Normal = Vector3.UnitY },
+                new MeshVertex { Position = new Vector3(width, 0.0f, -height), Normal = Vector3.UnitY },
+                new MeshVertex { Position = new Vector3(-width, 0.0f, height), Normal = Vector3.UnitY },
+                new MeshVertex { Position = new Vector3(width, 0.0f, height), Normal = Vector3.UnitY }
+            };
+
+            var indices = new uint[]
+            {
+                0, 1, 2, 1, 2, 3
+            };
+
+            return new Model(vertices, indices, material, state, renderFlags: renderFlags);
+        }
+
         public static Model Cube(float halfX, float halfY, float halfZ, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             var vertices = new List<MeshVertex>();

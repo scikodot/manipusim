@@ -6,10 +6,11 @@ using OpenTK.Graphics.OpenGL4;
 using Logic.PathPlanning;
 using Logic;
 using System.Threading.Tasks;
+using System;
 
 namespace Graphics
 {
-    public class TreeModel
+    public class TreeModel : IDisposable
     {
         private readonly Queue<uint> _freeIndices = new Queue<uint>();
         private uint _freeTop;
@@ -83,6 +84,15 @@ namespace Graphics
                 // TODO: this may cause performance damage if indices do not remove duplicate vertices; check!
                 Model.Meshes[0].UpdateIndices(2 * (node.ID - 1), 2, new uint[2] { 0, 0 });
             }
+        }
+
+        public void Dispose()
+        {
+            // clear managed resources
+            Model.Dispose();
+
+            // suppress finalization
+            GC.SuppressFinalize(this);
         }
     }
 }

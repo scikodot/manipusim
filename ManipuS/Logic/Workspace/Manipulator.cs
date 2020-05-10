@@ -19,7 +19,7 @@ namespace Logic
         public bool ShowTree;
     }
 
-    public class Manipulator
+    public class Manipulator : IDisposable
     {
         public Vector3 Base;
         public Link[] Links;
@@ -102,6 +102,21 @@ namespace Logic
 
                 (Links[i].Collider as CylinderCollider).HalfLength = jointDistance / 2;
                 Links[i].UpdateStateDesign();
+            }
+        }
+
+        public void UpdateModel()
+        {
+            // update joints models
+            foreach (var joint in Joints)
+            {
+                joint.UpdateModel();
+            }
+
+            // update link models
+            foreach (var link in Links)
+            {
+                link.UpdateModel();
             }
         }
 
@@ -236,7 +251,7 @@ namespace Logic
             // links
             for (int i = 0; i < Links.Length; i++)
             {
-                Links[i].Render(shader, showCollider: _showCollider);
+                Links[i].Render(shader);
             }
         }
 
@@ -255,6 +270,23 @@ namespace Logic
             // TODO: clone colliders!
 
             return manip;
+        }
+
+        public void Dispose()
+        {
+            // clear managed resources
+            foreach (var joint in Joints)
+            {
+                joint.Dispose();
+            }
+
+            foreach (var link in Links)
+            {
+                link.Dispose();
+            }
+
+            // suppress finalization
+            GC.SuppressFinalize(this);
         }
     }
 }

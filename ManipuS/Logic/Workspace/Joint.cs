@@ -27,7 +27,7 @@ namespace Logic
         public Vector2 qRanges;
     }
 
-    public class Joint : ISelectable, ITranslatable  // TODO: implement IDisposable
+    public class Joint : IDisposable, ISelectable, ITranslatable  // TODO: consider using abstract class Selectable instead of interface
     {
         public Model Model { get; }
         public Collider Collider { get; }
@@ -52,19 +52,6 @@ namespace Logic
             get => Collider.Body.MotionState.WorldTransform;
             set => Collider.Body.MotionState.WorldTransform = value;
         }
-
-        //public Matrix State
-        //{
-        //    get
-        //    {
-        //        Collider.Body.MotionState.GetWorldTransform(out Matrix state);
-        //        return state;
-        //    }
-        //    set
-        //    {
-        //        Collider.Body.MotionState.SetWorldTransform(ref value);
-        //    }
-        //}
 
         private Vector3 _initialPosition;
         public ref Vector3 InitialPosition => ref _initialPosition;
@@ -114,19 +101,33 @@ namespace Logic
             Collider.Scale();
         }
 
+        public void UpdateModel()
+        {
+            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
+
+            OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
+                state.M11, state.M21, state.M31, state.M41,
+                state.M12, state.M22, state.M32, state.M42,
+                state.M13, state.M23, state.M33, state.M43,
+                state.M14, state.M24, state.M34, state.M44);
+
+            Model.State = stateMatrix;
+            Collider.UpdateModel(ref stateMatrix);
+        }
+
         public void UpdateState(ref ImpDualQuat state)
         {
-            var stateMatrix = state.ToBulletMatrix();
-            State = stateMatrix;
+            State = state.ToBulletMatrix(); ;
+        }
 
-            OpenTK.Matrix4 stateMatrixOpenTK = new OpenTK.Matrix4(  // TODO: refactor
-                stateMatrix.M11, stateMatrix.M21, stateMatrix.M31, stateMatrix.M41,
-                stateMatrix.M12, stateMatrix.M22, stateMatrix.M32, stateMatrix.M42,
-                stateMatrix.M13, stateMatrix.M23, stateMatrix.M33, stateMatrix.M43,
-                stateMatrix.M14, stateMatrix.M24, stateMatrix.M34, stateMatrix.M44);
+        public void Dispose()
+        {
+            // clear managed resources
+            Model.Dispose();
+            Collider.Dispose();
 
-            Model.State = stateMatrixOpenTK;
-            Collider.UpdateState(ref stateMatrixOpenTK);
+            // suppress finalization
+            GC.SuppressFinalize(this);
         }
     }
 }

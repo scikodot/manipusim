@@ -37,8 +37,9 @@ namespace Graphics
         public static Vector2 CursorPositionNDC { get; private set; }
         public static Ray RaycastResult { get; private set; }
         public static bool TextIsEdited { get; set; }
+        public static bool Capture { get; set; }
 
-        public static TranslationalWidget Widget { get; set; }
+        public static TranslationalWidget TranslationalWidget { get; set; }
 
         public static List<CollisionObject> SelectedObjects { get; } = new List<CollisionObject>();
 
@@ -73,10 +74,10 @@ namespace Graphics
                 ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?
             {
                 // poll widget for interaction
-                Widget.Poll(camera, RaycastResult, mouseState, _lastState);
+                TranslationalWidget.Poll(camera, RaycastResult, mouseState, _lastState);
 
                 // check whether any physical object is being selected
-                if (!Widget.IsActive)
+                if (!TranslationalWidget.IsActive)
                     PollSelection(mouseState, keyboardState);
             }
 
@@ -171,19 +172,22 @@ namespace Graphics
 
         private static void AddSelection(CollisionObject collisionObject)
         {
-            SelectedObjects.Add(collisionObject);
-            (collisionObject.UserObject as ITranslatable).Model.RenderFlags |= RenderFlags.Selected;
+            if (collisionObject.UserObject is ISelectable selectable)
+            {
+                SelectedObjects.Add(collisionObject);
+                selectable.Model.RenderFlags |= RenderFlags.Selected;
+            }
         }
 
         private static void RemoveSelection(CollisionObject collisionObject)
         {
-            (collisionObject.UserObject as ITranslatable).Model.RenderFlags &= ~RenderFlags.Selected;
+            (collisionObject.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected;
             SelectedObjects.Remove(collisionObject);
         }
 
         private static void ClearSelection()
         {
-            SelectedObjects.ForEach(x => (x.UserObject as ITranslatable).Model.RenderFlags &= ~RenderFlags.Selected);
+            SelectedObjects.ForEach(x => (x.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected);
             SelectedObjects.Clear();
         }
 
@@ -209,7 +213,6 @@ namespace Graphics
             }
         }
 
-        public static bool Capture { get; set; }
         private static void PollScreen(GameWindow window)
         {
             if (Capture)  // TODO: try to implement an event-based system
@@ -284,6 +287,12 @@ namespace Graphics
                 else
                     bitmap.Save(ScreenshotsPath + ".bmp", ImageFormat.Bmp);
             });
+        }
+
+        public static void Dispose()
+        {
+            // dispose of the widgets
+            TranslationalWidget.Dispose();
         }
     }
 }

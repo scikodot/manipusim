@@ -106,6 +106,14 @@ namespace Logic
             }
         }
 
+        public static void UpdateModel()
+        {
+            foreach(var manipulator in Manipulators)
+            {
+                manipulator.UpdateModel();
+            }
+        }
+
         public static void Reset()
         {
             foreach (var manipulator in Manipulators)
@@ -127,6 +135,15 @@ namespace Logic
             foreach (var manipulator in Manipulators)
             {
                 manipulator.Controller.Abort();
+            }
+        }
+
+        public static void Dispose()
+        {
+            // dispose of all the manipulators
+            foreach (var manipulator in Manipulators)
+            {
+                manipulator.Dispose();
             }
         }
 

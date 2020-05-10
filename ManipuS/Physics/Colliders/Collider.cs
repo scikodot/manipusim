@@ -25,6 +25,8 @@ namespace Physics
         public static Collider Create(RigidBody body)
         {
             Collider collider = default;
+
+            // choose the type of the collider
             switch (body.CollisionShape.ShapeType)
             {
                 case BroadphaseNativeType.BoxShape:
@@ -46,6 +48,15 @@ namespace Physics
             else
                 collider._type = RigidBodyType.Dynamic;
 
+            // apply initial transformation to the collider model
+            var state = body.MotionState.WorldTransform;
+            OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
+                state.M11, state.M21, state.M31, state.M41,
+                state.M12, state.M22, state.M32, state.M42,
+                state.M13, state.M23, state.M33, state.M43,
+                state.M14, state.M24, state.M34, state.M44);
+            collider.UpdateModel(ref stateMatrix);
+
             // convert collider to kinematic for design mode
             collider.Convert(RigidBodyType.Kinematic);
 
@@ -66,24 +77,8 @@ namespace Physics
             });
         }
 
-        public void UpdateState(ref OpenTK.Matrix4 state)
+        public void UpdateModel(ref OpenTK.Matrix4 state)
         {
-            //var stateMatrix = new BulletSharp.Math.Matrix(
-            //    state.M11, state.M21, state.M31, state.M41,
-            //    state.M12, state.M22, state.M32, state.M42,
-            //    state.M13, state.M23, state.M33, state.M43,
-            //    state.M14, state.M24, state.M34, state.M44);
-
-            //Body.MotionState.SetWorldTransform(ref stateMatrix);
-
-            //Body.MotionState.GetWorldTransform(out stateMatrix);
-
-            //Model.State = new OpenTK.Matrix4(
-            //    stateMatrix.M11, stateMatrix.M12, stateMatrix.M13, stateMatrix.M14,
-            //    stateMatrix.M21, stateMatrix.M22, stateMatrix.M23, stateMatrix.M24,
-            //    stateMatrix.M31, stateMatrix.M32, stateMatrix.M33, stateMatrix.M34,
-            //    stateMatrix.M41, stateMatrix.M42, stateMatrix.M43, stateMatrix.M44);
-
             Model.State = state;
         }
 

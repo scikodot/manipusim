@@ -115,7 +115,7 @@ void main()
 
 	if (isSelected)
 	{
-		FragColor[3] = 0.3;
+		FragColor[3] /= 3;
 	}
 }
 

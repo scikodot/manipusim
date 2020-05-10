@@ -146,8 +146,8 @@ namespace Graphics
 
                 if (mode.HasFlag(RenderFlags.Selected))
                 {
-                    GL.Enable(EnableCap.Blend);
-                    GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+                    //GL.Enable(EnableCap.Blend);
+                    //GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
                     shader.SetBool("isSelected", 1);
                 }
@@ -197,10 +197,10 @@ namespace Graphics
                         GL.DrawArrays(PrimitiveType.Triangles, 0, Vertices.Length);
                 }
 
-                if (mode.HasFlag(RenderFlags.Selected))
-                {
-                    GL.Disable(EnableCap.Blend);
-                }
+                //if (mode.HasFlag(RenderFlags.Selected))
+                //{
+                //    GL.Disable(EnableCap.Blend);
+                //}
             }
 
             if (mode.HasFlag(RenderFlags.Wireframe))  // TODO: replace with single-pass render, i.e. through geometry shader or anything

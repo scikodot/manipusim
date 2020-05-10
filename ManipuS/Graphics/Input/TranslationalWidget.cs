@@ -12,9 +12,9 @@ using Matrix4 = OpenTK.Matrix4;
 
 namespace Graphics
 {
-    public class TranslationalWidget
+    public class TranslationalWidget : IDisposable
     {
-        private class Axis
+        private class Axis : IDisposable
         {
             private Model Model { get; set; }
             private Vector3 Offset { get; set; }
@@ -145,6 +145,15 @@ namespace Graphics
                 var endProj = new Vector4(End, 1.0f) * view * proj;
                 return (endProj / endProj.W).Xyz;
             }
+
+            public void Dispose()
+            {
+                // clear managed resources
+                Model.Dispose();
+
+                // suppress finalization
+                GC.SuppressFinalize(this);
+            }
         }
 
         private Axis[] Axes { get; set; }
@@ -175,7 +184,7 @@ namespace Graphics
 
         public void Attach(ITranslatable selectable)
         {
-            if (selectable == Parent)
+            if (selectable == Parent || selectable == null)
                 return;
 
             var selectablePosition = selectable.Collider.Body.MotionState.WorldTransform.Origin;
@@ -247,6 +256,18 @@ namespace Graphics
             }
 
             return axesActive.Count == 0 ? null : axesActive.MinBy(x => Math.Abs(x.Item2.Z)).First().Item1;
+        }
+
+        public void Dispose()
+        {
+            // clear managed resources
+            foreach (var axis in Axes)
+            {
+                axis.Dispose();
+            }
+
+            // suppress finalization
+            GC.SuppressFinalize(this);
         }
     }
 }

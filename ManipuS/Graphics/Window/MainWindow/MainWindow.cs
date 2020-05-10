@@ -35,30 +35,8 @@ namespace Graphics
 
     public class MainWindow : GameWindow
     {
-        // main graphics objects
-        private ImGuiController controller;
+        private ImGuiController controller;  // TODO: create ImGuiHandler!
         private Camera _camera;
-
-        // workspace grid
-        private readonly MeshVertex[] gridLines =
-        {
-            new MeshVertex { Position = new Vector3(10.0f, 0.0f, 0.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-10.0f, 0.0f, 0.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(0.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) }
-        };
-
-        // mask used to make a floor half-transparent
-        private readonly MeshVertex[] transparencyMask =
-        {
-            new MeshVertex { Position = new Vector3(10.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-10.0f, 0.0f, 10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(-10.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) },
-            new MeshVertex { Position = new Vector3(10.0f, 0.0f, -10.0f), Normal = new Vector3(0.0f, 1.0f, 0.0f) }
-        };
-
-        // all the needed entities
-        private Model grid, gridFloor;
 
         private readonly List<TreeModel> trees = new List<TreeModel>();
         private readonly List<PathModel> paths = new List<PathModel>();
@@ -68,15 +46,7 @@ namespace Graphics
         public static bool forward;
         private bool ManipLoaded = false;
 
-        // 3D model
         //Model Crytek;
-        public static Model pointMoveable;
-        public static Vector2 pointScreen;
-
-        private Obstacle[] Cubes;
-        private Obstacle Ground;
-        private Obstacle Sphere;
-        private Obstacle Cylinder;
 
         public static Thread MainThread = Thread.CurrentThread;
         public static InteractionModes Mode = InteractionModes.Design;
@@ -102,20 +72,7 @@ namespace Graphics
             // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera((float)(0.75 * Width / Height), new Vector3(-5, 3, 5), -15, -45);
 
-            // workspace grid
-            grid = new Model(gridLines, material: MeshMaterial.White);
-
-            gridFloor = new Model(transparencyMask, new uint[] { 1, 0, 3, 1, 2, 3, 1 }, new MeshMaterial
-            {
-                Diffuse = new Vector4(1.0f, 1.0f, 1.0f, 0.5f)
-            });
-
-            pointMoveable = new Model(new MeshVertex[] 
-            {
-                new MeshVertex { Position = new Vector3(0.0f, 0.0f, 0.0f) }
-            }, material: MeshMaterial.Yellow);
-
-            InputHandler.Widget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
+            InputHandler.TranslationalWidget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
             {
                 (new Vector3(0.3f, 0, 0), new Vector4(1, 0, 0, 1)),
                 (new Vector3(0, 0.3f, 0), new Vector4(0, 1, 0, 1)),
@@ -148,29 +105,21 @@ namespace Graphics
             //    }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
             //}
 
-            Ground = new Obstacle(Primitives.Cube(5, 0.2f, 5, new MeshMaterial
-            {
-                Ambient = new Vector4(0.02f, 0.1f, 0.0f, 1.0f),
-                Diffuse = new Vector4(0.0f, 0.6f, 0.8f, 1.0f),
-                Specular = new Vector4(0.5f, 0.1f, 0.0f, 1.0f),
-                Shininess = 8
-            }), PhysicsHandler.CreateStaticCollider(new BoxShape(5, 0.2f, 5)));
-
-            Sphere = new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
+            ObstacleHandler.Add(new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
             {
                 Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                 Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
-            }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3)));
+            }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3))));
 
-            Cylinder = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
             {
                 Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                 Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
-            }), PhysicsHandler.CreateDynamicCollider(new CylinderShape(0.25f, 1, 0.25f), 1, Matrix.Translation(3, 4, -3)));
+            }), PhysicsHandler.CreateDynamicCollider(new CylinderShape(0.25f, 1, 0.25f), 1, Matrix.Translation(3, 4, -3))));
 
             base.OnLoad(e);
         }
@@ -183,6 +132,7 @@ namespace Graphics
             // render GUI
             RenderGUI(e);
 
+            // TODO: refactor
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.RenderActions.Count;
             if (count > 10)  // clamp amount of executing actions to get rid of microfreezes
@@ -215,30 +165,6 @@ namespace Graphics
             GL.Disable(EnableCap.ScissorTest);
 
             ShaderHandler.SetupShaders(_camera);
-
-            //pointMoveable.Render(ShaderHandler.ComplexShader, MeshMode.Solid, () =>
-            //{
-            //    GL.PointSize(20);
-            //    GL.DrawArrays(PrimitiveType.Points, 0, 1);
-            //    GL.PointSize(1);
-            //});
-
-
-
-            //foreach (var cube in Cubes)
-            //{
-            //    cube.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
-            //}
-
-            //Ground.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Wireframe | MeshMode.Lighting);
-
-            //Sphere.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
-
-            //Cylinder.Render(ShaderHandler.ComplexShader, MeshMode.Solid | MeshMode.Lighting);
-
-            //ShaderHandler.GenericShader.Use();
-            //var model = OpenTK.Matrix4.Identity;
-            //ShaderHandler.GenericShader.SetMatrix4("model", ref model);
 
             RenderCoreOpaque();
 
@@ -293,27 +219,17 @@ namespace Graphics
             }
 
             // workspace grid
-            grid.State = Matrix4.Identity;
-            grid.Render(ShaderHandler.ComplexShader, () =>
-            {
-                GL.DrawArrays(PrimitiveType.Lines, 0, 4);
-            });
-            for (int i = 1; i < 11; i++)
-            {
-                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * i);
-                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
-                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitZ * -i);
-                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 0, 2));
-
-                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * i);
-                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
-                grid.State = Matrix4.CreateTranslation(System.Numerics.Vector3.UnitX * -i);
-                grid.Render(ShaderHandler.ComplexShader, () => GL.DrawArrays(PrimitiveType.LineStrip, 2, 2));
-            }
+            ObstacleHandler.RenderGrid(ShaderHandler.ComplexShader);
         }
 
         private void RenderCoreTransparent()
         {
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            // render the ground
+            ObstacleHandler.RenderGround(ShaderHandler.ComplexShader);
+
             // render the selected obstacles
             ObstacleHandler.RenderDesignSelected(ShaderHandler.ComplexShader);
 
@@ -330,20 +246,13 @@ namespace Graphics
             //
             // so, to render transparent floor, we take SourceFactor as source's alpha (floor's alpha) and DestFactor as the remainder of the source's alpha
             // (the visible amount of the opaque object behind the floor)
-            gridFloor.Render(ShaderHandler.ComplexShader, () =>
-            {
-                GL.Enable(EnableCap.Blend);
-                GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-                GL.DrawElements(BeginMode.Triangles, 7, DrawElementsType.UnsignedInt, 0);
-
-                GL.Disable(EnableCap.Blend);
-            });
+            GL.Disable(EnableCap.Blend);
         }
 
         private void RenderCoreIndependent()
         {
-            InputHandler.Widget.Render(ShaderHandler.ComplexShader, () =>
+            InputHandler.TranslationalWidget.Render(ShaderHandler.ComplexShader, () =>
             {
                 GL.Disable(EnableCap.DepthTest);
                 GL.DrawArrays(PrimitiveType.Lines, 0, 2);
@@ -744,10 +653,10 @@ namespace Graphics
 
             if (Mode == InteractionModes.Design && InputHandler.SelectedObjects.Count == 1)
             {
-                var selectedObject = InputHandler.SelectedObjects[0].UserObject as ITranslatable;
+                var selectedObject = InputHandler.SelectedObjects[0].UserObject as ISelectable;
 
                 // attach the widget
-                InputHandler.Widget.Attach(selectedObject);
+                InputHandler.TranslationalWidget.Attach(selectedObject as ITranslatable);
 
                 if (ImGui.Begin("Properties",
                     ImGuiWindowFlags.NoCollapse |
@@ -763,7 +672,7 @@ namespace Graphics
                         ImGui.Text($"Shape type: {obstacle.ShapeType}");
 
                         int type = (int)obstacle.Type;
-                        ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);
+                        ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
                         obstacle.Type = (RigidBodyType)type;
 
                         ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
@@ -802,14 +711,14 @@ namespace Graphics
                     }
                     else if (selectedObject is Link link)
                     {
-                        // TODO: show link properties
+                        ImGui.Checkbox("Show collider", ref link.ShowCollider);
                     }
                 }
             }
             else
             {
                 // detach the widget
-                InputHandler.Widget.Detach();
+                InputHandler.TranslationalWidget.Detach();
             }
 
             // rendering controller and checking for errors
@@ -854,9 +763,8 @@ namespace Graphics
             {
                 case InteractionModes.Design:
 
-                    ObstacleHandler.UpdateDesign();
-
                     ManipHandler.UpdateDesign();
+                    ObstacleHandler.UpdateDesign();
 
                     break;
                 case InteractionModes.Animate:
@@ -912,11 +820,8 @@ namespace Graphics
                     break;
                 case InteractionModes.ToDesign:
 
-                    // convert all obstacles to kinematic type to allow free displacement
-                    ObstacleHandler.ToDesign();
-
                     ManipHandler.ToDesign();
-
+                    ObstacleHandler.ToDesign();
                     InputHandler.ToDesign();
 
                     // update workspace
@@ -927,17 +832,18 @@ namespace Graphics
                     break;
                 case InteractionModes.ToAnimate:
 
-                    // convert all obstacles to their native physics types
-                    ObstacleHandler.ToAnimate();
-
                     ManipHandler.ToAnimate();
-
+                    ObstacleHandler.ToAnimate();
                     InputHandler.ToAnimate();
 
                     Mode = InteractionModes.Animate;
 
                     break;
             }
+
+            // update all models of all the objects
+            ManipHandler.UpdateModel();
+            ObstacleHandler.UpdateModel();
 
             base.OnUpdateFrame(e);
         }
@@ -985,17 +891,36 @@ namespace Graphics
 
         protected override void OnUnload(EventArgs e)
         {
-            // TODO: clear all unmanaged resources
-            // TODO: create a list that holds references to all models in the scene, and dispose here all models in that list
+            // dispose of all the handlers
+            ManipHandler.Dispose();
+            ObstacleHandler.Dispose();
+            PhysicsHandler.Dispose();
+            InputHandler.Dispose();
+            ShaderHandler.Dispose();
 
-            // freeing all the used resources
+            // remove trees models
+            foreach (var tree in trees)
+            {
+                tree.Dispose();
+            }
+
+            // remove paths models
+            foreach (var path in paths)
+            {
+                path.Dispose();
+            }
+
+            // remove goals models
+            foreach (var goal in goals)
+            {
+                goal.Dispose();
+            }
+
+            // free buffers and program
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
             GL.BindVertexArray(0);
             GL.UseProgram(0);
-
-            ShaderHandler.DeleteShaders();
-
-            PhysicsHandler.ExitPhysics();
 
             base.OnUnload(e);
         }

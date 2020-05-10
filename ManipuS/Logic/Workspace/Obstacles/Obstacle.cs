@@ -47,8 +47,6 @@ namespace Logic
             Model = model;
             Collider = collider;
 
-            ObstacleHandler.Add(this);  // TODO: perhaps remove and use ObstacleHandler.Add(new Obstacle(...)) ?
-
             _initialPosition = Collider.Body.WorldTransform.Origin.ToNumerics3();
 
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
@@ -75,9 +73,6 @@ namespace Logic
 
         public void Render(Shader shader, Action render = null)
         {
-            // update obstacle and collider models to reflect object's current state
-            UpdateState();  // TODO: move to UpdateFrame!
-
             Model.Render(shader, render);
 
             if (_showCollider)
@@ -109,7 +104,7 @@ namespace Logic
             State = matX * matY * matZ * Matrix.Translation(_initialPosition.ToBullet3());
         }
 
-        public void UpdateState()  // TODO: move to UpdateFrame!
+        public void UpdateModel()
         {
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
 
@@ -120,7 +115,7 @@ namespace Logic
                 state.M14, state.M24, state.M34, state.M44);
 
             Model.State = stateMatrix;
-            Collider.UpdateState(ref stateMatrix);
+            Collider.UpdateModel(ref stateMatrix);
         }
 
         public void Dispose()

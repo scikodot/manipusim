@@ -50,8 +50,9 @@ namespace Graphics
             }
         }
 
-        public static void DeleteShaders()
+        public static void Dispose()
         {
+            // delete shader programs
             GL.DeleteProgram(ComplexShader.Handle);
             GL.DeleteProgram(GenericShader.Handle);
         }

@@ -13,12 +13,15 @@ namespace Logic
         public float Length;
     }
 
-    public class Link : ISelectable
+    public class Link : IDisposable, ISelectable
     {
         public Model Model { get; }
         public Collider Collider { get; }
 
         public float Length => 2 * (Collider as CylinderCollider).HalfLength;  // TODO: perhaps optimize? or use another approach?
+
+        private bool _showCollider;
+        public ref bool ShowCollider => ref _showCollider;
 
         public Matrix State
         {
@@ -43,13 +46,11 @@ namespace Logic
             return (Link)MemberwiseClone();
         }
 
-        public void Render(Shader shader, Action render = null, bool showCollider = false)
+        public void Render(Shader shader, Action render = null)
         {
-            UpdateState();
-
             Model.Render(shader, render);
 
-            if (showCollider)
+            if (_showCollider)
                 Collider.Render(shader);
         }
 
@@ -58,7 +59,7 @@ namespace Logic
             Collider.Scale();
         }
 
-        public void UpdateState()
+        public void UpdateModel()
         {
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
 
@@ -69,22 +70,22 @@ namespace Logic
                 state.M14, state.M24, state.M34, state.M44);
 
             Model.State = stateMatrix;
-            Collider.UpdateState(ref stateMatrix);
+            Collider.UpdateModel(ref stateMatrix);
         }
 
         public void UpdateState(ref ImpDualQuat state)
         {
-            var stateMatrix = state.ToBulletMatrix();
-            State = stateMatrix;
+            State = state.ToBulletMatrix();
+        }
 
-            OpenTK.Matrix4 stateMatrixOpenTK = new OpenTK.Matrix4(
-                stateMatrix.M11, stateMatrix.M21, stateMatrix.M31, stateMatrix.M41,
-                stateMatrix.M12, stateMatrix.M22, stateMatrix.M32, stateMatrix.M42,
-                stateMatrix.M13, stateMatrix.M23, stateMatrix.M33, stateMatrix.M43,
-                stateMatrix.M14, stateMatrix.M24, stateMatrix.M34, stateMatrix.M44);
+        public void Dispose()
+        {
+            // clear managed resources
+            Model.Dispose();
+            Collider.Dispose();
 
-            Model.State = stateMatrixOpenTK;
-            Collider.UpdateState(ref stateMatrixOpenTK);
+            // suppress finalization
+            GC.SuppressFinalize(this);
         }
     }
 }
