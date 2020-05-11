@@ -164,7 +164,7 @@ namespace Logic.PathPlanning
             // TODO: childs are not updated! fix
         }
 
-        public void Trim(Obstacle[] obstacles, Manipulator contestant, IKSolver solver)
+        public void Trim(Obstacle[] obstacles, Manipulator contestant, InverseKinematicsSolver solver)
         {
             switch (Mode)
             {
@@ -197,7 +197,7 @@ namespace Logic.PathPlanning
             }
         }
 
-        public void TrimRecursive(Obstacle[] obstacles, Manipulator contestant, IKSolver solver, Node node)
+        public void TrimRecursive(Obstacle[] obstacles, Manipulator contestant, InverseKinematicsSolver solver, Node node)
         {
             contestant.q = node.q;
             if (solver.DetectCollisions(contestant, obstacles).Contains(true))

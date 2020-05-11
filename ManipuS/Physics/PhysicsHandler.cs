@@ -15,7 +15,7 @@ namespace Physics
 
     public static class PhysicsHandler
     {
-        public static string[] RigidBodyTypes = Enum.GetNames(typeof(RigidBodyType));
+        public static string[] RigidBodyTypes { get; } = Enum.GetNames(typeof(RigidBodyType));
 
         public static DiscreteDynamicsWorld World { get; }
 

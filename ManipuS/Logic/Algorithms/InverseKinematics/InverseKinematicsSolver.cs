@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
 namespace Logic.InverseKinematics
 {
-    public enum InverseKinematicsType
+    public enum InverseKinematicsSolverType
     {
         JacobianTranspose,
         JacobianInverse,
@@ -19,15 +20,17 @@ namespace Logic.InverseKinematics
         public int MaxTime;
     }
 
-    public class IKSolver
+    public abstract class InverseKinematicsSolver
     {
-        public static string[] Types = Dispatcher.GetDerivedTypes(typeof(IKSolver)).ToArray();
+        public static string[] Types { get; } = Enum.GetNames(typeof(InverseKinematicsSolverType));
 
         protected float StepSize;
         protected float Precision;
-        protected int MaxTime;
 
-        protected IKSolver(float precision, float stepSize, int maxTime)
+        private int _maxTime;
+        public ref int MaxTime => ref _maxTime;
+
+        protected InverseKinematicsSolver(float precision, float stepSize, int maxTime)
         {
             Precision = precision;
             StepSize = stepSize;
@@ -69,9 +72,6 @@ namespace Logic.InverseKinematics
             return collisions;
         }
 
-        public virtual (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
-        {
-            return default;
-        }
+        public abstract (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint);
     }
 }

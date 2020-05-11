@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace Logic.InverseKinematics
 {
-    class HillClimbing : IKSolver
+    class HillClimbing : InverseKinematicsSolver
     {
         public HillClimbing(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 

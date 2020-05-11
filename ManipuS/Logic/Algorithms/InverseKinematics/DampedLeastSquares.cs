@@ -1,27 +1,24 @@
-﻿using System;
+﻿using MathNet.Numerics.LinearAlgebra;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
-using MathNet.Numerics.LinearAlgebra;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Logic.InverseKinematics
 {
-    public enum JacobianType  // TODO: implement Selectively Damped Least Squares, SDLS (optionally)
+    public class DampedLeastSquares : InverseKinematicsSolver
     {
-        Transpose,
-        Pseudoinverse,
-        DampedLeastSquares
-    }
+        private float _lambda = 0.5f;
+        public ref float Lambda => ref _lambda;
 
-    class Jacobian : InverseKinematicsSolver
-    {
-        public JacobianType type = JacobianType.DampedLeastSquares;
-
-        public Jacobian(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
+        public DampedLeastSquares(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 
         public override (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
             Vector initConfig = agent.q;
-            MathNet.Numerics.LinearAlgebra.Vector<float> dq = default;
-            float alpha = 0.1f;
+            MathNet.Numerics.LinearAlgebra.Vector<float> dq;
             for (int j = 0; j < 4; j++)
             {
                 Vector3 jointPos = agent.Joints[joint].Position;
@@ -54,23 +51,9 @@ namespace Logic.InverseKinematics
                 // get Jacobian and its transpose
                 var J = Matrix<float>.Build.DenseOfColumnArrays(data);
                 var JT = Matrix<float>.Build.DenseOfRowArrays(data);
-
-                switch (type)
-                {
-                    case JacobianType.Transpose:
-                        dq = -alpha * JT * errorExt;
-                        break;
-                    case JacobianType.Pseudoinverse:
-                        var JP = J.PseudoInverse();
-                        dq = -JP * errorExt;  // TODO: check why minus should always be presented for dq in these methods!
-                        break;
-                    case JacobianType.DampedLeastSquares:
-                        float lambda = 0.5f;
-                        var core = J * JT + lambda * lambda * Matrix<float>.Build.DenseIdentity(errorExt.Count);
-                        var f = core.Solve(errorExt);
-                        dq = -JT * f;
-                        break;
-                }
+                var core = J * JT + _lambda * _lambda * Matrix<float>.Build.DenseIdentity(errorExt.Count);
+                var f = core.Solve(errorExt);
+                dq = -JT * f;
 
                 Vector dqLocal = new Vector(dq.Storage.AsArray());
                 if (joint < agent.Joints.Length - 1)

@@ -7,7 +7,7 @@ using Logic.InverseKinematics;
 using Logic.PathPlanning;
 
 // buffer that accepts input data from the GUI, which is later used by the Manager
-public class WorkspaceBuffer
+public static class WorkspaceBuffer
 {
     public static LinkData[] LinkBuffer =
     {

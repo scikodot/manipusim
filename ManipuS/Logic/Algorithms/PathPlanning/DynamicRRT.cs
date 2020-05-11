@@ -9,16 +9,19 @@ namespace Logic.PathPlanning
 {
     class DynamicRRT : PathPlanner
     {
-        private float d;
-        private int period;
+        private float _step;
+        public ref float Step => ref _step;
 
-        public DynamicRRT(int maxTime, bool collisionCheck, float d, int period) : base(maxTime, collisionCheck)
+        private int _trimPeriod;
+        public ref int TrimPeriod => ref _trimPeriod;
+
+        public DynamicRRT(int maxTime, bool collisionCheck, float step, int trimPeriod) : base(maxTime, collisionCheck)
         {
-            this.d = d;
-            this.period = period;
+            _step = step;
+            _trimPeriod = trimPeriod;
         }
 
-        public override (List<Vector3>, List<Vector>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, IKSolver Solver)
+        public override (List<Vector3>, List<Vector>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver)
         {
             var contestant = agent.DeepCopy();
 
@@ -31,7 +34,7 @@ namespace Logic.PathPlanning
 
             for (int i = 0; i < MaxTime; i++)
             {
-                if (i % period == 0 && i != 0)
+                if (i % _trimPeriod == 0 && i != 0)
                     agent.Tree.Trim(Obstacles, contestant, Solver);
 
                 // generating normally distributed value
@@ -55,7 +58,7 @@ namespace Logic.PathPlanning
                 Tree.Node minNode = agent.Tree.Min(p);
 
                 // creating offset vector to new node
-                Vector3 pNew = minNode.Point + Vector3.Normalize(p - minNode.Point) * d;
+                Vector3 pNew = minNode.Point + Vector3.Normalize(p - minNode.Point) * _step;
 
                 bool isClose = pNew.DistanceTo(attractors[index].Center) < attractors[index].Radius;
                 if (isClose && index != 0)

@@ -22,6 +22,7 @@ using MathNet.Numerics;
 using BulletSharp.Math;
 using System.Runtime.InteropServices;
 using Logic.PathPlanning;
+using Logic.InverseKinematics;
 
 namespace Graphics
 {
@@ -50,8 +51,6 @@ namespace Graphics
         private static object selectedObject;
         private static ImGuiTreeNodeFlags _baseTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow;
         private static ImGuiTreeNodeFlags _baseTreeLeafFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
-        private static List<bool> _manipulatorTreeNodesPressed = new List<bool>() { false };
-        private static List<(bool, bool)> open = new List<(bool, bool)>();
 
         public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
         public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
@@ -68,6 +67,8 @@ namespace Graphics
             //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
             //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.Triangulate);
             //manptr = Assimp.Scene.FromUnmanagedScene(ptr);
+
+            ManipulatorHandler.LoadDefaultModels();
 
             ShaderHandler.InitializeShaders();
 
@@ -140,7 +141,7 @@ namespace Graphics
             // TODO: refactor
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.RenderActions.Count;
-            if (count > 10)  // clamp amount of executing actions to get rid of microfreezes
+            if (count > 10)  // clamp amount of executing actions
                 count = 10;
 
             for (int i = 0; i < count; i++)
@@ -284,7 +285,7 @@ namespace Graphics
             RenderMenu();
             RenderManipulatorsWindow();
             RenderObstaclesWindow();
-            RenderAlgorithmsWindow();
+            //RenderAlgorithmsWindow();
             RenderOptionsWindow();
 
             if (Mode == InteractionMode.Design)
@@ -307,40 +308,7 @@ namespace Graphics
                     {
                         if (ImGui.MenuItem("nanosuit.obj"))
                         {
-                            Dispatcher.ActiveTasks.Add(Task.Run(() =>
-                            {
-                                //// load components' models
-                                //var jointModel = new Model(InputHandler.JointPath);
-                                //var linkModel = new Model(InputHandler.LinkPath);
-                                //var gripperModel = new Model(InputHandler.GripperPath);
 
-                                //var MB = WorkspaceBuffer.ManipBuffer;
-                                //for (int i = 0; i < MB.Length; i++)
-                                //{
-                                //    for (int j = 0; j < MB[i].N; j++)
-                                //    {
-                                //        MB[i].Links[j].Model = linkModel.ShallowCopy();
-                                //        MB[i].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 1, 0.15f));
-                                //        MB[i].Joints[j].Model = jointModel.ShallowCopy();
-                                //        MB[i].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-                                //    }
-
-                                //    MB[i].Joints[MB[i].N].Model = gripperModel;
-                                //    MB[i].Joints[MB[i].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-                                //}
-
-                                ////Crytek = new Model(InputHandler.NanosuitPath);
-
-                                //// wait for loading process to finish
-                                //Dispatcher.ActionsDone.Reset();
-                                //Dispatcher.ActionsDone.WaitOne();
-
-                                //// update scene
-                                //UpdateScene();
-                                //ManipLoaded = true;
-
-                                ////Dispatcher.RunObstacles();
-                            }));
                         }
 
                         ImGui.EndMenu();
@@ -408,7 +376,7 @@ namespace Graphics
 
                 if (ImGui.Button("Create"))
                 {
-                    LoadManipulator();
+                    CreateDefaultManipulator();
                 }
 
                 ImGui.Separator();
@@ -472,44 +440,14 @@ namespace Graphics
             }
         }
 
-        public void LoadManipulator()  // TODO: consider moving to ManipHandler
+        public void CreateDefaultManipulator()
         {
-            // TODO: create the default manipulator
+            var manipulator = ManipulatorHandler.CreateDefaultManipulator(3);
 
-            Dispatcher.ActiveTasks.Add(Task.Run(() =>
-            {
-                // load components' models
-                var jointModel = new Model(InputHandler.JointPath);
-                var linkModel = new Model(InputHandler.LinkPath);
-                var gripperModel = new Model(InputHandler.GripperPath);
-
-                var MB = WorkspaceBuffer.ManipBuffer;
-                for (int j = 0; j < MB[0].N; j++)
-                {
-                    MB[0].Links[j].Model = linkModel.ShallowCopy();
-                    MB[0].Links[j].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 0.5f, 0.15f));
-                    MB[0].Joints[j].Model = jointModel.ShallowCopy();
-                    MB[0].Joints[j].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-                }
-
-                MB[0].Joints[MB[0].N].Model = gripperModel;
-                MB[0].Joints[MB[0].N].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
-
-                var manip = new Manipulator(MB[0]);
-                ManipulatorHandler.Add(manip);
-
-                // create a new model for the manipulator goal, path and tree
-                _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manip.Goal)));
-                _treeModels.Add(new TreeModel(10000, MeshMaterial.Black));
-                _pathModels.Add(new PathModel(10000, MeshMaterial.Red));
-
-                // wait for loading process to finish
-                Dispatcher.ActionsDone.Reset();
-                Dispatcher.ActionsDone.WaitOne();
-
-                // update workspace with newly loaded model
-                ResetScene();
-            }));
+            // create new models for the manipulator goal, path and tree
+            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
+            _treeModels.Add(new TreeModel(10000, MeshMaterial.Black));
+            _pathModels.Add(new PathModel(10000, MeshMaterial.Red));
         }
 
         private void RenderObstaclesWindow()
@@ -587,8 +525,8 @@ namespace Graphics
                 ImGui.Text("Inverse kinematics solver:");
                 ImGui.Combo("Type",
                     ref WorkspaceBuffer.InverseKinematicsBuffer.InverseKinematicsSolverID,
-                    Logic.InverseKinematics.IKSolver.Types,
-                    Logic.InverseKinematics.IKSolver.Types.Length);
+                    Logic.InverseKinematics.InverseKinematicsSolver.Types,
+                    Logic.InverseKinematics.InverseKinematicsSolver.Types.Length);
                 ImGui.InputFloat("Precision", ref WorkspaceBuffer.InverseKinematicsBuffer.Precision);
                 ImGui.InputInt("Iterations", ref WorkspaceBuffer.InverseKinematicsBuffer.MaxTime);
                 ImGui.InputFloat("Step size (deg)", ref WorkspaceBuffer.InverseKinematicsBuffer.StepSize);
@@ -701,63 +639,99 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                ImGui.Text("Controller");
+                ImGui.Text($"Time spent: {manipulator.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");  // TODO: move to Statistics window
+                ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
+                ImGui.InputFloat3("Goal", ref manipulator.Goal);
 
                 ImGui.Separator();
 
-                ImGui.Text("Inverse kinematics solver:");
-                ImGui.Combo("Type",
-                    ref WorkspaceBuffer.InverseKinematicsBuffer.InverseKinematicsSolverID,
-                    Logic.InverseKinematics.IKSolver.Types,
-                    Logic.InverseKinematics.IKSolver.Types.Length);
+                var IB = WorkspaceBuffer.InverseKinematicsBuffer;
+                var PB = WorkspaceBuffer.PathPlanningBuffer;
 
-                // TODO: switch IKSolver
+                int inverseKinematicsType = (int)manipulator.Controller.InverseKinematicsSolverType;
+                int prevInverseKinematicsType = inverseKinematicsType;
+                ImGui.Text("Inverse kinematics solver:");
+                ImGui.PushID(0);
+                ImGui.Combo("Type",
+                    ref inverseKinematicsType,
+                    InverseKinematicsSolver.Types,
+                    InverseKinematicsSolver.Types.Length);
+                manipulator.Controller.InverseKinematicsSolverType = (InverseKinematicsSolverType)inverseKinematicsType;
+
+                // change inverse kinematics solver if queried
+                if (inverseKinematicsType != prevInverseKinematicsType)
+                {
+                    switch (manipulator.Controller.InverseKinematicsSolverType)
+                    {
+                        case InverseKinematicsSolverType.JacobianTranspose:
+                            manipulator.Controller.PlanSolver = new JacobianTranspose(IB.Precision, IB.StepSize, IB.MaxTime);
+                            break;
+                        case InverseKinematicsSolverType.JacobianInverse:
+                            manipulator.Controller.PlanSolver = new JacobianInverse(IB.Precision, IB.StepSize, IB.MaxTime);
+                            break;
+                        case InverseKinematicsSolverType.DampedLeastSquares:
+                            manipulator.Controller.PlanSolver = new DampedLeastSquares(IB.Precision, IB.StepSize, IB.MaxTime);
+                            break;
+                    }
+                }
+
+                // inverse kinematics solver properties
+                ImGui.InputInt("Max time", ref manipulator.Controller.PlanSolver.MaxTime);
+
+                if (manipulator.Controller.PlanSolver is JacobianTranspose jacobianTranspose)
+                {
+                    //ImGui.InputFloat("Damping coefficient", ref jacobianTranspose.Alpha);
+                }
+                else if (manipulator.Controller.PlanSolver is JacobianInverse jacobianInverse)
+                {
+                    // TODO: input something here?
+                }
+                else if (manipulator.Controller.PlanSolver is DampedLeastSquares dampedLeastSquares)
+                {
+                    ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Lambda);
+                }
 
                 ImGui.Separator();
 
                 // TODO: capture type here to compare with the new type
                 ImGui.Text("Path planner:");
+                ImGui.PushID(1);
 
                 int pathPlannerType = (int)manipulator.Controller.PathPlannerType;
+                int prevPathPlannerType = pathPlannerType;
                 ImGui.Combo("Type",
                     ref pathPlannerType,
-                    Logic.PathPlanning.PathPlanner.Types,
-                    Logic.PathPlanning.PathPlanner.Types.Length);
+                    PathPlanner.Types,
+                    PathPlanner.Types.Length);
                 manipulator.Controller.PathPlannerType = (PathPlannerType)pathPlannerType;
 
-                if (ImGui.IsItemEdited())
+                // change path planner if queried
+                if (pathPlannerType != prevPathPlannerType)
                 {
                     switch (manipulator.Controller.PathPlannerType)
                     {
                         case PathPlannerType.DynamicRRT:
+                            manipulator.Controller.PathPlanner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
                             break;
                         case PathPlannerType.GeneticAlgorithm:
+                            throw new NotImplementedException("Genetic algorithm planner is not implemented yet!");
                             break;
                     }
                 }
 
-                // TODO: switch PathPlanner
+                // path planner properties
+                ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
 
-                ImGui.Separator();
+                if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)
+                {
+                    ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
+                    ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);
+                    ImGui.InputFloat("Step", ref dynamicRRT.Step);
+                    ImGui.InputInt("Trim period", ref dynamicRRT.TrimPeriod);
+                }
+                // TODO: add GeneticAlgorithm
 
-                ImGui.Text("Motion control:");
-                ImGui.Combo("Type",
-                    ref WorkspaceBuffer.PathPlanningBuffer.PathPlannerID,
-                    Logic.PathPlanning.PathPlanner.Types,
-                    Logic.PathPlanning.PathPlanner.Types.Length);
-
-                // TODO: swithc MotionControl
-
-                ImGui.Text($"Time spent: {manipulator.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");
-
-                int treeCount = manipulator.Tree == null ? 0 : manipulator.Tree.Count;
-                ImGui.Checkbox($"Show tree ({treeCount} verts)", ref manipulator.ShowTree);
-
-                ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
-
-                ImGui.InputFloat3("Goal", ref manipulator.Goal);
-
-
+                // TODO: switch MotionControl
             }
         }
 

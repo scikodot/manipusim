@@ -24,27 +24,27 @@ namespace Logic
         public Obstacle[] Obstacles { get; }
 
         public PathPlannerType PathPlannerType { get; set; }
-        public PathPlanner PathPlanner { get; }
+        public PathPlanner PathPlanner { get; set; }
         
-        public InverseKinematicsType InverseKinematicsType { get; set; }
-        public IKSolver PlanSolver { get; }
+        public InverseKinematicsSolverType InverseKinematicsSolverType { get; set; }
+        public InverseKinematicsSolver PlanSolver { get; set; }
 
 
-        public IKSolver ControlSolver;
-        public float DeformThreshold;
+        private InverseKinematicsSolver _controlSolver;
+        private float _deformThreshold;
 
         public ControllerState State { get; private set; } = ControllerState.Idle;
         public Stopwatch Timer { get; } = new Stopwatch();
         public Thread Thread { get; private set; }
 
-        public MotionController(Obstacle[] obstacles, Manipulator agent, PathPlanner pathPlanner, IKSolver planSolver, IKSolver controlSolver, float deformThreshold)
+        public MotionController(Obstacle[] obstacles, Manipulator agent, PathPlanner pathPlanner, InverseKinematicsSolver planSolver, InverseKinematicsSolver controlSolver, float deformThreshold)
         {
             Obstacles = obstacles;
             Agent = agent;
             PathPlanner = pathPlanner;
             PlanSolver = planSolver;
-            ControlSolver = controlSolver;
-            DeformThreshold = deformThreshold;
+            _controlSolver = controlSolver;
+            _deformThreshold = deformThreshold;
         }
 
         public void Run()
@@ -144,7 +144,7 @@ namespace Logic
 
             Vector3 pNew = current.Points[joint] + dx;
             contestant.q = current.q;
-            Vector cNew = contestant.q + ControlSolver.Execute(Obstacles, contestant, pNew, joint).Item3;
+            Vector cNew = contestant.q + _controlSolver.Execute(Obstacles, contestant, pNew, joint).Item3;
             contestant.q = cNew;
             Vector3[] dkpNew = contestant.DKP;
 
@@ -159,11 +159,11 @@ namespace Logic
             {
                 Vector3 prevPos = prev.Points[prev.Points.Length - 1];
                 Vector3 currPos = curr.Points[curr.Points.Length - 1];
-                if (currPos.DistanceTo(prevPos) > DeformThreshold)
+                if (currPos.DistanceTo(prevPos) > _deformThreshold)
                 {
                     Vector3 pPrev = (currPos + prevPos) / 2;
                     contestant.q = curr.q;
-                    Vector cPrev = contestant.q + ControlSolver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
+                    Vector cPrev = contestant.q + _controlSolver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
                     contestant.q = cPrev;
                     Vector3[] dkpPrev = contestant.DKP;
 
@@ -175,7 +175,7 @@ namespace Logic
             }
         }
 
-        public void CreateAttractors()
+        public void CreateAttractors()  // TODO: move to Attractor class
         {
             Agent.Attractors = new List<Attractor>();
 
