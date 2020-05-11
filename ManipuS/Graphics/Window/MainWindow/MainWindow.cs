@@ -46,6 +46,9 @@ namespace Graphics
 
         //Model Crytek;
 
+        // ImGUI variables
+        private static object selectedObject;
+
         public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
         public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
 
@@ -279,7 +282,11 @@ namespace Graphics
             RenderObstaclesWindow();
             RenderAlgorithmsWindow();
             RenderOptionsWindow();
-            RenderPropertiesWindow();
+
+            if (Mode == InteractionMode.Design)
+            {
+                RenderPropertiesWindow();
+            }
 
             // render controller and check for errors
             ImGuiHandler.Render();
@@ -366,59 +373,89 @@ namespace Graphics
                 ImGui.Separator();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                ImGui.BeginChild("Obstacles' list", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 138), true);
+                ImGui.BeginChild("ManipulatorList", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 118), true);
 
                 if (ManipulatorHandler.Count != 0)
                 {
-                    var MB = WorkspaceBuffer.ManipBuffer;
-                    for (int j = 0; j < ManipulatorHandler.Count; j++)
+                    for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        var manip = ManipulatorHandler.Manipulators[j];
-                        if (ImGui.TreeNode($"Manip {j}"))
+                        var manipulator = ManipulatorHandler.Manipulators[i];
+
+                        ImGuiTreeNodeFlags manipulatorTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.OpenOnDoubleClick;
+                        if (selectedObject is Manipulator)
                         {
-                            ImGui.Text($"Time spent: {manip.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");
+                            manipulatorTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
+                        }
 
-                            int treeCount = manip.Tree == null ? 0 : manip.Tree.Count;
-                            ImGui.Checkbox($"Show tree ({treeCount} verts)", ref manip.ShowTree);
+                        bool manipulatorTreeNodeOpen = ImGui.TreeNodeEx($"Manip {i}", manipulatorTreeNodeFlags);
+                        if (ImGui.IsItemClicked())
+                        {
+                            InputHandler.ClearSelection();
 
-                            ImGui.Checkbox($"Show collider", ref manip.ShowCollider);
+                            // TODO: add joints and links to the selection?
 
-                            ImGui.InputFloat3("Goal", ref manip.Goal);
+                            selectedObject = manipulator;
+                        }
+
+                        if (manipulatorTreeNodeOpen)  // TODO: refactor
+                        {
+                            for (int j = 0; j < manipulator.Links.Length; j++)
+                            {
+                                var joint = manipulator.Joints[j];
+                                ImGuiTreeNodeFlags jointTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
+                                if (joint == selectedObject)
+                                {
+                                    jointTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
+                                }
+
+                                ImGui.TreeNodeEx($"Joint {j}", jointTreeNodeFlags);
+                                if (ImGui.IsItemClicked())
+                                {
+                                    InputHandler.ClearAndAdd(joint.Collider.Body);
+                                    selectedObject = joint;
+                                }
+
+                                var link = manipulator.Links[j];
+                                ImGuiTreeNodeFlags linkTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
+                                if (link == selectedObject)
+                                {
+                                    linkTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
+                                }
+
+                                ImGui.TreeNodeEx($"Link {j}", linkTreeNodeFlags);
+                                if (ImGui.IsItemClicked())
+                                {
+                                    InputHandler.ClearAndAdd(link.Collider.Body);
+                                    selectedObject = link;
+                                }
+                            }
+
+                            var gripper = manipulator.Joints[manipulator.Joints.Length - 1];
+                            ImGuiTreeNodeFlags gripperTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
+                            if (gripper == selectedObject)
+                            {
+                                gripperTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
+                            }
+
+                            ImGui.TreeNodeEx($"Gripper", gripperTreeNodeFlags);
+                            if (ImGui.IsItemClicked())
+                            {                                
+                                InputHandler.ClearAndAdd(gripper.Collider.Body);
+                                selectedObject = gripper;
+                            }
+
+                            ImGui.Text("Something something");
+                            ImGui.TreePop();
+
                             //ImGui.InputInt("Links number", ref MB[j].N);
 
-                            WorkspaceBuffer.ConfigureArrays(j);
-
-                            if (ImGui.TreeNode("Links"))
-                            {
-                                for (int i = 0; i < MB[j].N; i++)
-                                {
-                                    ImGui.InputFloat($"Link {i}", ref MB[j].Links[i].Length);
-                                }
-                                ImGui.TreePop();
-                            }
-
-                            if (ImGui.TreeNode("Joints"))
-                            {
-                                for (int i = 0; i < manip.Joints.Length; i++)
-                                {
-                                    if (ImGui.TreeNode(i == 0 ? "Base" : $"Joint {i}"))
-                                    {
-                                        ImGui.InputFloat3("Axis", ref manip.Joints[i].InitialAxis);
-                                        ImGui.InputFloat3("Position", ref manip.Joints[i].InitialPosition);
-                                        ImGui.InputFloat("Initial GC (deg)", ref manip.Joints[i].InitialCoordinate);
-                                        ImGui.InputFloat2("GC range", ref manip.Joints[i].CoordinateRange);
-                                        ImGui.TreePop();
-                                    }
-                                }
-                                ImGui.TreePop();
-                            }
-                            ImGui.TreePop();
+                            //WorkspaceBuffer.ConfigureArrays(j);
                         }
                     }
                 }
                 else
                 {
-                    ImGui.Text("No manipulators at the scene.");
+                    ImGui.Text("Empty.");
                 }
 
                 ImGui.EndChild();
@@ -481,10 +518,10 @@ namespace Graphics
 
                 if (ImGui.Button("Create"))
                 {
-                    ImGui.OpenPopup("obstCreate");
+                    ImGui.OpenPopup("ObstacleCreate");
                 }
 
-                if (ImGui.BeginPopup("obstCreate"))
+                if (ImGui.BeginPopup("ObstacleCreate"))
                 {
                     foreach (var shape in ObstacleHandler.ObstacleShapes)
                     {
@@ -500,48 +537,61 @@ namespace Graphics
                 ImGui.Separator();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                ImGui.BeginChild("Obstacles' list", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 138), true);
+                ImGui.BeginChild("ObstacleList", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 138), true);
 
                 if (ObstacleHandler.Count != 0)
                 {
                     for (int i = 0; i < ObstacleHandler.Count; i++)
                     {
-                        var obst = ObstacleHandler.Obstacles[i];
-                        if (ImGui.TreeNode($"Obst {i}"))
+                        var obstacle = ObstacleHandler.Obstacles[i];
+                        ImGuiTreeNodeFlags obstacleTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
+                        if (obstacle == selectedObject)
                         {
-                            ImGui.Text($"Shape type: {obst.ShapeType}");
-
-                            int type = (int)obst.Type;
-                            ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);
-                            obst.Type = (RigidBodyType)type;
-
-                            ImGui.Checkbox("Show collider", ref obst.ShowCollider);
-
-                            ImGui.InputFloat3("Orientation", ref obst.Orientation);
-
-                            ImGui.InputFloat3("Translation", ref obst.InitialPosition);
-
-                            switch (obst.ShapeType)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
-                            {
-                                case BroadphaseNativeType.BoxShape:
-                                    ImGui.InputFloat3("Half extents", ref (obst.Collider as BoxCollider).Size);
-                                    break;
-                                case BroadphaseNativeType.SphereShape:
-                                    ImGui.InputFloat("Radius", ref (obst.Collider as SphereCollider).Radius);
-                                    break;
-                                case BroadphaseNativeType.CylinderShape:
-                                    ImGui.InputFloat("Radius", ref (obst.Collider as CylinderCollider).Radius);
-                                    ImGui.InputFloat("Length", ref (obst.Collider as CylinderCollider).HalfLength);
-                                    break;
-                            }
-
-                            ImGui.TreePop();
+                            obstacleTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
                         }
+
+                        ImGui.TreeNodeEx($"Obstacle {i}", obstacleTreeNodeFlags);
+                        if (ImGui.IsItemClicked())
+                        {
+                            InputHandler.ClearAndAdd(obstacle.Collider.Body);
+                            selectedObject = obstacle;
+                        }
+
+                        //if (ImGui.TreeNode($"Obst {i}"))
+                        //{
+                        //    ImGui.Text($"Shape type: {obstacle.ShapeType}");
+
+                        //    int type = (int)obstacle.Type;
+                        //    ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);
+                        //    obstacle.Type = (RigidBodyType)type;
+
+                        //    ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
+
+                        //    ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
+
+                        //    ImGui.InputFloat3("Translation", ref obstacle.InitialPosition);
+
+                        //    switch (obstacle.ShapeType)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
+                        //    {
+                        //        case BroadphaseNativeType.BoxShape:
+                        //            ImGui.InputFloat3("Half extents", ref (obstacle.Collider as BoxCollider).Size);
+                        //            break;
+                        //        case BroadphaseNativeType.SphereShape:
+                        //            ImGui.InputFloat("Radius", ref (obstacle.Collider as SphereCollider).Radius);
+                        //            break;
+                        //        case BroadphaseNativeType.CylinderShape:
+                        //            ImGui.InputFloat("Radius", ref (obstacle.Collider as CylinderCollider).Radius);
+                        //            ImGui.InputFloat("Length", ref (obstacle.Collider as CylinderCollider).HalfLength);
+                        //            break;
+                        //    }
+
+                        //    ImGui.TreePop();
+                        //}
                     }
                 }
                 else
                 {
-                    ImGui.Text("No obstacles at the scene.");
+                    ImGui.Text("Empty.");
                 }
 
                 ImGui.EndChild();
@@ -652,75 +702,128 @@ namespace Graphics
 
         private void RenderPropertiesWindow()
         {
-            if (Mode == InteractionMode.Design && InputHandler.SelectedObjects.Count == 1)
+            if (selectedObject is Manipulator manipulator)
             {
-                var selectedObject = InputHandler.SelectedObjects[0].UserObject as ISelectable;
+                RenderManipulatorPropertiesWindow(manipulator);
+            }
+            else if (selectedObject is Joint joint)
+            {
+                RenderJointPropertiesWindow(joint);
+            }
+            else if (selectedObject is Link link)
+            {
+                RenderLinkPropertiesWindow(link);
+            }
+            else if (selectedObject is Obstacle obstacle)
+            {
+                RenderObstaclePropertiesWindow(obstacle);
+            }
+        }
 
-                // attach the widget
-                InputHandler.TranslationalWidget.Attach(selectedObject as ITranslatable);
-
-                if (ImGui.Begin("Properties",
+        private void RenderManipulatorPropertiesWindow(Manipulator manipulator)
+        {
+            if (ImGui.Begin("Manipulator properties",
                     ImGuiWindowFlags.NoCollapse |
                     ImGuiWindowFlags.NoMove |
                     ImGuiWindowFlags.NoResize |
                     ImGuiWindowFlags.HorizontalScrollbar))
+            {
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+
+                ImGui.Text($"Time spent: {manipulator.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");
+
+                int treeCount = manipulator.Tree == null ? 0 : manipulator.Tree.Count;
+                ImGui.Checkbox($"Show tree ({treeCount} verts)", ref manipulator.ShowTree);
+
+                ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
+
+                ImGui.InputFloat3("Goal", ref manipulator.Goal);
+            }
+        }
+
+        private void RenderJointPropertiesWindow(Joint joint)
+        {
+            if (ImGui.Begin("Joint properties",
+                    ImGuiWindowFlags.NoCollapse |
+                    ImGuiWindowFlags.NoMove |
+                    ImGuiWindowFlags.NoResize |
+                    ImGuiWindowFlags.HorizontalScrollbar))
+            {
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+
+                ImGui.Checkbox("Show collider", ref joint.ShowCollider);
+
+                ImGui.InputFloat3("Axis", ref joint.InitialAxis);
+
+                ImGui.InputFloat3("Position", ref joint.InitialPosition);
+
+                if (joint.Collider is SphereCollider sphere)
                 {
-                    ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
-                    ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
-
-                    if (selectedObject is Obstacle obstacle)
-                    {
-                        ImGui.Text($"Shape type: {obstacle.ShapeType}");
-
-                        int type = (int)obstacle.Type;
-                        ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
-                        obstacle.Type = (RigidBodyType)type;
-
-                        ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
-
-                        ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
-
-                        ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
-
-                        if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
-                        {
-                            ImGui.InputFloat3("Half extents", ref box.Size);
-                        }
-                        else if (obstacle.Collider is SphereCollider sphere)
-                        {
-                            ImGui.InputFloat("Radius", ref sphere.Radius);
-                        }
-                        else if (obstacle.Collider is CylinderCollider cylinder)
-                        {
-                            ImGui.InputFloat("Radius", ref cylinder.Radius);
-                            ImGui.InputFloat("Length", ref cylinder.HalfLength);
-                        }
-                    }
-                    else if (selectedObject is Joint joint)
-                    {
-                        ImGui.Checkbox("Show collider", ref joint.ShowCollider);
-
-                        ImGui.InputFloat3("Axis", ref joint.InitialAxis);
-
-                        ImGui.InputFloat3("Position", ref joint.InitialPosition);
-
-                        if (joint.Collider is SphereCollider sphere)
-                        {
-                            ImGui.InputFloat("Radius", ref sphere.Radius);
-                        }
-                    }
-                    else if (selectedObject is Link link)
-                    {
-                        ImGui.Checkbox("Show collider", ref link.ShowCollider);
-
-                        // TODO: add length property
-                    }
+                    ImGui.InputFloat("Radius", ref sphere.Radius);
                 }
             }
-            else
+        }
+
+        private void RenderLinkPropertiesWindow(Link link)
+        {
+            if (ImGui.Begin("Link properties",
+                    ImGuiWindowFlags.NoCollapse |
+                    ImGuiWindowFlags.NoMove |
+                    ImGuiWindowFlags.NoResize |
+                    ImGuiWindowFlags.HorizontalScrollbar))
             {
-                // detach the widget
-                InputHandler.TranslationalWidget.Detach();
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+
+                ImGui.Checkbox("Show collider", ref link.ShowCollider);
+
+                // TODO: add length property
+            }
+        }
+
+        private void RenderGripperPropertiesWindow(Joint gripper)  // TODO: use Gripper class
+        {
+            RenderJointPropertiesWindow(gripper);
+        }
+
+        private void RenderObstaclePropertiesWindow(Obstacle obstacle)
+        {
+            if (ImGui.Begin("Obstacle properties",
+                    ImGuiWindowFlags.NoCollapse |
+                    ImGuiWindowFlags.NoMove |
+                    ImGuiWindowFlags.NoResize |
+                    ImGuiWindowFlags.HorizontalScrollbar))
+            {
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+
+                ImGui.Text($"Shape type: {obstacle.ShapeType}");
+
+                int type = (int)obstacle.Type;
+                ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
+                obstacle.Type = (RigidBodyType)type;
+
+                ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
+
+                ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
+
+                ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
+
+                if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
+                {
+                    ImGui.InputFloat3("Half extents", ref box.Size);
+                }
+                else if (obstacle.Collider is SphereCollider sphere)
+                {
+                    ImGui.InputFloat("Radius", ref sphere.Radius);
+                }
+                else if (obstacle.Collider is CylinderCollider cylinder)
+                {
+                    ImGui.InputFloat("Radius", ref cylinder.Radius);
+                    ImGui.InputFloat("Length", ref cylinder.HalfLength);
+                }
             }
         }
 
@@ -763,6 +866,8 @@ namespace Graphics
 
                     ManipulatorHandler.UpdateDesign();
                     ObstacleHandler.UpdateDesign();
+
+                    AttachWidgets();
 
                     break;
                 case InteractionMode.Animate:
@@ -844,6 +949,22 @@ namespace Graphics
             ObstacleHandler.UpdateModel();
 
             base.OnUpdateFrame(e);
+        }
+
+        private void AttachWidgets()  // TODO: refactor; move somewhere else? rename?
+        {
+            if (Mode == InteractionMode.Design && InputHandler.SelectedObjects.Count == 1)
+            {
+                selectedObject = InputHandler.SelectedObjects[0].UserObject;
+
+                // attach the widget
+                InputHandler.TranslationalWidget.Attach(selectedObject as ITranslatable);
+            }
+            else
+            {
+                // detach the widget
+                InputHandler.TranslationalWidget.Detach();
+            }
         }
 
         protected void ResetScene()

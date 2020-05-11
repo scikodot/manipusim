@@ -141,8 +141,7 @@ namespace Graphics
                         if (!keyboardState.IsKeyDown(Key.ControlLeft) && SelectedObjects.Find(x => x != raycastCallback.CollisionObject) != null)
                         {
                             // Control is not pressed and other objects are already selected ---> clear selection and add the new object to the selection
-                            ClearSelection();
-                            AddSelection(raycastCallback.CollisionObject);
+                            ClearAndAdd(raycastCallback.CollisionObject);
                         }
                         else
                         {
@@ -184,10 +183,16 @@ namespace Graphics
             SelectedObjects.Remove(collisionObject);
         }
 
-        private static void ClearSelection()
+        public static void ClearSelection()
         {
             SelectedObjects.ForEach(x => (x.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected);
             SelectedObjects.Clear();
+        }
+
+        public static void ClearAndAdd(CollisionObject collisionObject)
+        {
+            ClearSelection();
+            AddSelection(collisionObject);
         }
 
         private static void PollKeyboard(GameWindow window, Camera camera, KeyboardState keyboardState, FrameEventArgs e)
