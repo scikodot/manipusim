@@ -25,7 +25,11 @@ namespace Logic
         public Collider Collider { get; }
 
         public BroadphaseNativeType ShapeType => Collider.Shape;
-        public ref RigidBodyType Type => ref Collider.Type;
+        public RigidBodyType Type
+        {
+            get => Collider.Type;
+            set => Collider.Type = value;
+        }
 
         public Matrix State
         {

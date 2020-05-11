@@ -141,7 +141,7 @@ namespace Graphics
                         if (!keyboardState.IsKeyDown(Key.ControlLeft) && SelectedObjects.Find(x => x != raycastCallback.CollisionObject) != null)
                         {
                             // Control is not pressed and other objects are already selected ---> clear selection and add the new object to the selection
-                            ClearAndAdd(raycastCallback.CollisionObject);
+                            ClearAndAddSelection(raycastCallback.CollisionObject);
                         }
                         else
                         {
@@ -168,7 +168,7 @@ namespace Graphics
             //Console.WriteLine($"Selected count: {SelectedObjects.Count}");
         }
 
-        private static void AddSelection(CollisionObject collisionObject)
+        public static void AddSelection(CollisionObject collisionObject)
         {
             if (collisionObject.UserObject is ISelectable selectable)
             {
@@ -177,7 +177,15 @@ namespace Graphics
             }
         }
 
-        private static void RemoveSelection(CollisionObject collisionObject)
+        public static void AddSelection(IEnumerable<CollisionObject> collisionObjects)
+        {
+            foreach (var collisionObject in collisionObjects)
+            {
+                AddSelection(collisionObject);
+            }
+        }
+
+        public static void RemoveSelection(CollisionObject collisionObject)
         {
             (collisionObject.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected;
             SelectedObjects.Remove(collisionObject);
@@ -189,7 +197,7 @@ namespace Graphics
             SelectedObjects.Clear();
         }
 
-        public static void ClearAndAdd(CollisionObject collisionObject)
+        public static void ClearAndAddSelection(CollisionObject collisionObject)
         {
             ClearSelection();
             AddSelection(collisionObject);

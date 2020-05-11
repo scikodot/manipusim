@@ -8,6 +8,7 @@ using System.Numerics;
 using System.Diagnostics;
 
 using Logic;
+using System.Reflection;
 
 // global class for communication between main thread (Window) and auxiliary threads (Model, Manager, etc.)
 public static class Dispatcher  // TODO: threads are not synchronized; 
@@ -65,6 +66,11 @@ public static class Dispatcher  // TODO: threads are not synchronized;
     public static void RunObstacles()
     {
         obstThread = new Timer(MoveObstacles, null, 0, 10);
+    }
+
+    public static IEnumerable<string> GetDerivedTypes(Type baseType)
+    {
+        return baseType.Assembly.GetTypes().Where(type => type != baseType && baseType.IsAssignableFrom(type)).Select(type => type.ToString());
     }
 
     //public static void AddThread(Manipulator manipulator)

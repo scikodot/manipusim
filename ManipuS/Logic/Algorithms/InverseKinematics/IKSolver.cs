@@ -1,8 +1,16 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace Logic.InverseKinematics
 {
+    public enum InverseKinematicsType
+    {
+        JacobianTranspose,
+        JacobianInverse,
+        DampedLeastSquares
+    }
+
     public struct InverseKinematicsData  // TODO: perhaps "params" is better than "data"?
     {
         public int InverseKinematicsSolverID;
@@ -13,11 +21,7 @@ namespace Logic.InverseKinematics
 
     public class IKSolver
     {
-        public static string[] Types = 
-        { 
-            "Jacobian", 
-            "Hill climbing" 
-        };
+        public static string[] Types = Dispatcher.GetDerivedTypes(typeof(IKSolver)).ToArray();
 
         protected float StepSize;
         protected float Precision;

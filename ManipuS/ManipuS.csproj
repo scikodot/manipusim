@@ -121,7 +121,7 @@
     <Compile Include="Graphics\Scene\Model\TreeModel.cs" />
     <Compile Include="Graphics\Utils\Utils.cs" />
     <Compile Include="Common\WorkspaceBuffer.cs" />
-    <Compile Include="Logic\Algorithms\InverseKinematics\_base.cs" />
+    <Compile Include="Logic\Algorithms\InverseKinematics\IKSolver.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\HillClimbing.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\Jacobian.cs" />
     <Compile Include="Logic\Algorithms\MotionControl\MotionController.cs" />
@@ -130,7 +130,7 @@
     <Compile Include="Logic\Algorithms\PathPlanning\GeneticAlgorithmD.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\Path.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\Tree.cs" />
-    <Compile Include="Logic\Algorithms\PathPlanning\_base.cs" />
+    <Compile Include="Logic\Algorithms\PathPlanning\PathPlanner.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\RRT.cs" />
     <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
     <Compile Include="Logic\Math\Geometry\Geometry.cs" />

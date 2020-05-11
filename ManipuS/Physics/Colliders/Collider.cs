@@ -18,9 +18,7 @@ namespace Physics
         public CollisionCallback CollisionCallback { get; }
 
         public BroadphaseNativeType Shape => Body.CollisionShape.ShapeType;
-
-        private RigidBodyType _type;
-        public ref RigidBodyType Type => ref _type;
+        public RigidBodyType Type { get; set; }
 
         public static Collider Create(RigidBody body)
         {
@@ -42,11 +40,11 @@ namespace Physics
 
             // memoize collider type
             if (body.IsStaticObject)
-                collider._type = RigidBodyType.Static;
+                collider.Type = RigidBodyType.Static;
             else if (body.IsKinematicObject)
-                collider._type = RigidBodyType.Kinematic;
+                collider.Type = RigidBodyType.Kinematic;
             else
-                collider._type = RigidBodyType.Dynamic;
+                collider.Type = RigidBodyType.Dynamic;
 
             // apply initial transformation to the collider model
             var state = body.MotionState.WorldTransform;

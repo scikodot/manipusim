@@ -1,10 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
+    public enum PathPlannerType
+    {
+        DynamicRRT,
+        GeneticAlgorithm
+    }
+
     public struct PathPlanningData
     {
         public int PathPlannerID;
@@ -15,11 +22,7 @@ namespace Logic.PathPlanning
 
     public class PathPlanner
     {
-        public static string[] Types =
-        {
-            "RRT",
-            "Genetic algorithm"
-        };
+        public static string[] Types = Dispatcher.GetDerivedTypes(typeof(PathPlanner)).ToArray();
 
         protected static Random Rng = new Random();
 

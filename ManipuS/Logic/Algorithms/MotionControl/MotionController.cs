@@ -20,10 +20,16 @@ namespace Logic
 
     public class MotionController
     {
-        public Manipulator Agent;
-        public Obstacle[] Obstacles;
-        public PathPlanner PathPlanner;
-        public IKSolver PlanSolver;
+        public Manipulator Agent { get; }
+        public Obstacle[] Obstacles { get; }
+
+        public PathPlannerType PathPlannerType { get; set; }
+        public PathPlanner PathPlanner { get; }
+        
+        public InverseKinematicsType InverseKinematicsType { get; set; }
+        public IKSolver PlanSolver { get; }
+
+
         public IKSolver ControlSolver;
         public float DeformThreshold;
 
@@ -58,7 +64,7 @@ namespace Logic
 
         private void UpdateThread()
         {
-            Thread = new Thread(() =>
+            Thread = new Thread(() =>  // TODO: consider changing to Tasks
             {
                 try
                 {

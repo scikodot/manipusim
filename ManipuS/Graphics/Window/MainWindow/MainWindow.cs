@@ -48,6 +48,10 @@ namespace Graphics
 
         // ImGUI variables
         private static object selectedObject;
+        private static ImGuiTreeNodeFlags _baseTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow;
+        private static ImGuiTreeNodeFlags _baseTreeLeafFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
+        private static List<bool> _manipulatorTreeNodesPressed = new List<bool>() { false };
+        private static List<(bool, bool)> open = new List<(bool, bool)>();
 
         public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
         public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
@@ -353,6 +357,43 @@ namespace Graphics
             }
         }
 
+        private void UpdateSelection(object selected)
+        {
+            InputHandler.ClearSelection();
+
+            if (selected == selectedObject)
+            {
+                selectedObject = null;
+            }
+            else
+            {
+                if (selected is Manipulator manipulator)
+                {
+                    InputHandler.AddSelection(manipulator.Joints.Select(joint => joint.Collider.Body));
+                    InputHandler.AddSelection(manipulator.Links.Select(link => link.Collider.Body));
+                }
+                else if (selected is Joint joint)
+                {
+                    InputHandler.AddSelection(joint.Collider.Body);
+                }
+                else if (selected is Link link)
+                {
+                    InputHandler.AddSelection(link.Collider.Body);
+                }
+                else if (selected is Obstacle obstacle)
+                {
+                    InputHandler.AddSelection(obstacle.Collider.Body);
+                }
+
+                selectedObject = selected;
+            }
+        }
+
+        private ImGuiTreeNodeFlags GetTreeNodeSelectionFlag(object selected)
+        {
+            return selected == selectedObject ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None;
+        }
+
         private void RenderManipulatorsWindow()
         {
             // manipulators window
@@ -380,21 +421,10 @@ namespace Graphics
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
                         var manipulator = ManipulatorHandler.Manipulators[i];
-
-                        ImGuiTreeNodeFlags manipulatorTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.OpenOnDoubleClick;
-                        if (selectedObject is Manipulator)
+                        bool manipulatorTreeNodeOpen = ImGui.TreeNodeEx($"Manipulator {i}", _baseTreeNodeFlags | GetTreeNodeSelectionFlag(manipulator));
+                        if (ImGui.IsItemDeactivated() && !ImGui.IsItemToggledOpen())
                         {
-                            manipulatorTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
-                        }
-
-                        bool manipulatorTreeNodeOpen = ImGui.TreeNodeEx($"Manip {i}", manipulatorTreeNodeFlags);
-                        if (ImGui.IsItemClicked())
-                        {
-                            InputHandler.ClearSelection();
-
-                            // TODO: add joints and links to the selection?
-
-                            selectedObject = manipulator;
+                            UpdateSelection(manipulator);
                         }
 
                         if (manipulatorTreeNodeOpen)  // TODO: refactor
@@ -402,49 +432,27 @@ namespace Graphics
                             for (int j = 0; j < manipulator.Links.Length; j++)
                             {
                                 var joint = manipulator.Joints[j];
-                                ImGuiTreeNodeFlags jointTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
-                                if (joint == selectedObject)
+                                ImGui.TreeNodeEx($"Joint {j}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(joint));
+                                if (ImGui.IsItemDeactivated())
                                 {
-                                    jointTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
-                                }
-
-                                ImGui.TreeNodeEx($"Joint {j}", jointTreeNodeFlags);
-                                if (ImGui.IsItemClicked())
-                                {
-                                    InputHandler.ClearAndAdd(joint.Collider.Body);
-                                    selectedObject = joint;
+                                    UpdateSelection(joint);
                                 }
 
                                 var link = manipulator.Links[j];
-                                ImGuiTreeNodeFlags linkTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
-                                if (link == selectedObject)
+                                ImGui.TreeNodeEx($"Link {j}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(link));
+                                if (ImGui.IsItemDeactivated())
                                 {
-                                    linkTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
-                                }
-
-                                ImGui.TreeNodeEx($"Link {j}", linkTreeNodeFlags);
-                                if (ImGui.IsItemClicked())
-                                {
-                                    InputHandler.ClearAndAdd(link.Collider.Body);
-                                    selectedObject = link;
+                                    UpdateSelection(link);
                                 }
                             }
 
                             var gripper = manipulator.Joints[manipulator.Joints.Length - 1];
-                            ImGuiTreeNodeFlags gripperTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
-                            if (gripper == selectedObject)
+                            ImGui.TreeNodeEx($"Gripper", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(gripper));
+                            if (ImGui.IsItemDeactivated())
                             {
-                                gripperTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
+                                UpdateSelection(gripper);
                             }
 
-                            ImGui.TreeNodeEx($"Gripper", gripperTreeNodeFlags);
-                            if (ImGui.IsItemClicked())
-                            {                                
-                                InputHandler.ClearAndAdd(gripper.Collider.Body);
-                                selectedObject = gripper;
-                            }
-
-                            ImGui.Text("Something something");
                             ImGui.TreePop();
 
                             //ImGui.InputInt("Links number", ref MB[j].N);
@@ -544,49 +552,11 @@ namespace Graphics
                     for (int i = 0; i < ObstacleHandler.Count; i++)
                     {
                         var obstacle = ObstacleHandler.Obstacles[i];
-                        ImGuiTreeNodeFlags obstacleTreeNodeFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
-                        if (obstacle == selectedObject)
+                        ImGui.TreeNodeEx($"Obstacle {i}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(obstacle));
+                        if (ImGui.IsItemDeactivated())
                         {
-                            obstacleTreeNodeFlags |= ImGuiTreeNodeFlags.Selected;
+                            UpdateSelection(obstacle);
                         }
-
-                        ImGui.TreeNodeEx($"Obstacle {i}", obstacleTreeNodeFlags);
-                        if (ImGui.IsItemClicked())
-                        {
-                            InputHandler.ClearAndAdd(obstacle.Collider.Body);
-                            selectedObject = obstacle;
-                        }
-
-                        //if (ImGui.TreeNode($"Obst {i}"))
-                        //{
-                        //    ImGui.Text($"Shape type: {obstacle.ShapeType}");
-
-                        //    int type = (int)obstacle.Type;
-                        //    ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);
-                        //    obstacle.Type = (RigidBodyType)type;
-
-                        //    ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
-
-                        //    ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
-
-                        //    ImGui.InputFloat3("Translation", ref obstacle.InitialPosition);
-
-                        //    switch (obstacle.ShapeType)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
-                        //    {
-                        //        case BroadphaseNativeType.BoxShape:
-                        //            ImGui.InputFloat3("Half extents", ref (obstacle.Collider as BoxCollider).Size);
-                        //            break;
-                        //        case BroadphaseNativeType.SphereShape:
-                        //            ImGui.InputFloat("Radius", ref (obstacle.Collider as SphereCollider).Radius);
-                        //            break;
-                        //        case BroadphaseNativeType.CylinderShape:
-                        //            ImGui.InputFloat("Radius", ref (obstacle.Collider as CylinderCollider).Radius);
-                        //            ImGui.InputFloat("Length", ref (obstacle.Collider as CylinderCollider).HalfLength);
-                        //            break;
-                        //    }
-
-                        //    ImGui.TreePop();
-                        //}
                     }
                 }
                 else
@@ -731,6 +701,53 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
+                ImGui.Text("Controller");
+
+                ImGui.Separator();
+
+                ImGui.Text("Inverse kinematics solver:");
+                ImGui.Combo("Type",
+                    ref WorkspaceBuffer.InverseKinematicsBuffer.InverseKinematicsSolverID,
+                    Logic.InverseKinematics.IKSolver.Types,
+                    Logic.InverseKinematics.IKSolver.Types.Length);
+
+                // TODO: switch IKSolver
+
+                ImGui.Separator();
+
+                // TODO: capture type here to compare with the new type
+                ImGui.Text("Path planner:");
+
+                int pathPlannerType = (int)manipulator.Controller.PathPlannerType;
+                ImGui.Combo("Type",
+                    ref pathPlannerType,
+                    Logic.PathPlanning.PathPlanner.Types,
+                    Logic.PathPlanning.PathPlanner.Types.Length);
+                manipulator.Controller.PathPlannerType = (PathPlannerType)pathPlannerType;
+
+                if (ImGui.IsItemEdited())
+                {
+                    switch (manipulator.Controller.PathPlannerType)
+                    {
+                        case PathPlannerType.DynamicRRT:
+                            break;
+                        case PathPlannerType.GeneticAlgorithm:
+                            break;
+                    }
+                }
+
+                // TODO: switch PathPlanner
+
+                ImGui.Separator();
+
+                ImGui.Text("Motion control:");
+                ImGui.Combo("Type",
+                    ref WorkspaceBuffer.PathPlanningBuffer.PathPlannerID,
+                    Logic.PathPlanning.PathPlanner.Types,
+                    Logic.PathPlanning.PathPlanner.Types.Length);
+
+                // TODO: swithc MotionControl
+
                 ImGui.Text($"Time spent: {manipulator.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");
 
                 int treeCount = manipulator.Tree == null ? 0 : manipulator.Tree.Count;
@@ -739,6 +756,8 @@ namespace Graphics
                 ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
 
                 ImGui.InputFloat3("Goal", ref manipulator.Goal);
+
+
             }
         }
 
@@ -802,7 +821,9 @@ namespace Graphics
                 ImGui.Text($"Shape type: {obstacle.ShapeType}");
 
                 int type = (int)obstacle.Type;
-                ImGui.Combo("Physics type", ref type, PhysicsHandler.RigidBodyTypes, PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
+                ImGui.Combo("Physics type", ref type, 
+                    PhysicsHandler.RigidBodyTypes, 
+                    PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
                 obstacle.Type = (RigidBodyType)type;
 
                 ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
