@@ -26,10 +26,11 @@ namespace Logic
         public Model Model { get; } = null;
         public Collider Collider { get; } = null;
 
-        public Vector3 Base;
         public Link[] Links;
         public Joint[] Joints;
         public float WorkspaceRadius;
+
+        public Vector3 Base => Joints[0].Position;
 
         private Vector3 _goal;
         public ref Vector3 Goal => ref _goal;
@@ -68,7 +69,6 @@ namespace Logic
 
         public Manipulator(ManipData data)
         {
-            Base = data.JointPositions[0];
             Links = Array.ConvertAll(data.Links, x => new Link(x));
             Joints = Array.ConvertAll(data.Joints, x => new Joint(x));
 
@@ -93,6 +93,21 @@ namespace Logic
             WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => joint.Length);
             
             Goal = data.Goal;
+
+            // subscribe to events
+            foreach (var joint in Joints)
+            {
+                joint.TranslationChanged += OnTranslationChanged;
+            }
+        }
+
+        public void OnTranslationChanged(object sender, TranslationEventArgs e)
+        {
+            var joint = sender as Joint;
+            int next = Array.IndexOf(Joints, joint) + 1;
+
+            if (next < Joints.Length)
+                Joints[next].Translate(e.Translation);
         }
 
         public void UpdateStateDesign()
@@ -152,7 +167,7 @@ namespace Logic
         private void UpdateJoints()
         {
             ImpDualQuat quat;
-            ImpDualQuat init = new ImpDualQuat(Base);
+            ImpDualQuat init = new ImpDualQuat(Joints[0].InitialPosition);
 
             for (int i = 0; i < Joints.Length; i++)  // TODO: move to DirectKinematics() methods?
             {
@@ -196,7 +211,7 @@ namespace Logic
 
         private void UpdateGripper()
         {
-            ImpDualQuat quat = new ImpDualQuat(Base);
+            ImpDualQuat quat = new ImpDualQuat(Joints[0].InitialPosition);
 
             var last = Joints.Length - 1;
             for (int j = 0; j < last; j++)

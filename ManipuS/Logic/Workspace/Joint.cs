@@ -27,6 +27,16 @@ namespace Logic
         public Vector2 qRanges;
     }
 
+    public class TranslationEventArgs : EventArgs
+    {
+        public Vector3 Translation { get; }
+
+        public TranslationEventArgs(Vector3 translation)
+        {
+            Translation = translation;
+        }
+    }
+
     public class Joint : IDisposable, ISelectable, ITranslatable  // TODO: consider using abstract class Selectable instead of interface
     {
         public Model Model { get; }
@@ -60,6 +70,8 @@ namespace Logic
 
         public float Coordinate { get; set; }
 
+        public event EventHandler<TranslationEventArgs> TranslationChanged;
+
         public Joint(JointData data)
         {
             Model = data.Model;
@@ -79,6 +91,9 @@ namespace Logic
             State *= Matrix.Translation(translation.X, translation.Y, translation.Z);
 
             InitialPosition += translation;
+            
+            // invoke the event for the containing manipulator
+            TranslationChanged?.Invoke(this, new TranslationEventArgs(translation));
         }
 
         public Joint ShallowCopy()
