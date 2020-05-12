@@ -144,7 +144,7 @@ namespace Logic
 
             Vector3 pNew = current.Points[joint] + dx;
             contestant.q = current.q;
-            Vector cNew = contestant.q + _controlSolver.Execute(Obstacles, contestant, pNew, joint).Item3;
+            MathNet.Numerics.LinearAlgebra.Vector<float> cNew = contestant.q + _controlSolver.Execute(Obstacles, contestant, pNew, joint).Item3;
             contestant.q = cNew;
             Vector3[] dkpNew = contestant.DKP;
 
@@ -163,7 +163,7 @@ namespace Logic
                 {
                     Vector3 pPrev = (currPos + prevPos) / 2;
                     contestant.q = curr.q;
-                    Vector cPrev = contestant.q + _controlSolver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
+                    MathNet.Numerics.LinearAlgebra.Vector<float> cPrev = contestant.q + _controlSolver.Execute(Obstacles, contestant, pPrev, Agent.Joints.Length - 1).Item3;
                     contestant.q = cPrev;
                     Vector3[] dkpPrev = contestant.DKP;
 

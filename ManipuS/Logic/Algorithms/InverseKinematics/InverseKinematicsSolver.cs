@@ -72,6 +72,6 @@ namespace Logic.InverseKinematics
             return collisions;
         }
 
-        public abstract (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint);
+        public abstract (bool, float, MathNet.Numerics.LinearAlgebra.Vector<float>, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint);
     }
 }

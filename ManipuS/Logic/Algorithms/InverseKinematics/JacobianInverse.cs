@@ -12,9 +12,9 @@ namespace Logic.InverseKinematics
     {
         public JacobianInverse(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 
-        public override (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
+        public override (bool, float, MathNet.Numerics.LinearAlgebra.Vector<float>, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
-            Vector initConfig = agent.q;
+            MathNet.Numerics.LinearAlgebra.Vector<float> initConfig = agent.q;
             MathNet.Numerics.LinearAlgebra.Vector<float> dq;
             for (int j = 0; j < 4; j++)
             {
@@ -50,9 +50,9 @@ namespace Logic.InverseKinematics
                 var JP = J.PseudoInverse();
                 dq = -JP * errorExt;  // TODO: check why minus should always be presented for dq in these methods!
 
-                Vector dqLocal = new Vector(dq.Storage.AsArray());
-                if (joint < agent.Joints.Length - 1)
-                    dqLocal.Expand(agent.Joints.Length - joint);
+                var dqLocal = MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(dq.Storage.AsArray());
+                //if (joint < agent.Joints.Length - 1)
+                //    dqLocal.Expand(agent.Joints.Length - joint);
 
                 agent.q += dqLocal;
             }

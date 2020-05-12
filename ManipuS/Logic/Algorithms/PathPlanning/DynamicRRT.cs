@@ -21,7 +21,7 @@ namespace Logic.PathPlanning
             _trimPeriod = trimPeriod;
         }
 
-        public override (List<Vector3>, List<Vector>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver)
+        public override (List<Vector3>, List<MathNet.Numerics.LinearAlgebra.Vector<float>>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver)
         {
             var contestant = agent.DeepCopy();
 
@@ -109,7 +109,7 @@ namespace Logic.PathPlanning
             Tree.Node start = agent.Tree.Min(agent.Goal);
 
             List<Vector3> path = agent.Tree.TraversePath(start).Reverse().ToList();
-            List<Vector> configs = agent.Tree.TraverseConfigs(start).Reverse().ToList();
+            List<MathNet.Numerics.LinearAlgebra.Vector<float>> configs = agent.Tree.TraverseConfigs(start).Reverse().ToList();
 
             return (path, configs);
         }

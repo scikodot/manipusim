@@ -37,6 +37,6 @@ namespace Logic.PathPlanning
             CollisionCheck = collisionCheck;
         }
 
-        public abstract (List<Vector3>, List<Vector>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver);
+        public abstract (List<Vector3>, List<MathNet.Numerics.LinearAlgebra.Vector<float>>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver);
     }
 }

@@ -26,9 +26,9 @@ namespace Logic.PathPlanning
             public List<Node> Childs { get; set; }
 
             public Vector3 Point { get; private set; }
-            public Vector q { get; private set; }
+            public MathNet.Numerics.LinearAlgebra.Vector<float> q { get; private set; }
 
-            public Node(Node parent, Vector3 point, Vector q)
+            public Node(Node parent, Vector3 point, MathNet.Numerics.LinearAlgebra.Vector<float> q)
             {
                 Parent = parent;
                 Childs = new List<Node>();
@@ -223,7 +223,7 @@ namespace Logic.PathPlanning
             yield return node.Point;
         }
 
-        public IEnumerable<Vector> TraverseConfigs(Node node)
+        public IEnumerable<MathNet.Numerics.LinearAlgebra.Vector<float>> TraverseConfigs(Node node)
         {
             while (node.Parent != null)
             {

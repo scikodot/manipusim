@@ -15,9 +15,9 @@ namespace Logic.InverseKinematics
 
         public JacobianTranspose(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 
-        public override (bool, float, Vector, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
+        public override (bool, float, MathNet.Numerics.LinearAlgebra.Vector<float>, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint)
         {
-            Vector initConfig = agent.q;
+            MathNet.Numerics.LinearAlgebra.Vector<float> initConfig = agent.q;
             MathNet.Numerics.LinearAlgebra.Vector<float> dq;
             for (int j = 0; j < 4; j++)
             {
@@ -61,11 +61,11 @@ namespace Logic.InverseKinematics
 
                 dq = -_alpha * JT * errorExt;
 
-                Vector dqLocal = new Vector(dq.Storage.AsArray());
-                if (joint < agent.Joints.Length - 1)
-                    dqLocal.Expand(agent.Joints.Length - joint);
+                var dqLocal = MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(dq.Storage.AsArray());
+                //if (joint < agent.Joints.Length - 1)
+                //    dqLocal.Expand(agent.Joints.Length - joint);
 
-                agent.q += dqLocal;
+                agent.q += dqLocal;  // TODO: check how this works! agent.q can be of less dimension than dqLocal for different "joint" value
             }
 
             // checking for collisions of the found configuration

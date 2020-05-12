@@ -130,7 +130,11 @@ namespace Logic
 
         public void UpdateState(ref ImpDualQuat state)
         {
-            State = state.ToBulletMatrix(); ;
+            // TODO: move to documentation!
+            // models initially (on creation) have a specific actuation axis;
+            // for example, the two models used for joint and links in this program have their actuation axes UnitY = (0, 1, 0);
+            // thus, the models have to be aligned from that state with their InitialAxis axes that are set from the GUI or obtained from code
+            State = state.ToBulletMatrix();
         }
 
         public void Dispose()

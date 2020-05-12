@@ -15,9 +15,9 @@ namespace Logic.PathPlanning
             public Node Child { get; set; }
 
             public Vector3[] Points { get; private set; }
-            public Vector q { get; private set; }
+            public MathNet.Numerics.LinearAlgebra.Vector<float> q { get; private set; }
 
-            public Node(Node parent, Vector3[] point, Vector q)
+            public Node(Node parent, Vector3[] point, MathNet.Numerics.LinearAlgebra.Vector<float> q)
             {
                 // assign the parent to the current node's parent
                 Parent = parent;
@@ -41,7 +41,7 @@ namespace Logic.PathPlanning
                 this.q = q;
             }
 
-            public void Change(Vector3[] point, Vector config)
+            public void Change(Vector3[] point, MathNet.Numerics.LinearAlgebra.Vector<float> config)
             {
                 Points = point;
                 q = config;
@@ -76,9 +76,9 @@ namespace Logic.PathPlanning
         public Node Current { get; private set; }
         public int Count => Nodes.Count();
 
-        public Path(IEnumerable<Vector3[]> points, IEnumerable<Vector> configs) : this(ConstructPath(points, configs)) { }
+        public Path(IEnumerable<Vector3[]> points, IEnumerable<MathNet.Numerics.LinearAlgebra.Vector<float>> configs) : this(ConstructPath(points, configs)) { }
 
-        private static IEnumerable<Node> ConstructPath(IEnumerable<Vector3[]> points, IEnumerable<Vector> configs)
+        private static IEnumerable<Node> ConstructPath(IEnumerable<Vector3[]> points, IEnumerable<MathNet.Numerics.LinearAlgebra.Vector<float>> configs)
         {
             Node parent = null;
             return points.Zip(configs, (p, c) =>
@@ -143,7 +143,7 @@ namespace Logic.PathPlanning
             DelBuffer.Enqueue(node);
         }
 
-        public void ChangeNode(Node node, Vector3[] point, Vector config)
+        public void ChangeNode(Node node, Vector3[] point, MathNet.Numerics.LinearAlgebra.Vector<float> config)
         {
             DelBuffer.Enqueue(node);
 
@@ -152,7 +152,7 @@ namespace Logic.PathPlanning
             AddBuffer.Enqueue(node);
         }
 
-        public Vector Follow()
+        public MathNet.Numerics.LinearAlgebra.Vector<float> Follow()
         {
             // move to the next node
             if (Current.Child != null)

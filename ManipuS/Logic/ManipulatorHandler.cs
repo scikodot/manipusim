@@ -127,7 +127,7 @@ namespace Logic
             var solver = new JacobianTranspose(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime);
             var planner = new DynamicRRT(defaultPlanner.k, false, defaultPlanner.d, defaultPlanner.k / 10);
             manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
-                   new Jacobian(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime), 2 * defaultPlanner.d);
+                   new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime), 2 * defaultPlanner.d);
 
             // add manipulator to the list
             Add(manipulator);
