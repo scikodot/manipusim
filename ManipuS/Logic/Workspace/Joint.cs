@@ -37,16 +37,6 @@ namespace Logic
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
 
-        private float _initialCoordinate;
-        public ref float InitialCoordinate => ref _initialCoordinate;
-
-        public float q;
-
-        private Vector2 _coordinateRange;
-        public ref Vector2 CoordinateRange => ref _coordinateRange;
-
-        public float[] qRanges;  // TODO: consider switching to Vector2 instead of array; array has a bit of overhead
-
         public Matrix State
         {
             get => Collider.Body.MotionState.WorldTransform;
@@ -62,6 +52,14 @@ namespace Logic
         public Vector3 Position { get; set; }
         public Vector3 Axis { get; set; }
 
+        private float _initialCoordinate;
+        public ref float InitialCoordinate => ref _initialCoordinate;
+
+        private Vector2 _coordinateRange;
+        public ref Vector2 CoordinateRange => ref _coordinateRange;
+
+        public float Coordinate { get; set; }
+
         public Joint(JointData data)
         {
             Model = data.Model;
@@ -70,8 +68,8 @@ namespace Logic
             Collider.Body.UserObject = this;
 
             Length = data.Length;
-            q = data.q;
-            qRanges = new float[2] { data.qRanges.X, data.qRanges.Y };
+            Coordinate = data.q;
+            CoordinateRange = data.qRanges;
 
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
         }

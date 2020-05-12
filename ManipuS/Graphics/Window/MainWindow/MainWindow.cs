@@ -395,7 +395,7 @@ namespace Graphics
                             UpdateSelection(manipulator);
                         }
 
-                        if (manipulatorTreeNodeOpen)  // TODO: refactor
+                        if (manipulatorTreeNodeOpen)  // TODO: refactor, perhaps move all updates to UpdateFrame
                         {
                             for (int j = 0; j < manipulator.Links.Length; j++)
                             {
@@ -722,7 +722,7 @@ namespace Graphics
                 // path planner properties
                 ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
 
-                if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)
+                if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)  // TODO: add attractors property
                 {
                     ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
                     ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);
@@ -756,6 +756,11 @@ namespace Graphics
                 {
                     ImGui.InputFloat("Radius", ref sphere.Radius);
                 }
+
+                ImGui.Separator();
+
+                ImGui.InputFloat("Coordinate", ref joint.InitialCoordinate);
+                ImGui.InputFloat2("Coordinate range", ref joint.CoordinateRange);
             }
         }
 
@@ -948,7 +953,7 @@ namespace Graphics
 
         private void AttachWidgets()  // TODO: refactor; move somewhere else? rename?
         {
-            if (Mode == InteractionMode.Design && InputHandler.SelectedObjects.Count == 1)
+            if (InputHandler.SelectedObjects.Count == 1)
             {
                 selectedObject = InputHandler.SelectedObjects[0].UserObject;
 
@@ -957,6 +962,9 @@ namespace Graphics
             }
             else
             {
+                if (InputHandler.SelectedObjects.Count == 0 || !(selectedObject is Manipulator))
+                    selectedObject = null;
+
                 // detach the widget
                 InputHandler.TranslationalWidget.Detach();
             }

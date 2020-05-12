@@ -55,7 +55,7 @@ namespace Logic
             {
                 _q = value;
                 for (int i = 0; i < Joints.Length; i++)
-                    Joints[i].q = value[i];
+                    Joints[i].Coordinate = value[i];
 
                 UpdateStateAnimate();
             }
@@ -79,7 +79,7 @@ namespace Logic
                 Joints[i].Position = data.JointPositions[i];
             }
 
-            _q = new Vector(Joints.Select(x => x.q).ToArray());
+            _q = new Vector(Joints.Select(x => x.Coordinate).ToArray());
 
             IsOriginal = true;
 
@@ -109,6 +109,10 @@ namespace Logic
             }
 
             // TODO: add joints scaling and rotation!
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                Joints[i].Coordinate = Joints[i].InitialCoordinate;
+            }
         }
 
         public void UpdateModel()
@@ -152,10 +156,10 @@ namespace Logic
                 for (int j = 0; j < i; j++)
                 {
                     quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
-                    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);  // TODO: optimize; probably, conjugation can be avoided
+                    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
                 }
 
-                quat *= new ImpDualQuat(Joints[i].InitialAxis, -Joints[i].q);
+                quat *= new ImpDualQuat(Joints[i].InitialAxis, -Joints[i].Coordinate);
 
                 quat *= ImpDualQuat.Align(Joints[0].Axis, Joints[i].InitialAxis);
 
@@ -193,10 +197,10 @@ namespace Logic
             for (int j = 0; j < last; j++)
             {
                 quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
-                quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].q);  // TODO: optimize; probably, conjugation can be avoided
+                quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
             }
 
-            quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].q);
+            quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].Coordinate);
 
             quat *= ImpDualQuat.Align(Joints[last].InitialAxis, quat.Conjugate.Rotate(Joints[last].Position - Joints[last - 1].Position));
 

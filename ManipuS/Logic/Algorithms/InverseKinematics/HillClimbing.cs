@@ -23,10 +23,10 @@ namespace Logic.InverseKinematics
                 for (int i = 0; i < joint; i++)
                 {
                     // checking GC constraints
-                    range = agent.Joints[i].qRanges[0] - agent.q[i] * 180 / (float)Math.PI;
+                    range = agent.Joints[i].CoordinateRange.X - agent.q[i] * 180 / (float)Math.PI;
                     stepNeg = range <= -StepSize ? -StepSize : range;
 
-                    range = agent.Joints[i].qRanges[1] - agent.q[i] * 180 / (float)Math.PI;
+                    range = agent.Joints[i].CoordinateRange.Y - agent.q[i] * 180 / (float)Math.PI;
                     stepPos = range >= StepSize ? StepSize : range;
 
                     // generating random GCs' offset
