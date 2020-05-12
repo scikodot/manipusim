@@ -49,6 +49,7 @@ namespace Graphics
 
         // ImGUI variables
         private static object selectedObject;
+        private static bool swapPropertiesWindows;
         private static ImGuiTreeNodeFlags _baseTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow;
         private static ImGuiTreeNodeFlags _baseTreeLeafFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
 
@@ -354,6 +355,7 @@ namespace Graphics
                 }
 
                 selectedObject = selected;
+                swapPropertiesWindows = !swapPropertiesWindows;
             }
         }
 
@@ -612,218 +614,193 @@ namespace Graphics
         {
             if (selectedObject is Manipulator manipulator)
             {
-                RenderManipulatorPropertiesWindow(manipulator);
+                RenderPropertiesWindowTemplate("Manipulator properties", ManipulatorProperties, manipulator);
             }
             else if (selectedObject is Joint joint)
             {
-                RenderJointPropertiesWindow(joint);
+                RenderPropertiesWindowTemplate("Joint properties", JointProperties, joint);
             }
             else if (selectedObject is Link link)
             {
-                RenderLinkPropertiesWindow(link);
+                RenderPropertiesWindowTemplate("Link properties", LinkProperties, link);
             }
             else if (selectedObject is Obstacle obstacle)
             {
-                RenderObstaclePropertiesWindow(obstacle);
+                RenderPropertiesWindowTemplate("Obstacle properties", ObstacleProperties, obstacle);
             }
         }
 
-        private void RenderManipulatorPropertiesWindow(Manipulator manipulator)
+        private void RenderPropertiesWindowTemplate<T>(string title, Action<T> renderProperties, T selectable) where T: ISelectable
         {
-            if (ImGui.Begin("Manipulator properties",
+            if (ImGui.Begin(title/* + (changed ? "##first" : "##last")*/,
                     ImGuiWindowFlags.NoCollapse |
                     ImGuiWindowFlags.NoMove |
                     ImGuiWindowFlags.NoResize |
                     ImGuiWindowFlags.HorizontalScrollbar))
             {
+                // swap window on the ID stack to not inherit fields inputs from the previous objects
+                ImGui.PushID(swapPropertiesWindows ? 1 : 0);
+
+                // set position and size of the window
                 ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
 
-                ImGui.Text($"Time spent: {manipulator.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");  // TODO: move to Statistics window
-                ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
-                ImGui.InputFloat3("Goal", ref manipulator.Goal);
+                // perform the necessary actions
+                renderProperties(selectable);
 
-                ImGui.Separator();
-
-                var IB = WorkspaceBuffer.InverseKinematicsBuffer;
-                var PB = WorkspaceBuffer.PathPlanningBuffer;
-
-                int inverseKinematicsType = (int)manipulator.Controller.InverseKinematicsSolverType;
-                int prevInverseKinematicsType = inverseKinematicsType;
-                ImGui.Text("Inverse kinematics solver:");
-                ImGui.PushID(0);
-                ImGui.Combo("Type",
-                    ref inverseKinematicsType,
-                    InverseKinematicsSolver.Types,
-                    InverseKinematicsSolver.Types.Length);
-                manipulator.Controller.InverseKinematicsSolverType = (InverseKinematicsSolverType)inverseKinematicsType;
-
-                // change inverse kinematics solver if queried
-                if (inverseKinematicsType != prevInverseKinematicsType)
-                {
-                    switch (manipulator.Controller.InverseKinematicsSolverType)
-                    {
-                        case InverseKinematicsSolverType.JacobianTranspose:
-                            manipulator.Controller.PlanSolver = new JacobianTranspose(IB.Precision, IB.StepSize, IB.MaxTime);
-                            break;
-                        case InverseKinematicsSolverType.JacobianInverse:
-                            manipulator.Controller.PlanSolver = new JacobianInverse(IB.Precision, IB.StepSize, IB.MaxTime);
-                            break;
-                        case InverseKinematicsSolverType.DampedLeastSquares:
-                            manipulator.Controller.PlanSolver = new DampedLeastSquares(IB.Precision, IB.StepSize, IB.MaxTime);
-                            break;
-                    }
-                }
-
-                // inverse kinematics solver properties
-                ImGui.InputInt("Max time", ref manipulator.Controller.PlanSolver.MaxTime);
-
-                if (manipulator.Controller.PlanSolver is JacobianTranspose jacobianTranspose)
-                {
-                    //ImGui.InputFloat("Damping coefficient", ref jacobianTranspose.Alpha);
-                }
-                else if (manipulator.Controller.PlanSolver is JacobianInverse jacobianInverse)
-                {
-                    // TODO: input something here?
-                }
-                else if (manipulator.Controller.PlanSolver is DampedLeastSquares dampedLeastSquares)
-                {
-                    ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Lambda);
-                }
-
-                ImGui.Separator();
-
-                // TODO: capture type here to compare with the new type
-                ImGui.Text("Path planner:");
-                ImGui.PushID(1);
-
-                int pathPlannerType = (int)manipulator.Controller.PathPlannerType;
-                int prevPathPlannerType = pathPlannerType;
-                ImGui.Combo("Type",
-                    ref pathPlannerType,
-                    PathPlanner.Types,
-                    PathPlanner.Types.Length);
-                manipulator.Controller.PathPlannerType = (PathPlannerType)pathPlannerType;
-
-                // change path planner if queried
-                if (pathPlannerType != prevPathPlannerType)
-                {
-                    switch (manipulator.Controller.PathPlannerType)
-                    {
-                        case PathPlannerType.DynamicRRT:
-                            manipulator.Controller.PathPlanner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
-                            break;
-                        case PathPlannerType.GeneticAlgorithm:
-                            throw new NotImplementedException("Genetic algorithm planner is not implemented yet!");
-                            break;
-                    }
-                }
-
-                // path planner properties
-                ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
-
-                if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)  // TODO: add attractors property
-                {
-                    ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
-                    ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);
-                    ImGui.InputFloat("Step", ref dynamicRRT.Step);
-                    ImGui.InputInt("Trim period", ref dynamicRRT.TrimPeriod);
-                }
-                // TODO: add GeneticAlgorithm
-
-                // TODO: switch MotionControl
+                // remove window's ID from the stack, just in case
+                ImGui.PopID();
             }
         }
 
-        private void RenderJointPropertiesWindow(Joint joint)
+        private void ManipulatorProperties(Manipulator manipulator)
         {
-            if (ImGui.Begin("Joint properties",
-                    ImGuiWindowFlags.NoCollapse |
-                    ImGuiWindowFlags.NoMove |
-                    ImGuiWindowFlags.NoResize |
-                    ImGuiWindowFlags.HorizontalScrollbar))
+            ImGui.Text($"Time spent: {manipulator.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");  // TODO: move to Statistics window
+            ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
+            ImGui.InputFloat3("Goal", ref manipulator.Goal);
+
+            ImGui.Separator();
+
+            var IB = WorkspaceBuffer.InverseKinematicsBuffer;
+            var PB = WorkspaceBuffer.PathPlanningBuffer;
+
+            int inverseKinematicsType = (int)manipulator.Controller.InverseKinematicsSolverType;
+            int prevInverseKinematicsType = inverseKinematicsType;
+            ImGui.Text("Inverse kinematics solver:");
+            ImGui.PushID(0);
+            ImGui.Combo("Type",
+                ref inverseKinematicsType,
+                InverseKinematicsSolver.Types,
+                InverseKinematicsSolver.Types.Length);
+            manipulator.Controller.InverseKinematicsSolverType = (InverseKinematicsSolverType)inverseKinematicsType;
+
+            // change inverse kinematics solver if queried
+            if (inverseKinematicsType != prevInverseKinematicsType)
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
-
-                ImGui.Checkbox("Show collider", ref joint.ShowCollider);
-
-                ImGui.InputFloat3("Axis", ref joint.InitialAxis);
-
-                ImGui.InputFloat3("Position", ref joint.InitialPosition);
-
-                if (joint.Collider is SphereCollider sphere)
+                switch (manipulator.Controller.InverseKinematicsSolverType)
                 {
-                    ImGui.InputFloat("Radius", ref sphere.Radius);
+                    case InverseKinematicsSolverType.JacobianTranspose:
+                        manipulator.Controller.PlanSolver = new JacobianTranspose(IB.Precision, IB.StepSize, IB.MaxTime);
+                        break;
+                    case InverseKinematicsSolverType.JacobianInverse:
+                        manipulator.Controller.PlanSolver = new JacobianInverse(IB.Precision, IB.StepSize, IB.MaxTime);
+                        break;
+                    case InverseKinematicsSolverType.DampedLeastSquares:
+                        manipulator.Controller.PlanSolver = new DampedLeastSquares(IB.Precision, IB.StepSize, IB.MaxTime);
+                        break;
                 }
-
-                ImGui.Separator();
-
-                ImGui.InputFloat("Coordinate", ref joint.InitialCoordinate);
-                ImGui.InputFloat2("Coordinate range", ref joint.CoordinateRange);
             }
-        }
 
-        private void RenderLinkPropertiesWindow(Link link)
-        {
-            if (ImGui.Begin("Link properties",
-                    ImGuiWindowFlags.NoCollapse |
-                    ImGuiWindowFlags.NoMove |
-                    ImGuiWindowFlags.NoResize |
-                    ImGuiWindowFlags.HorizontalScrollbar))
+            // inverse kinematics solver properties
+            ImGui.InputInt("Max time", ref manipulator.Controller.PlanSolver.MaxTime);
+
+            if (manipulator.Controller.PlanSolver is JacobianTranspose jacobianTranspose)
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
-
-                ImGui.Checkbox("Show collider", ref link.ShowCollider);
-
-                // TODO: add length property
+                //ImGui.InputFloat("Damping coefficient", ref jacobianTranspose.Alpha);
             }
-        }
-
-        private void RenderGripperPropertiesWindow(Joint gripper)  // TODO: use Gripper class
-        {
-            RenderJointPropertiesWindow(gripper);
-        }
-
-        private void RenderObstaclePropertiesWindow(Obstacle obstacle)
-        {
-            if (ImGui.Begin("Obstacle properties",
-                    ImGuiWindowFlags.NoCollapse |
-                    ImGuiWindowFlags.NoMove |
-                    ImGuiWindowFlags.NoResize |
-                    ImGuiWindowFlags.HorizontalScrollbar))
+            else if (manipulator.Controller.PlanSolver is JacobianInverse jacobianInverse)
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Width), (int)(0.75 * Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+                // TODO: input something here?
+            }
+            else if (manipulator.Controller.PlanSolver is DampedLeastSquares dampedLeastSquares)
+            {
+                ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Lambda);
+            }
 
-                ImGui.Text($"Shape type: {obstacle.ShapeType}");
+            ImGui.Separator();
 
-                int type = (int)obstacle.Type;
-                ImGui.Combo("Physics type", ref type, 
-                    PhysicsHandler.RigidBodyTypes, 
-                    PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
-                obstacle.Type = (RigidBodyType)type;
+            // TODO: capture type here to compare with the new type
+            ImGui.Text("Path planner:");
+            ImGui.PushID(1);
 
-                ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
+            int pathPlannerType = (int)manipulator.Controller.PathPlannerType;
+            int prevPathPlannerType = pathPlannerType;
+            ImGui.Combo("Type",
+                ref pathPlannerType,
+                PathPlanner.Types,
+                PathPlanner.Types.Length);
+            manipulator.Controller.PathPlannerType = (PathPlannerType)pathPlannerType;
 
-                ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
-
-                ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
-
-                if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
+            // change path planner if queried
+            if (pathPlannerType != prevPathPlannerType)
+            {
+                switch (manipulator.Controller.PathPlannerType)
                 {
-                    ImGui.InputFloat3("Half extents", ref box.Size);
+                    case PathPlannerType.DynamicRRT:
+                        manipulator.Controller.PathPlanner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
+                        break;
+                    case PathPlannerType.GeneticAlgorithm:
+                        throw new NotImplementedException("Genetic algorithm planner is not implemented yet!");
+                        break;
                 }
-                else if (obstacle.Collider is SphereCollider sphere)
-                {
-                    ImGui.InputFloat("Radius", ref sphere.Radius);
-                }
-                else if (obstacle.Collider is CylinderCollider cylinder)
-                {
-                    ImGui.InputFloat("Radius", ref cylinder.Radius);
-                    ImGui.InputFloat("Length", ref cylinder.HalfLength);
-                }
+            }
+
+            // path planner properties
+            ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
+
+            if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)  // TODO: add attractors property
+            {
+                ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
+                ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);
+                ImGui.InputFloat("Step", ref dynamicRRT.Step);
+                ImGui.InputInt("Trim period", ref dynamicRRT.TrimPeriod);
+            }
+            // TODO: add GeneticAlgorithm
+
+            // TODO: switch MotionControl
+        }
+
+        private void JointProperties(Joint joint)
+        {
+            ImGui.Checkbox("Show collider", ref joint.ShowCollider);
+
+            ImGui.InputFloat3("Axis", ref joint.InitialAxis);
+            ImGui.InputFloat3("Position", ref joint.InitialPosition);
+
+            if (joint.Collider is SphereCollider sphere)
+            {
+                ImGui.InputFloat("Radius", ref sphere.Radius);
+            }
+
+            ImGui.Separator();
+
+            ImGui.InputFloat("Coordinate", ref joint.InitialCoordinate);
+            ImGui.InputFloat2("Coordinate range", ref joint.CoordinateRange);
+        }
+
+        private void LinkProperties(Link link)
+        {
+            ImGui.Checkbox("Show collider", ref link.ShowCollider);
+
+            // TODO: add length property
+        }
+
+        private void ObstacleProperties(Obstacle obstacle)
+        {
+            ImGui.Text($"Shape type: {obstacle.ShapeType}");
+
+            int type = (int)obstacle.Type;
+            ImGui.Combo("Physics type", ref type,
+                PhysicsHandler.RigidBodyTypes,
+                PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
+            obstacle.Type = (RigidBodyType)type;
+
+            ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
+            ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
+            ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
+
+            if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
+            {
+                ImGui.InputFloat3("Half extents", ref box.Size);
+            }
+            else if (obstacle.Collider is SphereCollider sphere)
+            {
+                ImGui.InputFloat("Radius", ref sphere.Radius);
+            }
+            else if (obstacle.Collider is CylinderCollider cylinder)
+            {
+                ImGui.InputFloat("Radius", ref cylinder.Radius);
+                ImGui.InputFloat("Length", ref cylinder.HalfLength);
             }
         }
 
@@ -955,7 +932,12 @@ namespace Graphics
         {
             if (InputHandler.SelectedObjects.Count == 1)
             {
-                selectedObject = InputHandler.SelectedObjects[0].UserObject;
+                var selected = InputHandler.SelectedObjects[0].UserObject;
+                if (selected != selectedObject)
+                {
+                    selectedObject = selected;
+                    swapPropertiesWindows = !swapPropertiesWindows;
+                }
 
                 // attach the widget
                 InputHandler.TranslationalWidget.Attach(selectedObject as ITranslatable);

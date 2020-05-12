@@ -19,8 +19,13 @@ namespace Logic
         public bool ShowTree;
     }
 
-    public class Manipulator : IDisposable
+    public class Manipulator : IDisposable, ISelectable
     {
+        // manipulator does not have its own model/collider, it just incorporates those from joints/links;
+        // hence, the model and collider can be nulled
+        public Model Model { get; } = null;
+        public Collider Collider { get; } = null;
+
         public Vector3 Base;
         public Link[] Links;
         public Joint[] Joints;
