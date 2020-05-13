@@ -88,7 +88,7 @@ namespace Logic
 
             UpdateStateDesign();
 
-            WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => joint.Length);
+            WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => 2 * joint.Radius);
             
             Goal = data.Goal;
 
@@ -120,7 +120,7 @@ namespace Logic
             for (int i = 0; i < Links.Length; i++)
             {
                 var jointDistance = Vector3.Distance(Joints[i + 1].InitialPosition, Joints[i].InitialPosition);
-                jointDistance -= (Joints[i + 1].Length + Joints[i].Length) / 2;
+                jointDistance -= Joints[i + 1].Radius + Joints[i].Radius;
 
                 (Links[i].Collider as CylinderCollider).HalfLength = jointDistance / 2;
                 Links[i].UpdateStateDesign();
@@ -129,6 +129,8 @@ namespace Logic
             // TODO: add joints scaling!
             for (int i = 0; i < Joints.Length; i++)
             {
+                Joints[i].UpdateStateDesign();
+
                 Joints[i].Coordinate = Joints[i].InitialCoordinate;
             }
         }
@@ -200,7 +202,7 @@ namespace Logic
                 quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[i + 1].Position - Joints[i].Position);
 
                 quat *= new ImpDualQuat(
-                    (Joints[i].Length + Links[i].Length) / 2 * quat.Conjugate.Rotate(Vector3.Normalize(Joints[i + 1].Position - Joints[i].Position)));
+                    (Joints[i].Radius + Links[i].Length / 2) * quat.Conjugate.Rotate(Vector3.Normalize(Joints[i + 1].Position - Joints[i].Position)));
 
                 Links[i].UpdateState(ref quat);
             }

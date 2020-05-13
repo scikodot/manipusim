@@ -89,8 +89,9 @@ namespace Logic
                 joints[i].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
             }
 
+            // TODO: gripper collider is not affected by the initial transform; fix!
             joints[linksNumber].Model = _defaultGripperModel;
-            joints[linksNumber].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+            joints[linksNumber].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.1f));
 
             // set joints' axes
             var jointAxes = new Vector3[linksNumber + 1];
@@ -138,34 +139,6 @@ namespace Logic
         public static void Add(Manipulator manipulator)
         {
             Manipulators.Add(manipulator);
-
-            //var IB = WorkspaceBuffer.InverseKinematicsBuffer;
-            //var PB = WorkspaceBuffer.PathPlanningBuffer;
-
-            //InverseKinematicsSolver solver = default;
-            //switch (IB.InverseKinematicsSolverID)
-            //{
-            //    case 0:
-            //        solver = new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime);
-            //        break;
-            //    case 1:
-            //        solver = new HillClimbing(IB.Precision, IB.StepSize, IB.MaxTime);
-            //        break;
-            //}
-
-            //PathPlanner planner = default;
-            //switch (PB.PathPlannerID)
-            //{
-            //    case 0:
-            //        planner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
-            //        break;
-            //    case 1:
-            //        throw new NotImplementedException("The Genetic algorithm planner is not yet implemented!");
-            //        break;
-            //}
-
-            //manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
-            //       new Jacobian(IB.Precision, IB.StepSize, IB.MaxTime), 2 * PB.d);
         }
 
         public static void Remove(Manipulator manipulator)

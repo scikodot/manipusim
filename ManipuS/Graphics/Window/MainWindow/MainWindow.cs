@@ -773,6 +773,11 @@ namespace Graphics
             ImGui.Checkbox("Show collider", ref link.ShowCollider);
 
             // TODO: add length property
+            if (link.Collider is CylinderCollider cylinder)
+            {
+                ImGui.InputFloat("Radius", ref cylinder.Radius);
+                ImGui.InputFloat("Half length", ref cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
+            }
         }
 
         private void ObstacleProperties(Obstacle obstacle)
@@ -800,7 +805,7 @@ namespace Graphics
             else if (obstacle.Collider is CylinderCollider cylinder)
             {
                 ImGui.InputFloat("Radius", ref cylinder.Radius);
-                ImGui.InputFloat("Length", ref cylinder.HalfLength);
+                ImGui.InputFloat("Half length", ref cylinder.HalfLength);
             }
         }
 

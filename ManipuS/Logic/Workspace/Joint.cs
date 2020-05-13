@@ -42,7 +42,7 @@ namespace Logic
         public Model Model { get; }
         public Collider Collider { get; }
 
-        public float Length { get; }  // TODO: replace with Radius
+        public float Radius => (Collider as SphereCollider).Radius;
 
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
@@ -79,7 +79,7 @@ namespace Logic
 
             Collider.Body.UserObject = this;
 
-            Length = data.Length;
+            //Radius = data.Length;
             Coordinate = data.q;
             CoordinateRange = data.qRanges;
 
