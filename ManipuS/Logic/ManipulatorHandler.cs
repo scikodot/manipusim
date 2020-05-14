@@ -126,7 +126,7 @@ namespace Logic
             var defaultPlanner = _defaultPathPlanner;
 
             var solver = new JacobianTranspose(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime);
-            var planner = new DynamicRRT(defaultPlanner.k, false, defaultPlanner.d, defaultPlanner.k / 10);
+            var planner = new DynamicRRT(defaultPlanner.k, true, defaultPlanner.d, defaultPlanner.k / 10);
             manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
                    new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime), 2 * defaultPlanner.d);
 

@@ -53,41 +53,42 @@ namespace Logic.InverseKinematics
             });
         }
 
-        public bool[] DetectCollisions(Manipulator manip, Obstacle[] obstacles)
+        public bool[] DetectCollisions(Manipulator manipulator, Obstacle[] obstacles)
         {
-            Vector3[] joints = manip.DKP;
+            return manipulator.CollisionTest().ToArray();
+        //    Vector3[] joints = manip.DKP;
 
-            // representing manipulator as a sequence of actuators
-            int actuatorsNum = 50;
-            List<Vector3> actuators = new List<Vector3>();
-            for (int i = 0; i < joints.Length - 1; i++)
-            {
-                actuators.Add(joints[i]);
-                for (int j = 0; j < actuatorsNum; j++)
-                {
-                    actuators.Add(joints[i] + (j + 1) * (joints[i + 1] - joints[i]) / (actuatorsNum + 1));
-                }
-            }
-            actuators.Add(joints[joints.Length - 1]);
+        //    // representing manipulator as a sequence of actuators
+        //    int actuatorsNum = 50;
+        //    List<Vector3> actuators = new List<Vector3>();
+        //    for (int i = 0; i < joints.Length - 1; i++)
+        //    {
+        //        actuators.Add(joints[i]);
+        //        for (int j = 0; j < actuatorsNum; j++)
+        //        {
+        //            actuators.Add(joints[i] + (j + 1) * (joints[i + 1] - joints[i]) / (actuatorsNum + 1));
+        //        }
+        //    }
+        //    actuators.Add(joints[joints.Length - 1]);
 
-            // checking collisions for all actuators
-            bool[] collisions = new bool[joints.Length - 1];
-            foreach (var obst in obstacles)
-            {
-                for (int i = 0; i < actuators.Count; i++)
-                {
-                    if (obst.Contains(actuators[i]))
-                    {
-                        collisions[(i - 1) / (actuatorsNum + 1)] = true;
-                        goto CollisionDetected;
-                    }
-                }
-            }
-        CollisionDetected:
+        //    // checking collisions for all actuators
+        //    bool[] collisions = new bool[joints.Length - 1];
+        //    foreach (var obst in obstacles)
+        //    {
+        //        for (int i = 0; i < actuators.Count; i++)
+        //        {
+        //            if (obst.Contains(actuators[i]))
+        //            {
+        //                collisions[(i - 1) / (actuatorsNum + 1)] = true;
+        //                goto CollisionDetected;
+        //            }
+        //        }
+        //    }
+        //CollisionDetected:
 
-            return collisions;
+        //    return collisions;
         }
 
-        public abstract (bool, float, MathNet.Numerics.LinearAlgebra.Vector<float>, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint);
+        public abstract (bool, float, VectorFloat, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint);
     }
 }

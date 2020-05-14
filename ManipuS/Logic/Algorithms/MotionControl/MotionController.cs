@@ -123,7 +123,7 @@ namespace Logic
                         {
                             if (obst.Contains(current.Points[j]))
                             {
-                                Deform(obst, contestant, current, j);
+                                //Deform(obst, contestant, current, j);
                                 break;
                             }
                         }
@@ -132,7 +132,7 @@ namespace Logic
                     current = current.Child;
                 }
 
-                Discretize(contestant, gripperPos);
+                //Discretize(contestant, gripperPos);
 
                 gripperPos = Agent.Path.Current;
             }

@@ -108,6 +108,19 @@ namespace Logic
                 Joints[next].Translate(e.Translation);
         }
 
+        public IEnumerable<bool> CollisionTest()
+        {
+            foreach (var link in Links)
+            {
+                yield return link.Collider.CollisionTest();
+            }
+
+            foreach (var joint in Joints)
+            {
+                yield return joint.Collider.CollisionTest();
+            }
+        }
+
         public void UpdateStateDesign()
         {
             DKP = new Vector3[Joints.Length];
@@ -157,7 +170,7 @@ namespace Logic
             UpdateJoints();
             UpdateGripper();
 
-            if (IsOriginal)
+            //if (IsOriginal)
             {
                 UpdateLinks();
             }

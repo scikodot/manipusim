@@ -15,7 +15,7 @@ namespace Physics
         public Model Model { get; protected set; }
         public RigidBody Body { get; protected set; }
 
-        public CollisionCallback CollisionCallback { get; }
+        public CollisionCallback CollisionCallback { get; protected set; }
 
         public BroadphaseNativeType Shape => Body.CollisionShape.ShapeType;
         public RigidBodyType Type { get; set; }
@@ -57,6 +57,9 @@ namespace Physics
 
             // convert collider to kinematic for design mode
             collider.Convert(RigidBodyType.Kinematic);
+
+            // setup a callback for the collider
+            collider.CollisionCallback = new CollisionCallback(collider.Body, null); 
 
             return collider;
         }
@@ -101,10 +104,32 @@ namespace Physics
             }
         }
 
-        public bool CollisionTest(Collider other)
+        public bool CollisionPairTest(Collider other)
         {
-            //physics.World.ContactPairTest(Body, other.Body, CollisionCallback);
-            return CollisionCallback.CollisionTest(Body, other.Body);
+            PhysicsHandler.World.ContactPairTest(Body, other.Body, CollisionCallback);
+            if (CollisionCallback.IsCalled)
+            {
+                CollisionCallback.IsCalled = false;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public bool CollisionTest()
+        {
+            PhysicsHandler.World.ContactTest(Body, CollisionCallback);  // TODO: maintain thread sync!
+            if (CollisionCallback.IsCalled)
+            {
+                CollisionCallback.IsCalled = false;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public void Dispose()

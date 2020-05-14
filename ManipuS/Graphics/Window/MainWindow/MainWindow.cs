@@ -118,7 +118,7 @@ namespace Graphics
                 Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
                 Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
                 Shininess = 8
-            }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(-3, 3, -3))));
+            }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(0, 3, -1.5f))));
 
             ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
             {

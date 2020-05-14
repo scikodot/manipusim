@@ -10,7 +10,7 @@ namespace Physics
     {
         private RigidBody _monitoredBody;
         private object _context; // External information for contact processing
-        private bool _collision;
+        public bool IsCalled { get; set; }
 
         // Constructor, pass whatever context you want to have available when processing contacts.
         // You may also want to set CollisionFilterGroups and CollisionFilterMask
@@ -55,21 +55,10 @@ namespace Physics
             }
 
             // indicate that a collision has happened
+            IsCalled = true;
 
             // do stuff with the collision point
             return 0; // not actually sure if return value is used for anything...?
-        }
-
-        public bool CollisionTest(RigidBody body1, RigidBody body2)
-        {
-            PhysicsHandler.World.ContactPairTest(body1, body2, this);
-            if (_collision)
-            {
-                _collision = false;
-                return true;
-            }
-            else
-                return false;
         }
     }
 }
