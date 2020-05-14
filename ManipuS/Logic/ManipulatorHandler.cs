@@ -40,7 +40,7 @@ namespace Logic
         {
             Precision = 0.02f,
             StepSize = 2,
-            MaxTime = 300
+            MaxTime = 4
         };
         private static PathPlanningData _defaultPathPlanner = new PathPlanningData
         {

@@ -696,7 +696,7 @@ namespace Graphics
 
             if (manipulator.Controller.PlanSolver is JacobianTranspose jacobianTranspose)
             {
-                //ImGui.InputFloat("Damping coefficient", ref jacobianTranspose.Alpha);
+                ImGui.InputFloat("Base damping coefficient", ref jacobianTranspose.Alpha);
             }
             else if (manipulator.Controller.PlanSolver is JacobianInverse jacobianInverse)
             {
@@ -1000,6 +1000,8 @@ namespace Graphics
 
         protected override void OnUnload(EventArgs e)
         {
+            // TODO: threads are not disposed correctly; fix!
+
             // dispose of all the handlers
             ManipulatorHandler.Dispose();
             ObstacleHandler.Dispose();

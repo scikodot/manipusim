@@ -5,6 +5,8 @@ using System.Numerics;
 
 namespace Logic.InverseKinematics
 {
+    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+
     public enum InverseKinematicsSolverType
     {
         JacobianTranspose,
@@ -24,17 +26,31 @@ namespace Logic.InverseKinematics
     {
         public static string[] Types { get; } = Enum.GetNames(typeof(InverseKinematicsSolverType));
 
-        protected float StepSize;
-        protected float Precision;
+        protected float StepSize;  // TODO: move to where it's needed
 
-        private int _maxTime;
+        protected float _precision;
+        public ref float Precision => ref _precision;
+
+        protected int _maxTime;
         public ref int MaxTime => ref _maxTime;
 
         protected InverseKinematicsSolver(float precision, float stepSize, int maxTime)
         {
-            Precision = precision;
+            _precision = precision;
             StepSize = stepSize;
             MaxTime = maxTime;
+        }
+
+        protected VectorFloat GetError(Manipulator manipulator, Vector3 goal, int joint)
+        {
+            Vector3 error = goal - manipulator.Joints[joint].Position;
+            return VectorFloat.Build.Dense(new float[]
+            {
+                error.X,
+                error.Y,
+                error.Z,
+                0, 0, 0  // TODO: integrate orientation goal somehow?
+            });
         }
 
         public bool[] DetectCollisions(Manipulator manip, Obstacle[] obstacles)

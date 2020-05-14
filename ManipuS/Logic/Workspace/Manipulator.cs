@@ -55,7 +55,7 @@ namespace Logic
 
         public MathNet.Numerics.LinearAlgebra.Vector<float> q
         {
-            get => MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(joint => joint.Coordinate).ToArray())/*_q*/;
+            get => MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(joint => joint.Coordinate).ToArray());
             set
             {
                 for (int i = 0; i < Joints.Length; i++)

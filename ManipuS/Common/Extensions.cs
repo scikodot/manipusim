@@ -197,6 +197,21 @@ public static class RigidBodyExtensions
     }
 }
 
+public static class VectorMathNetExtensions
+{
+    public static MathNet.Numerics.LinearAlgebra.Vector<float> AddSubVector(
+        this MathNet.Numerics.LinearAlgebra.Vector<float> vec, 
+        MathNet.Numerics.LinearAlgebra.Vector<float> sub)
+    {
+        for (int i = 0; i < sub.Count; i++)
+        {
+            vec.At(i, vec.At(i) + sub.At(i));
+        }
+
+        return vec;
+    }
+}
+
 public static class BulletSharpQuaternionExtensions
 {
     public static BulletSharp.Math.Vector3 ToEuler(this BulletSharp.Math.Quaternion quat)
