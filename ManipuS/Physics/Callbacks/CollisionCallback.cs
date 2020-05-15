@@ -21,6 +21,12 @@ namespace Physics
             _context = context;
         }
 
+        public CollisionCallback(CollisionObject collisionObject, object context /*, ... */)
+        {
+            _monitoredBody = collisionObject as RigidBody;
+            _context = context;
+        }
+
         // If you don't want to consider collisions where the bodies are joined by a constraint, override NeedsCollision:
         // However, if you use a CollisionObject for #body instead of a RigidBody,
         //  then this is unnecessary — CheckCollideWithOverride isn't available.

@@ -47,8 +47,6 @@ namespace Logic
         private bool _showTree = true;
         public ref bool ShowTree => ref _showTree;
 
-        public bool IsOriginal { get; private set; }
-
         public Vector3 GripperPos { get; private set; }  // TODO: create a separate class Gripper/Tool/etc. and probably use DKP[Joints.Length - 1]
 
         public Vector3[] DKP { get; private set; }  // TODO: rename to JointPositions/DirectKinematics/etc.
@@ -84,8 +82,6 @@ namespace Logic
 
             q = MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(x => x.Coordinate).ToArray());
 
-            IsOriginal = true;
-
             UpdateStateDesign();
 
             WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => 2 * joint.Radius);
@@ -112,13 +108,13 @@ namespace Logic
         {
             foreach (var link in Links)
             {
-                yield return link.Collider.CollisionTest();
+                yield return link.CollisionTest();
             }
 
-            foreach (var joint in Joints)
-            {
-                yield return joint.Collider.CollisionTest();
-            }
+            //foreach (var joint in Joints)
+            //{
+            //    yield return joint.Collider.CollisionTest();
+            //}
         }
 
         public void UpdateStateDesign()
@@ -169,11 +165,7 @@ namespace Logic
 
             UpdateJoints();
             UpdateGripper();
-
-            //if (IsOriginal)
-            {
-                UpdateLinks();
-            }
+            UpdateLinks();
         }
 
         private void UpdateJoints()
@@ -193,14 +185,16 @@ namespace Logic
 
                 quat *= new ImpDualQuat(Joints[i].InitialAxis, -Joints[i].Coordinate);
 
+                // TODO: move to documentation!
+                // models initially (on creation) have a specific actuation axis;
+                // for example, the two models used for joint and links in this program have their actuation axes UnitY = (0, 1, 0);
+                // thus, the models have to be aligned from that state with their InitialAxis axes that are set from the GUI or obtained from code
                 quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
 
                 Joints[i].Axis = quat.Rotate(Vector3.UnitY);
                 Joints[i].Position = DKP[i] = quat.Translation;
 
-                // update physics and graphics only if the current manipulator is the real one
-                if (IsOriginal)
-                    Joints[i].UpdateState(ref quat);
+                Joints[i].UpdateState(ref quat);
             }
         }
 
@@ -241,8 +235,7 @@ namespace Logic
 
             GripperPos = DKP[Joints.Length - 1];
 
-            if (IsOriginal)
-                Joints[last].UpdateState(ref quat);
+            Joints[last].UpdateState(ref quat);
         }
 
         public void Reset()
@@ -311,12 +304,8 @@ namespace Logic
         {
             Manipulator manip = (Manipulator)MemberwiseClone();
 
-            manip.Links = Array.ConvertAll(Links, x => x.ShallowCopy());
-            manip.Joints = Array.ConvertAll(Joints, x => x.ShallowCopy());
-
-            manip.IsOriginal = false;
-
-            // TODO: clone colliders!
+            manip.Links = Array.ConvertAll(Links, x => x.DeepCopy());
+            manip.Joints = Array.ConvertAll(Joints, x => x.DeepCopy());
 
             return manip;
         }

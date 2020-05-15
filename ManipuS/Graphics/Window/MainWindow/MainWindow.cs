@@ -45,6 +45,16 @@ namespace Graphics
         private static float time = 0;
         private static bool forward;
 
+        private static GhostObject ghostObject;
+        private static Model ghostObjectModel;
+        private static GhostPairCallback ghostCallback;
+        private static Manipulator copy;
+        private static HingeConstraint hinge;
+
+        private static RigidBody doorBody;
+        private static Model doorModel;
+        private static HingeConstraint doorHinge;
+
         //Model Crytek;
 
         // ImGUI variables
@@ -120,13 +130,55 @@ namespace Graphics
                 Shininess = 8
             }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(0, 3, -1.5f))));
 
-            ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
-            {
-                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                Shininess = 8
-            }), PhysicsHandler.CreateDynamicCollider(new CylinderShape(0.25f, 1, 0.25f), 1, Matrix.Translation(3, 4, -3))));
+            //ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            //{
+            //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), PhysicsHandler.CreateDynamicCollider(new CylinderShape(0.25f, 1, 0.25f), 1, Matrix.Translation(0, 15, 0))));
+
+            //ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            //{
+            //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), PhysicsHandler.CreateDynamicCollider(new CylinderShape(0.25f, 1, 0.25f), 1, Matrix.Translation(0, 10, 0))));
+
+            //ghostCallback = new GhostPairCallback();
+            //PhysicsHandler.World.Broadphase.OverlappingPairCache.SetInternalGhostPairCallback(ghostCallback);
+
+            //ghostObject = new GhostObject();
+            //ghostObject.CollisionShape = new BoxShape(new BulletSharp.Math.Vector3(1, 1, 1));
+            //ghostObject.WorldTransform = Matrix.Translation(new BulletSharp.Math.Vector3(0, 4, 0));
+            //ghostObject.CollisionFlags |= CollisionFlags.NoContactResponse;
+            //PhysicsHandler.World.AddCollisionObject(ghostObject, CollisionFilterGroups.SensorTrigger, CollisionFilterGroups.AllFilter & ~CollisionFilterGroups.SensorTrigger);
+
+            //ghostObjectModel = Primitives.Cube(1, 1, 1, new MeshMaterial
+            //{
+            //    Diffuse = new Vector4(0, 1, 0, 0.3f)
+            //});
+
+            //var doorShape = new BoxShape(2.0f, 2.0f, 0.2f);
+            //var doorInertia = doorShape.CalculateLocalInertia(10.0f);
+            //var start = Matrix.Translation(-2.0f, 3.0f, 0);
+            //doorBody = PhysicsHandler.CreateBody(10.0f, start, doorShape, doorInertia);
+            //doorBody.ActivationState = ActivationState.DisableDeactivation;
+
+            //var pivotA = new BulletSharp.Math.Vector3(-2.0f, 0.0f, 0.0f);
+            //var axisA = new BulletSharp.Math.Vector3(0, 1, 0);
+
+            //doorHinge = new HingeConstraint(doorBody, pivotA, axisA);
+            //doorHinge.SetLimit(-MathUtil.SIMD_PI * 0.25f, MathUtil.SIMD_PI * 0.25f);
+            //PhysicsHandler.World.AddConstraint(doorHinge);
+
+            //doorModel = Primitives.Cube(2, 2, 0.2f, new MeshMaterial
+            //{
+            //    Diffuse = new Vector4(0, 1, 0, 0.3f)
+            //});
+
+            //doorHinge.EnableAngularMotor(true, 10f, 10);
 
             base.OnLoad(e);
         }
@@ -242,6 +294,9 @@ namespace Graphics
             //
             // so, to render transparent floor, we take SourceFactor as source's alpha (floor's alpha) and DestFactor as the remainder of the source's alpha
             // (the visible amount of the opaque object behind the floor)
+
+            //ghostObjectModel.Render(ShaderHandler.ComplexShader);
+            //doorModel.Render(ShaderHandler.ComplexShader);
 
             // render the ground
             ObstacleHandler.RenderGround(ShaderHandler.ComplexShader);
@@ -770,13 +825,30 @@ namespace Graphics
 
         private void LinkProperties(Link link)
         {
-            ImGui.Checkbox("Show collider", ref link.ShowCollider);
-
-            // TODO: add length property
-            if (link.Collider is CylinderCollider cylinder)
+            if (ImGui.BeginTabBar("LinkTabs"))
             {
-                ImGui.InputFloat("Radius", ref cylinder.Radius);
-                ImGui.InputFloat("Half length", ref cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
+                if (ImGui.BeginTabItem("Model"))
+                {
+                    // TODO: add model specific properties
+
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Collider"))
+                {
+                    ImGui.Checkbox("Show collider", ref link.ShowCollider);
+
+                    // TODO: add length property
+                    if (link.Collider is CylinderCollider cylinder)
+                    {
+                        ImGui.InputFloat("Radius", ref cylinder.Radius);
+                        ImGui.InputFloat("Half length", ref cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
+                ImGui.EndTabBar();
             }
         }
 
@@ -813,6 +885,59 @@ namespace Graphics
         {
             // update physics controller
             PhysicsHandler.Update((float)e.Time);
+
+            //if (doorHinge.HingeAngle >= MathUtil.SIMD_PI * 0.2f)
+            //    doorHinge.EnableAngularMotor(true, -1f, 1);
+            //else if (doorHinge.HingeAngle <= -MathUtil.SIMD_PI * 0.2f)
+            //    doorHinge.EnableAngularMotor(true, 1f, 1);
+
+            //var state = doorBody.WorldTransform;
+            //OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
+            //    state.M11, state.M21, state.M31, state.M41,
+            //    state.M12, state.M22, state.M32, state.M42,
+            //    state.M13, state.M23, state.M33, state.M43,
+            //    state.M14, state.M24, state.M34, state.M44);
+            //doorModel.State = stateMatrix;
+
+            //var state = ghostObject.WorldTransform;
+            //OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
+            //    state.M11, state.M21, state.M31, state.M41,
+            //    state.M12, state.M22, state.M32, state.M42,
+            //    state.M13, state.M23, state.M33, state.M43,
+            //    state.M14, state.M24, state.M34, state.M44);
+            //ghostObjectModel.State = stateMatrix;
+
+            //// check for ghost collision
+            //Console.SetCursorPosition(0, 10);
+            //Console.WriteLine($"Ghost overlaps: {ghostObject.NumOverlappingObjects}");
+
+            //Console.SetCursorPosition(0, 10);
+            //if (copy == null && ManipulatorHandler.Count > 0)
+            //{
+            //    copy = ManipulatorHandler.Manipulators[0].DeepCopy();
+            //}
+
+            //if (copy != null)
+            //{
+            //    copy.CollisionTestGhost().ToArray();
+            //}
+
+            //float dt;
+            //if (forward)
+            //{
+            //    dt = (float)e.Time;
+            //    if (time > 3)
+            //        forward = false;
+            //}
+            //else
+            //{
+            //    dt = -(float)e.Time;
+            //    if (time < -3)
+            //        forward = true;
+            //}
+            //time += dt;
+
+            //ghostObject.WorldTransform = Matrix.Translation(time * BulletSharp.Math.Vector3.UnitZ);
 
             //var monitoredBody = (RigidBody)PhysicsHandler.World.CollisionObjectArray[0];
             //object context = "context";

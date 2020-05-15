@@ -34,6 +34,8 @@ namespace Physics
             _broadphase = new DbvtBroadphase();
             World = new DiscreteDynamicsWorld(_dispatcher, _broadphase, null, _collisionConf);
 
+            //World.Gravity = Vector3.Zero;
+
             //// create the ground
             //var groundShape = new BoxShape(5, 0.125f, 5);
             //_collisionShapes.Add(groundShape);
@@ -108,7 +110,7 @@ namespace Physics
             return Collider.Create(body);
         }
 
-        private static RigidBody CreateBody(float mass, Matrix startTransform, CollisionShape shape, Vector3 localInertia)
+        public static RigidBody CreateBody(float mass, Matrix startTransform, CollisionShape shape, Vector3 localInertia)
         {
             var motionState = new DefaultMotionState(startTransform == default ? Matrix.Identity : startTransform);
             using (var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia))

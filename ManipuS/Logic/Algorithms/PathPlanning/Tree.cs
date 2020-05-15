@@ -39,10 +39,10 @@ namespace Logic.PathPlanning
 
             public override bool Equals(object obj)
             {
-                if (!(obj is Node))
+                if (obj is Node node)
+                    return Point == node.Point;
+                else
                     return false;
-
-                return Point == (obj as Node).Point;
             }
 
             public override int GetHashCode()

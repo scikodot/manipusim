@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Security;
 using BulletSharp.Math;
 using Graphics;
 using Physics;
@@ -16,7 +17,7 @@ namespace Logic
     public class Link : IDisposable, ISelectable
     {
         public Model Model { get; }
-        public Collider Collider { get; }
+        public Collider Collider { get; private set; }
 
         public float Length => 2 * (Collider as CylinderCollider).HalfLength;  // TODO: perhaps optimize? or use another approach?
 
@@ -36,14 +37,32 @@ namespace Logic
 
             Collider.Body.UserObject = this;
 
-            //Length = data.Length;
-
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
 
-        public Link ShallowCopy()
+        public Link DeepCopy()
         {
-            return (Link)MemberwiseClone();
+            var link = (Link)MemberwiseClone();
+
+            link.Collider = Collider.DeepCopy();
+
+            return link;
+        }
+
+        public bool CollisionTest()
+        {
+            // perform collision test with each obstacle
+            bool collision = false;
+            foreach (var obstacle in ObstacleHandler.Obstacles)
+            {
+                bool obstacleCollision = Collider.CollisionPairTest(obstacle.Collider);
+                if (obstacleCollision)
+                    collision = obstacleCollision;
+            }
+
+            // TODO: perform collision test with each link and gripper
+
+            return collision;
         }
 
         public void Render(Shader shader, Action render = null)
@@ -61,7 +80,9 @@ namespace Logic
 
         public void UpdateModel()
         {
-            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
+            // TODO: replace collider state with GUI scale/rotate/translate?
+
+            var state = /*Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * */State;
 
             OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
                 state.M11, state.M21, state.M31, state.M41,

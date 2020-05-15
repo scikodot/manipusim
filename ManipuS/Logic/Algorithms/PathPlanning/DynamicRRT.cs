@@ -21,7 +21,7 @@ namespace Logic.PathPlanning
             _trimPeriod = trimPeriod;
         }
 
-        public override (List<Vector3>, List<MathNet.Numerics.LinearAlgebra.Vector<float>>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver)
+        public override (List<Vector3>, List<MathNet.Numerics.LinearAlgebra.Vector<float>>) Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
             var contestant = agent.DeepCopy();
 
@@ -34,8 +34,8 @@ namespace Logic.PathPlanning
 
             for (int i = 0; i < MaxTime; i++)
             {
-                if (i % _trimPeriod == 0 && i != 0)
-                    agent.Tree.Trim(Obstacles, contestant, Solver);
+                //if (i % _trimPeriod == 0 && i != 0)
+                //    agent.Tree.Trim(obstacles, contestant, solver);
 
                 // generating normally distributed value
                 float num = RandomThreadStatic.NextGaussian(attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
@@ -72,7 +72,7 @@ namespace Logic.PathPlanning
                     bool collision = false;
                     if (CollisionCheck)
                     {
-                        foreach (var obst in Obstacles)
+                        foreach (var obst in obstacles)
                         {
                             if (obst.Contains(pNew))
                             {
@@ -86,7 +86,7 @@ namespace Logic.PathPlanning
                     {
                         // solving IKP for new node
                         contestant.q = minNode.q;
-                        var res = Solver.Execute(Obstacles, contestant, pNew, contestant.Joints.Length - 1);
+                        var res = solver.Execute(obstacles, contestant, pNew, contestant.Joints.Length - 1);
                         if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
                         {
                             // adding node to the tree

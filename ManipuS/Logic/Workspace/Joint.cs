@@ -40,7 +40,7 @@ namespace Logic
     public class Joint : IDisposable, ISelectable, ITranslatable  // TODO: consider using abstract class Selectable instead of interface
     {
         public Model Model { get; }
-        public Collider Collider { get; }
+        public Collider Collider { get; private set; }
 
         public float Radius => (Collider as SphereCollider).Radius;
 
@@ -96,9 +96,13 @@ namespace Logic
             TranslationChanged?.Invoke(this, new TranslationEventArgs(translation));
         }
 
-        public Joint ShallowCopy()
+        public Joint DeepCopy()
         {
-            return (Joint)MemberwiseClone();
+            var joint = (Joint)MemberwiseClone();
+
+            joint.Collider = Collider.DeepCopy();
+
+            return joint;
         }
 
         public void Render(Shader shader, Action render = null)
@@ -130,10 +134,6 @@ namespace Logic
 
         public void UpdateState(ref ImpDualQuat state)
         {
-            // TODO: move to documentation!
-            // models initially (on creation) have a specific actuation axis;
-            // for example, the two models used for joint and links in this program have their actuation axes UnitY = (0, 1, 0);
-            // thus, the models have to be aligned from that state with their InitialAxis axes that are set from the GUI or obtained from code
             State = state.ToBulletMatrix();
         }
 
