@@ -26,8 +26,15 @@ namespace Logic
 
         public Matrix State
         {
-            get => Collider.Body.MotionState.WorldTransform;
-            set => Collider.Body.MotionState.WorldTransform = value;
+            get => Collider.Body.WorldTransform;
+            set
+            {
+                // explicitly set position of the body
+                Collider.Body.WorldTransform = value;
+
+                // set its motion state to update position (for kinematic objects only)
+                Collider.Body.MotionState.SetWorldTransform(ref value);
+            }
         }
 
         public Link(LinkData data)

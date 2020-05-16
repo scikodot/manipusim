@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
+using BulletSharp;
 using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
+    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+
     class DynamicRRT : PathPlanner
     {
         private float _step;
@@ -21,38 +23,36 @@ namespace Logic.PathPlanning
             _trimPeriod = trimPeriod;
         }
 
-        public override (List<Vector3>, List<MathNet.Numerics.LinearAlgebra.Vector<float>>) Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
+        public override (List<Vector3>, List<VectorFloat>) Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
             var contestant = agent.DeepCopy();
 
             // creating new tree
-            agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));
+            agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));  // TODO: consider creating local tree and returning it (for benchmarking or similar)
 
             // sorting attractors for easier work
             var attractors = new List<Attractor>(agent.Attractors);
-            attractors.Sort((t, s) => t.Weight <= s.Weight ? (t.Weight < s.Weight ? -1 : 0) : 1);
+            attractors = attractors.OrderBy(a => a.Weight).ToList();
 
-            for (int i = 0; i < MaxTime; i++)
+            // create necessary locals
+            var attractorFirst = attractors.First();
+            var attractorLast = attractors.Last();  // TODO: last attractor has too big radius (~5 units for 0.04 step); fix!
+
+            float mu = attractorFirst.Weight;
+            float sigma = (attractorLast.Weight - attractorFirst.Weight) / 3.0f;  // TODO: check distribution!
+
+            for (int i = 0; i < MaxTime; i++)  // TODO: rename to TimeLimit?
             {
                 //if (i % _trimPeriod == 0 && i != 0)
                 //    agent.Tree.Trim(obstacles, contestant, solver);
 
-                // generating normally distributed value
-                float num = RandomThreadStatic.NextGaussian(attractors[0].Weight, (attractors[attractors.Count - 1].Weight - attractors[0].Weight) / 3);  // TODO: check distribution!
+                // generating normally distributed weight
+                float num = RandomThreadStatic.NextGaussian(mu, sigma);
 
                 // extracting the index of the most relevant attractor
                 int index = attractors.NearestIndex(num, a => a.Weight);
 
-                float radius = attractors[index].Radius, x, yPos, y, zPos, z;
-
-                // generating point of attraction (inside the attractor's field) for tree
-                x = -radius + (float)Rng.NextDouble() * 2 * radius;
-                yPos = (float)Math.Sqrt(radius * radius - x * x);
-                y = -yPos + (float)Rng.NextDouble() * 2 * yPos;
-                zPos = (float)Math.Sqrt(radius * radius - x * x - y * y);
-                z = -zPos + (float)Rng.NextDouble() * 2 * zPos;
-
-                Vector3 p = new Vector3(x, y, z) + attractors[index].Center;
+                Vector3 p = attractors[index].Center;
 
                 // finding the closest node to the generated point
                 Tree.Node minNode = agent.Tree.Min(p);
@@ -95,7 +95,7 @@ namespace Logic.PathPlanning
 
                             // check for exit condition
                             if (isClose && index == 0)
-                                attractors[0].InliersCount++;
+                                attractorFirst.InliersCount++;
                         }
                     }
                 }
@@ -109,7 +109,7 @@ namespace Logic.PathPlanning
             Tree.Node start = agent.Tree.Min(agent.Goal);
 
             List<Vector3> path = agent.Tree.TraversePath(start).Reverse().ToList();
-            List<MathNet.Numerics.LinearAlgebra.Vector<float>> configs = agent.Tree.TraverseConfigs(start).Reverse().ToList();
+            List<VectorFloat> configs = agent.Tree.TraverseConfigs(start).Reverse().ToList();
 
             return (path, configs);
         }

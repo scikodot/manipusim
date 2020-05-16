@@ -28,7 +28,7 @@ namespace Logic
 
         public Link[] Links;
         public Joint[] Joints;
-        public float WorkspaceRadius;
+        public float WorkspaceRadius { get; }
 
         public Vector3 Base => Joints[0].Position;
 
@@ -84,7 +84,7 @@ namespace Logic
 
             UpdateStateDesign();
 
-            WorkspaceRadius = Links.Sum(link => link.Length) + Joints.Sum(joint => 2 * joint.Radius);
+            WorkspaceRadius = Links.Sum(link => link.Length) + 2 * Joints.Sum(joint => joint.Radius);
             
             Goal = data.Goal;
 
