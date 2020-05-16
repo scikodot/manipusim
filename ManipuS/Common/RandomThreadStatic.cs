@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 public static class RandomThreadStatic
 {
@@ -40,16 +41,21 @@ public static class RandomThreadStatic
 
     public static double NextDouble(double rangeLimit)
     {
-        return NextDouble(-rangeLimit, rangeLimit);
+        return Instance.NextDouble(rangeLimit);
     }
 
     public static double NextDouble(double minValue, double maxValue)
     {
-        return minValue + Instance.NextDouble() * (maxValue - minValue);
+        return Instance.NextDouble(minValue, maxValue);
     }
 
     public static float NextGaussian(float mu, float sigma)
     {
         return Instance.NextGaussian(mu, sigma);
+    }
+
+    public static Vector3 NextPoint3D(float range)
+    {
+        return Instance.NextPoint3D(range);
     }
 }

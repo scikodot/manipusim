@@ -14,6 +14,7 @@ namespace Graphics
     {
         private readonly Queue<uint> _freeIndices = new Queue<uint>();
         private uint _freeTop;
+        private int _maxSize;
 
         public Model Model { get; }
         public bool IsSetup => Model.IsSetup;
@@ -22,6 +23,9 @@ namespace Graphics
         {
             // create an empty model with the specified max buffer size and material
             Model = new Model(new MeshVertex[maxSize], new uint[2 * maxSize], material);
+
+            // memoise max size
+            _maxSize = maxSize;
         }
 
         public void Render(Shader shader)
@@ -34,8 +38,8 @@ namespace Graphics
 
         public void Reset()
         {
-            Model.Meshes[0].UpdateVertices(0, 10000, new MeshVertex[10000]);
-            Model.Meshes[0].UpdateIndices(0, 20000, new uint[20000]);
+            Model.Meshes[0].UpdateVertices(0, _maxSize, new MeshVertex[_maxSize]);
+            Model.Meshes[0].UpdateIndices(0, 2 * _maxSize, new uint[2 * _maxSize]);
 
             _freeIndices.Clear();
             _freeTop = 0;

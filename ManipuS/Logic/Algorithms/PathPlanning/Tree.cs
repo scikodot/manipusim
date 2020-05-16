@@ -7,10 +7,11 @@ using System.Numerics;
 using Logic.InverseKinematics;
 
 using MoreLinq.Extensions;
-using ImGuiNET;
 
 namespace Logic.PathPlanning
 {
+    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+
     public enum TreeBehaviour
     {
         Cyclic,
@@ -26,9 +27,9 @@ namespace Logic.PathPlanning
             public List<Node> Childs { get; set; }
 
             public Vector3 Point { get; private set; }
-            public MathNet.Numerics.LinearAlgebra.Vector<float> q { get; private set; }
+            public VectorFloat q { get; private set; }
 
-            public Node(Node parent, Vector3 point, MathNet.Numerics.LinearAlgebra.Vector<float> q)
+            public Node(Node parent, Vector3 point, VectorFloat q)
             {
                 Parent = parent;
                 Childs = new List<Node>();
@@ -134,7 +135,7 @@ namespace Logic.PathPlanning
             DelBuffer.Enqueue(node);
         }
 
-        public Node Min(Vector3 point)
+        public Node Closest(Vector3 point)
         {
             return Nodes.MinBy(x => x.Point.DistanceTo(point)).First();
         }
@@ -213,7 +214,22 @@ namespace Logic.PathPlanning
             }
         }
 
-        public IEnumerable<Vector3> TraversePath(Node node)
+        public Path GetPath(Manipulator manipulator, Node node)
+        {
+            var configs = GetConfigs(node);
+            return new Path(configs.Select(config =>  // TODO: refactor! probably will have to add joints positions to tree nodes (same as for path)
+            {
+                manipulator.q = config;
+                return manipulator.DKP;
+            }), configs);
+        }
+
+        public IEnumerable<Vector3> GetPoints(Node node)
+        {
+            return TraversePoints(node).Reverse();
+        }
+
+        private IEnumerable<Vector3> TraversePoints(Node node)
         {
             while (node.Parent != null)
             {
@@ -223,7 +239,12 @@ namespace Logic.PathPlanning
             yield return node.Point;
         }
 
-        public IEnumerable<MathNet.Numerics.LinearAlgebra.Vector<float>> TraverseConfigs(Node node)
+        public IEnumerable<VectorFloat> GetConfigs(Node node)
+        {
+            return TraverseConfigs(node).Reverse();
+        }
+
+        private IEnumerable<VectorFloat> TraverseConfigs(Node node)
         {
             while (node.Parent != null)
             {

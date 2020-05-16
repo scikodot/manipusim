@@ -8,6 +8,7 @@ namespace Logic.PathPlanning
 {
     public enum PathPlannerType
     {
+        RRT,
         DynamicRRT,
         GeneticAlgorithm
     }
@@ -37,6 +38,6 @@ namespace Logic.PathPlanning
             CollisionCheck = collisionCheck;
         }
 
-        public abstract (List<Vector3>, List<MathNet.Numerics.LinearAlgebra.Vector<float>>) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver);
+        public abstract Path Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver);
     }
 }

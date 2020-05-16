@@ -503,8 +503,8 @@ namespace Graphics
 
             // create new models for the manipulator goal, path and tree
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
-            _treeModels.Add(new TreeModel(10000, MeshMaterial.Black));
-            _pathModels.Add(new PathModel(10000, MeshMaterial.Red));
+            _treeModels.Add(new TreeModel(10001, MeshMaterial.Black));
+            _pathModels.Add(new PathModel(10001, MeshMaterial.Red));
         }
 
         private void RenderObstaclesWindow()
@@ -781,6 +781,9 @@ namespace Graphics
             {
                 switch (manipulator.Controller.PathPlannerType)
                 {
+                    case PathPlannerType.RRT:
+                        manipulator.Controller.PathPlanner = new RRT(PB.k, false, PB.d);
+                        break;
                     case PathPlannerType.DynamicRRT:
                         manipulator.Controller.PathPlanner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
                         break;
@@ -793,12 +796,17 @@ namespace Graphics
             // path planner properties
             ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
 
-            if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)  // TODO: add attractors property
+            if (manipulator.Controller.PathPlanner is RRT rrt)
             {
                 ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
                 ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);
-                ImGui.InputFloat("Step", ref dynamicRRT.Step);
-                ImGui.InputInt("Trim period", ref dynamicRRT.TrimPeriod);
+                ImGui.InputFloat("Step", ref rrt.Step);
+                ImGui.InputFloat("Threshold", ref rrt.Threshold);
+
+                if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)  // TODO: add attractors property
+                {
+                    ImGui.InputInt("Trim period", ref dynamicRRT.TrimPeriod);
+                }
             }
             // TODO: add GeneticAlgorithm
 
@@ -1008,6 +1016,11 @@ namespace Graphics
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
                         Manipulator manip = ManipulatorHandler.Manipulators[i];
+                        if (manip.Tree != null)
+                        {
+                            Console.SetCursorPosition(0, 10);
+                            Console.WriteLine(manip.Tree.Count);
+                        }
 
                         // manipulator's path
                         if (manip.Path != null)

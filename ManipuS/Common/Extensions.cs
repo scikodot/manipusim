@@ -35,7 +35,7 @@ public static class ArrayExtensions
 
 public static class ListExtensions
 {
-    public static int NearestIndex<T>(this List<T> list, float value, Func<T, float> converter)
+    public static int IndexOfNearest<T>(this List<T> list, float value, Func<T, float> converter)
     {
         // return first/last if the value is outside the list
         if (value < converter(list[0]))

@@ -100,15 +100,9 @@ namespace Logic
             CreateAttractors();
 
             // execute path planning
-            var res = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
+            Agent.Path = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
 
-            // accumulate results
-            var contestant = Agent.DeepCopy();
-            Agent.Path = new Path(res.Item2.Select(x =>
-            {
-                contestant.q = x;
-                return contestant.DKP;  // TODO: rename to DirectKinematics or JointPositions
-            }), res.Item2);
+            Manipulator contestant = Agent.DeepCopy();
 
             // execute motion control
             Path.Node gripperPos = Agent.Path.Current;

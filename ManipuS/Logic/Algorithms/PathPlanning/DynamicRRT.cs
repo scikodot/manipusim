@@ -1,96 +1,76 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using BulletSharp;
+
 using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
-    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
-
-    class DynamicRRT : PathPlanner
+    class DynamicRRT : RRT
     {
-        private float _step;
-        public ref float Step => ref _step;
-
         private int _trimPeriod;
         public ref int TrimPeriod => ref _trimPeriod;
 
-        public DynamicRRT(int maxTime, bool collisionCheck, float step, int trimPeriod) : base(maxTime, collisionCheck)
+        public DynamicRRT(int maxTime, bool collisionCheck, float step, int trimPeriod) : base(maxTime, collisionCheck, step)
         {
-            _step = step;
             _trimPeriod = trimPeriod;
         }
 
-        public override (List<Vector3>, List<VectorFloat>) Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
+        public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
-            var contestant = agent.DeepCopy();
+            Manipulator agentCopy = agent.DeepCopy();
 
             // creating new tree
             agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));  // TODO: consider creating local tree and returning it (for benchmarking or similar)
 
             // sorting attractors for easier work
-            var attractors = new List<Attractor>(agent.Attractors);
+            List<Attractor> attractors = new List<Attractor>(agent.Attractors);
             attractors = attractors.OrderBy(a => a.Weight).ToList();
 
             // create necessary locals
-            var attractorFirst = attractors.First();
-            var attractorLast = attractors.Last();  // TODO: last attractor has too big radius (~5 units for 0.04 step); fix!
+            Attractor attractorFirst = attractors.First();
+            Attractor attractorLast = attractors.Last();  // TODO: last attractor has too big radius (~5 units for 0.04 step); fix!
 
             float mu = attractorFirst.Weight;
             float sigma = (attractorLast.Weight - attractorFirst.Weight) / 3.0f;  // TODO: check distribution!
 
             for (int i = 0; i < MaxTime; i++)  // TODO: rename to TimeLimit?
             {
-                //if (i % _trimPeriod == 0 && i != 0)
-                //    agent.Tree.Trim(obstacles, contestant, solver);
+                if (i % _trimPeriod == 0 && i != 0)
+                    agent.Tree.Trim(obstacles, agentCopy, solver);
 
-                // generating normally distributed weight
+                // generate normally distributed weight
                 float num = RandomThreadStatic.NextGaussian(mu, sigma);
 
-                // extracting the index of the most relevant attractor
-                int index = attractors.NearestIndex(num, a => a.Weight);
+                // get the index of the most relevant attractor
+                int index = attractors.IndexOfNearest(num, a => a.Weight);
 
-                Vector3 p = attractors[index].Center;
+                // generate sample
+                Vector3 sample = attractors[index].Center;
 
-                // finding the closest node to the generated point
-                Tree.Node minNode = agent.Tree.Min(p);
+                // find the closest node to the generated point
+                Tree.Node nodeClosest = agent.Tree.Closest(sample);
 
-                // creating offset vector to new node
-                Vector3 pNew = minNode.Point + Vector3.Normalize(p - minNode.Point) * _step;
+                // get new tree node point
+                Vector3 point = nodeClosest.Point + Vector3.Normalize(sample - nodeClosest.Point) * _step;
 
-                bool isClose = pNew.DistanceTo(attractors[index].Center) < attractors[index].Radius;
+                bool isClose = point.DistanceTo(attractors[index].Center) < attractors[index].Radius;
                 if (isClose && index != 0)
                 {
-                    // removing attractor if it has been hit
+                    // remove attractor if it has been hit
                     attractors.RemoveAt(index);
                 }
                 else
                 {
-                    // checking for collisions of the new node
-                    bool collision = false;
-                    if (CollisionCheck)
+                    if (!IsOutlier(point))
                     {
-                        foreach (var obst in obstacles)
+                        // solve inverse kinematics for the new node
+                        agentCopy.q = nodeClosest.q;
+                        (var converged, var distance, var offset, var collisions) = solver.Execute(obstacles, agentCopy, point, agentCopy.Joints.Length - 1);
+                        if (converged && !(CollisionCheck && collisions.Contains(true)))
                         {
-                            if (obst.Contains(pNew))
-                            {
-                                collision = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!collision)
-                    {
-                        // solving IKP for new node
-                        contestant.q = minNode.q;
-                        var res = solver.Execute(obstacles, contestant, pNew, contestant.Joints.Length - 1);
-                        if (res.Item1 && !(CollisionCheck && res.Item4.Contains(true)))
-                        {
-                            // adding node to the tree
-                            Tree.Node node = new Tree.Node(minNode, contestant.GripperPos, contestant.q);
+                            // add node to the tree
+                            Tree.Node node = new Tree.Node(nodeClosest, agentCopy.GripperPos, agentCopy.q);
                             agent.Tree.AddNode(node);
 
                             // check for exit condition
@@ -100,18 +80,13 @@ namespace Logic.PathPlanning
                     }
                 }
 
-                // stopping in case the main attractor has been hit
-                //if (attractors[0].InliersCount != 0)
+                // stop in case the main attractor has been hit
+                //if (attractorFirst.InliersCount != 0)
                 //    break;
             }
 
-            // retrieving resultant path along with respective configurations
-            Tree.Node start = agent.Tree.Min(agent.Goal);
-
-            List<Vector3> path = agent.Tree.TraversePath(start).Reverse().ToList();
-            List<VectorFloat> configs = agent.Tree.TraverseConfigs(start).Reverse().ToList();
-
-            return (path, configs);
+            // retrieve resultant path along with respective configurations
+            return agent.Tree.GetPath(agentCopy, agent.Tree.Closest(goal));  // TODO: refactor!
         }
     }
 }
