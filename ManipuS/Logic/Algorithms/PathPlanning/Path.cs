@@ -6,6 +6,8 @@ using System.Numerics;
 
 namespace Logic.PathPlanning
 {
+    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+
     public class Path
     {
         public class Node
@@ -14,10 +16,10 @@ namespace Logic.PathPlanning
             public Node Parent { get; set; }
             public Node Child { get; set; }
 
-            public Vector3[] Points { get; private set; }
-            public MathNet.Numerics.LinearAlgebra.Vector<float> q { get; private set; }
+            public Vector3[] Points { get; set; }
+            public VectorFloat q { get; set; }
 
-            public Node(Node parent, Vector3[] point, MathNet.Numerics.LinearAlgebra.Vector<float> q)
+            public Node(Node parent, Vector3[] point, VectorFloat q)
             {
                 // assign the parent to the current node's parent
                 Parent = parent;
@@ -41,7 +43,7 @@ namespace Logic.PathPlanning
                 this.q = q;
             }
 
-            public void Change(Vector3[] point, MathNet.Numerics.LinearAlgebra.Vector<float> config)
+            public void Change(Vector3[] point, VectorFloat config)
             {
                 Points = point;
                 q = config;
@@ -65,6 +67,15 @@ namespace Logic.PathPlanning
                     return hashCode;
                 }
             }
+
+            public Node ShallowCopy()
+            {
+                var node = (Node)MemberwiseClone();
+
+                q.CopyTo(node.q);
+
+                return node;
+            }
         }
 
         public HashSet<Node> Nodes = new HashSet<Node>();
@@ -76,9 +87,9 @@ namespace Logic.PathPlanning
         public Node Current { get; private set; }
         public int Count => Nodes.Count();
 
-        public Path(IEnumerable<Vector3[]> points, IEnumerable<MathNet.Numerics.LinearAlgebra.Vector<float>> configs) : this(ConstructPath(points, configs)) { }
+        public Path(IEnumerable<Vector3[]> points, IEnumerable<VectorFloat> configs) : this(ConstructPath(points, configs)) { }
 
-        private static IEnumerable<Node> ConstructPath(IEnumerable<Vector3[]> points, IEnumerable<MathNet.Numerics.LinearAlgebra.Vector<float>> configs)
+        private static IEnumerable<Node> ConstructPath(IEnumerable<Vector3[]> points, IEnumerable<VectorFloat> configs)
         {
             Node parent = null;
             return points.Zip(configs, (p, c) =>
@@ -99,7 +110,7 @@ namespace Logic.PathPlanning
             Current = First;
         }
 
-        public IEnumerable<T> Select<T>(Func<Node, T> func)
+        public IEnumerable<T> Select<T>(Func<Node, T> func)  // TODO: remove IEnumerables!
         {
             var current = First;
             while (current != null)
@@ -143,7 +154,7 @@ namespace Logic.PathPlanning
             DelBuffer.Enqueue(node);
         }
 
-        public void ChangeNode(Node node, Vector3[] point, MathNet.Numerics.LinearAlgebra.Vector<float> config)
+        public void ChangeNode(Node node, Vector3[] point, VectorFloat config)
         {
             DelBuffer.Enqueue(node);
 
@@ -152,7 +163,7 @@ namespace Logic.PathPlanning
             AddBuffer.Enqueue(node);
         }
 
-        public MathNet.Numerics.LinearAlgebra.Vector<float> Follow()
+        public VectorFloat Follow()
         {
             // move to the next node
             if (Current.Child != null)
@@ -160,6 +171,49 @@ namespace Logic.PathPlanning
 
             // return the config of that node
             return Current.q;
+        }
+
+        //public IEnumerable<Vector3> GetGripperPath()
+        //{
+        //    var current = First;
+        //    while (current != null)
+        //    {
+        //        yield return current.Points[current.Points.Length - 1];
+        //        current = current.Child;  // TODO: might be not executed; check
+        //    }
+        //}
+
+        public Path DeepCopy()
+        {
+            return new Path(DeepCopyNodes());
+        }
+
+        private List<Node> DeepCopyNodes()
+        {
+            var nodes = new List<Node>();
+
+            var current = First;
+            Node previous = null;
+            while (current != null)
+            {
+                current = current.ShallowCopy();
+
+                if (previous != null)
+                {
+                    previous.Child = current;
+                    current.Parent = previous;
+                }
+
+                nodes.Add(current);
+
+                previous = current;
+                current = current.Child;
+
+                //nodes.Add(current);
+                //current = current.Child;
+            }
+
+            return nodes;
         }
     }
 }

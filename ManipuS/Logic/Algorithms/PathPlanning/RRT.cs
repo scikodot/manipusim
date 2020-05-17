@@ -29,7 +29,7 @@ namespace Logic.PathPlanning
             for (int i = 0; i < MaxTime; i++)
             {
                 // generate sample
-                Vector3 sample = RandomThreadStatic.NextPoint3D(agent.WorkspaceRadius);
+                Vector3 sample = RandomThreadStatic.NextPoint3D(agent.WorkspaceRadius);  // TODO: the base position is not taken into account; fix!
 
                 // find the closest node to the generated sample point
                 Tree.Node nodeClosest = agent.Tree.Closest(sample);

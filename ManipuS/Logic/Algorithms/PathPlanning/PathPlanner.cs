@@ -25,7 +25,7 @@ namespace Logic.PathPlanning
     {
         public static string[] Types { get; } = Enum.GetNames(typeof(PathPlannerType));
 
-        protected static Random Rng = new Random();
+        protected static Random Rng { get; } = new Random();
 
         protected bool CollisionCheck;
 

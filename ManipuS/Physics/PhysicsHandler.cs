@@ -121,7 +121,7 @@ namespace Physics
             }
         }
 
-        public static void Dispose()
+        public static void Dispose()  // TODO: can crash; examine!
         {
             // remove/dispose of constraints
             for (int i = World.NumConstraints - 1; i >= 0; i--)

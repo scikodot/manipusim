@@ -126,7 +126,7 @@ namespace Logic
             var defaultPlanner = _defaultPathPlanner;
 
             var solver = new JacobianTranspose(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime);
-            var planner = new DynamicRRT(defaultPlanner.k, true, defaultPlanner.d, defaultPlanner.k / 10);
+            var planner = new GeneticAlgorithm(defaultPlanner.k, true, 10, 0.95f, 0.1f);  /*new DynamicRRT(defaultPlanner.k, true, defaultPlanner.d, defaultPlanner.k / 10);*/
             manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
                    new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime), 2 * defaultPlanner.d);
 
@@ -257,34 +257,6 @@ namespace Logic
 
         public static void Plan(Manipulator manip)
         {
-            //var AD = WorkspaceBuffer.AlgBuffer;
-
-            /*// generating random tree
-            var solver = new HillClimbing(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
-            var planner = new RRT(Obstacles, solver, AD.k, true, AD.d);
-            PathPlanner pp = planner;
-            var resRRT = pp.Execute(manip, null);
-
-            // acquiring all the Vector3s and configurations along the path
-            manip.Path = resRRT.Item1;
-            manip.States["Path"] = true;
-            manip.Configs = resRRT.Item2;*/
-
-            /*// generating random tree
-            var solver = new HillClimbing(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
-            var planner = new DynamicRRT(Obstacles, solver, AD.k, true, AD.d, AD.k / 100);
-            PathPlanner pp = planner;
-            var resRRT = pp.Execute(manip, null);
-
-            // acquiring all the Vector3s and configurations along the path
-            manip.Path = resRRT.Item1;
-            manip.States["Path"] = true;
-            manip.Configs = resRRT.Item2;*/
-
-            /*var solver = new Jacobian(Obstacles, AD.Precision, AD.StepSize, AD.MaxTime);  // TODO: solvers should be declared inside planners!
-            var planner = new DynamicRRT(Obstacles, solver, AD.k, true, AD.d, AD.k / 100);
-            planner.Start(manip, Vector3.Zero);*/
-
             /*var resGA = PathPlanner.GeneticAlgorithm(manip, Obstacles, manip.Goal, resRRT.Item2.ToArray(), 
                 0.99, manip.Joints.Length, 20, 0.95, 0.1, 10000, 
                 PathPlanner.OptimizationCriterion.CollisionFree, 
@@ -292,25 +264,13 @@ namespace Logic
                 PathPlanner.CrossoverMode.WeightedMean, 
                 t => t * Math.PI / 180);*/
 
-            /*var input = new (Vector3, float[])[resRRT.Item1.Count];
-            for (int i = 0; i < input.Length; i++)
-            {
-                input[i].Item1 = resRRT.Item1[i];
-                input[i].Item2 = resRRT.Item2[i];
-            }
-
-            var jac = new Jacobian(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime);
+            /*var jac = new Jacobian(Obstacles, manip.q.Length, AD.Precision, AD.StepSize, AD.MaxTime);
             var resGA = PathPlanner.GeneticAlgorithmD(manip, Obstacles, manip.Goal, jac, 
                 input, 0.99, manip.Joints.Length, 4, 0.95, 0.1, 10000,
                 PathPlanner.OptimizationCriterion.CollisionFree,
                 PathPlanner.SelectionMode.NormalDistribution,
                 PathPlanner.CrossoverMode.WeightedMean,
-                t => t * Math.PI / 180);
-
-            // acquiring all the Vector3s and configurations along the path
-            manip.Path = resGA.Item1;
-            manip.States["Path"] = true;
-            manip.Configs = resGA.Item2;*/
+                t => t * Math.PI / 180);*/
         }
     }
 }

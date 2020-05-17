@@ -11,7 +11,7 @@ namespace Logic.InverseKinematics
 
         public JacobianTranspose(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
 
-        public override (bool, float, VectorFloat, bool[]) Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, int joint = -1)
+        public override (bool, float, VectorFloat, bool[]) Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, int joint = -1)
         {
             // use gripper if default joint
             if (joint == -1)
@@ -43,7 +43,7 @@ namespace Logic.InverseKinematics
             }
 
             // checking for collisions of the found configuration
-            bool[] collisions = DetectCollisions(agent, Obstacles);
+            bool[] collisions = DetectCollisions(agent, obstacles);
             var dist = agent.Joints[joint].Position.DistanceTo(goal);
 
             return (true, dist, agent.q - initConfig, collisions);

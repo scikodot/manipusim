@@ -41,6 +41,7 @@ namespace Graphics
         private readonly List<Model> _goalModels = new List<Model>();
         private readonly List<TreeModel> _treeModels = new List<TreeModel>();
         private readonly List<PathModel> _pathModels = new List<PathModel>();
+        private readonly List<PathModel> _gaModels = new List<PathModel>();
 
         private static float time = 0;
         private static bool forward;
@@ -78,6 +79,15 @@ namespace Graphics
             //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
             //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.Triangulate);
             //manptr = Assimp.Scene.FromUnmanagedScene(ptr);
+
+            Path.Node node1 = new Path.Node(null, new System.Numerics.Vector3[] { new System.Numerics.Vector3(0, 1, 2) }, null);
+            Path.Node node2 = new Path.Node(null, new System.Numerics.Vector3[] { new System.Numerics.Vector3(3, 4, 5) }, null);
+            Path.Node node3 = new Path.Node(null, new System.Numerics.Vector3[] { new System.Numerics.Vector3(6, 7, 8) }, null);
+            HashSet<Path.Node> path = new HashSet<Path.Node>() { node1, node2, node3 };
+
+            HashSet<Path.Node> path2 = new HashSet<Path.Node>(path);
+
+            node2.Points = new System.Numerics.Vector3[] { new System.Numerics.Vector3(9, 10, 11) };
 
             ManipulatorHandler.LoadDefaultModels();
 
@@ -270,6 +280,13 @@ namespace Graphics
             {
                 if (tree.IsSetup)
                     tree.Render(ShaderHandler.ComplexShader);
+            }
+
+            // render genetic algorithm paths
+            foreach (var path in _gaModels)
+            {
+                if (path.IsSetup)
+                    path.Render(ShaderHandler.ComplexShader);
             }
 
             // workspace grid
@@ -505,6 +522,7 @@ namespace Graphics
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
             _treeModels.Add(new TreeModel(10001, MeshMaterial.Black));
             _pathModels.Add(new PathModel(10001, MeshMaterial.Red));
+            _gaModels.Add(new PathModel(10001, MeshMaterial.Black));
         }
 
         private void RenderObstaclesWindow()
@@ -1037,6 +1055,21 @@ namespace Graphics
                         {
                             // update tree model state
                             _treeModels[i].Update(i);
+                        }
+
+                        if (GeneticAlgorithm.Dominant != null && GeneticAlgorithm.Changed)
+                        {
+                            _gaModels[i].Reset();
+
+                            GeneticAlgorithm.Locked = true;
+
+                            var toAdd = GeneticAlgorithm.Dominant.AddBuffer.DequeueAll().ToList();
+                            var toRemove = GeneticAlgorithm.Dominant.DelBuffer.DequeueAll().ToList();
+
+                            _gaModels[i].AddNodes(toAdd);
+                            _gaModels[i].RemoveNodes(toRemove);
+
+                            GeneticAlgorithm.Locked = GeneticAlgorithm.Changed = false;
                         }
                     }
 

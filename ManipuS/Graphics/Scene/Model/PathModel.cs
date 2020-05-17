@@ -49,7 +49,7 @@ namespace Graphics
             RemoveNodes(toRemove);
         }
 
-        private void AddNodes(List<Path.Node> nodes)
+        public void AddNodes(List<Path.Node> nodes)
         {
             foreach (var node in nodes)
             {
@@ -79,7 +79,7 @@ namespace Graphics
             }
         }
 
-        private void RemoveNodes(List<Path.Node> nodes)
+        public void RemoveNodes(List<Path.Node> nodes)
         {
             // sort nodes list for sequential buffer filling
             nodes = nodes.OrderBy(x => x.ID).ToList();
