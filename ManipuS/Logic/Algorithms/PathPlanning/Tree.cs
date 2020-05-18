@@ -7,6 +7,7 @@ using System.Numerics;
 using Logic.InverseKinematics;
 
 using MoreLinq.Extensions;
+using Physics;
 
 namespace Logic.PathPlanning
 {
@@ -178,7 +179,7 @@ namespace Logic.PathPlanning
                         foreach (var child in childs)
                         {
                             contestant.q = child.q;
-                            if (solver.DetectCollisions(contestant, obstacles).Contains(true))
+                            if (contestant.CollisionTest().Contains(true))
                             {
                                 RemoveNode(child);
                             }
@@ -201,7 +202,7 @@ namespace Logic.PathPlanning
         public void TrimRecursive(Obstacle[] obstacles, Manipulator contestant, InverseKinematicsSolver solver, Node node)
         {
             contestant.q = node.q;
-            if (solver.DetectCollisions(contestant, obstacles).Contains(true))
+            if (contestant.CollisionTest().Contains(true))
             {
                 RemoveNode(node);
                 return;

@@ -133,7 +133,7 @@ namespace Graphics
 
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
-                PhysicsHandler.World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
+                PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
                 if (mouseState.RightButton == ButtonState.Pressed && _lastState.RightButton == ButtonState.Released)  // TODO: consider using right button for selecting objects
                 {
                     if (raycastCallback.HasHit)

@@ -1066,11 +1066,11 @@ namespace Graphics
 
                             GeneticAlgorithm.Locked = true;
 
-                            var toAdd = GeneticAlgorithm.Dominant.Item2.AddBuffer.DequeueAll().ToList();
-                            var toRemove = GeneticAlgorithm.Dominant.Item2.DelBuffer.DequeueAll().ToList();
+                            //var toAdd = GeneticAlgorithm.Dominant.Item2.AddBuffer.DequeueAll().ToList();
+                            //var toRemove = GeneticAlgorithm.Dominant.Item2.DelBuffer.DequeueAll().ToList();
 
-                            _gaModels[i].AddNodes(toAdd);
-                            _gaModels[i].RemoveNodes(toRemove);
+                            //_gaModels[i].AddNodes(toAdd);
+                            //_gaModels[i].RemoveNodes(toRemove);
 
                             _bezierPoints = new Model(GeneticAlgorithm.Dominant.Item1.Points.Select(point => new MeshVertex
                             {

@@ -114,7 +114,7 @@ namespace Physics
 
         public bool CollisionPairTest(Collider other)
         {
-            PhysicsHandler.World.ContactPairTest(Body, other.Body, CollisionCallback);  // TODO: maintain thread sync!
+            PhysicsHandler.ContactPairTest(Body, other.Body, CollisionCallback);
             if (CollisionCallback.IsCalled)
             {
                 CollisionCallback.IsCalled = false;
@@ -128,7 +128,7 @@ namespace Physics
 
         public bool CollisionTest()
         {
-            PhysicsHandler.World.ContactTest(Body, CollisionCallback);  // TODO: maintain thread sync!
+            PhysicsHandler.ContactTest(Body, CollisionCallback);
             if (CollisionCallback.IsCalled)
             {
                 CollisionCallback.IsCalled = false;

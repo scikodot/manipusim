@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Numerics;
 
 using Logic.InverseKinematics;
+using Physics;
 
 namespace Logic.PathPlanning
 {
@@ -66,8 +68,8 @@ namespace Logic.PathPlanning
                     {
                         // solve inverse kinematics for the new node
                         agentCopy.q = nodeClosest.q;
-                        (var converged, var distance, var offset, var collisions) = solver.Execute(obstacles, agentCopy, point, agentCopy.Joints.Length - 1);
-                        if (converged && !(CollisionCheck && collisions.Contains(true)))
+                        (var converged, var distance, var offset) = solver.Execute(agentCopy, point, agentCopy.Joints.Length - 1);
+                        if (converged && !(CollisionCheck && agent.CollisionTest().Contains(true)))
                         {
                             // add node to the tree
                             Tree.Node node = new Tree.Node(nodeClosest, agentCopy.GripperPos, agentCopy.q);

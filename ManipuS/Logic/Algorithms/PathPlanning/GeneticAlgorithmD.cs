@@ -11,6 +11,7 @@ using Physics;
 using Vector3 = System.Numerics.Vector3;
 using Vector2 = OpenTK.Vector2;
 using System.Drawing;
+using System.Threading.Tasks;
 
 namespace Logic.PathPlanning
 {
@@ -104,7 +105,7 @@ namespace Logic.PathPlanning
         private CrossoverMode _crossoverMode = CrossoverMode.WeightedMean;
         public ref CrossoverMode CrossoverMode => ref _crossoverMode;
 
-        private Manipulator _agentCopy;
+        private Manipulator _agent, _agentCopy;
         private InverseKinematicsSolver _solver;
         private Vector3 _goal;
 
@@ -112,7 +113,7 @@ namespace Logic.PathPlanning
         public static volatile bool Locked;
         public static volatile bool Changed;
 
-        private float step = 0.005f;
+        private float step = 0.015f;
 
         private float sqrt2pi = 1 / (float)Math.Sqrt(2 * Math.PI);
 
@@ -129,6 +130,7 @@ namespace Logic.PathPlanning
             // algorithm parameters
             int offspringSize = 4, survivalSize = 10;
 
+            _agent = agent;
             _agentCopy = agent.DeepCopy();
             _goal = goal;
             _solver = solver;
@@ -163,7 +165,7 @@ namespace Logic.PathPlanning
 
                 if (!Locked)
                 {
-                    if (generation[0].Item3 < Dominant.Item3)
+                    //if (generation[0].Item3 < Dominant.Item3)
                     {
                         Dominant = generation[0];
                         Changed = true;
@@ -180,22 +182,40 @@ namespace Logic.PathPlanning
 
         private Path ConstructPath(BezierCurve bezierCurve, float step)
         {
-            var points = BezierPoints(bezierCurve, step);
-            var zeros = new VectorFloat[points.Count];
-            zeros.Fill(_agentCopy.q);
-            var configs = new List<VectorFloat>(zeros);
+            //var bezierPoints = BezierPoints(bezierCurve, step);
+            //var zeros = new VectorFloat[points.Count];
+            //zeros.Fill(_agentCopy.q);
+            //var configs = new List<VectorFloat>(zeros);
+
+            float counter = 0;
+
+            // reset agent
+            _agentCopy.q = _agent.q;
+
+            var points = new List<Vector3[]> { _agentCopy.DKP };
+            var configs = new List<VectorFloat> { _agentCopy.q };
+            //Vector2 goal = bezierCurve.CalculatePoint(counter);
+            while (counter <= 1/*_agentCopy.GripperPos.DistanceTo(new Vector3(0, goal.Y, goal.X)) > 0.04*/)
+            {
+                var bezierPoint = bezierCurve.CalculatePoint(counter);
+                _solver.Execute(_agentCopy, new Vector3(0, bezierPoint.Y, bezierPoint.X), _agentCopy.Joints.Length - 1);
+                points.Add(_agentCopy.DKP);
+                configs.Add(_agentCopy.q);
+
+                counter += step;
+            }
             return new Path(points, configs);
         }
 
-        private List<Vector3[]> BezierPoints(BezierCurve bezierCurve, float step)
+        private List<Vector3> BezierPoints(BezierCurve bezierCurve, float step)
         {
-            var points = new List<Vector3[]>();
+            var points = new List<Vector3>();
 
             float counter = 0;
             while (counter <= 1)
             {
                 var bezierPoint = bezierCurve.CalculatePoint(counter);
-                points.Add(new Vector3[] { new Vector3(0, bezierPoint.Y, bezierPoint.X) });
+                points.Add(new Vector3(0, bezierPoint.Y, bezierPoint.X));
                 counter += step;
             }
 
@@ -210,8 +230,18 @@ namespace Logic.PathPlanning
                 offsprings.AddRange(Reproduce(member, offspringSize));
             }
 
+            //Rate(offsprings);
+
             return Select(offsprings, survivalSize);
         }
+
+        //private void Rate(List<Chromosome> generation)
+        //{
+        //    for (int i = 0; i < generation.Count; i++)
+        //    {
+        //        generation[i] = (generation[i].Item1, generation[i].Item2, Fit(generation[i].Item2));
+        //    }
+        //}
 
         private BezierCurve Repro(BezierCurve bezierCurve)
         {
@@ -235,14 +265,6 @@ namespace Logic.PathPlanning
 
         private List<Chromosome> Reproduce(Chromosome member, int offspringSize)
         {
-            void UpdateNode(Path.Node node, Vector3 goal)
-            {
-                _agentCopy.q = node.q;
-                _solver.Execute(null, _agentCopy, goal, _agentCopy.Joints.Length - 1);
-                node.q = _agentCopy.q;
-                node.Points = _agentCopy.DKP;
-            }
-
             var repro = new List<Chromosome>();
             for (int i = 0; i < offspringSize; i++)
             {
@@ -266,6 +288,8 @@ namespace Logic.PathPlanning
             // extract parameters' values from chromosome
             foreach (var node in sample.Nodes)
             {
+                _agentCopy.q = node.q;
+
                 Vector3 currPos = node.Points[node.Points.Length - 1];
 
                 // apply fitness functions to the given chromosome's point
@@ -290,6 +314,12 @@ namespace Logic.PathPlanning
                             
                         }
                     }
+
+                    if (_agentCopy.CollisionTest().Contains(true))
+                    {
+                        pointWeight += 1;
+                    }
+
                     criteriaCount++;
                 }
                 if (_optimizationCriteria.HasFlag(OptimizationCriterion.PathLength))

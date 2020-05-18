@@ -3,6 +3,7 @@ using BulletSharp.Math;
 using Logic;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Vector3 = BulletSharp.Math.Vector3;
 
 namespace Physics
@@ -25,14 +26,40 @@ namespace Physics
         private static List<CollisionShape> _collisionShapes = new List<CollisionShape>();
         private static CollisionConfiguration _collisionConf;
 
+        private const int MaxThreadCount = 64;
+        private static ConstraintSolverPoolMultiThreaded _solverPool;
+        private static SequentialImpulseConstraintSolverMultiThreaded _parallelSolver;
+        private static List<TaskScheduler> _schedulers = new List<TaskScheduler>();
+        private static int _currentScheduler = 0;
+
+        //public static volatile bool IsUpdating;
+
         static PhysicsHandler()
         {
-            // collision configuration contains default setup for memory, collision setup
-            _collisionConf = new DefaultCollisionConfiguration();
-            _dispatcher = new CollisionDispatcher(_collisionConf);
+            CreateSchedulers();
+            NextTaskScheduler();
 
+            using (var collisionConfigurationInfo = new DefaultCollisionConstructionInfo
+            {
+                DefaultMaxPersistentManifoldPoolSize = 80000,
+                DefaultMaxCollisionAlgorithmPoolSize = 80000
+            })
+            {
+                _collisionConf = new DefaultCollisionConfiguration(collisionConfigurationInfo);
+            };
+            _dispatcher = new CollisionDispatcherMultiThreaded(_collisionConf);
             _broadphase = new DbvtBroadphase();
-            World = new DiscreteDynamicsWorld(_dispatcher, _broadphase, null, _collisionConf);
+            _solverPool = new ConstraintSolverPoolMultiThreaded(MaxThreadCount);
+            _parallelSolver = new SequentialImpulseConstraintSolverMultiThreaded();
+            World = new DiscreteDynamicsWorldMultiThreaded(_dispatcher, _broadphase, _solverPool, _parallelSolver, _collisionConf);
+            World.SolverInfo.SolverMode = SolverModes.Simd | SolverModes.UseWarmStarting;
+
+            //// collision configuration contains default setup for memory, collision setup
+            //_collisionConf = new DefaultCollisionConfiguration();
+            //_dispatcher = new CollisionDispatcherMultiThreaded(_collisionConf);
+
+            //_broadphase = new DbvtBroadphase();
+            //World = new DiscreteDynamicsWorldMultiThreaded(_dispatcher, _broadphase, null, null, _collisionConf);
 
             //World.Gravity = Vector3.Zero;
 
@@ -70,9 +97,92 @@ namespace Physics
             //}
         }
 
+        public static void NextTaskScheduler()
+        {
+            _currentScheduler++;
+            if (_currentScheduler >= _schedulers.Count)
+            {
+                _currentScheduler = 0;
+            }
+            TaskScheduler scheduler = _schedulers[_currentScheduler];
+            scheduler.NumThreads = scheduler.MaxNumThreads;
+            Threads.TaskScheduler = scheduler;
+        }
+
+        private static void CreateSchedulers()
+        {
+            AddScheduler(Threads.GetSequentialTaskScheduler());
+            AddScheduler(Threads.GetOpenMPTaskScheduler());
+            AddScheduler(Threads.GetTbbTaskScheduler());
+            AddScheduler(Threads.GetPplTaskScheduler());
+        }
+
+        private static void AddScheduler(TaskScheduler scheduler)
+        {
+            if (scheduler != null)
+            {
+                _schedulers.Add(scheduler);
+            }
+        }
+
+        public static void RayTestRef(ref Vector3 startWorld, ref Vector3 endWorld, ClosestRayResultCallback raycastCallback)
+        {
+            lock (World)
+                World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
+        }
+
+        public static void ContactPairTest(RigidBody body, RigidBody bodyOther, CollisionCallback collisionCallback)
+        {
+            lock (World)
+                World.ContactPairTest(body, bodyOther, collisionCallback);
+        }
+
+        public static void ContactTest(RigidBody body, CollisionCallback collisionCallback)
+        {
+            lock (World)
+                World.ContactTest(body, collisionCallback);
+        }
+
+        //public static bool[] CollisionTest(Manipulator manipulator)
+        //{
+        //    Vector3[] joints = manip.DKP;
+
+        //    // representing manipulator as a sequence of actuators
+        //    int actuatorsNum = 50;
+        //    List<Vector3> actuators = new List<Vector3>();
+        //    for (int i = 0; i < joints.Length - 1; i++)
+        //    {
+        //        actuators.Add(joints[i]);
+        //        for (int j = 0; j < actuatorsNum; j++)
+        //        {
+        //            actuators.Add(joints[i] + (j + 1) * (joints[i + 1] - joints[i]) / (actuatorsNum + 1));
+        //        }
+        //    }
+        //    actuators.Add(joints[joints.Length - 1]);
+
+        //    // checking collisions for all actuators
+        //    bool[] collisions = new bool[joints.Length - 1];
+        //    foreach (var obst in obstacles)
+        //    {
+        //        for (int i = 0; i < actuators.Count; i++)
+        //        {
+        //            if (obst.Contains(actuators[i]))
+        //            {
+        //                collisions[(i - 1) / (actuatorsNum + 1)] = true;
+        //                goto CollisionDetected;
+        //            }
+        //        }
+        //    }
+        //CollisionDetected:
+
+        //    return collisions;
+        //}
+
         public static void Update(float elapsedTime)
         {
-            World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
+            // lock on the world to prevent memory corruption
+            lock (World)
+                World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
         }
 
         public static void RemoveRigidBody(RigidBody body)
@@ -81,7 +191,7 @@ namespace Physics
             {
                 body.MotionState.Dispose();
             }
-            World.RemoveRigidBody(body);
+            World.RemoveRigidBody(body);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
             body.Dispose();
         }
 
