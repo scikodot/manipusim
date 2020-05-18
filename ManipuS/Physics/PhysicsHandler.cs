@@ -72,7 +72,7 @@ namespace Physics
 
         public static void Update(float elapsedTime)
         {
-            World.StepSimulation(elapsedTime);
+            World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
         }
 
         public static void RemoveRigidBody(RigidBody body)

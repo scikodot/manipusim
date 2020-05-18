@@ -5,11 +5,17 @@ using System.Numerics;
 using Assimp;
 using Logic.InverseKinematics;
 using MoreLinq;
+using OpenTK;
 using Physics;
+
+using Vector3 = System.Numerics.Vector3;
+using Vector2 = OpenTK.Vector2;
+using System.Drawing;
 
 namespace Logic.PathPlanning
 {
     using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+    using Chromosome = ValueTuple<BezierCurve, Path, float>;
 
     public enum OptimizationMode
     {
@@ -102,9 +108,11 @@ namespace Logic.PathPlanning
         private InverseKinematicsSolver _solver;
         private Vector3 _goal;
 
-        public static volatile Path Dominant;
+        public static Chromosome Dominant;
         public static volatile bool Locked;
         public static volatile bool Changed;
+
+        private float step = 0.005f;
 
         private float sqrt2pi = 1 / (float)Math.Sqrt(2 * Math.PI);
 
@@ -118,134 +126,6 @@ namespace Logic.PathPlanning
 
         public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver/*, Func<float, float> decode*/)
         {
-            #region old
-            //var chs = new ChromosomeD[_generationSize];
-            //var fit = new float[_generationSize];
-
-            //int pointsNum = _initialSolution.Length;
-            //for (int i = 0; i < _generationSize; i++)
-            //{
-            //    chs[i] = new ChromosomeD(pointsNum);
-
-            //    // define distortion amplitude as a normal distribution
-            //    int mu = RandomThreadStatic.Next(1, _initialSolution.Length - 1);
-            //    float sigma = 10;
-            //    float amp = -0.5f + 1 * (float)RandomThreadStatic.NextDouble();
-            //    float nd(int t) => amp * (float)Math.Exp(-0.5 * Math.Pow((t - mu) / sigma, 2));
-
-            //    // segment between prev and next points
-            //    Vector3 vec = _initialSolution.[mu + 1].Item1 - _initialSolution[mu - 1].Item1;
-
-            //    // get distortion direction
-            //    var x = RandomThreadStatic.NextDouble();
-            //    var y = RandomThreadStatic.NextDouble();
-            //    var z = (vec.X * x + vec.Y * y) / vec.Z;
-            //    var dir = Vector3.Normalize(new Vector3((float)x, (float)y, (float)z));
-
-            //    // apply distortion to all points except start and end
-            //    chs[i].Genes[0].Item1 = _initialSolution[0].Item1;
-            //    for (int j = 1; j < pointsNum - 1; j++)
-            //    {
-            //        chs[i].Genes[j].Item1 = _initialSolution[j].Item1 + dir * nd(j);
-            //    }
-            //    chs[i].Genes[_initialSolution.Length - 1].Item1 = initSolution[_initialSolution.Length - 1].Item1;
-
-            //    /*if (i == 0)
-            //    {
-            //        agent.Vector3s = chs[i].Genes.Select(t => t.Item1).ToArray();
-            //    }*/
-            //}
-
-            //ChromosomeD dominant = null;
-            //float max = 0;
-            //bool converged = false;
-            //int time = 0;
-            //Dispatcher.Timer.Start();
-            //while (time++ < MaxTime)
-            //{
-            //    if (time % 100 == 0)
-            //    {
-
-            //    }
-
-            //    // fitting
-            //    FitnessFunctionD(agent, obstacles, goal, solver, chs, fit, _optimizationCriteria/*, decode*/);
-
-            //    // qualification
-            //    max = fit.Max();
-
-            //    dominant = chs[Array.IndexOf(fit, max)];
-            //    //agent.Vector3s = dominant.Genes.Select(t => t.Item1).ToArray();
-
-            //    Console.SetCursorPosition(0, 10);
-            //    Console.WriteLine($"Goal fit: {pointsNum * 100}");
-            //    Console.WriteLine($"Max  fit: {max}");
-            //    Console.WriteLine("GA Time: {0}; Real time: {1}", time, Dispatcher.Timer.ElapsedTicks / 10);
-            //    //if (max > precision * Vector3sNum * 100)
-            //    if (max >= pointsNum * 100)
-            //    {
-            //        dominant = chs[Array.IndexOf(fit, max)];
-            //        converged = true;
-            //        break;
-            //    }
-
-            //    // selection
-            //    SelectionD(chs, fit, _selectionMode, OptimizationMode.Maximum);
-
-            //    // mutation
-            //    MutationD(chs, _mutationProbability, t => t + -0.1f + 0.2f * (float)RandomThreadStatic.NextDouble());
-
-            //    // crossover
-            //    CrossoverD(chs, fit, _crossoverProbability, _crossoverMode);
-            //}
-            //Dispatcher.Timer.Reset();
-
-            //// if the dominant chromosome wasn't found, consider last result the best result
-            //if (dominant == null)  // TODO: at this point fit and chs arrays do not correlate, because chs was changed!
-            //{
-            //    dominant = chs[Array.IndexOf(fit, max)];
-            //}
-
-            //Manipulator agentCopy = agent.DeepCopy();
-            //Dispatcher.Timer.Start();
-            //for (int i = 0; i < dominant.PointsNum; i++)
-            //{
-            //    if (i == 0)
-            //    {
-            //        agent.q.CopyTo(dominant.Genes[i].Item2);
-            //    }
-            //    else
-            //    {
-            //        dominant.Genes[i - 1].Item2.CopyTo(agentCopy.q);
-            //        var res = solver.Execute(obstacles, agentCopy, dominant.Genes[i].Item1, agent.Joints.Length - 1);
-
-            //        // assign config to continue checking other points
-            //        agentCopy.q.CopyTo(dominant.Genes[i].Item2);
-            //    }
-            //}
-            //Dispatcher.Timer.Stop();
-            //Console.WriteLine("Fit real time: {0}", Dispatcher.Timer.ElapsedTicks / 10);
-            //Dispatcher.Timer.Reset();
-
-            //// chromosome
-            //List<Vector3> path = new List<Vector3>();
-            //List<VectorFloat> configs = new List<VectorFloat>();
-            //for (int i = 0; i < pointsNum; i++)
-            //{
-            //    path.Add(dominant.Genes[i].Item1);
-            //    configs.Add(dominant.Genes[i].Item2);
-            //}
-
-            //// detect all collisions
-            ///*Manipulator AgentNext = new Manipulator(agent)
-            //{
-            //    q = agent.q.Zip(dq, (t, s) => { return t + s; }).ToArray()
-            //};
-            //bool[] Collisions = DetectCollisions(AgentNext);*/
-
-            //return (path, configs);
-            #endregion
-
             // algorithm parameters
             int offspringSize = 4, survivalSize = 10;
 
@@ -254,22 +134,23 @@ namespace Logic.PathPlanning
             _solver = solver;
 
             int genCount = 0;
-            var generation = new List<(Path, float)>();
+            var generation = new List<Chromosome>();
 
             // get initial solution
-            var points = new List<Vector3[]> { _agentCopy.DKP };
-            var configs = new List<VectorFloat> { _agentCopy.q };
-            while (_agentCopy.GripperPos.DistanceTo(goal) > 0.04)
-            {
-                _solver.Execute(obstacles, _agentCopy, _agentCopy.GripperPos + Vector3.Normalize(_goal - _agentCopy.GripperPos) * 0.04f, _agentCopy.Joints.Length - 1);
-                points.Add(_agentCopy.DKP);
-                configs.Add(_agentCopy.q);
-            }
+            Vector2 start = new Vector2(_agentCopy.GripperPos.Z, _agentCopy.GripperPos.Y);
+            Vector2 end = new Vector2(goal.Z, goal.Y);
+            var vec = end - start;
+            var vecNorm = vec.Normalized();
+            var length = vec.Length;
+            Vector2 point1 = start + vecNorm * (length / 3);
+            Vector2 point2 = start + vecNorm * (2 * length / 3);
+            var bezierInitial = new BezierCurve(start, point1, point2, end);
+            var pathInitial = ConstructPath(bezierInitial, step);
+            Chromosome chromosomeInitial = (bezierInitial, pathInitial, Fit(pathInitial));
 
-            Path initialSolution = new Path(points, configs);
-            generation.Add((initialSolution, Fit(initialSolution)));
+            generation.Add(chromosomeInitial);
 
-            Dominant = initialSolution;
+            Dominant = chromosomeInitial;
 
             // evolve generations
             while (genCount++ < MaxTime)
@@ -278,26 +159,52 @@ namespace Logic.PathPlanning
                 generation = Evolve(generation, offspringSize, survivalSize);
 
                 Console.SetCursorPosition(0, 10);
-                Console.WriteLine(generation[0].Item2);
+                Console.WriteLine(generation[0].Item3);
 
                 if (!Locked)
                 {
-                    Dominant.AddBuffer = generation[0].Item1.AddBuffer;
-                    Dominant.DelBuffer = generation[0].Item1.DelBuffer;
-                    Changed = true;
+                    if (generation[0].Item3 < Dominant.Item3)
+                    {
+                        Dominant = generation[0];
+                        Changed = true;
+                    }
                 }
 
                 // break if max fit reached
-                if (generation[0].Item1.Count * 100 == generation[0].Item2)
+                if (generation[0].Item3 == 0/*generation[0].Item2.Count == generation[0].Item3*/)
                     break;
             }
 
-            return generation[0].Item1;
+            return generation[0].Item2;
         }
 
-        private List<(Path, float)> Evolve(List<(Path, float)> generation, int offspringSize, int survivalSize)
+        private Path ConstructPath(BezierCurve bezierCurve, float step)
         {
-            var offsprings = new List<(Path, float)>();
+            var points = BezierPoints(bezierCurve, step);
+            var zeros = new VectorFloat[points.Count];
+            zeros.Fill(_agentCopy.q);
+            var configs = new List<VectorFloat>(zeros);
+            return new Path(points, configs);
+        }
+
+        private List<Vector3[]> BezierPoints(BezierCurve bezierCurve, float step)
+        {
+            var points = new List<Vector3[]>();
+
+            float counter = 0;
+            while (counter <= 1)
+            {
+                var bezierPoint = bezierCurve.CalculatePoint(counter);
+                points.Add(new Vector3[] { new Vector3(0, bezierPoint.Y, bezierPoint.X) });
+                counter += step;
+            }
+
+            return points;
+        }
+
+        private List<Chromosome> Evolve(List<Chromosome> generation, int offspringSize, int survivalSize)
+        {
+            var offsprings = new List<Chromosome>();
             foreach (var member in generation)
             {
                 offsprings.AddRange(Reproduce(member, offspringSize));
@@ -306,7 +213,27 @@ namespace Logic.PathPlanning
             return Select(offsprings, survivalSize);
         }
 
-        private List<(Path, float)> Reproduce((Path, float) member, int offspringSize)
+        private BezierCurve Repro(BezierCurve bezierCurve)
+        {
+            int pointIndex = RandomThreadStatic.Next(1, 3);
+            var z = RandomThreadStatic.NextDouble(1);
+            var y = RandomThreadStatic.NextDouble(1);
+            Vector2 direction = new Vector2((float)z, (float)y);
+
+            var bezierCurveRepro = new BezierCurve(bezierCurve.Points);
+            var bezierDirectionRepro = direction.Normalized() * 1f * (float)RandomThreadStatic.NextDouble();
+
+            bezierCurveRepro.Points[pointIndex] += bezierDirectionRepro;
+
+            if ((bezierCurveRepro.Points[pointIndex] + bezierDirectionRepro).Length < _agentCopy.WorkspaceRadius)
+                bezierCurveRepro.Points[pointIndex] += bezierDirectionRepro;
+            else
+                bezierCurveRepro.Points[pointIndex] -= bezierDirectionRepro;
+
+            return bezierCurveRepro;
+        }
+
+        private List<Chromosome> Reproduce(Chromosome member, int offspringSize)
         {
             void UpdateNode(Path.Node node, Vector3 goal)
             {
@@ -316,65 +243,20 @@ namespace Logic.PathPlanning
                 node.Points = _agentCopy.DKP;
             }
 
-            var repro = new List<(Path, float)>();
+            var repro = new List<Chromosome>();
             for (int i = 0; i < offspringSize; i++)
             {
-                // create and add new offspring
-                var path = member.Item1.DeepCopy();
-
-                // get the affected node
-                int index = RandomThreadStatic.Next(1, path.Count - 1);
-                Path.Node nodeRandom = path.Nodes.ElementAt(index);
-                if (nodeRandom.Parent == null)
-                    nodeRandom = nodeRandom.Child;
-                else if (nodeRandom.Child == null)
-                    nodeRandom = nodeRandom.Parent;
-
-                // define distortion amplitude as a normal distribution
-                float sigma = 5;
-                float amp = 1/* - (float)RandomThreadStatic.NextDouble()*/;
-                float nd(int t) => amp * (1 / (sigma * sqrt2pi)) * (float)Math.Exp(-0.5 * Math.Pow(t / sigma, 2));
-
-                // segment between previous and next points
-                var count = nodeRandom.Points.Length;
-                Vector3 vec = nodeRandom.Points[count - 1] - nodeRandom.Parent.Points[count - 1];
-
-                // get distortion direction
-                var x = RandomThreadStatic.NextDouble();
-                var y = RandomThreadStatic.NextDouble();
-                var z = -(vec.X * x + vec.Y * y) / vec.Z;
-                var dir = Vector3.Normalize(new Vector3((float)x, (float)y, (float)z));
-
-                // apply distortion to the current point
-                Path.Node current = nodeRandom;
-                UpdateNode(current, current.Points[count - 1] + dir * nd(0));
-
-                // apply distortion to previous points
-                int pointsNum = 20;
-                current = nodeRandom.Parent;
-                for (int j = -1; j >= -pointsNum && current.Parent != null; j--)
-                {
-                    UpdateNode(current, current.Points[count - 1] + dir * nd(j));
-                    current = current.Parent;
-                }
-
-                // apply distortion to next points
-                current = nodeRandom.Child;
-                for (int j = 1; j <= pointsNum && current.Child != null; j++)
-                {
-                    UpdateNode(current, current.Points[count - 1] + dir * nd(j));
-                    current = current.Child;
-                }
-
-                repro.Add((path, Fit(path)));
+                BezierCurve bezierCurveRepro = Repro(member.Item1);
+                Path pathRepro = ConstructPath(bezierCurveRepro, step);
+                repro.Add((bezierCurveRepro, pathRepro, Fit(pathRepro)));
             }
 
             return repro;
         }
 
-        private List<(Path, float)> Select(List<(Path, float)> offsprings, int survivalSize)
+        private List<Chromosome> Select(List<Chromosome> offsprings, int survivalSize)
         {
-            return offsprings.OrderBy(x => x.Item2).Take(survivalSize).ToList();
+            return offsprings.OrderBy(x => x.Item3).Take(survivalSize).ToList();
         }
 
         private float Fit(Path sample)
@@ -397,14 +279,15 @@ namespace Logic.PathPlanning
                     {
                         if (obst.Contains(currPos))
                         {
-                            var collider = obst.Collider as SphereCollider;
-                            var centerOfMass = collider.Body.CenterOfMassPosition;
-                            var center = new Vector3(centerOfMass.X, centerOfMass.Y, centerOfMass.Z);
-                            pointWeight += 100 * (float)Math.Pow(currPos.DistanceTo(center) / collider.Radius, 4);
+                            //var collider = obst.Collider as SphereCollider;
+                            //var centerOfMass = collider.Body.CenterOfMassPosition;
+                            //var center = new Vector3(centerOfMass.X, centerOfMass.Y, centerOfMass.Z);
+                            //pointWeight += 100 * (float)Math.Pow(currPos.DistanceTo(center) / collider.Radius, 4);
+                            pointWeight += 1;
                         }
                         else
                         {
-                            pointWeight += 100;
+                            
                         }
                     }
                     criteriaCount++;
@@ -425,6 +308,318 @@ namespace Logic.PathPlanning
             return score;
         }
 
+        #region new
+        //public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver/*, Func<float, float> decode)
+        //{
+        //    #region old
+        //    //var chs = new ChromosomeD[_generationSize];
+        //    //var fit = new float[_generationSize];
+
+        //    //int pointsNum = _initialSolution.Length;
+        //    //for (int i = 0; i < _generationSize; i++)
+        //    //{
+        //    //    chs[i] = new ChromosomeD(pointsNum);
+
+        //    //    // define distortion amplitude as a normal distribution
+        //    //    int mu = RandomThreadStatic.Next(1, _initialSolution.Length - 1);
+        //    //    float sigma = 10;
+        //    //    float amp = -0.5f + 1 * (float)RandomThreadStatic.NextDouble();
+        //    //    float nd(int t) => amp * (float)Math.Exp(-0.5 * Math.Pow((t - mu) / sigma, 2));
+
+        //    //    // segment between prev and next points
+        //    //    Vector3 vec = _initialSolution.[mu + 1].Item1 - _initialSolution[mu - 1].Item1;
+
+        //    //    // get distortion direction
+        //    //    var x = RandomThreadStatic.NextDouble();
+        //    //    var y = RandomThreadStatic.NextDouble();
+        //    //    var z = (vec.X * x + vec.Y * y) / vec.Z;
+        //    //    var dir = Vector3.Normalize(new Vector3((float)x, (float)y, (float)z));
+
+        //    //    // apply distortion to all points except start and end
+        //    //    chs[i].Genes[0].Item1 = _initialSolution[0].Item1;
+        //    //    for (int j = 1; j < pointsNum - 1; j++)
+        //    //    {
+        //    //        chs[i].Genes[j].Item1 = _initialSolution[j].Item1 + dir * nd(j);
+        //    //    }
+        //    //    chs[i].Genes[_initialSolution.Length - 1].Item1 = initSolution[_initialSolution.Length - 1].Item1;
+
+        //    //    /*if (i == 0)
+        //    //    {
+        //    //        agent.Vector3s = chs[i].Genes.Select(t => t.Item1).ToArray();
+        //    //    }*/
+        //    //}
+
+        //    //ChromosomeD dominant = null;
+        //    //float max = 0;
+        //    //bool converged = false;
+        //    //int time = 0;
+        //    //Dispatcher.Timer.Start();
+        //    //while (time++ < MaxTime)
+        //    //{
+        //    //    if (time % 100 == 0)
+        //    //    {
+
+        //    //    }
+
+        //    //    // fitting
+        //    //    FitnessFunctionD(agent, obstacles, goal, solver, chs, fit, _optimizationCriteria/*, decode*/);
+
+        //    //    // qualification
+        //    //    max = fit.Max();
+
+        //    //    dominant = chs[Array.IndexOf(fit, max)];
+        //    //    //agent.Vector3s = dominant.Genes.Select(t => t.Item1).ToArray();
+
+        //    //    Console.SetCursorPosition(0, 10);
+        //    //    Console.WriteLine($"Goal fit: {pointsNum * 100}");
+        //    //    Console.WriteLine($"Max  fit: {max}");
+        //    //    Console.WriteLine("GA Time: {0}; Real time: {1}", time, Dispatcher.Timer.ElapsedTicks / 10);
+        //    //    //if (max > precision * Vector3sNum * 100)
+        //    //    if (max >= pointsNum * 100)
+        //    //    {
+        //    //        dominant = chs[Array.IndexOf(fit, max)];
+        //    //        converged = true;
+        //    //        break;
+        //    //    }
+
+        //    //    // selection
+        //    //    SelectionD(chs, fit, _selectionMode, OptimizationMode.Maximum);
+
+        //    //    // mutation
+        //    //    MutationD(chs, _mutationProbability, t => t + -0.1f + 0.2f * (float)RandomThreadStatic.NextDouble());
+
+        //    //    // crossover
+        //    //    CrossoverD(chs, fit, _crossoverProbability, _crossoverMode);
+        //    //}
+        //    //Dispatcher.Timer.Reset();
+
+        //    //// if the dominant chromosome wasn't found, consider last result the best result
+        //    //if (dominant == null)  // TODO: at this point fit and chs arrays do not correlate, because chs was changed!
+        //    //{
+        //    //    dominant = chs[Array.IndexOf(fit, max)];
+        //    //}
+
+        //    //Manipulator agentCopy = agent.DeepCopy();
+        //    //Dispatcher.Timer.Start();
+        //    //for (int i = 0; i < dominant.PointsNum; i++)
+        //    //{
+        //    //    if (i == 0)
+        //    //    {
+        //    //        agent.q.CopyTo(dominant.Genes[i].Item2);
+        //    //    }
+        //    //    else
+        //    //    {
+        //    //        dominant.Genes[i - 1].Item2.CopyTo(agentCopy.q);
+        //    //        var res = solver.Execute(obstacles, agentCopy, dominant.Genes[i].Item1, agent.Joints.Length - 1);
+
+        //    //        // assign config to continue checking other points
+        //    //        agentCopy.q.CopyTo(dominant.Genes[i].Item2);
+        //    //    }
+        //    //}
+        //    //Dispatcher.Timer.Stop();
+        //    //Console.WriteLine("Fit real time: {0}", Dispatcher.Timer.ElapsedTicks / 10);
+        //    //Dispatcher.Timer.Reset();
+
+        //    //// chromosome
+        //    //List<Vector3> path = new List<Vector3>();
+        //    //List<VectorFloat> configs = new List<VectorFloat>();
+        //    //for (int i = 0; i < pointsNum; i++)
+        //    //{
+        //    //    path.Add(dominant.Genes[i].Item1);
+        //    //    configs.Add(dominant.Genes[i].Item2);
+        //    //}
+
+        //    //// detect all collisions
+        //    ///*Manipulator AgentNext = new Manipulator(agent)
+        //    //{
+        //    //    q = agent.q.Zip(dq, (t, s) => { return t + s; }).ToArray()
+        //    //};
+        //    //bool[] Collisions = DetectCollisions(AgentNext);*/
+
+        //    //return (path, configs);
+        //    #endregion
+
+        //    // algorithm parameters
+        //    int offspringSize = 4, survivalSize = 10;
+
+        //    _agentCopy = agent.DeepCopy();
+        //    _goal = goal;
+        //    _solver = solver;
+
+        //    int genCount = 0;
+        //    var generation = new List<(Path, float)>();
+
+        //    // get initial solution
+        //    var points = new List<Vector3[]> { _agentCopy.DKP };
+        //    var configs = new List<VectorFloat> { _agentCopy.q };
+        //    while (_agentCopy.GripperPos.DistanceTo(goal) > 0.04)
+        //    {
+        //        _solver.Execute(obstacles, _agentCopy, _agentCopy.GripperPos + Vector3.Normalize(_goal - _agentCopy.GripperPos) * 0.04f, _agentCopy.Joints.Length - 1);
+        //        points.Add(_agentCopy.DKP);
+        //        configs.Add(_agentCopy.q);
+        //    }
+
+        //    Path initialSolution = new Path(points, configs);
+        //    generation.Add((initialSolution, Fit(initialSolution)));
+
+        //    Dominant = initialSolution;
+
+        //    // evolve generations
+        //    while (genCount++ < MaxTime)
+        //    {
+        //        // get new generation
+        //        generation = Evolve(generation, offspringSize, survivalSize);
+
+        //        Console.SetCursorPosition(0, 10);
+        //        Console.WriteLine(generation[0].Item2);
+
+        //        if (!Locked)
+        //        {
+        //            Dominant.AddBuffer = generation[0].Item1.AddBuffer;
+        //            Dominant.DelBuffer = generation[0].Item1.DelBuffer;
+        //            Changed = true;
+        //        }
+
+        //        // break if max fit reached
+        //        if (generation[0].Item1.Count * 100 == generation[0].Item2)
+        //            break;
+        //    }
+
+        //    return generation[0].Item1;
+        //}
+
+        //private List<(Path, float)> Evolve(List<(Path, float)> generation, int offspringSize, int survivalSize)
+        //{
+        //    var offsprings = new List<(Path, float)>();
+        //    foreach (var member in generation)
+        //    {
+        //        offsprings.AddRange(Reproduce(member, offspringSize));
+        //    }
+
+        //    return Select(offsprings, survivalSize);
+        //}
+
+        //private List<(Path, float)> Reproduce((Path, float) member, int offspringSize)
+        //{
+        //    void UpdateNode(Path.Node node, Vector3 goal)
+        //    {
+        //        _agentCopy.q = node.q;
+        //        _solver.Execute(null, _agentCopy, goal, _agentCopy.Joints.Length - 1);
+        //        node.q = _agentCopy.q;
+        //        node.Points = _agentCopy.DKP;
+        //    }
+
+        //    var repro = new List<(Path, float)>();
+        //    for (int i = 0; i < offspringSize; i++)
+        //    {
+        //        // create and add new offspring
+        //        var path = member.Item1.DeepCopy();
+
+        //        // get the affected node
+        //        int index = RandomThreadStatic.Next(1, path.Count - 1);
+        //        Path.Node nodeRandom = path.Nodes.ElementAt(index);
+        //        if (nodeRandom.Parent == null)
+        //            nodeRandom = nodeRandom.Child;
+        //        else if (nodeRandom.Child == null)
+        //            nodeRandom = nodeRandom.Parent;
+
+        //        // define distortion amplitude as a normal distribution
+        //        float sigma = 5;
+        //        float amp = 1/* - (float)RandomThreadStatic.NextDouble()*/;
+        //        float nd(int t) => amp * (1 / (sigma * sqrt2pi)) * (float)Math.Exp(-0.5 * Math.Pow(t / sigma, 2));
+
+        //        // segment between previous and next points
+        //        var count = nodeRandom.Points.Length;
+        //        Vector3 vec = nodeRandom.Points[count - 1] - nodeRandom.Parent.Points[count - 1];
+
+        //        // get distortion direction
+        //        var x = RandomThreadStatic.NextDouble();
+        //        var y = RandomThreadStatic.NextDouble();
+        //        var z = -(vec.X * x + vec.Y * y) / vec.Z;
+        //        var dir = Vector3.Normalize(new Vector3((float)x, (float)y, (float)z));
+
+        //        // apply distortion to the current point
+        //        Path.Node current = nodeRandom;
+        //        UpdateNode(current, current.Points[count - 1] + dir * nd(0));
+
+        //        // apply distortion to previous points
+        //        int pointsNum = 20;
+        //        current = nodeRandom.Parent;
+        //        for (int j = -1; j >= -pointsNum && current.Parent != null; j--)
+        //        {
+        //            UpdateNode(current, current.Points[count - 1] + dir * nd(j));
+        //            current = current.Parent;
+        //        }
+
+        //        // apply distortion to next points
+        //        current = nodeRandom.Child;
+        //        for (int j = 1; j <= pointsNum && current.Child != null; j++)
+        //        {
+        //            UpdateNode(current, current.Points[count - 1] + dir * nd(j));
+        //            current = current.Child;
+        //        }
+
+        //        repro.Add((path, Fit(path)));
+        //    }
+
+        //    return repro;
+        //}
+
+        //private List<(Path, float)> Select(List<(Path, float)> offsprings, int survivalSize)
+        //{
+        //    return offsprings.OrderBy(x => x.Item2).Take(survivalSize).ToList();
+        //}
+
+        //private float Fit(Path sample)
+        //{
+        //    float score = 0;
+
+        //    // extract parameters' values from chromosome
+        //    foreach (var node in sample.Nodes)
+        //    {
+        //        Vector3 currPos = node.Points[node.Points.Length - 1];
+
+        //        // apply fitness functions to the given chromosome's point
+        //        int criteriaCount = 0;
+        //        float pointWeight = 0;
+
+        //        if (_optimizationCriteria.HasFlag(OptimizationCriterion.CollisionFree))
+        //        {
+        //            // TODO: instead of weighting, add "pulling-out", i.e. translating point along the common vector with the obst center; much better
+        //            foreach (var obst in ObstacleHandler.Obstacles)
+        //            {
+        //                if (obst.Contains(currPos))
+        //                {
+        //                    var collider = obst.Collider as SphereCollider;
+        //                    var centerOfMass = collider.Body.CenterOfMassPosition;
+        //                    var center = new Vector3(centerOfMass.X, centerOfMass.Y, centerOfMass.Z);
+        //                    pointWeight += 100 * (float)Math.Pow(currPos.DistanceTo(center) / collider.Radius, 4);
+        //                }
+        //                else
+        //                {
+        //                    pointWeight += 100;
+        //                }
+        //            }
+        //            criteriaCount++;
+        //        }
+        //        if (_optimizationCriteria.HasFlag(OptimizationCriterion.PathLength))
+        //        {
+
+        //        }
+        //        if (_optimizationCriteria.HasFlag(OptimizationCriterion.PathSmoothness))
+        //        {
+
+        //        }
+
+        //        // take median of all criteria weights
+        //        score += pointWeight / criteriaCount;
+        //    }
+
+        //    return score;
+        //}
+        #endregion
+
+        #region old
         private static void FitnessFunctionD/*<T>*/(Manipulator agent, Obstacle[] obstacles, Vector3 goal, InverseKinematicsSolver solver,
             ChromosomeD[] chs, float[] fit, OptimizationCriterion criterion/*, Func<T, float> decode*/)
         {
@@ -734,5 +929,6 @@ namespace Logic.PathPlanning
 
             crossed.CopyTo(chs, 0);
         }
+        #endregion
     }
 }

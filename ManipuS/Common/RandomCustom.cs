@@ -8,6 +8,11 @@ class RandomCustom : Random
 
     public RandomCustom(int seed) : base(seed) { }
 
+    public int NextSign()
+    {
+        return Next(0, 2) == 0 ? -1 : 1;
+    }
+
     public double NextDouble(double rangeLimit)
     {
         return NextDouble(-rangeLimit, rangeLimit);

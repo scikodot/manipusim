@@ -34,6 +34,11 @@ public static class RandomThreadStatic
         return Instance.Next(minValue, maxValue);
     }
 
+    public static int NextSign()
+    {
+        return Instance.NextSign();
+    }
+
     public static double NextDouble()
     {
         return Instance.NextDouble();

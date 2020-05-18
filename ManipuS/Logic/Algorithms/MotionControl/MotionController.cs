@@ -102,33 +102,37 @@ namespace Logic
             // execute path planning
             Agent.Path = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
 
-            Manipulator contestant = Agent.DeepCopy();
-
-            // execute motion control
-            Path.Node gripperPos = Agent.Path.Current;
-            while (gripperPos.Child != null)
+            // start motion control if a path has been found
+            if (Agent.Path != null)
             {
-                var current = gripperPos.Child;
-                while (current.Child != null)  // last point may not be deformed, since it is a goal point
+                Manipulator contestant = Agent.DeepCopy();
+
+                // execute motion control
+                Path.Node gripperPos = Agent.Path.Current;
+                while (gripperPos.Child != null)
                 {
-                    for (int j = current.Points.Length - 1; j > 0; j--)
+                    var current = gripperPos.Child;
+                    while (current.Child != null)  // last point may not be deformed, since it is a goal point
                     {
-                        foreach (var obst in Obstacles)
+                        for (int j = current.Points.Length - 1; j > 0; j--)
                         {
-                            if (obst.Contains(current.Points[j]))
+                            foreach (var obst in Obstacles)
                             {
-                                //Deform(obst, contestant, current, j);
-                                break;
+                                if (obst.Contains(current.Points[j]))
+                                {
+                                    //Deform(obst, contestant, current, j);
+                                    break;
+                                }
                             }
                         }
+
+                        current = current.Child;
                     }
 
-                    current = current.Child;
+                    //Discretize(contestant, gripperPos);
+
+                    gripperPos = Agent.Path.Current;
                 }
-
-                //Discretize(contestant, gripperPos);
-
-                gripperPos = Agent.Path.Current;
             }
         }
 

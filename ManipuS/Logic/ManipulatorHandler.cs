@@ -34,7 +34,7 @@ namespace Logic
             q = 0,
             qRanges = new Vector2(-180, 180)
         };
-        private static Vector3 _defaultGoal = new Vector3(-1.0f, 0.5f, -2.0f);
+        private static Vector3 _defaultGoal = new Vector3(0.0f/*-1.0f*/, 0.5f, -2.0f);
 
         private static InverseKinematicsData _defaultInverseKinematicsSolver = new InverseKinematicsData
         {
@@ -98,7 +98,7 @@ namespace Logic
             jointAxes[0] = jointAxes[jointAxes.Length - 1] = Vector3.UnitY;
             for (int i = 1; i < linksNumber; i++)
             {
-                jointAxes[i] = i % 2 == 0 ? Vector3.UnitZ : Vector3.UnitX;
+                jointAxes[i] = Vector3.UnitX;  /*i % 2 == 0 ? Vector3.UnitZ : Vector3.UnitX;*/
             }
 
             // set joints' positions

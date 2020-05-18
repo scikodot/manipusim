@@ -42,6 +42,7 @@ namespace Graphics
         private readonly List<TreeModel> _treeModels = new List<TreeModel>();
         private readonly List<PathModel> _pathModels = new List<PathModel>();
         private readonly List<PathModel> _gaModels = new List<PathModel>();
+        private static Model _bezierPoints;
 
         private static float time = 0;
         private static bool forward;
@@ -79,15 +80,6 @@ namespace Graphics
             //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
             //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.Triangulate);
             //manptr = Assimp.Scene.FromUnmanagedScene(ptr);
-
-            Path.Node node1 = new Path.Node(null, new System.Numerics.Vector3[] { new System.Numerics.Vector3(0, 1, 2) }, null);
-            Path.Node node2 = new Path.Node(null, new System.Numerics.Vector3[] { new System.Numerics.Vector3(3, 4, 5) }, null);
-            Path.Node node3 = new Path.Node(null, new System.Numerics.Vector3[] { new System.Numerics.Vector3(6, 7, 8) }, null);
-            HashSet<Path.Node> path = new HashSet<Path.Node>() { node1, node2, node3 };
-
-            HashSet<Path.Node> path2 = new HashSet<Path.Node>(path);
-
-            node2.Points = new System.Numerics.Vector3[] { new System.Numerics.Vector3(9, 10, 11) };
 
             ManipulatorHandler.LoadDefaultModels();
 
@@ -287,6 +279,17 @@ namespace Graphics
             {
                 if (path.IsSetup)
                     path.Render(ShaderHandler.ComplexShader);
+            }
+
+            // render Bezier curve points
+            if (_bezierPoints != null)
+            {
+                _bezierPoints.Render(ShaderHandler.ComplexShader, () =>
+                {
+                    GL.PointSize(8);
+                    GL.DrawArrays(PrimitiveType.Points, 0, 4);
+                    GL.PointSize(1);
+                });
             }
 
             // workspace grid
@@ -1057,17 +1060,22 @@ namespace Graphics
                             _treeModels[i].Update(i);
                         }
 
-                        if (GeneticAlgorithm.Dominant != null && GeneticAlgorithm.Changed)
+                        if (GeneticAlgorithm.Dominant.Item2 != null && GeneticAlgorithm.Changed)
                         {
                             _gaModels[i].Reset();
 
                             GeneticAlgorithm.Locked = true;
 
-                            var toAdd = GeneticAlgorithm.Dominant.AddBuffer.DequeueAll().ToList();
-                            var toRemove = GeneticAlgorithm.Dominant.DelBuffer.DequeueAll().ToList();
+                            var toAdd = GeneticAlgorithm.Dominant.Item2.AddBuffer.DequeueAll().ToList();
+                            var toRemove = GeneticAlgorithm.Dominant.Item2.DelBuffer.DequeueAll().ToList();
 
                             _gaModels[i].AddNodes(toAdd);
                             _gaModels[i].RemoveNodes(toRemove);
+
+                            _bezierPoints = new Model(GeneticAlgorithm.Dominant.Item1.Points.Select(point => new MeshVertex
+                            {
+                                Position = new Vector3(0, point.Y, point.X)
+                            }).ToArray(), material: MeshMaterial.Red);
 
                             GeneticAlgorithm.Locked = GeneticAlgorithm.Changed = false;
                         }
