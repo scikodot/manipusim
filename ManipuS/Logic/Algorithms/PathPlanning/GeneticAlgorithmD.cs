@@ -113,7 +113,10 @@ namespace Logic.PathPlanning
         public static volatile bool Locked;
         public static volatile bool Changed;
 
-        private float step = 0.015f;
+        private int offspringSize = 4;
+        private int survivalSize = 10;
+        private int bezierCount = 2;
+        private float bezierStep = 0.015f;
 
         private float sqrt2pi = 1 / (float)Math.Sqrt(2 * Math.PI);
 
@@ -125,29 +128,19 @@ namespace Logic.PathPlanning
             _mutationProbability = mutationProbability;
         }
 
-        public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver/*, Func<float, float> decode*/)
+        public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
-            // algorithm parameters
-            int offspringSize = 4, survivalSize = 10;
-
             _agent = agent;
             _agentCopy = agent.DeepCopy();
             _goal = goal;
             _solver = solver;
 
-            int genCount = 0;
+            int generationsCount = 0;
             var generation = new List<Chromosome>();
 
             // get initial solution
-            Vector2 start = new Vector2(_agentCopy.GripperPos.Z, _agentCopy.GripperPos.Y);
-            Vector2 end = new Vector2(goal.Z, goal.Y);
-            var vec = end - start;
-            var vecNorm = vec.Normalized();
-            var length = vec.Length;
-            Vector2 point1 = start + vecNorm * (length / 3);
-            Vector2 point2 = start + vecNorm * (2 * length / 3);
-            var bezierInitial = new BezierCurve(start, point1, point2, end);
-            var pathInitial = ConstructPath(bezierInitial, step);
+            var bezierInitial = ConstructBezier(new Vector2(_agentCopy.GripperPos.Z, _agentCopy.GripperPos.Y), new Vector2(goal.Z, goal.Y), bezierCount);
+            var pathInitial = ConstructPath(bezierInitial, bezierStep);
             Chromosome chromosomeInitial = (bezierInitial, pathInitial, Fit(pathInitial));
 
             generation.Add(chromosomeInitial);
@@ -155,13 +148,16 @@ namespace Logic.PathPlanning
             Dominant = chromosomeInitial;
 
             // evolve generations
-            while (genCount++ < MaxTime)
+            Console.SetCursorPosition(0, 10);
+            Console.WriteLine("Starting genetic algorithm...");
+            while (generationsCount++ < MaxTime)
             {
                 // get new generation
                 generation = Evolve(generation, offspringSize, survivalSize);
 
-                Console.SetCursorPosition(0, 10);
-                Console.WriteLine(generation[0].Item3);
+                Console.SetCursorPosition(0, 11);
+                Console.WriteLine($"Generations passed: {generationsCount}");
+                Console.WriteLine($"Best fit: {generation[0].Item3}");
 
                 if (!Locked)
                 {
@@ -173,29 +169,49 @@ namespace Logic.PathPlanning
                 }
 
                 // break if max fit reached
-                if (generation[0].Item3 == 0/*generation[0].Item2.Count == generation[0].Item3*/)
+                if (generation[0].Item3 == 0)
                     break;
+            }
+            
+            Console.SetCursorPosition(0, 15);
+            Console.WriteLine("Found path's Bezier curve:");
+            foreach (var point in generation[0].Item1.Points)
+            {
+                Console.WriteLine(point);
             }
 
             return generation[0].Item2;
         }
 
+        private BezierCurve ConstructBezier(Vector2 start, Vector2 end, int intermediaryPoints)
+        {
+            Vector2[] points = new Vector2[2 + intermediaryPoints];
+
+            Vector2 direction = end - start;
+            Vector2 directionNorm = direction.Normalized();
+            float length = direction.Length;
+            float segmentCountInv = 1.0f / (points.Length - 1);
+
+            points[0] = start;
+            for (int i = 1; i < points.Length - 1; i++)
+            {
+                points[i] = start + directionNorm * i * length * segmentCountInv;
+            }
+            points[points.Length - 1] = end;
+
+            return new BezierCurve(points);
+        }
+
         private Path ConstructPath(BezierCurve bezierCurve, float step)
         {
-            //var bezierPoints = BezierPoints(bezierCurve, step);
-            //var zeros = new VectorFloat[points.Count];
-            //zeros.Fill(_agentCopy.q);
-            //var configs = new List<VectorFloat>(zeros);
-
-            float counter = 0;
-
             // reset agent
             _agentCopy.q = _agent.q;
 
+            float counter = 0;
+
             var points = new List<Vector3[]> { _agentCopy.DKP };
             var configs = new List<VectorFloat> { _agentCopy.q };
-            //Vector2 goal = bezierCurve.CalculatePoint(counter);
-            while (counter <= 1/*_agentCopy.GripperPos.DistanceTo(new Vector3(0, goal.Y, goal.X)) > 0.04*/)
+            while (counter <= 1)
             {
                 var bezierPoint = bezierCurve.CalculatePoint(counter);
                 _solver.Execute(_agentCopy, new Vector3(0, bezierPoint.Y, bezierPoint.X), _agentCopy.Joints.Length - 1);
@@ -204,6 +220,7 @@ namespace Logic.PathPlanning
 
                 counter += step;
             }
+
             return new Path(points, configs);
         }
 
@@ -269,7 +286,7 @@ namespace Logic.PathPlanning
             for (int i = 0; i < offspringSize; i++)
             {
                 BezierCurve bezierCurveRepro = Repro(member.Item1);
-                Path pathRepro = ConstructPath(bezierCurveRepro, step);
+                Path pathRepro = ConstructPath(bezierCurveRepro, bezierStep);
                 repro.Add((bezierCurveRepro, pathRepro, Fit(pathRepro)));
             }
 
