@@ -9,18 +9,18 @@ namespace Logic.InverseKinematics
     {
         public HillClimbing(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }
 
-        public override (bool, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint)
+        public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint)
         {
             // initial parameters
             VectorFloat qBest = agent.q;
             float dist = agent.Joints[joint].Position.DistanceTo(goal), init_dist = dist, k = 1;
             float minDist = float.PositiveInfinity;
-            bool Converged = false;
+            bool converged = false;
 
             VectorFloat dq = VectorFloat.Build.Dense(agent.Joints.Length);
             float range, stepNeg, stepPos;
-            int time = 0;
-            while (time++ < MaxTime)
+            int iters = 0;
+            while (iters++ < MaxTime)
             {
                 for (int i = 0; i < joint; i++)
                 {
@@ -51,12 +51,12 @@ namespace Logic.InverseKinematics
                 if (dist < _threshold)
                 {
                     // the algorithm has converged
-                    Converged = true;
+                    converged = true;
                     break;
                 }
             }
 
-            return (Converged, minDist, qBest);
+            return (converged, iters - 1, minDist, qBest);
         }
     }
 }

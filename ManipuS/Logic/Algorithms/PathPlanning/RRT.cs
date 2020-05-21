@@ -12,7 +12,7 @@ namespace Logic.PathPlanning
         protected float _step;
         public ref float Step => ref _step;
 
-        protected float _threshold;
+        protected float _threshold = 0.04f;
         public ref float Threshold => ref _threshold;  // TODO: use!
 
         public RRT(int maxTime, bool collisionCheck, float step) : base(maxTime, collisionCheck)
@@ -22,12 +22,14 @@ namespace Logic.PathPlanning
 
         public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
+            Iterations = 0;
+
             Manipulator agentCopy = agent.DeepCopy();
 
             // create new tree
             agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));  // TODO: consider creating local tree and returning it (for benchmarking or similar)
 
-            for (int i = 0; i < MaxTime; i++)
+            while (Iterations++ < _maxTime)
             {
                 // generate sample
                 Vector3 sample = RandomThreadStatic.NextPoint3D(agent.WorkspaceRadius);  // TODO: the base position is not taken into account; fix!
@@ -42,7 +44,7 @@ namespace Logic.PathPlanning
                 {
                     // solve inverse kinematics for the new node to obtain the agent configuration
                     agentCopy.q = nodeClosest.q;
-                    (var converged, var distance, var offset) = solver.Execute(agentCopy, point, agentCopy.Joints.Length - 1);
+                    (var converged, _, var distance, var offset) = solver.Execute(agentCopy, point, agentCopy.Joints.Length - 1);
                     if (converged && !(CollisionCheck && agent.CollisionTest().Contains(true)))
                     {
                         // add new node to the tree

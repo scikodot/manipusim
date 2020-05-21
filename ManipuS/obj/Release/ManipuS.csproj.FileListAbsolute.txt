@@ -120,3 +120,11 @@ C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Release\ManipuS.exe.config
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Release\ManipuS.csproj.CopyComplete
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Release\ManipuS.exe
 C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Release\ManipuS.pdb
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Release\BulletSharp.dll
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Release\MathNet.Numerics.dll
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Release\MoreLinq.dll
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Release\MathNet.Numerics.xml
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Release\MoreLinq.pdb
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Release\MoreLinq.xml
+C:\Users\Dan\source\repos\ManipuS\ManipuS\bin\Release\System.ValueTuple.xml
+C:\Users\Dan\source\repos\ManipuS\ManipuS\obj\Release\ManipuS.csproj.CoreCompileInputs.cache

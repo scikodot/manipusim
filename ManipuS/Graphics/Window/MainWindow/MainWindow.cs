@@ -401,7 +401,7 @@ namespace Graphics
 
                     if (ImGui.MenuItem("BenchmarkPP"))
                     {
-
+                        Benchmark.RunPathPlanning();
                     }
 
                     ImGui.EndMenu();
@@ -784,7 +784,7 @@ namespace Graphics
                         manipulator.Controller.PlanSolver = new JacobianTranspose(IB.Precision, IB.StepSize, IB.MaxTime);
                         break;
                     case InverseKinematicsSolverType.JacobianInverse:
-                        manipulator.Controller.PlanSolver = new JacobianInverse(IB.Precision, IB.StepSize, IB.MaxTime);
+                        manipulator.Controller.PlanSolver = new JacobianPseudoinverse(IB.Precision, IB.StepSize, IB.MaxTime);
                         break;
                     case InverseKinematicsSolverType.DampedLeastSquares:
                         manipulator.Controller.PlanSolver = new DampedLeastSquares(IB.Precision, IB.StepSize, IB.MaxTime);
@@ -799,7 +799,7 @@ namespace Graphics
             {
                 ImGui.InputFloat("Base damping coefficient", ref jacobianTranspose.Alpha);
             }
-            else if (manipulator.Controller.PlanSolver is JacobianInverse jacobianInverse)
+            else if (manipulator.Controller.PlanSolver is JacobianPseudoinverse jacobianInverse)
             {
                 // TODO: input something here?
             }

@@ -52,6 +52,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <LangVersion>7.2</LangVersion>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AssimpNet, Version=4.1.0.0, Culture=neutral, PublicKeyToken=0d51b391f59f42a6, processorArchitecture=MSIL">
@@ -126,7 +127,7 @@
     <Compile Include="Logic\Algorithms\InverseKinematics\InverseKinematicsSolver.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\HillClimbing.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\Jacobian.cs" />
-    <Compile Include="Logic\Algorithms\InverseKinematics\JacobianInverse.cs" />
+    <Compile Include="Logic\Algorithms\InverseKinematics\JacobianPseudoinverse.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\JacobianTranspose.cs" />
     <Compile Include="Logic\Algorithms\MotionControl\MotionController.cs" />
     <Compile Include="Logic\Algorithms\PathPlanning\DynamicRRT.cs" />

@@ -1,10 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
+﻿using Logic.InverseKinematics;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-
-using Logic.InverseKinematics;
-using Physics;
 
 namespace Logic.PathPlanning
 {
@@ -20,6 +17,8 @@ namespace Logic.PathPlanning
 
         public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
+            Iterations = 0;
+
             Manipulator agentCopy = agent.DeepCopy();
 
             // create new tree
@@ -36,10 +35,10 @@ namespace Logic.PathPlanning
             float mu = attractorFirst.Weight;
             float sigma = (attractorLast.Weight - attractorFirst.Weight) / 3.0f;  // TODO: check distribution!
 
-            for (int i = 0; i < MaxTime; i++)  // TODO: rename to TimeLimit?
+            while (Iterations++ < _maxTime)  // TODO: rename to TimeLimit?
             {
-                if (i % _trimPeriod == 0 && i != 0)
-                    agent.Tree.Trim(obstacles, agentCopy, solver);
+                //if (i % _trimPeriod == 0 && i != 0)
+                //    agent.Tree.Trim(obstacles, agentCopy, solver);
 
                 // generate normally distributed weight
                 float num = RandomThreadStatic.NextGaussian(mu, sigma);
@@ -68,7 +67,7 @@ namespace Logic.PathPlanning
                     {
                         // solve inverse kinematics for the new node
                         agentCopy.q = nodeClosest.q;
-                        (var converged, var distance, var offset) = solver.Execute(agentCopy, point, agentCopy.Joints.Length - 1);
+                        (var converged, _, var distance, var offset) = solver.Execute(agentCopy, point, agentCopy.Joints.Length - 1);
                         if (converged && !(CollisionCheck && agent.CollisionTest().Contains(true)))
                         {
                             // add node to the tree
@@ -84,7 +83,10 @@ namespace Logic.PathPlanning
 
                 // stop in case the main attractor has been hit
                 if (attractorFirst.InliersCount != 0)
+                {
+                    attractorFirst.InliersCount = 0;
                     break;
+                }
             }
 
             // retrieve resultant path along with respective configurations

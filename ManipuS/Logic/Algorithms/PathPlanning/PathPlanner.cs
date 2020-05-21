@@ -29,8 +29,10 @@ namespace Logic.PathPlanning
 
         protected bool CollisionCheck;
 
-        private int _maxTime;
+        protected int _maxTime;
         public ref int MaxTime => ref _maxTime;
+
+        public int Iterations;
 
         protected PathPlanner(int maxTime, bool collisionCheck)
         {
