@@ -8,10 +8,10 @@ namespace Logic.InverseKinematics
 
     public class DampedLeastSquares : InverseKinematicsSolver
     {
-        private float _lambda = 0.5f;
+        private float _lambda = 1f;
         public ref float Lambda => ref _lambda;
 
-        public DampedLeastSquares(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }  // TODO: remove stepSize for Jacobian solvers
+        public DampedLeastSquares(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }  // TODO: remove stepSize for Jacobian solvers
 
         public override (bool, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
         {
@@ -35,6 +35,9 @@ namespace Logic.InverseKinematics
 
                 // update maipulator's configuration
                 agent.q = agent.q.AddSubVector(dq);
+
+                if (agent.GripperPos.DistanceTo(goal) < _threshold)
+                    break;
             }
 
             var dist = agent.Joints[joint].Position.DistanceTo(goal);

@@ -103,6 +103,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\Benchmark.cs" />
     <Compile Include="Common\Extensions.cs" />
     <Compile Include="Common\Interfaces.cs" />
     <Compile Include="Graphics\Input\InputHandler.cs" />

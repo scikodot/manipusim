@@ -22,10 +22,10 @@ namespace Logic.PathPlanning
         {
             Manipulator agentCopy = agent.DeepCopy();
 
-            // creating new tree
+            // create new tree
             agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));  // TODO: consider creating local tree and returning it (for benchmarking or similar)
 
-            // sorting attractors for easier work
+            // sort attractors
             List<Attractor> attractors = new List<Attractor>(agent.Attractors);
             attractors = attractors.OrderBy(a => a.Weight).ToList();
 
@@ -83,8 +83,8 @@ namespace Logic.PathPlanning
                 }
 
                 // stop in case the main attractor has been hit
-                //if (attractorFirst.InliersCount != 0)
-                //    break;
+                if (attractorFirst.InliersCount != 0)
+                    break;
             }
 
             // retrieve resultant path along with respective configurations

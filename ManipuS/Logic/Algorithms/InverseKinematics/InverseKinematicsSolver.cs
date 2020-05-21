@@ -29,15 +29,15 @@ namespace Logic.InverseKinematics
 
         protected float StepSize;  // TODO: move to where it's needed
 
-        protected float _precision;
-        public ref float Precision => ref _precision;
+        protected float _threshold;
+        public ref float Precision => ref _threshold;
 
         protected int _maxTime;
         public ref int MaxTime => ref _maxTime;
 
         protected InverseKinematicsSolver(float precision, float stepSize, int maxTime)
         {
-            _precision = precision;
+            _threshold = precision;
             StepSize = stepSize;
             MaxTime = maxTime;
         }

@@ -124,13 +124,13 @@ namespace Graphics
             //    }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
             //}
 
-            ObstacleHandler.Add(new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
-            {
-                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                Shininess = 8
-            }), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(0, 3, -1.5f))));
+            //ObstacleHandler.Add(new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
+            //{
+            //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(0, 3, -1.5f))));
 
             //ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
             //{
@@ -394,6 +394,16 @@ namespace Graphics
 
                     }
 
+                    if (ImGui.MenuItem("BenchmarkIK"))
+                    {
+                        Benchmark.RunInverseKinematics();
+                    }
+
+                    if (ImGui.MenuItem("BenchmarkPP"))
+                    {
+
+                    }
+
                     ImGui.EndMenu();
                 }
 
@@ -448,18 +458,32 @@ namespace Graphics
                 ImGuiWindowFlags.NoResize |
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2(0, 20));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height - 20)));
+                ImGui.SetWindowPos(new System.Numerics.Vector2(0, 19));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.375 * (Height - 19))));
 
                 if (ImGui.Button("Create"))
                 {
-                    CreateDefaultManipulator();
+                    ImGui.OpenPopup("ManipulatorCreate");
+                }
+
+                if (ImGui.BeginPopup("ManipulatorCreate"))
+                {
+                    ImGui.Text("Links number");
+                    ImGui.InputInt("", ref ManipulatorHandler.DefaultLinksNumber, 0, 0);
+
+                    if (ImGui.Button("Create"))
+                    {
+                        CreateDefaultManipulator(ManipulatorHandler.DefaultLinksNumber);
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    ImGui.EndPopup();
                 }
 
                 ImGui.Separator();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                ImGui.BeginChild("ManipulatorList", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 118), true);
+                ImGui.BeginChild("ManipulatorList", ImGui.GetContentRegionAvail(), true);
 
                 if (ManipulatorHandler.Count != 0)
                 {
@@ -517,9 +541,9 @@ namespace Graphics
             }
         }
 
-        public void CreateDefaultManipulator()
+        public void CreateDefaultManipulator(int linksNumber)
         {
-            var manipulator = ManipulatorHandler.CreateDefaultManipulator(3);
+            var manipulator = ManipulatorHandler.CreateDefaultManipulator(linksNumber);
 
             // create new models for the manipulator goal, path and tree
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
@@ -537,8 +561,8 @@ namespace Graphics
                 ImGuiWindowFlags.NoResize |
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.25 * Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.375 * (Height - 19) + 19)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.375 * (Height - 19))));
 
                 if (ImGui.Button("Create"))
                 {
@@ -552,6 +576,7 @@ namespace Graphics
                         if (ImGui.Selectable(shape))
                         {
                             // TODO: create an obstacle with the specified shape
+                            ImGui.CloseCurrentPopup();
                         }
                     }
 
@@ -561,7 +586,7 @@ namespace Graphics
                 ImGui.Separator();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                ImGui.BeginChild("ObstacleList", new System.Numerics.Vector2(ImGui.GetWindowContentRegionWidth(), 138), true);
+                ImGui.BeginChild("ObstacleList", ImGui.GetContentRegionAvail(), true);
 
                 if (ObstacleHandler.Count != 0)
                 {
@@ -632,8 +657,8 @@ namespace Graphics
                 ImGuiWindowFlags.NoMove |
                 ImGuiWindowFlags.NoResize))
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.75 * Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * Height)));
+                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.75 * (Height - 19) + 19)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Width - 2), (int)(0.25 * (Height - 19))));
 
                 string targetMode;
                 switch (Mode)
@@ -1002,6 +1027,12 @@ namespace Graphics
 
                     ManipulatorHandler.UpdateDesign();
                     ObstacleHandler.UpdateDesign();
+
+                    // update goals positions
+                    for (int i = 0; i < ManipulatorHandler.Count; i++)
+                    {
+                        _goalModels[i].State = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal);
+                    }
 
                     AttachWidgets();
 

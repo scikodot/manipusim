@@ -9,7 +9,7 @@ namespace Logic.InverseKinematics
         private float _alpha = 0.1f;
         public ref float Alpha => ref _alpha;
 
-        public JacobianTranspose(float precision, float stepSize, int maxTime) : base(precision, stepSize, maxTime) { }
+        public JacobianTranspose(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }
 
         public override (bool, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
         {
@@ -40,6 +40,9 @@ namespace Logic.InverseKinematics
 
                 // update maipulator's configuration
                 agent.q = agent.q.AddSubVector(dq);
+
+                if (agent.GripperPos.DistanceTo(goal) < _threshold)
+                    break;
             }
 
             var dist = agent.Joints[joint].Position.DistanceTo(goal);
