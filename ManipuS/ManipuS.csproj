@@ -123,6 +123,7 @@
     <Compile Include="Graphics\Scene\Model\TreeModel.cs" />
     <Compile Include="Graphics\Utils\Utils.cs" />
     <Compile Include="Common\WorkspaceBuffer.cs" />
+    <Compile Include="Graphics\Window\MainWindow\MainWindowImGui.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\DampedLeastSquares.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\InverseKinematicsSolver.cs" />
     <Compile Include="Logic\Algorithms\InverseKinematics\HillClimbing.cs" />

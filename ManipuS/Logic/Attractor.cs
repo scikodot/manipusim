@@ -57,7 +57,7 @@ namespace Logic
 
         private static float CalculateAttractorRadius(Manipulator manipulator, float weight, float goalThreshold)
         {
-            return goalThreshold * (float)Math.Pow(weight / manipulator.DistanceTo(manipulator.Goal), 2);
+            return goalThreshold * weight / manipulator.DistanceTo(manipulator.Goal);  /*(float)Math.Pow(weight / manipulator.DistanceTo(manipulator.Goal), 2);*/
         }
 
         public static void RecalculateWeights(List<Attractor> attractors, Manipulator manipulator, float goalThreshold)

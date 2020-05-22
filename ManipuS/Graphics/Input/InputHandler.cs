@@ -6,11 +6,13 @@ using System.Drawing.Imaging;
 using OpenTK;
 using OpenTK.Input;
 using OpenTK.Graphics.OpenGL4;
-using Assimp;
+
 using BulletSharp;
 using Physics;
 using System.Collections.Generic;
 using ImGuiNET;
+using Logic;
+using System.Runtime.CompilerServices;
 
 namespace Graphics
 {
@@ -42,6 +44,8 @@ namespace Graphics
         public static TranslationalWidget TranslationalWidget { get; set; }
 
         public static List<CollisionObject> SelectedObjects { get; } = new List<CollisionObject>();
+        public static object CurrentSelectedObject { get; set; }
+        public static event EventHandler SelectedObjectChanged;
 
         public static void ToAnimate()
         {
@@ -68,16 +72,19 @@ namespace Graphics
 
             // perform a raycast and store the result for later use
             RaycastResult = Ray.Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
-            
+
+            // attach widgets to or detach from the selected objects
+            AttachWidgets();
+
             if (MainWindow.Mode == InteractionMode.Design && !ImGui.IsWindowHovered(
                 ImGuiHoveredFlags.AnyWindow | 
                 ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?
             {
-                // poll widget for interaction
-                TranslationalWidget.Poll(camera, RaycastResult, mouseState, _lastState);
-
                 // check whether any physical object is being selected
                 PollSelection(mouseState, keyboardState);
+
+                // poll widget for interaction
+                TranslationalWidget.Poll(camera, RaycastResult, mouseState, _lastState);
             }
 
             // poll the mouse for events
@@ -163,9 +170,32 @@ namespace Graphics
                     }
                 }
             }
+        }
 
-            //Console.SetCursorPosition(0, 10);
-            //Console.WriteLine($"Selected count: {SelectedObjects.Count}");
+        public static void AttachWidgets()
+        {
+            if (SelectedObjects.Count == 1)
+            {
+                var selected = SelectedObjects[0].UserObject as ISelectable;
+                if (selected != CurrentSelectedObject)
+                {
+                    CurrentSelectedObject = selected;
+
+                    // fire an event of selected object being changed
+                    SelectedObjectChanged?.Invoke(selected, EventArgs.Empty);
+                }
+
+                // attach the widget
+                TranslationalWidget.Attach(CurrentSelectedObject as ITranslatable);
+            }
+            else
+            {
+                if (SelectedObjects.Count == 0 || !(CurrentSelectedObject is Manipulator))
+                    CurrentSelectedObject = null;
+
+                // detach the widget
+                TranslationalWidget.Detach();
+            }
         }
 
         public static void AddSelection(CollisionObject collisionObject)

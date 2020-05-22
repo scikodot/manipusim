@@ -12,32 +12,32 @@ namespace Graphics
     /// A modified version of Veldrid.ImGui's ImGuiRenderer.
     /// Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.
     /// </summary>
-    public static class ImGuiHandler
+    class ImGuiHandler
     {
-        private static bool _frameBegun;
+        protected bool _frameBegun;
 
         // Veldrid objects
-        private static int _vertexArray;
-        private static int _vertexBuffer;
-        private static int _vertexBufferSize;
-        public static int _indexBuffer;
-        private static int _indexBufferSize;
+        protected int _vertexArray;
+        protected int _vertexBuffer;
+        protected int _vertexBufferSize;
+        protected int _indexBuffer;
+        protected int _indexBufferSize;
 
-        private static ImGuiTexture _fontTexture;
-        private static ImGuiShader _shader;
+        protected ImGuiTexture _fontTexture;
+        protected ImGuiShader _shader;
 
-        private static int _windowWidth;
-        private static int _windowHeight;
+        protected GameWindow Window { get; }
 
-        private static System.Numerics.Vector2 _scaleFactor = System.Numerics.Vector2.One;
+        protected static System.Numerics.Vector2 _scaleFactor = System.Numerics.Vector2.One;
 
         /// <summary>
         /// Constructs a new ImGuiController.
         /// </summary>
-        public static void AttachWindow(GameWindow window)
+        public ImGuiHandler(GameWindow window)
         {
-            _windowWidth = window.Width;
-            _windowHeight = window.Height;
+            Window = window;
+            //_windowWidth = window.Width;
+            //_windowHeight = window.Height;
 
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
@@ -55,13 +55,13 @@ namespace Graphics
             _frameBegun = true;
         }
 
-        public static void WindowResized(int width, int height)
-        {
-            _windowWidth = width;
-            _windowHeight = height;
-        }
+        //public void WindowResized(int width, int height)
+        //{
+        //    _windowWidth = width;
+        //    _windowHeight = height;
+        //}
 
-        public static void CreateDeviceResources()
+        public void CreateDeviceResources()
         {
             Util.CreateVertexArray("ImGui", out _vertexArray);
 
@@ -120,7 +120,7 @@ void main()
         /// <summary>
         /// Recreates the device texture used to render text.
         /// </summary>
-        public static void RecreateFontDeviceTexture()
+        public void RecreateFontDeviceTexture()
         {
             ImGuiIOPtr io = ImGui.GetIO();
             io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
@@ -140,7 +140,7 @@ void main()
         /// or index data has increased beyond the capacity of the existing buffers.
         /// A <see cref="CommandList"/> is needed to submit drawing and resource update commands.
         /// </summary>
-        public static void Render()
+        public void Render()
         {
             if (_frameBegun)
             {
@@ -153,7 +153,7 @@ void main()
         /// <summary>
         /// Updates ImGui input and IO configuration state.
         /// </summary>
-        public static void Update(GameWindow wnd, float deltaSeconds)
+        public void Update(float deltaSeconds)
         {
             if (_frameBegun)
             {
@@ -161,7 +161,7 @@ void main()
             }
 
             SetPerFrameImGuiData(deltaSeconds);
-            UpdateImGuiInput(wnd);
+            UpdateImGuiInput();
 
             _frameBegun = true;
             ImGui.NewFrame();
@@ -171,21 +171,21 @@ void main()
         /// Sets per-frame data based on the associated window.
         /// This is called by Update(float).
         /// </summary>
-        private static void SetPerFrameImGuiData(float deltaSeconds)
+        private void SetPerFrameImGuiData(float deltaSeconds)
         {
             ImGuiIOPtr io = ImGui.GetIO();
             io.DisplaySize = new System.Numerics.Vector2(
-                _windowWidth / _scaleFactor.X,
-                _windowHeight / _scaleFactor.Y);
+                Window.Width/*_windowWidth*/ / _scaleFactor.X,
+                Window.Height/*_windowHeight*/ / _scaleFactor.Y);
             io.DisplayFramebufferScale = _scaleFactor;
             io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
         }
 
-        static MouseState PrevMouseState;
-        static KeyboardState PrevKeyboardState;
-        static readonly List<char> PressedChars = new List<char>();
+        MouseState PrevMouseState;
+        KeyboardState PrevKeyboardState;
+        readonly List<char> PressedChars = new List<char>();
 
-        private static void UpdateImGuiInput(GameWindow wnd)
+        private void UpdateImGuiInput()
         {
             ImGuiIOPtr io = ImGui.GetIO();
 
@@ -197,7 +197,7 @@ void main()
             io.MouseDown[2] = MouseState.MiddleButton == ButtonState.Pressed;
 
             var screenVector3 = new System.Drawing.Point(MouseState.X, MouseState.Y);
-            var Vector3 = wnd.PointToClient(screenVector3);
+            var Vector3 = Window.PointToClient(screenVector3);
             io.MousePos = new System.Numerics.Vector2(Vector3.X, Vector3.Y);
 
             io.MouseWheel = MouseState.Scroll.Y - PrevMouseState.Scroll.Y;
@@ -223,13 +223,12 @@ void main()
             PrevKeyboardState = KeyboardState;
         }
 
-
-        internal static void PressChar(char keyChar)
+        internal void PressChar(char keyChar)
         {
             PressedChars.Add(keyChar);
         }
 
-        private static void SetKeyMappings()
+        private void SetKeyMappings()
         {
             ImGuiIOPtr io = ImGui.GetIO();
             io.KeyMap[(int)ImGuiKey.Tab] = (int)Key.Tab;
@@ -253,7 +252,7 @@ void main()
             io.KeyMap[(int)ImGuiKey.Z] = (int)Key.Z;
         }
 
-        private static void RenderImDrawData(ImDrawDataPtr draw_data)
+        private void RenderImDrawData(ImDrawDataPtr draw_data)
         {
             uint vertexOffsetInVertices = 0;
             uint indexOffsetInElements = 0;
@@ -346,7 +345,7 @@ void main()
 
                         // We do _windowHeight - (int)clip.W instead of (int)clip.Y because gl has flipped Y when it comes to these coordinates
                         var clip = pcmd.ClipRect;
-                        GL.Scissor((int)clip.X, _windowHeight - (int)clip.W, (int)(clip.Z - clip.X), (int)(clip.W - clip.Y));
+                        GL.Scissor((int)clip.X, Window.Height/*_windowHeight*/ - (int)clip.W, (int)(clip.Z - clip.X), (int)(clip.W - clip.Y));
                         Util.CheckGLError("Scissor");
 
                         GL.DrawElementsBaseVertex(PrimitiveType.Triangles, (int)pcmd.ElemCount, DrawElementsType.UnsignedShort, (IntPtr)(idx_offset * sizeof(ushort)), vtx_offset);
@@ -368,7 +367,7 @@ void main()
         /// <summary>
         /// Frees all graphics resources used by the renderer.
         /// </summary>
-        public static void Dispose()
+        public void Dispose()
         {
             _fontTexture.Dispose();
             _shader.Dispose();
