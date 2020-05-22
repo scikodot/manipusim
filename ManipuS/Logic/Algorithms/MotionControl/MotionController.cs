@@ -96,11 +96,9 @@ namespace Logic
 
         private void ExecuteMotion(Vector3 goal)
         {
-            // create attractors for the current manipulator
-            CreateAttractors();
-
             // execute path planning
-            Agent.Path = PathPlanner.Execute(Obstacles, Agent, goal, PlanSolver);
+            (_, var path) = PathPlanner.Execute(Agent, goal, PlanSolver);
+            Agent.Path = path;
 
             // start motion control if a path has been found
             if (Agent.Path != null)
@@ -171,65 +169,6 @@ namespace Logic
                 curr = curr.Child;
                 prev = prev.Child;
             }
-        }
-
-        public void CreateAttractors()  // TODO: move to Attractor class
-        {
-            Agent.Attractors = new List<Attractor>();
-
-            double workRadius = Agent.WorkspaceRadius;
-            double x, yPos, y, zPos, z;
-
-            // adding main attractor
-            Vector3 attrPoint = Agent.Goal;
-            float attrWeight = CalculateAttractorWeight(attrPoint);
-            float attrRadius = CalculateAttractorRadius(attrWeight);
-
-            Agent.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
-
-            // adding ancillary attractors
-            while (Agent.Attractors.Count < WorkspaceBuffer.PathPlanningBuffer.AttrNum)
-            {
-                // generating attractor point
-                x = RandomThreadStatic.NextDouble(workRadius);
-                yPos = Math.Sqrt(workRadius * workRadius - x * x);
-                y = RandomThreadStatic.NextDouble(yPos);
-                zPos = Math.Sqrt(yPos * yPos - y * y);
-                z = RandomThreadStatic.NextDouble(zPos);
-
-                Vector3 point = new Vector3((float)x, (float)y, (float)z) + Agent.Base;
-
-                // checking whether the attractor is inside any obstacle or not
-                bool collision = false;
-                foreach (var obst in ObstacleHandler.Obstacles)
-                {
-                    if (obst.Contains(point))
-                    {
-                        collision = true;
-                        break;
-                    }
-                }
-
-                if (!collision)  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
-                {
-                    // adding attractor to the list
-                    attrPoint = point;
-                    attrWeight = CalculateAttractorWeight(attrPoint);
-                    attrRadius = CalculateAttractorRadius(attrWeight);
-
-                    Agent.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
-                }
-            }
-        }
-
-        private float CalculateAttractorWeight(Vector3 point)
-        {
-            return Agent.DistanceTo(point) + Agent.Goal.DistanceTo(point);
-        }
-
-        private float CalculateAttractorRadius(float weight)
-        {
-            return WorkspaceBuffer.PathPlanningBuffer.d * (float)Math.Pow(weight / Agent.DistanceTo(Agent.Goal), 4);
         }
     }
 }

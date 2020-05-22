@@ -128,7 +128,7 @@ namespace Logic.PathPlanning
             _mutationProbability = mutationProbability;
         }
 
-        public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
+        public override (int, Path) Execute(Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
             _agent = agent;
             _agentCopy = agent.DeepCopy();
@@ -180,7 +180,7 @@ namespace Logic.PathPlanning
                 Console.WriteLine(point);
             }
 
-            return generation[0].Item2;
+            return (generationsCount - 1, generation[0].Item2);
         }
 
         private BezierCurve ConstructBezier(Vector2 start, Vector2 end, int intermediaryPoints)
@@ -890,7 +890,7 @@ namespace Logic.PathPlanning
             int n = pairs.Length;
             while (n > 1)
             {
-                int k = Rng.Next(n--);
+                int k = RandomThreadStatic.Next(n--);
                 int t = pairs[n];
                 pairs[n] = pairs[k];
                 pairs[k] = t;
@@ -904,7 +904,7 @@ namespace Logic.PathPlanning
                     {
                         if (RandomThreadStatic.NextDouble() < crossoverProb)
                         {
-                            int Vector3 = Rng.Next(0, chs[0].PointsNum - 1);
+                            int Vector3 = RandomThreadStatic.Next(0, chs[0].PointsNum - 1);
                             ChromosomeD ch1 = new ChromosomeD(chs[0].PointsNum),
                                         ch2 = new ChromosomeD(chs[0].PointsNum);
                             for (int j = 0; j < chs[0].PointsNum; j++)
@@ -938,7 +938,7 @@ namespace Logic.PathPlanning
                     {
                         if (RandomThreadStatic.NextDouble() < crossoverProb)
                         {
-                            int Vector3 = Rng.Next(0, chs[0].PointsNum - 1);
+                            int Vector3 = RandomThreadStatic.Next(0, chs[0].PointsNum - 1);
                             ChromosomeD ch1 = new ChromosomeD(chs[0].PointsNum),
                                         ch2 = new ChromosomeD(chs[0].PointsNum);
 

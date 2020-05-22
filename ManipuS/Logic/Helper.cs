@@ -35,20 +35,4 @@ namespace Logic
             return pos;
         }
     }
-
-    public class Attractor  // TODO: maybe struct would be better?
-    {
-        public Vector3 Center;  // TODO: delete redundant fields!
-        public float Weight;
-        public float Radius;
-        public float InliersCount;
-
-        public Attractor(Vector3 center, float weight, float radius)
-        {
-            Center = center;
-            Weight = weight;
-            Radius = radius;
-            InliersCount = 0;
-        }
-    }
 }

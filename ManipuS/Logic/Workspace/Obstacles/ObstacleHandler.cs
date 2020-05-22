@@ -80,6 +80,19 @@ namespace Logic
                 obstacle.Dispose();
         }
 
+        public static bool ContainmentTest(System.Numerics.Vector3 point)
+        {
+            foreach (var obstacle in Obstacles)
+            {
+                if (obstacle.Contains(point))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public static void ToDesign()
         {
             foreach (var obst in Obstacles)

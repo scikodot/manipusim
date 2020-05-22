@@ -253,7 +253,7 @@ namespace Logic
             return point.DistanceTo(Vector3.Zero) - point.DistanceTo(Vector3.Zero) <= WorkspaceRadius;
         }
 
-        public float DistanceTo(Vector3 p)
+        public float DistanceTo(Vector3 p)  // TODO: this one is ambiguous; remove and use usual GripperPos
         {
             return GripperPos.DistanceTo(p);
         }

@@ -25,21 +25,18 @@ namespace Logic.PathPlanning
     {
         public static string[] Types { get; } = Enum.GetNames(typeof(PathPlannerType));
 
-        protected static Random Rng { get; } = new Random();
-
-        protected bool CollisionCheck;
+        protected bool _collisionCheck;
+        public ref bool CollisionCheck => ref _collisionCheck;
 
         protected int _maxTime;
         public ref int MaxTime => ref _maxTime;
 
-        public int Iterations;
-
         protected PathPlanner(int maxTime, bool collisionCheck)
         {
-            MaxTime = maxTime;
-            CollisionCheck = collisionCheck;
+            _maxTime = maxTime;
+            _collisionCheck = collisionCheck;
         }
 
-        public abstract Path Execute(Obstacle[] Obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver);
+        public abstract (int, Path) Execute(Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver);
     }
 }

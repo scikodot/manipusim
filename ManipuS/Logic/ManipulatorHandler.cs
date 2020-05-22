@@ -129,7 +129,7 @@ namespace Logic
             var defaultPlanner = _defaultPathPlanner;
 
             var solver = new JacobianTranspose(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime);
-            var planner = /*new GeneticAlgorithm(defaultPlanner.k, true, 10, 0.95f, 0.1f);  */new DynamicRRT(defaultPlanner.k, true, defaultPlanner.d, defaultPlanner.k / 10);
+            var planner = /*new GeneticAlgorithm(defaultPlanner.k, true, 10, 0.95f, 0.1f);  */new ARRT(manipulator, defaultPlanner.k, true, defaultPlanner.d, 5000, defaultPlanner.k / 10);
             manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
                    new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime), 2 * defaultPlanner.d);
 

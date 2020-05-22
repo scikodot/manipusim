@@ -143,44 +143,8 @@ namespace Physics
                 World.ContactTest(body, collisionCallback);
         }
 
-        //public static bool[] CollisionTest(Manipulator manipulator)
-        //{
-        //    Vector3[] joints = manip.DKP;
-
-        //    // representing manipulator as a sequence of actuators
-        //    int actuatorsNum = 50;
-        //    List<Vector3> actuators = new List<Vector3>();
-        //    for (int i = 0; i < joints.Length - 1; i++)
-        //    {
-        //        actuators.Add(joints[i]);
-        //        for (int j = 0; j < actuatorsNum; j++)
-        //        {
-        //            actuators.Add(joints[i] + (j + 1) * (joints[i + 1] - joints[i]) / (actuatorsNum + 1));
-        //        }
-        //    }
-        //    actuators.Add(joints[joints.Length - 1]);
-
-        //    // checking collisions for all actuators
-        //    bool[] collisions = new bool[joints.Length - 1];
-        //    foreach (var obst in obstacles)
-        //    {
-        //        for (int i = 0; i < actuators.Count; i++)
-        //        {
-        //            if (obst.Contains(actuators[i]))
-        //            {
-        //                collisions[(i - 1) / (actuatorsNum + 1)] = true;
-        //                goto CollisionDetected;
-        //            }
-        //        }
-        //    }
-        //CollisionDetected:
-
-        //    return collisions;
-        //}
-
         public static void Update(float elapsedTime)
         {
-            // lock on the world to prevent memory corruption
             lock (World)
                 World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
         }

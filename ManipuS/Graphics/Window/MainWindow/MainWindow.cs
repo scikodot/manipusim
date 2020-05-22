@@ -831,7 +831,7 @@ namespace Graphics
                         manipulator.Controller.PathPlanner = new RRT(PB.k, false, PB.d);
                         break;
                     case PathPlannerType.DynamicRRT:
-                        manipulator.Controller.PathPlanner = new DynamicRRT(PB.k, false, PB.d, PB.k / 10);
+                        manipulator.Controller.PathPlanner = new ARRT(manipulator, PB.k, false, PB.d, 5000, PB.k / 10);
                         break;
                     case PathPlannerType.GeneticAlgorithm:
                         throw new NotImplementedException("Genetic algorithm planner is not implemented yet!");
@@ -845,16 +845,21 @@ namespace Graphics
             if (manipulator.Controller.PathPlanner is RRT rrt)
             {
                 ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
-                ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);
+                ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);  // TODO: all tree properties should be in path planner!
+                ImGui.Checkbox("Discard outliers", ref rrt.DiscardOutliers);
                 ImGui.InputFloat("Step", ref rrt.Step);
                 ImGui.InputFloat("Threshold", ref rrt.Threshold);
 
-                if (manipulator.Controller.PathPlanner is DynamicRRT dynamicRRT)  // TODO: add attractors property
+                if (manipulator.Controller.PathPlanner is ARRT arrt)
                 {
-                    ImGui.InputInt("Trim period", ref dynamicRRT.TrimPeriod);
+                    ImGui.InputInt("Attractors count", ref arrt.AttractorsCount);
+                    ImGui.InputInt("Trim period", ref arrt.TrimPeriod);
                 }
             }
-            // TODO: add GeneticAlgorithm
+            else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
+            {
+                // TODO: add properties
+            }
 
             // TODO: switch MotionControl
         }

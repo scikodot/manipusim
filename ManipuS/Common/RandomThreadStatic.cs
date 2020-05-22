@@ -59,8 +59,13 @@ public static class RandomThreadStatic
         return Instance.NextGaussian(mu, sigma);
     }
 
-    public static Vector3 NextPoint3D(float range)
+    public static Vector3 NextPointCube(float halfExtent)
     {
-        return Instance.NextPoint3D(range);
+        return Instance.NextPointCube(halfExtent);
+    }
+
+    public static Vector3 NextPointSphere(float radius)
+    {
+        return Instance.NextPointSphere(radius);
     }
 }

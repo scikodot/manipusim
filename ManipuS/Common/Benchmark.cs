@@ -32,7 +32,7 @@ public static class Benchmark
     private static PathPlanner[] _planners =
     {
         new RRT(_maxTimePP, true, 0.04f),
-        new DynamicRRT(_maxTimePP, true, 0.04f, 0)
+        //new ARRT(_maxTimePP, true, 0.04f, 0)
     };
 
     public static void RunInverseKinematics()
@@ -89,12 +89,12 @@ public static class Benchmark
                 for (int i = 0; i < _samplesPP + 2; i++)
                 {
                     _timer.Restart();
-                    var path = planner.Execute(ObstacleHandler.Obstacles.ToArray(), agent, agent.Goal, new DampedLeastSquares(0.05f, 0, _maxTimeIK));
+                    (var iterations, var path) = planner.Execute(agent, agent.Goal, new DampedLeastSquares(0.05f, 0, _maxTimeIK));
                     _timer.Stop();
 
                     // discard first few results because Stopwatch has a warmup phase which produces excessively high numbers
                     if (i > 1)
-                        stream.WriteLine($"{planner.Iterations - 1},{_timer.ElapsedTicks / 10},{path.Count},{path.Last.Points[path.Last.Points.Length - 1].DistanceTo(agent.Goal)}");
+                        stream.WriteLine($"{iterations},{_timer.ElapsedTicks / 10},{path.Count},{path.Last.Points[path.Last.Points.Length - 1].DistanceTo(agent.Goal)}");
                 }
             }
         }

@@ -28,8 +28,19 @@ class RandomCustom : Random
         return Ziggurat.NextGaussian(this, mu, sigma);
     }
 
-    public Vector3 NextPoint3D(float range)
+    public Vector3 NextPointCube(float halfExtent)
     {
-        return new Vector3((float)NextDouble(range), (float)NextDouble(range), (float)NextDouble(range));
+        return new Vector3((float)NextDouble(halfExtent), (float)NextDouble(halfExtent), (float)NextDouble(halfExtent));
+    }
+
+    public Vector3 NextPointSphere(float radius)
+    {
+        double x = NextDouble(radius);
+        double yPositive = Math.Sqrt(radius * radius - x * x);
+        double y = NextDouble(yPositive);
+        double zPositive = Math.Sqrt(yPositive * yPositive - y * y);
+        double z = NextDouble(zPositive);
+
+        return new Vector3((float)x, (float)y, (float)z);
     }
 }
