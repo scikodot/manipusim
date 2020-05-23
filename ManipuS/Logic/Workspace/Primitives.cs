@@ -178,7 +178,7 @@ namespace Logic
             return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
         }
 
-        public static Model Cylinder(float radius, float extendDown, float extendUp, int circleCount, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Cylinder(float radius, float extentDown, float extentUp, int circleCount, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float radiusInv = 1.0f / radius;
             float angleStep = 2 * (float)Math.PI / circleCount;
@@ -195,8 +195,8 @@ namespace Logic
             var vertices = new List<MeshVertex>
             {
                 // add L and U
-                new MeshVertex { Position = new Vector3(0, -extendDown, 0), Normal = -Vector3.UnitY },
-                new MeshVertex { Position = new Vector3(0, extendUp, 0), Normal = Vector3.UnitY }
+                new MeshVertex { Position = new Vector3(0, -extentDown, 0), Normal = -Vector3.UnitY },
+                new MeshVertex { Position = new Vector3(0, extentUp, 0), Normal = Vector3.UnitY }
             };
 
             float angle, cos, sin;
@@ -207,12 +207,12 @@ namespace Logic
                 sin = radius * (float)Math.Sin(angle);
 
                 // add LCi and UCi
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = -Vector3.UnitY });
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extentDown, sin), Normal = -Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, extentUp, sin), Normal = Vector3.UnitY });
 
                 // add LSi and USi
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extendDown, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, extendUp, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extentDown, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+                vertices.Add(new MeshVertex { Position = new Vector3(cos, extentUp, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
             }
 
             var indices = new List<uint>();
@@ -247,7 +247,63 @@ namespace Logic
                 indices.Add(4 * i + 9);
             }
 
-            return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
+            //return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
+            return new Mesh("Cylinder", vertices.ToArray(), indices.ToArray(), new MeshTexture[0], material);
+        }
+
+        public static Mesh Cone(float radius, float height, int circleCount, MeshMaterial material, Vector3 origin = default/*, OpenTK.Matrix4 state = default*/, RenderFlags renderFlags = RenderFlags.Solid)
+        {
+            float radiusInv = 1.0f / radius;
+            float angleStep = 2 * (float)Math.PI / circleCount;
+
+            // the order of the vertices:
+            // [L, U, LC1, LS1, LC2, LS2, ...],
+            // where
+            //      L - central point of the lower circle,
+            //      U - apex of the cone,
+            //      LCi - i-th point of the lower circle with central normal,
+            //      LSi - i-th point of the lower circle with side normal,
+            var vertices = new List<MeshVertex>
+            {
+                // add L and U
+                new MeshVertex { Position = origin, Normal = -Vector3.UnitY },
+                new MeshVertex { Position = origin + height * Vector3.UnitY, Normal = Vector3.UnitY }
+            };
+
+            float angle, cos, sin;
+            for (int i = 0; i <= circleCount; i++)
+            {
+                angle = i * angleStep;
+                cos = radius * (float)Math.Cos(angle);
+                sin = radius * (float)Math.Sin(angle);
+
+                // add LCi
+                vertices.Add(new MeshVertex { Position = origin + new Vector3(cos, 0, sin), Normal = -Vector3.UnitY });
+
+                // add LSi
+                vertices.Add(new MeshVertex { Position = origin + new Vector3(cos, 0, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+            }
+
+            var indices = new List<uint>();
+
+            // lower circle faces
+            for (uint i = 0; i < circleCount; i++)
+            {
+                indices.Add(0);
+                indices.Add(2 * i + 2);
+                indices.Add(2 * i + 4);
+            }
+
+            // side faces
+            for (uint i = 0; i < circleCount; i++)
+            {
+                indices.Add(1);
+                indices.Add(2 * i + 3);
+                indices.Add(2 * i + 5);
+            }
+
+            //return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
+            return new Mesh("Cone", vertices.ToArray(), indices.ToArray(), new MeshTexture[0], material);
         }
 
         public static System.Numerics.Vector3[] SpherePointCloud(float radius, System.Numerics.Vector3 center, int pointsNum)

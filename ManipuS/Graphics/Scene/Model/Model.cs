@@ -31,17 +31,18 @@ namespace Graphics
 
         public RenderFlags RenderFlags { get; set; } = RenderFlags.Solid;
 
-        // create a model, consisting of a single mesh
-        //public ComplexModel(System.Numerics.Vector3[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "")
-        //{
-        //    Meshes.Add(new Mesh(name, MeshVertex.Convert(vertices), indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
-
-        //    State = state == default ? Matrix4.Identity : state;
-        //}
-
         public Model(MeshVertex[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "", RenderFlags renderFlags = RenderFlags.Solid)
         {
             Meshes.Add(new Mesh(name, vertices, indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
+
+            State = state == default ? Matrix4.Identity : state;
+
+            RenderFlags = renderFlags;
+        }
+
+        public Model(Mesh[] meshes, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        {
+            Meshes.AddRange(meshes);
 
             State = state == default ? Matrix4.Identity : state;
 

@@ -26,7 +26,7 @@ namespace Graphics
 
             public bool Active { get; private set; }
 
-            private const float _scaleFactor = 0.2f;  // this value defines a constant size of axis on the screen
+            private const float _scaleFactor = 0.15f;  // this value defines a constant size of axis on the screen
             private float _scale;
 
             public Axis(Vector3 origin, Vector3 direction, Vector4 color)
@@ -37,11 +37,27 @@ namespace Graphics
                 _scale = _scaleFactor;
                 End = Origin + _scale * Direction;
 
-                Model = new Model(new MeshVertex[]
+                Model = CreateModel(Origin, Direction, color);
+            }
+
+            public Model CreateModel(Vector3 origin, Vector3 direction, Vector4 color)
+            {
+                // TODO: create Align method for matrices, the same as for quaternions
+                Matrix4 align = Matrix4.CreateTranslation(origin);
+                if (direction != Vector3.UnitY)
+                    align *= Matrix4.CreateFromAxisAngle(Vector3.Cross(Vector3.UnitY, direction), (float)Math.Acos(Vector3.Dot(Vector3.UnitY, direction)));
+
+                return new Model(new Mesh[]
                 {
-                new MeshVertex { Position = Origin },
-                new MeshVertex { Position = Origin + Direction }
-                }, material: new MeshMaterial { Diffuse = color });
+                    Primitives.Cylinder(0.01f, 0, 1f, 20, new MeshMaterial
+                    {
+                        Diffuse = color
+                    }),
+                    Primitives.Cone(0.05f, 0.2f, 20, new MeshMaterial
+                    {
+                        Diffuse = color
+                    }, Vector3.UnitY)
+                }, Matrix4.Transpose(align) * Matrix4.CreateScale(_scale));
             }
 
             public void SetOrigin(Vector3 origin)
@@ -69,15 +85,18 @@ namespace Graphics
 
             public void Scale(Camera camera)
             {
-                // obtain scale change
-                _scale = _scaleFactor * (camera.Position - Origin).Length;
+                // obtain new scale
+                var scaleNew = _scaleFactor * (camera.Position - Origin).Length;
 
                 // scale axis points
-                End = Origin + _scale * Direction;
+                End = Origin + scaleNew * Direction;
 
                 // scale axis model
                 ref var modelX = ref Model.State;
-                modelX.M11 = modelX.M22 = modelX.M33 = _scale;
+                modelX *= Matrix4.CreateScale(scaleNew / _scale);
+
+                // save new scale
+                _scale = scaleNew;
             }
 
             public Vector3 Poll(Camera camera, Ray ray, MouseState currState, MouseState prevState)  // TODO: optimize
@@ -133,17 +152,41 @@ namespace Graphics
             public bool IsActive(ref Matrix4 view, ref Matrix4 proj, out Vector3 endNDC)
             {
                 // transform the axis to the NDC space
-                endNDC = Project(ref view, ref proj);
+                (var endProj, var originProj) = Project(ref view, ref proj);
+                endNDC = endProj;
+
+                //// get the distance to the projected line
+                //var cursor = InputHandler.CursorPositionNDC;  // TODO; refactor!
+                //var direction = endProj - originProj;
+                //var distance = Geometry.PointLineDistance(
+                //    cursor.ToNumerics2(), 
+                //    originProj.Xy.ToNumerics2(), 
+                //    direction.Xy.ToNumerics2());
+
+                //if (distance < 0.05f)
+                //{
+                //    // test whether the point is projected onto the segment
+                //    var e1 = (endProj - originProj).Xy;
+                //    var upperLimit = Vector2.Dot(e1, e1);
+                //    var e2 = endProj.Xy - cursor;
+                //    var dot = Vector2.Dot(e1, e2);
+
+                //    return dot > 0 && dot < upperLimit;
+                //}
+                //else
+                //    return false;
 
                 // return the distance between the projected axis tip and the cursor
-                return Vector2.Distance(InputHandler.CursorPositionNDC, endNDC.Xy) < 0.1f;
+                return Vector2.Distance(InputHandler.CursorPositionNDC, endNDC.Xy) < 0.08f;
             }
 
-            public Vector3 Project(ref Matrix4 view, ref Matrix4 proj)
+            public (Vector3, Vector3) Project(ref Matrix4 view, ref Matrix4 proj)
             {
                 // transform end point to NDC
-                var endProj = new Vector4(End, 1.0f) * view * proj;
-                return (endProj / endProj.W).Xyz;
+                var viewProj = view * proj;
+                var originProj = new Vector4(Origin, 1.0f) * viewProj;
+                var endProj = new Vector4(End, 1.0f) * viewProj;
+                return ((endProj / endProj.W).Xyz, (originProj / originProj.W).Xyz);
             }
 
             public void Dispose()
@@ -168,12 +211,12 @@ namespace Graphics
             Axes = axesDirectionsColors.Select(((Vector3 dir, Vector4 col) axis) => new Axis(origin, axis.dir, axis.col)).ToArray();
         }
 
-        public TranslationalWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors, ITranslatable selectable)
-        {
-            Axes = axesDirectionsColors.Select(((Vector3 dir, Vector4 col) axis) => new Axis(origin, axis.dir, axis.col)).ToArray();
+        //public TranslationalWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors, ITranslatable selectable)
+        //{
+        //    Axes = axesDirectionsColors.Select(((Vector3 dir, Vector4 col) axis) => new Axis(origin, axis.dir, axis.col)).ToArray();
 
-            Attach(selectable);
-        }
+        //    Attach(selectable);
+        //}
 
         public void Render(Shader shader, Action render)
         {
@@ -182,7 +225,7 @@ namespace Graphics
                     axis.Render(shader, render);
         }
 
-        public void Attach(ITranslatable selectable)
+        public void Attach(ITranslatable selectable, Camera camera)
         {
             if (selectable == Parent || selectable == null)
                 return;
@@ -194,6 +237,9 @@ namespace Graphics
             }
 
             Parent = selectable;
+
+            // perform an initial scale change
+            Scale(camera);
         }
 
         public void Detach()
@@ -206,7 +252,7 @@ namespace Graphics
             if (IsAttached)
             {
                 // scale all axes so that their size on screen remains fixed
-                Scale(camera);  // TODO: try to implement event-based system
+                Scale(camera);
 
                 // get current view and projection matrices
                 ref var view = ref camera.ViewMatrix;

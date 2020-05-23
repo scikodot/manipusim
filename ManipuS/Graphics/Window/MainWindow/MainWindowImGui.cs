@@ -20,7 +20,7 @@ namespace Graphics
 
         public MainWindowImGui(MainWindow mainWindow) : base(mainWindow) { }
 
-        public void RenderGUI(FrameEventArgs e)
+        public void Render(FrameEventArgs e)
         {
             // update GUI
             Update((float)e.Time);
@@ -41,7 +41,6 @@ namespace Graphics
             RenderMenu();
             RenderManipulatorsWindow();
             RenderObstaclesWindow();
-            //RenderAlgorithmsWindow();
             RenderOptionsWindow();
 
             if (MainWindow.Mode == InteractionMode.Design)

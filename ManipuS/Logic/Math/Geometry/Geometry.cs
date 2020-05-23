@@ -64,6 +64,11 @@ namespace Logic
             return PointLineVector(p, pLine, nLine).Length();
         }
 
+        public static float PointLineDistance(Vector2 p, Vector2 pLine, Vector2 nLine)
+        {
+            return PointLineVector(p, pLine, nLine).Length();
+        }
+
         public static float LinesDistance(Vector3 p1, Vector3 n1, Vector3 p2, Vector3 n2)
         {
             return LinesVector(p1, n1, p2, n2).Length();
@@ -103,10 +108,25 @@ namespace Logic
             return VectorOrtho(v, nLine);
         }
 
+        private static Vector2 PointLineVector(Vector2 p, Vector2 pLine, Vector2 nLine)
+        {
+            // get vector from the specified point to a point on the line
+            var v = pLine - p;
+
+            // get the component of v orthogonal to a
+            return VectorOrtho(v, nLine);
+        }
+
         private static  Vector3 VectorOrtho(Vector3 v1, Vector3 v2)
         {
             // get the component of v1 that is perpendicular to v2
             return v1 - Vector3.Dot(v1, v2) * v2;
+        }
+
+        private static Vector2 VectorOrtho(Vector2 v1, Vector2 v2)
+        {
+            // get the component of v1 that is perpendicular to v2
+            return v1 - Vector2.Dot(v1, v2) * v2;
         }
     }
 }

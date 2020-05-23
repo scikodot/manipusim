@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices.WindowsRuntime;
 using OpenTK;
 
 namespace Graphics
@@ -43,6 +42,7 @@ namespace Graphics
 
         // The position of the camera
         public Vector3 Position { get; set; }
+
         // This is simply the aspect ratio of the viewport, used for the projection matrix
         public float AspectRatio { private get; set; }
 

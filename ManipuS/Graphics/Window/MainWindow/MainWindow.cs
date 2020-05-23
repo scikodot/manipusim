@@ -36,16 +36,16 @@ namespace Graphics
 
     public class MainWindow : GameWindow
     {
-        private Camera _camera;
+        private static Camera _camera;
 
-        private readonly List<Model> _goalModels = new List<Model>();
-        private readonly List<TreeModel> _treeModels = new List<TreeModel>();
-        private readonly List<PathModel> _pathModels = new List<PathModel>();
-        private readonly List<PathModel> _gaModels = new List<PathModel>();
-        private Model _bezierPoints;
+        private static readonly List<Model> _goalModels = new List<Model>();
+        private static readonly List<TreeModel> _treeModels = new List<TreeModel>();
+        private static readonly List<PathModel> _pathModels = new List<PathModel>();
+        private static readonly List<PathModel> _gaModels = new List<PathModel>();
+        private static Model _bezierPoints;
 
-        private float time = 0;
-        private bool forward;
+        private static float time = 0;
+        private static bool forward;
 
         //private static GhostObject ghostObject;
         //private static Model ghostObjectModel;
@@ -60,7 +60,7 @@ namespace Graphics
         //Model Crytek;
 
         // ImGUI variables
-        private MainWindowImGui _imGui;
+        private static MainWindowImGui _imGui;
 
         public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
         public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
@@ -97,6 +97,17 @@ namespace Graphics
 
             // subscribe to the events
             InputHandler.SelectedObjectChanged += OnSelectedObjectChanged;
+
+            ObstacleHandler.Add(new Obstacle(new Model(new Mesh[]
+                {
+                    Primitives.Cone(1, 2, 50, new MeshMaterial
+                    {
+                        Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                        Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                        Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                        Shininess = 8
+                    })
+                }), PhysicsHandler.CreateDynamicCollider(new ConeShape(1, 2), 1, Matrix.Translation(-1.5f, 3, 0))));
 
             //Cubes = new Obstacle[3];
             //for (int i = 0; i < 3; i++)
@@ -191,7 +202,7 @@ namespace Graphics
             RenderCore(e);
 
             // render GUI
-            _imGui.RenderGUI(e);
+            _imGui.Render(e);
 
             // TODO: refactor
             // execute all actions, enqueued while loading a model
@@ -332,12 +343,8 @@ namespace Graphics
 
         private void RenderCoreIndependent()
         {
-            InputHandler.TranslationalWidget.Render(ShaderHandler.ComplexShader, () =>
-            {
-                GL.Disable(EnableCap.DepthTest);
-                GL.DrawArrays(PrimitiveType.Lines, 0, 2);
-                GL.Enable(EnableCap.DepthTest);
-            });
+            GL.Clear(ClearBufferMask.DepthBufferBit);
+            InputHandler.TranslationalWidget.Render(ShaderHandler.ComplexShader, null);
         }
 
         public void CreateDefaultManipulator(int linksNumber)

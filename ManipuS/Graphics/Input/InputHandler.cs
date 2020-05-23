@@ -74,7 +74,7 @@ namespace Graphics
             RaycastResult = Ray.Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
 
             // attach widgets to or detach from the selected objects
-            AttachWidgets();
+            AttachWidgets(camera);
 
             if (MainWindow.Mode == InteractionMode.Design && !ImGui.IsWindowHovered(
                 ImGuiHoveredFlags.AnyWindow | 
@@ -141,7 +141,7 @@ namespace Graphics
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
                 PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (mouseState.RightButton == ButtonState.Pressed && _lastState.RightButton == ButtonState.Released)  // TODO: consider using right button for selecting objects
+                if (mouseState.RightButton == ButtonState.Pressed && _lastState.RightButton == ButtonState.Released)
                 {
                     if (raycastCallback.HasHit)
                     {
@@ -172,7 +172,7 @@ namespace Graphics
             }
         }
 
-        public static void AttachWidgets()
+        public static void AttachWidgets(Camera camera)
         {
             if (SelectedObjects.Count == 1)
             {
@@ -186,7 +186,7 @@ namespace Graphics
                 }
 
                 // attach the widget
-                TranslationalWidget.Attach(CurrentSelectedObject as ITranslatable);
+                TranslationalWidget.Attach(CurrentSelectedObject as ITranslatable, camera);
             }
             else
             {

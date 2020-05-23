@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Numerics;
 
 using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
@@ -35,6 +34,9 @@ namespace Physics
                     break;
                 case BroadphaseNativeType.CylinderShape:
                     collider = new CylinderCollider(body);
+                    break;
+                case BroadphaseNativeType.ConeShape:
+                    collider = new ConeCollider(body);
                     break;
             }
 

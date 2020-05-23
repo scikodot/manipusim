@@ -141,9 +141,11 @@
     <Compile Include="Graphics\ImGUI\ImGuiUtil.cs" />
     <Compile Include="Logic\Attractor.cs" />
     <Compile Include="Logic\Math\Geometry\Geometry.cs" />
+    <Compile Include="Logic\Math\Geometry\Segment.cs" />
     <Compile Include="Logic\Math\Quaternions\DualQuat.cs" />
     <Compile Include="Logic\Math\Random\Ziggurat.cs" />
     <Compile Include="Logic\Workspace\Obstacles\ObstacleHandler.cs" />
+    <Compile Include="Physics\Colliders\ConeCollider.cs" />
     <Compile Include="Physics\Colliders\CylinderCollider.cs" />
     <Compile Include="Logic\Workspace\Joint.cs" />
     <Compile Include="Logic\Workspace\Link.cs" />
@@ -158,7 +160,6 @@
     <Compile Include="Logic\Math\Vectors\Vector.cs" />
     <Compile Include="Logic\Workspace\Obstacles\Obstacle.cs" />
     <Compile Include="Logic\ManipulatorHandler.cs" />
-    <Compile Include="Logic\Helper.cs" />
     <Compile Include="Physics\Colliders\BoxCollider.cs" />
     <Compile Include="Physics\Colliders\SphereCollider.cs" />
     <Compile Include="Physics\Colliders\Collider.cs" />

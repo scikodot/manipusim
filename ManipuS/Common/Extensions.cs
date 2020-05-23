@@ -178,6 +178,11 @@ public static class VectorConversionExtensions
         return new OpenTK.Vector3(vec.X, vec.Y, vec.Z);
     }
 
+    public static System.Numerics.Vector2 ToNumerics2(this OpenTK.Vector2 vec)
+    {
+        return new Vector2(vec.X, vec.Y);
+    }
+
     //public static System.Numerics.Vector3 XYZ(this System.Numerics.Vector4 vec)
     //{
     //    return new Vector3(vec.X, vec.Y, vec.Z);
