@@ -9,7 +9,7 @@ namespace Logic.PathPlanning
     public enum PathPlannerType
     {
         RRT,
-        DynamicRRT,
+        ARRT,
         GeneticAlgorithm
     }
 
@@ -31,12 +31,24 @@ namespace Logic.PathPlanning
         protected int _maxTime;
         public ref int MaxTime => ref _maxTime;
 
+        public PathPlannerType Type { get; private set; }
+
         protected PathPlanner(int maxTime, bool collisionCheck)
         {
             _maxTime = maxTime;
             _collisionCheck = collisionCheck;
+
+            Type = (PathPlannerType)Enum.Parse(typeof(PathPlannerType), GetType().Name);
         }
 
-        public abstract (int, Path) Execute(Manipulator agent, Vector3 goal, InverseKinematicsSolver Solver);
+        public (int, Path) Run(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
+        {
+            using (var manipulatorCopy = manipulator.DeepCopy())
+            {
+                return RunAbstract(manipulatorCopy, goal, solver);
+            }
+        }
+
+        protected abstract (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver);
     }
 }

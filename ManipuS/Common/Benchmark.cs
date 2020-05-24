@@ -89,7 +89,7 @@ public static class Benchmark
                 for (int i = 0; i < _samplesPP + 2; i++)
                 {
                     _timer.Restart();
-                    (var iterations, var path) = planner.Execute(agent, agent.Goal, new DampedLeastSquares(0.05f, 0, _maxTimeIK));
+                    (var iterations, var path) = planner.Run(agent, agent.Goal, new DampedLeastSquares(0.05f, 0, _maxTimeIK));
                     _timer.Stop();
 
                     // discard first few results because Stopwatch has a warmup phase which produces excessively high numbers

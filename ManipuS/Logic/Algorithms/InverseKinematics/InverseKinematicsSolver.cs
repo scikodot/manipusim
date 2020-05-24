@@ -35,11 +35,15 @@ namespace Logic.InverseKinematics
         protected int _maxTime;
         public ref int MaxTime => ref _maxTime;
 
+        public InverseKinematicsSolverType Type { get; private set; }
+
         protected InverseKinematicsSolver(float precision, float stepSize, int maxTime)
         {
             _threshold = precision;
             StepSize = stepSize;
             MaxTime = maxTime;
+
+            Type = (InverseKinematicsSolverType)Enum.Parse(typeof(InverseKinematicsSolverType), GetType().Name);
         }
 
         protected VectorFloat GetError(Manipulator manipulator, Vector3 goal, int joint)

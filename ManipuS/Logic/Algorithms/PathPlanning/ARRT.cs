@@ -25,15 +25,13 @@ namespace Logic.PathPlanning
                                                                                         // then the generation should happen on execution or like an event
         }
 
-        public override (int, Path) Execute(Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
+        protected override (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
         {
             // recalculate attractors' weights
-            Attractor.RecalculateWeights(_attractors, agent, _threshold);
-
-            Manipulator agentCopy = agent.DeepCopy();
+            Attractor.RecalculateWeights(_attractors, manipulator, _threshold);
 
             // create new tree
-            agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));  // TODO: consider creating local tree and returning it (for benchmarking or similar)
+            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q));
 
             // sort attractors
             _attractors = _attractors.OrderBy(a => a.Weight).ToList();
@@ -61,7 +59,7 @@ namespace Logic.PathPlanning
                 Vector3 sample = _attractors[index].Center;
 
                 // find the closest node to that attractor
-                Tree.Node nodeClosest = agent.Tree.Closest(sample);
+                Tree.Node nodeClosest = Tree.Closest(sample);
 
                 // get new tree node point
                 Vector3 point = nodeClosest.Point + Vector3.Normalize(sample - nodeClosest.Point) * _step;
@@ -69,13 +67,13 @@ namespace Logic.PathPlanning
                 if (!(_discardOutliers && ObstacleHandler.ContainmentTest(point)))
                 {
                     // solve inverse kinematics for the new node
-                    agentCopy.q = nodeClosest.q;
-                    (var converged, _, var distance, var offset) = solver.Execute(agentCopy, point, agentCopy.Joints.Length - 1);
-                    if (converged && !(_collisionCheck && agent.CollisionTest().Contains(true)))
+                    manipulator.q = nodeClosest.q;
+                    (var converged, _, var distance, var offset) = solver.Execute(manipulator, point, manipulator.Joints.Length - 1);
+                    if (converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))
                     {
                         // add node to the tree
-                        Tree.Node node = new Tree.Node(nodeClosest, agentCopy.GripperPos, agentCopy.q);
-                        agent.Tree.AddNode(node);
+                        Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.q);
+                        Tree.AddNode(node);
                     }
                 }
 
@@ -91,7 +89,7 @@ namespace Logic.PathPlanning
             }
 
             // retrieve resultant path along with respective configurations
-            return (iters - 1, agent.Tree.GetPath(agentCopy, agent.Tree.Closest(goal)));  // TODO: refactor!
+            return (iters - 1, Tree.GetPath(manipulator, Tree.Closest(goal)));  // TODO: refactor!
         }
     }
 }

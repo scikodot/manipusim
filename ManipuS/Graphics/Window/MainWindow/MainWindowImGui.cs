@@ -14,9 +14,10 @@ namespace Graphics
 {
     class MainWindowImGui : ImGuiHandler
     {
+        private const ImGuiTreeNodeFlags _baseTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow;
+        private const ImGuiTreeNodeFlags _baseTreeLeafFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
+
         private static bool _swapPropertiesWindows;
-        private static ImGuiTreeNodeFlags _baseTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow;
-        private static ImGuiTreeNodeFlags _baseTreeLeafFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
 
         public MainWindowImGui(MainWindow mainWindow) : base(mainWindow) { }
 
@@ -53,6 +54,7 @@ namespace Graphics
             Util.CheckGLError("End of frame");
         }
 
+        #region MAIN_MENU_BAR
         private void RenderMenu()
         {
             if (ImGui.BeginMainMenuBar())
@@ -89,55 +91,9 @@ namespace Graphics
                 ImGui.EndMainMenuBar();
             }
         }
+        #endregion
 
-        public void OnSelectedObjectChanged(object sender, EventArgs e)
-        {
-            SwapPropertiesWindows();
-        }
-
-        private void SwapPropertiesWindows()
-        {
-            _swapPropertiesWindows = !_swapPropertiesWindows;
-        }
-
-        private void UpdateSelection(object selected)
-        {
-            InputHandler.ClearSelection();
-
-            if (selected == InputHandler.CurrentSelectedObject)
-            {
-                InputHandler.CurrentSelectedObject = null;
-            }
-            else
-            {
-                if (selected is Manipulator manipulator)
-                {
-                    InputHandler.AddSelection(manipulator.Joints.Select(joint => joint.Collider.Body));
-                    InputHandler.AddSelection(manipulator.Links.Select(link => link.Collider.Body));
-                }
-                else if (selected is Joint joint)
-                {
-                    InputHandler.AddSelection(joint.Collider.Body);
-                }
-                else if (selected is Link link)
-                {
-                    InputHandler.AddSelection(link.Collider.Body);
-                }
-                else if (selected is Obstacle obstacle)
-                {
-                    InputHandler.AddSelection(obstacle.Collider.Body);
-                }
-
-                InputHandler.CurrentSelectedObject = selected;
-                SwapPropertiesWindows();
-            }
-        }
-
-        private ImGuiTreeNodeFlags GetTreeNodeSelectionFlag(object selected)
-        {
-            return selected == InputHandler.CurrentSelectedObject ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None;
-        }
-
+        #region MANIPULATORS_WINDOW
         private void RenderManipulatorsWindow()
         {
             // manipulators window
@@ -162,7 +118,8 @@ namespace Graphics
 
                     if (ImGui.Button("Create"))
                     {
-                        (Window as MainWindow).CreateDefaultManipulator(ManipulatorHandler.DefaultLinksNumber);
+                        MainWindow.CreateDefaultManipulator(ManipulatorHandler.DefaultLinksNumber);
+
                         ImGui.CloseCurrentPopup();
                     }
 
@@ -229,7 +186,9 @@ namespace Graphics
                 ImGui.End();
             }
         }
+        #endregion
 
+        #region OBSTACLES_WINDOW
         private void RenderObstaclesWindow()
         {
             // obstacles window
@@ -288,7 +247,9 @@ namespace Graphics
                 ImGui.End();
             }
         }
+        #endregion
 
+        #region OPTIONS_WINDOW
         private void RenderOptionsWindow()
         {
             // options and info window
@@ -317,7 +278,7 @@ namespace Graphics
 
                 if (ImGui.Button(targetMode))
                 {
-                    MainWindow.ChangeMode();
+                    MainWindow.SwitchMode();
                 }
                 if (ImGui.IsItemHovered())
                 {
@@ -347,28 +308,30 @@ namespace Graphics
                 ImGui.End();
             }
         }
+        #endregion
 
+        #region PROPERTIES_WINDOW
         private void RenderPropertiesWindow()
         {
             if (InputHandler.CurrentSelectedObject is Manipulator manipulator)
             {
-                RenderPropertiesWindowTemplate("Manipulator properties", ManipulatorProperties, manipulator);
+                RenderPropertiesWindowTemplate("Manipulator properties", manipulator, ManipulatorProperties);
             }
             else if (InputHandler.CurrentSelectedObject is Joint joint)
             {
-                RenderPropertiesWindowTemplate("Joint properties", JointProperties, joint);
+                RenderPropertiesWindowTemplate("Joint properties", joint, JointProperties);
             }
             else if (InputHandler.CurrentSelectedObject is Link link)
             {
-                RenderPropertiesWindowTemplate("Link properties", LinkProperties, link);
+                RenderPropertiesWindowTemplate("Link properties", link, LinkProperties);
             }
             else if (InputHandler.CurrentSelectedObject is Obstacle obstacle)
             {
-                RenderPropertiesWindowTemplate("Obstacle properties", ObstacleProperties, obstacle);
+                RenderPropertiesWindowTemplate("Obstacle properties", obstacle, ObstacleProperties);
             }
         }
 
-        private void RenderPropertiesWindowTemplate<T>(string title, Action<T> renderProperties, T selectable) where T : ISelectable
+        private void RenderPropertiesWindowTemplate<T>(string title, T selectable, Action<T> renderProperties) where T : ISelectable
         {
             if (ImGui.Begin(title/* + (changed ? "##first" : "##last")*/,
                     ImGuiWindowFlags.NoCollapse |
@@ -402,103 +365,111 @@ namespace Graphics
             var IB = WorkspaceBuffer.InverseKinematicsBuffer;
             var PB = WorkspaceBuffer.PathPlanningBuffer;
 
-            int inverseKinematicsType = (int)manipulator.Controller.InverseKinematicsSolverType;
-            int prevInverseKinematicsType = inverseKinematicsType;
-            ImGui.Text("Inverse kinematics solver:");
-            ImGui.PushID(0);
-            ImGui.Combo("Type",
-                ref inverseKinematicsType,
-                InverseKinematicsSolver.Types,
-                InverseKinematicsSolver.Types.Length);
-            manipulator.Controller.InverseKinematicsSolverType = (InverseKinematicsSolverType)inverseKinematicsType;
-
-            // change inverse kinematics solver if queried
-            if (inverseKinematicsType != prevInverseKinematicsType)
+            if (ImGui.BeginTabBar("ManipulatorTabs"))
             {
-                switch (manipulator.Controller.InverseKinematicsSolverType)
+                if (ImGui.BeginTabItem("Solver"))
                 {
-                    case InverseKinematicsSolverType.JacobianTranspose:
-                        manipulator.Controller.PlanSolver = new JacobianTranspose(IB.Precision, IB.StepSize, IB.MaxTime);
-                        break;
-                    case InverseKinematicsSolverType.JacobianInverse:
-                        manipulator.Controller.PlanSolver = new JacobianPseudoinverse(IB.Precision, IB.StepSize, IB.MaxTime);
-                        break;
-                    case InverseKinematicsSolverType.DampedLeastSquares:
-                        manipulator.Controller.PlanSolver = new DampedLeastSquares(IB.Precision, IB.StepSize, IB.MaxTime);
-                        break;
+                    int currType = (int)manipulator.Controller.PlanSolver.Type;  // TODO: refactor?
+                    int newType = currType;
+                    ImGui.Combo("Type", ref newType, InverseKinematicsSolver.Types, InverseKinematicsSolver.Types.Length);
+
+                    // change inverse kinematics solver if queried
+                    if (newType != currType)
+                    {
+                        switch ((InverseKinematicsSolverType)newType)
+                        {
+                            case InverseKinematicsSolverType.JacobianTranspose:
+                                manipulator.Controller.PlanSolver = new JacobianTranspose(IB.Precision, IB.StepSize, IB.MaxTime);
+                                break;
+                            case InverseKinematicsSolverType.JacobianInverse:
+                                manipulator.Controller.PlanSolver = new JacobianPseudoinverse(IB.Precision, IB.StepSize, IB.MaxTime);
+                                break;
+                            case InverseKinematicsSolverType.DampedLeastSquares:
+                                manipulator.Controller.PlanSolver = new DampedLeastSquares(IB.Precision, IB.StepSize, IB.MaxTime);
+                                break;
+                        }
+                    }
+
+                    ImGui.Separator();
+
+                    // inverse kinematics solver properties
+                    ImGui.InputInt("Max time", ref manipulator.Controller.PlanSolver.MaxTime);
+
+                    if (manipulator.Controller.PlanSolver is JacobianTranspose jacobianTranspose)
+                    {
+                        ImGui.InputFloat("Base damping coefficient", ref jacobianTranspose.Alpha);
+                    }
+                    else if (manipulator.Controller.PlanSolver is JacobianPseudoinverse jacobianInverse)
+                    {
+                        // TODO: input something here?
+                    }
+                    else if (manipulator.Controller.PlanSolver is DampedLeastSquares dampedLeastSquares)
+                    {
+                        ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Lambda);
+                    }
+
+                    ImGui.EndTabItem();
                 }
-            }
 
-            // inverse kinematics solver properties
-            ImGui.InputInt("Max time", ref manipulator.Controller.PlanSolver.MaxTime);
-
-            if (manipulator.Controller.PlanSolver is JacobianTranspose jacobianTranspose)
-            {
-                ImGui.InputFloat("Base damping coefficient", ref jacobianTranspose.Alpha);
-            }
-            else if (manipulator.Controller.PlanSolver is JacobianPseudoinverse jacobianInverse)
-            {
-                // TODO: input something here?
-            }
-            else if (manipulator.Controller.PlanSolver is DampedLeastSquares dampedLeastSquares)
-            {
-                ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Lambda);
-            }
-
-            ImGui.Separator();
-
-            // TODO: capture type here to compare with the new type
-            ImGui.Text("Path planner:");
-            ImGui.PushID(1);
-
-            int pathPlannerType = (int)manipulator.Controller.PathPlannerType;
-            int prevPathPlannerType = pathPlannerType;
-            ImGui.Combo("Type",
-                ref pathPlannerType,
-                PathPlanner.Types,
-                PathPlanner.Types.Length);
-            manipulator.Controller.PathPlannerType = (PathPlannerType)pathPlannerType;
-
-            // change path planner if queried
-            if (pathPlannerType != prevPathPlannerType)
-            {
-                switch (manipulator.Controller.PathPlannerType)
+                if (ImGui.BeginTabItem("Planner"))
                 {
-                    case PathPlannerType.RRT:
-                        manipulator.Controller.PathPlanner = new RRT(PB.k, false, PB.d);
-                        break;
-                    case PathPlannerType.DynamicRRT:
-                        manipulator.Controller.PathPlanner = new ARRT(manipulator, PB.k, false, PB.d, 5000, PB.k / 10);
-                        break;
-                    case PathPlannerType.GeneticAlgorithm:
-                        throw new NotImplementedException("Genetic algorithm planner is not implemented yet!");
-                        break;
+                    int currType = (int)manipulator.Controller.PathPlanner.Type;
+                    int newType = currType;
+                    ImGui.Combo("Type", ref newType, PathPlanner.Types, PathPlanner.Types.Length);
+
+                    // change path planner if queried
+                    if (newType != currType)
+                    {
+                        switch ((PathPlannerType)newType)
+                        {
+                            case PathPlannerType.RRT:
+                                manipulator.Controller.PathPlanner = new RRT(PB.k, false, PB.d);
+                                break;
+                            case PathPlannerType.ARRT:
+                                manipulator.Controller.PathPlanner = new ARRT(manipulator, PB.k, false, PB.d, 5000, PB.k / 10);
+                                break;
+                            case PathPlannerType.GeneticAlgorithm:
+                                manipulator.Controller.PathPlanner = new GeneticAlgorithm(PB.k, true, 10, 0.95f, 0.1f);
+                                break;
+                        }
+                    }
+
+                    ImGui.Separator();
+
+                    // path planner properties
+                    ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
+
+                    if (manipulator.Controller.PathPlanner is RRT rrt)
+                    {
+                        ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
+                        ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);  // TODO: all tree properties should be in path planner!
+                        ImGui.Checkbox("Discard outliers", ref rrt.DiscardOutliers);
+                        ImGui.InputFloat("Step", ref rrt.Step);
+                        ImGui.InputFloat("Threshold", ref rrt.Threshold);
+
+                        if (manipulator.Controller.PathPlanner is ARRT arrt)
+                        {
+                            ImGui.InputInt("Attractors count", ref arrt.AttractorsCount);
+                            ImGui.InputInt("Trim period", ref arrt.TrimPeriod);
+                        }
+                    }
+                    else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
+                    {
+                        // TODO: add genetic algorithm related properties
+                    }
+
+                    ImGui.EndTabItem();
                 }
-            }
 
-            // path planner properties
-            ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
-
-            if (manipulator.Controller.PathPlanner is RRT rrt)
-            {
-                ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
-                ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);  // TODO: all tree properties should be in path planner!
-                ImGui.Checkbox("Discard outliers", ref rrt.DiscardOutliers);
-                ImGui.InputFloat("Step", ref rrt.Step);
-                ImGui.InputFloat("Threshold", ref rrt.Threshold);
-
-                if (manipulator.Controller.PathPlanner is ARRT arrt)
+                if (ImGui.BeginTabItem("Controller"))
                 {
-                    ImGui.InputInt("Attractors count", ref arrt.AttractorsCount);
-                    ImGui.InputInt("Trim period", ref arrt.TrimPeriod);
-                }
-            }
-            else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
-            {
-                // TODO: add properties
-            }
+                    // TODO: add motion control related properties
 
-            // TODO: switch MotionControl
+                    ImGui.EndTabItem();
+                }
+
+                ImGui.EndTabBar();
+            }
         }
 
         private void JointProperties(Joint joint)
@@ -525,7 +496,7 @@ namespace Graphics
             {
                 if (ImGui.BeginTabItem("Model"))
                 {
-                    // TODO: add model specific properties
+                    // TODO: add model related properties
 
                     ImGui.EndTabItem();
                 }
@@ -576,5 +547,56 @@ namespace Graphics
                 ImGui.InputFloat("Half length", ref cylinder.HalfLength);
             }
         }
+
+        private void SwapPropertiesWindows()
+        {
+            _swapPropertiesWindows = !_swapPropertiesWindows;
+        }
+        #endregion
+
+        #region SELECTION
+        public void OnSelectedObjectChanged(object sender, EventArgs e)
+        {
+            SwapPropertiesWindows();
+        }
+
+        private void UpdateSelection(object selected)
+        {
+            InputHandler.ClearSelection();
+
+            if (selected == InputHandler.CurrentSelectedObject)
+            {
+                InputHandler.CurrentSelectedObject = null;
+            }
+            else
+            {
+                if (selected is Manipulator manipulator)
+                {
+                    InputHandler.AddSelection(manipulator.Joints.Select(joint => joint.Collider.Body));
+                    InputHandler.AddSelection(manipulator.Links.Select(link => link.Collider.Body));
+                }
+                else if (selected is Joint joint)
+                {
+                    InputHandler.AddSelection(joint.Collider.Body);
+                }
+                else if (selected is Link link)
+                {
+                    InputHandler.AddSelection(link.Collider.Body);
+                }
+                else if (selected is Obstacle obstacle)
+                {
+                    InputHandler.AddSelection(obstacle.Collider.Body);
+                }
+
+                InputHandler.CurrentSelectedObject = selected;
+                SwapPropertiesWindows();
+            }
+        }
+
+        private ImGuiTreeNodeFlags GetTreeNodeSelectionFlag(object selected)
+        {
+            return selected == InputHandler.CurrentSelectedObject ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None;
+        }
+        #endregion
     }
 }

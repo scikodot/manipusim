@@ -23,10 +23,8 @@ namespace Logic
         public Manipulator Agent { get; }
         public Obstacle[] Obstacles { get; }
 
-        public PathPlannerType PathPlannerType { get; set; }
         public PathPlanner PathPlanner { get; set; }
         
-        public InverseKinematicsSolverType InverseKinematicsSolverType { get; set; }
         public InverseKinematicsSolver PlanSolver { get; set; }
 
 
@@ -97,39 +95,40 @@ namespace Logic
         private void ExecuteMotion(Vector3 goal)
         {
             // execute path planning
-            (_, var path) = PathPlanner.Execute(Agent, goal, PlanSolver);
+            (_, var path) = PathPlanner.Run(Agent, goal, PlanSolver);
             Agent.Path = path;
 
             // start motion control if a path has been found
             if (Agent.Path != null)
             {
-                Manipulator contestant = Agent.DeepCopy();
-
-                // execute motion control
-                Path.Node gripperPos = Agent.Path.Current;
-                while (gripperPos.Child != null)
+                using (var manipulatorCopy = Agent.DeepCopy())
                 {
-                    var current = gripperPos.Child;
-                    while (current.Child != null)  // last point may not be deformed, since it is a goal point
+                    // execute motion control
+                    Path.Node gripperPos = Agent.Path.Current;
+                    while (gripperPos.Child != null)
                     {
-                        for (int j = current.Points.Length - 1; j > 0; j--)
+                        var current = gripperPos.Child;
+                        while (current.Child != null)  // last point may not be deformed, since it is a goal point
                         {
-                            foreach (var obst in Obstacles)
+                            for (int j = current.Points.Length - 1; j > 0; j--)
                             {
-                                if (obst.Contains(current.Points[j]))
+                                foreach (var obst in Obstacles)
                                 {
-                                    //Deform(obst, contestant, current, j);
-                                    break;
+                                    if (obst.Contains(current.Points[j]))
+                                    {
+                                        //Deform(obst, contestant, current, j);
+                                        break;
+                                    }
                                 }
                             }
+
+                            current = current.Child;
                         }
 
-                        current = current.Child;
+                        //Discretize(contestant, gripperPos);
+
+                        gripperPos = Agent.Path.Current;
                     }
-
-                    //Discretize(contestant, gripperPos);
-
-                    gripperPos = Agent.Path.Current;
                 }
             }
         }

@@ -20,6 +20,7 @@ namespace Physics
         public static string[] RigidBodyTypes { get; } = Enum.GetNames(typeof(RigidBodyType));
 
         public static DiscreteDynamicsWorld World { get; }
+        private static object _worldSyncRoot = new object();
 
         private static CollisionDispatcher _dispatcher;
         private static DbvtBroadphase _broadphase;
@@ -32,34 +33,32 @@ namespace Physics
         private static List<TaskScheduler> _schedulers = new List<TaskScheduler>();
         private static int _currentScheduler = 0;
 
-        //public static volatile bool IsUpdating;
-
         static PhysicsHandler()
         {
-            CreateSchedulers();
-            NextTaskScheduler();
+            //CreateSchedulers();
+            //NextTaskScheduler();
 
-            using (var collisionConfigurationInfo = new DefaultCollisionConstructionInfo
-            {
-                DefaultMaxPersistentManifoldPoolSize = 80000,
-                DefaultMaxCollisionAlgorithmPoolSize = 80000
-            })
-            {
-                _collisionConf = new DefaultCollisionConfiguration(collisionConfigurationInfo);
-            };
-            _dispatcher = new CollisionDispatcherMultiThreaded(_collisionConf);
-            _broadphase = new DbvtBroadphase();
-            _solverPool = new ConstraintSolverPoolMultiThreaded(MaxThreadCount);
-            _parallelSolver = new SequentialImpulseConstraintSolverMultiThreaded();
-            World = new DiscreteDynamicsWorldMultiThreaded(_dispatcher, _broadphase, _solverPool, _parallelSolver, _collisionConf);
-            World.SolverInfo.SolverMode = SolverModes.Simd | SolverModes.UseWarmStarting;
-
-            //// collision configuration contains default setup for memory, collision setup
-            //_collisionConf = new DefaultCollisionConfiguration();
+            //using (var collisionConfigurationInfo = new DefaultCollisionConstructionInfo
+            //{
+            //    DefaultMaxPersistentManifoldPoolSize = 80000,
+            //    DefaultMaxCollisionAlgorithmPoolSize = 80000
+            //})
+            //{
+            //    _collisionConf = new DefaultCollisionConfiguration(collisionConfigurationInfo);
+            //};
             //_dispatcher = new CollisionDispatcherMultiThreaded(_collisionConf);
-
             //_broadphase = new DbvtBroadphase();
-            //World = new DiscreteDynamicsWorldMultiThreaded(_dispatcher, _broadphase, null, null, _collisionConf);
+            //_solverPool = new ConstraintSolverPoolMultiThreaded(MaxThreadCount);
+            //_parallelSolver = new SequentialImpulseConstraintSolverMultiThreaded();
+            //World = new DiscreteDynamicsWorldMultiThreaded(_dispatcher, _broadphase, _solverPool, _parallelSolver, _collisionConf);
+            //World.SolverInfo.SolverMode = SolverModes.Simd | SolverModes.UseWarmStarting;
+
+            // collision configuration contains default setup for memory, collision setup
+            _collisionConf = new DefaultCollisionConfiguration();
+            _dispatcher = new CollisionDispatcher(_collisionConf);
+
+            _broadphase = new DbvtBroadphase();
+            World = new DiscreteDynamicsWorld(_dispatcher, _broadphase, null, _collisionConf);
 
             //World.Gravity = Vector3.Zero;
 
@@ -127,25 +126,25 @@ namespace Physics
 
         public static void RayTestRef(ref Vector3 startWorld, ref Vector3 endWorld, ClosestRayResultCallback raycastCallback)
         {
-            lock (World)
+            lock (_worldSyncRoot)
                 World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
         }
 
         public static void ContactPairTest(RigidBody body, RigidBody bodyOther, CollisionCallback collisionCallback)
         {
-            lock (World)
+            lock (_worldSyncRoot)
                 World.ContactPairTest(body, bodyOther, collisionCallback);
         }
 
         public static void ContactTest(RigidBody body, CollisionCallback collisionCallback)
         {
-            lock (World)
+            lock (_worldSyncRoot)
                 World.ContactTest(body, collisionCallback);
         }
 
         public static void Update(float elapsedTime)
         {
-            lock (World)
+            lock (_worldSyncRoot)
                 World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
         }
 
@@ -155,7 +154,10 @@ namespace Physics
             {
                 body.MotionState.Dispose();
             }
-            World.RemoveRigidBody(body);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
+
+            lock (_worldSyncRoot)
+                World.RemoveRigidBody(body);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
+
             body.Dispose();
         }
 
@@ -190,7 +192,10 @@ namespace Physics
             using (var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia))
             {
                 var body = new RigidBody(rbInfo);
-                World.AddRigidBody(body);
+
+                lock (_worldSyncRoot)
+                    World.AddRigidBody(body);
+
                 return body;
             }
         }
@@ -201,7 +206,10 @@ namespace Physics
             for (int i = World.NumConstraints - 1; i >= 0; i--)
             {
                 TypedConstraint constraint = World.GetConstraint(i);
-                World.RemoveConstraint(constraint);
+
+                lock (_worldSyncRoot)
+                    World.RemoveConstraint(constraint);
+
                 constraint.Dispose();
             }
 
@@ -214,7 +222,10 @@ namespace Physics
                 {
                     body.MotionState.Dispose();
                 }
-                World.RemoveCollisionObject(obj);
+                
+                lock (_worldSyncRoot)
+                    World.RemoveCollisionObject(obj);
+
                 obj.Dispose();
             }
 
@@ -225,7 +236,9 @@ namespace Physics
             }
             _collisionShapes.Clear();
 
-            World.Dispose();
+            lock (_worldSyncRoot)
+                World.Dispose();
+
             _broadphase.Dispose();
             if (_dispatcher != null)
             {

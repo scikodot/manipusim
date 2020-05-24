@@ -45,13 +45,16 @@ namespace Graphics
             _freeTop = 0;
         }
 
-        public void Update(int manipulatorNumber)
+        public void Update(RRT rrtPathPlanner)
         {
-            var toAdd = ManipulatorHandler.Manipulators[manipulatorNumber].Tree.AddBuffer.DequeueAll().ToList();
-            var toRemove = ManipulatorHandler.Manipulators[manipulatorNumber].Tree.DelBuffer.DequeueAll().ToList();
+            if (rrtPathPlanner.Tree != null)
+            {
+                var toAdd = rrtPathPlanner.Tree.AddBuffer.DequeueAll().ToList();
+                var toRemove = rrtPathPlanner.Tree.DelBuffer.DequeueAll().ToList();
 
-            AddNodes(toAdd);
-            RemoveNodes(toRemove);
+                AddNodes(toAdd);
+                RemoveNodes(toRemove);
+            }
         }
 
         private void AddNodes(List<Tree.Node> nodes)

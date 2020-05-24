@@ -38,7 +38,7 @@ namespace Graphics
     {
         private static Camera _camera;
 
-        private static readonly List<Model> _goalModels = new List<Model>();
+        private static readonly List<Model> _goalModels = new List<Model>();  // TODO: consider distributing to the appropriate classes and checking whether the types (Model, etc.) are available at runtime
         private static readonly List<TreeModel> _treeModels = new List<TreeModel>();
         private static readonly List<PathModel> _pathModels = new List<PathModel>();
         private static readonly List<PathModel> _gaModels = new List<PathModel>();
@@ -46,6 +46,9 @@ namespace Graphics
 
         private static float time = 0;
         private static bool forward;
+
+        private static Collider[] _dummyColliders;
+        private static Thread[] _dummyTasks;
 
         //private static GhostObject ghostObject;
         //private static Model ghostObjectModel;
@@ -71,12 +74,32 @@ namespace Graphics
             
         }
 
+        #region LOAD
         protected override void OnLoad(EventArgs e)
         {
             //var unptr = Assimp.Unmanaged.AssimpLibrary.Instance.ImportFile(JointPath, Assimp.PostProcessSteps.None, Assimp.Unmanaged.AssimpLibrary.Instance.CreatePropertyStore());
             //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
             //var ptr = Assimp.Unmanaged.AssimpLibrary.Instance.ApplyPostProcessing(unptr, Assimp.PostProcessSteps.Triangulate);
             //manptr = Assimp.Scene.FromUnmanagedScene(ptr);
+
+            _dummyColliders = new Collider[100];
+            _dummyTasks = new Thread[100];
+
+            for (int i = 0; i < 2; i++)
+            {
+                int index = i;
+                _dummyColliders[index] = PhysicsHandler.CreateKinematicCollider(new BoxShape(0.5f));
+                _dummyTasks[index] = new Thread(() =>
+                {
+                    while (true)
+                    {
+                        var mat = Matrix.Identity;
+                        _dummyColliders[index].Body.WorldTransform = mat;
+                        _dummyColliders[index].Body.MotionState.SetWorldTransform(ref mat);
+                    }
+                });
+                _dummyTasks[index].Start();
+            }
 
             ManipulatorHandler.LoadDefaultModels();
 
@@ -98,16 +121,16 @@ namespace Graphics
             // subscribe to the events
             InputHandler.SelectedObjectChanged += OnSelectedObjectChanged;
 
-            ObstacleHandler.Add(new Obstacle(new Model(new Mesh[]
-                {
-                    Primitives.Cone(1, 2, 50, new MeshMaterial
-                    {
-                        Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                        Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                        Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                        Shininess = 8
-                    })
-                }), PhysicsHandler.CreateDynamicCollider(new ConeShape(1, 2), 1, Matrix.Translation(-1.5f, 3, 0))));
+            //ObstacleHandler.Add(new Obstacle(new Model(new Mesh[]
+            //    {
+            //        Primitives.Cone(1, 2, 50, new MeshMaterial
+            //        {
+            //            Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //            Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //            Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //            Shininess = 8
+            //        })
+            //    }), PhysicsHandler.CreateDynamicCollider(new ConeShape(1, 2), 1, Matrix.Translation(-1.5f, 3, 0))));  // TODO: cone's rigid body center is not the circle center, but the center of mass; fix
 
             //Cubes = new Obstacle[3];
             //for (int i = 0; i < 3; i++)
@@ -135,13 +158,13 @@ namespace Graphics
             //    }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
             //}
 
-            //ObstacleHandler.Add(new Obstacle(Primitives.Sphere(1, 100, 100, new MeshMaterial
-            //{
-            //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-            //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-            //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-            //    Shininess = 8
-            //}), PhysicsHandler.CreateDynamicCollider(new SphereShape(1), 1, Matrix.Translation(0, 3, -1.5f))));
+            ObstacleHandler.Add(new Obstacle(Primitives.Sphere(0.5f, 100, 100, new MeshMaterial
+            {
+                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+                Shininess = 8
+            }), PhysicsHandler.CreateKinematicCollider(new SphereShape(0.5f), Matrix.Translation(0, 3, -1.5f))));
 
             //ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
             //{
@@ -195,7 +218,9 @@ namespace Graphics
 
             base.OnLoad(e);
         }
+        #endregion
 
+        #region RENDER
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             // render main part, i.e. workspace
@@ -222,7 +247,7 @@ namespace Graphics
             SwapBuffers();
         }
 
-        protected void RenderCore(FrameEventArgs e)
+        private void RenderCore(FrameEventArgs e)
         {
             // workspace viewport
             GL.Viewport((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
@@ -346,36 +371,16 @@ namespace Graphics
             GL.Clear(ClearBufferMask.DepthBufferBit);
             InputHandler.TranslationalWidget.Render(ShaderHandler.ComplexShader, null);
         }
+        #endregion
 
-        public void CreateDefaultManipulator(int linksNumber)
-        {
-            var manipulator = ManipulatorHandler.CreateDefaultManipulator(linksNumber);
-
-            // create new models for the manipulator goal, path and tree
-            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
-            _treeModels.Add(new TreeModel(10001, MeshMaterial.Black));
-            _pathModels.Add(new PathModel(10001, MeshMaterial.Red));
-            _gaModels.Add(new PathModel(10001, MeshMaterial.Black));
-        }
-
-        private void OnSelectedObjectChanged(object sender, EventArgs e)
-        {
-            // notify ImGui about the change
-            _imGui.OnSelectedObjectChanged(sender, e);
-        }
-
-        public static void ChangeMode()
-        {
-            if (Mode == InteractionMode.Design)
-                Mode = InteractionMode.ToAnimate;
-            else if (Mode == InteractionMode.Animate)
-                Mode = InteractionMode.ToDesign;
-        }
-
+        #region UPDATE
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             // update physics controller
             PhysicsHandler.Update((float)e.Time);
+            Console.SetCursorPosition(0, 5);
+            Console.WriteLine("                                                        ");
+            Console.WriteLine($"Num collision objects: {PhysicsHandler.World.NumCollisionObjects}");
 
             //if (doorHinge.HingeAngle >= MathUtil.SIMD_PI * 0.2f)
             //    doorHinge.EnableAngularMotor(true, -1f, 1);
@@ -502,28 +507,28 @@ namespace Graphics
 
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        Manipulator manip = ManipulatorHandler.Manipulators[i];
-                        if (manip.Tree != null)
+                        Manipulator manipulator = ManipulatorHandler.Manipulators[i];
+                        if (manipulator.Tree != null)
                         {
                             Console.SetCursorPosition(0, 10);
-                            Console.WriteLine(manip.Tree.Count);
+                            Console.WriteLine(manipulator.Tree.Count);
                         }
 
                         // manipulator's path
-                        if (manip.Path != null)
+                        if (manipulator.Path != null)
                         {
                             // move along the path
-                            manip.FollowPath();
+                            manipulator.FollowPath();
 
                             // update path model state
                             _pathModels[i].Update(i);
                         }
 
                         // random tree
-                        if (manip.Tree != null)
+                        if (manipulator.Controller.PathPlanner is RRT rrt)
                         {
                             // update tree model state
-                            _treeModels[i].Update(i);
+                            _treeModels[i].Update(rrt);
                         }
 
                         if (GeneticAlgorithm.Dominant.Item2 != null && GeneticAlgorithm.Changed)
@@ -578,30 +583,6 @@ namespace Graphics
             base.OnUpdateFrame(e);
         }
 
-        //private void AttachWidgets()  // TODO: refactor; move somewhere else? rename?
-        //{
-        //    if (InputHandler.SelectedObjects.Count == 1)
-        //    {
-        //        var selected = InputHandler.SelectedObjects[0].UserObject as ISelectable;
-        //        if (selected != _selectedObject)
-        //        {
-        //            _selectedObject = selected;
-        //            swapPropertiesWindows = !swapPropertiesWindows;
-        //        }
-
-        //        // attach the widget
-        //        InputHandler.TranslationalWidget.Attach(_selectedObject as ITranslatable);
-        //    }
-        //    else
-        //    {
-        //        if (InputHandler.SelectedObjects.Count == 0 || !(_selectedObject is Manipulator))
-        //            _selectedObject = null;
-
-        //        // detach the widget
-        //        InputHandler.TranslationalWidget.Detach();
-        //    }
-        //}
-
         protected void ResetScene()
         {
             // reset trees
@@ -617,6 +598,33 @@ namespace Graphics
             }
         }
 
+        public static void CreateDefaultManipulator(int linksNumber)
+        {
+            var manipulator = ManipulatorHandler.CreateDefaultManipulator(linksNumber);
+
+            // create new models for the manipulator goal, path and tree
+            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
+            _treeModels.Add(new TreeModel(10001, MeshMaterial.Black));
+            _pathModels.Add(new PathModel(10001, MeshMaterial.Red));
+            _gaModels.Add(new PathModel(10001, MeshMaterial.Black));
+        }
+
+        public static void SwitchMode()
+        {
+            switch (Mode)
+            {
+                case InteractionMode.Design:
+                    Mode = InteractionMode.ToAnimate;
+                    break;
+                case InteractionMode.Animate:
+                    Mode = InteractionMode.ToDesign;
+                    break;
+            }
+                
+        }
+        #endregion
+
+        #region INPUT
         protected override void OnMouseMove(MouseMoveEventArgs e)
         {
             base.OnMouseMove(e);
@@ -631,6 +639,12 @@ namespace Graphics
             base.OnMouseWheel(e);
         }
 
+        protected override void OnKeyPress(KeyPressEventArgs e)
+        {
+            _imGui.PressChar(e.KeyChar);
+
+            base.OnKeyPress(e);
+        }
 
         protected override void OnResize(EventArgs e)
         {
@@ -643,6 +657,14 @@ namespace Graphics
             base.OnResize(e);
         }
 
+        private void OnSelectedObjectChanged(object sender, EventArgs e)
+        {
+            // notify ImGui about the change
+            _imGui.OnSelectedObjectChanged(sender, e);
+        }
+        #endregion
+
+        #region UNLOAD
         protected override void OnUnload(EventArgs e)
         {
             // TODO: threads are not disposed correctly; fix!
@@ -681,12 +703,6 @@ namespace Graphics
 
             base.OnUnload(e);
         }
-
-        protected override void OnKeyPress(KeyPressEventArgs e)
-        {
-            _imGui.PressChar(e.KeyChar);
-
-            base.OnKeyPress(e);            
-        }
+        #endregion
     }
 }

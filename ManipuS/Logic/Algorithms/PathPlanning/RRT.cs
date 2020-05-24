@@ -18,12 +18,14 @@ namespace Logic.PathPlanning
         protected bool _discardOutliers = true;
         public ref bool DiscardOutliers => ref _discardOutliers;
 
+        public Tree Tree { get; protected set; }
+
         public RRT(int maxTime, bool collisionCheck, float step) : base(maxTime, collisionCheck)
         {
             _step = step;
         }
 
-        public override (int, Path) Execute(Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
+        protected override (int, Path) RunAbstract(Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
             Manipulator agentCopy = agent.DeepCopy();
 
