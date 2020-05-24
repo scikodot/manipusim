@@ -545,7 +545,7 @@ namespace Graphics
 
                             _bezierPoints = new Model(GeneticAlgorithm.Dominant.Item1.Points.Select(point => new MeshVertex
                             {
-                                Position = new Vector3(0, point.Y, point.X)
+                                Position = point.ToOpenTK()
                             }).ToArray(), material: MeshMaterial.Red);
 
                             GeneticAlgorithm.Locked = GeneticAlgorithm.Changed = false;

@@ -9,8 +9,12 @@ namespace Logic.InverseKinematics
     {
         public HillClimbing(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }
 
-        public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint)
+        public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
         {
+            // use gripper if default joint
+            if (joint == -1)
+                joint = agent.Joints.Length - 1;
+
             // initial parameters
             VectorFloat qBest = agent.q;
             float dist = agent.Joints[joint].Position.DistanceTo(goal), init_dist = dist, k = 1;

@@ -251,9 +251,6 @@ namespace Graphics
         {
             if (IsAttached)
             {
-                // scale all axes so that their size on screen remains fixed
-                Scale(camera);
-
                 // get current view and projection matrices
                 ref var view = ref camera.ViewMatrix;
                 ref var proj = ref camera.ProjectionMatrix;  // TODO: make matrices ref properties
@@ -286,7 +283,7 @@ namespace Graphics
                 axis.Translate(translation);
         }
 
-        private void Scale(Camera camera)
+        public void Scale(Camera camera)
         {
             foreach (var axis in Axes)
                 axis.Scale(camera);

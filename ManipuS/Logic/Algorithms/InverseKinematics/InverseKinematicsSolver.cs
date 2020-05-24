@@ -58,6 +58,6 @@ namespace Logic.InverseKinematics
             });
         }
 
-        public abstract (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint);
+        public abstract (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1);
     }
 }

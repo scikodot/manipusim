@@ -76,6 +76,9 @@ namespace Graphics
             // attach widgets to or detach from the selected objects
             AttachWidgets(camera);
 
+            // scale all axes so that their size on screen remains fixed
+            TranslationalWidget.Scale(camera);
+
             if (MainWindow.Mode == InteractionMode.Design && !ImGui.IsWindowHovered(
                 ImGuiHoveredFlags.AnyWindow | 
                 ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?

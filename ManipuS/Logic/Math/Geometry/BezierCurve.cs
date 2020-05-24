@@ -210,7 +210,7 @@ namespace Logic
 
                 r.X += temp * point.X;
                 r.Y += temp * point.Y;
-                r.Z += temp * point.Y;
+                r.Z += temp * point.Z;
                 i++;
             }
 
@@ -219,18 +219,21 @@ namespace Logic
                 return r;
             }
 
-            Vector3 perpendicular;
+            // TODO: try to implement parallel offset below; offset in 3D is not unique, so it might be not possible
+            return r;
 
-            if (t != 0.0f)
-            {
-                perpendicular = r - CalculatePointOfDerivative(points, t);
-            }
-            else
-            {
-                perpendicular = points[1] - points[0];
-            }
+            //Vector3 perpendicular;
 
-            return r + (Vector3.Normalize(perpendicular).PerpendicularRight * parallel);
+            //if (t != 0.0f)
+            //{
+            //    perpendicular = r - CalculatePointOfDerivative(points, t);
+            //}
+            //else
+            //{
+            //    perpendicular = points[1] - points[0];
+            //}
+
+            //return r + (Vector3.Normalize(perpendicular).PerpendicularRight * parallel);
         }
 
         /// <summary>
