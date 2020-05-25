@@ -28,6 +28,8 @@ namespace Logic
 
         public Link[] Links;
         public Joint[] Joints;
+        public ImpDualQuat[] RelativeStates;
+
         public float WorkspaceRadius { get; }
 
         public Vector3 Base => Joints[0].Position;
@@ -80,9 +82,11 @@ namespace Logic
                 Joints[i].Position = data.JointPositions[i];
             }
 
-            q = MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(x => x.Coordinate).ToArray());
+            UpdateRelativeStates();
 
-            UpdateStateDesign();
+            //q = MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(x => x.Coordinate).ToArray());
+
+            //UpdateStateDesign();
 
             WorkspaceRadius = Links.Sum(link => link.Length) + 2 * Joints.Sum(joint => joint.Radius);
             
@@ -121,6 +125,7 @@ namespace Logic
         {
             DKP = new Vector3[Joints.Length];
 
+            UpdateRelativeStates();
             UpdateJoints();
             UpdateGripper();
             UpdateLinks();
@@ -168,34 +173,56 @@ namespace Logic
             UpdateLinks();
         }
 
-        private void UpdateJoints()
+        private void UpdateRelativeStates()
         {
-            ImpDualQuat quat;
-            ImpDualQuat init = new ImpDualQuat(Joints[0].InitialPosition);
+            RelativeStates = new ImpDualQuat[Joints.Length];
 
-            for (int i = 0; i < Joints.Length - 1; i++)  // TODO: move to DirectKinematics() methods?
+            ImpDualQuat quat = ImpDualQuat.Zero;
+            ImpDualQuat quatRel;
+
+            for (int i = 0; i < Joints.Length; i++)  // TODO: move to DirectKinematics() methods?
             {
-                quat = init;
+                var offsetAbs = i == 0 ? Joints[i].InitialPosition : Joints[i].InitialPosition - Joints[i - 1].InitialPosition;
+                var offsetRel = i == 0 ? offsetAbs : quat.Conjugate.Rotate(offsetAbs);
+                quatRel = new ImpDualQuat(offsetRel);
 
-                for (int j = 0; j < i; j++)
+                if (i == 0)
+                    quatRel *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
+                else
                 {
-                    quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
-                    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
+                    // orientation of the joint should not change when the previous joints' axes are changed;
+                    // to maintain this, we have to reset the orientation of the current joint
+                    quatRel *= quat.Conjugate.WithoutTranslation();
+
+                    // and align the joint with its axis
+                    quatRel *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
                 }
 
-                quat *= new ImpDualQuat(Joints[i].InitialAxis, -Joints[i].Coordinate);
+                RelativeStates[i] = quatRel;
 
-                // TODO: move to documentation!
-                // models initially (on creation) have a specific actuation axis;
-                // for example, the two models used for joint and links in this program have their actuation axes UnitY = (0, 1, 0);
-                // thus, the models have to be aligned from that state with their InitialAxis axes that are set from the GUI or obtained from code
-                quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
+                // track the current state
+                quat *= quatRel;
+            }
+        }
+
+        private void UpdateJoints()
+        {
+            Console.SetCursorPosition(0, 0);
+            ImpDualQuat quat = ImpDualQuat.Zero;
+
+            for (int i = 0; i < Joints.Length; i++)  // TODO: move to DirectKinematics() methods?
+            {
+                quat *= RelativeStates[i];
+                quat *= new ImpDualQuat(Vector3.UnitY, -Joints[i].Coordinate);
 
                 Joints[i].Axis = quat.Rotate(Vector3.UnitY);
                 Joints[i].Position = DKP[i] = quat.Translation;
+                Console.WriteLine("Axis: {0:0.000} | Position: {1:0.000}", Joints[i].Axis, Joints[i].Position);
 
                 Joints[i].UpdateState(ref quat);
             }
+
+            GripperPos = DKP[Joints.Length - 1];
         }
 
         private void UpdateLinks()
@@ -215,27 +242,47 @@ namespace Logic
             }
         }
 
-        private void UpdateGripper()
+        private void UpdateGripper()  // TODO: rename Gripper to EndEffector
         {
-            ImpDualQuat quat = new ImpDualQuat(Joints[0].InitialPosition);
+            //ImpDualQuat quat = new ImpDualQuat(Joints[0].InitialPosition);
 
-            var last = Joints.Length - 1;
-            for (int j = 0; j < last; j++)
-            {
-                quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
-                quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
-            }
+            //var last = Joints.Length - 1;
+            //for (int j = 0; j < last; j++)
+            //{
+            //    quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
+            //    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
+            //}
 
-            quat *= ImpDualQuat.Align(Vector3.UnitY, quat.Conjugate.Rotate(Joints[last].Position - Joints[last - 1].Position));
-            quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].Coordinate);
-            quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[last].InitialAxis);
+            //quat *= ImpDualQuat.Align(Vector3.UnitY, quat.Conjugate.Rotate(Joints[last].Position - Joints[last - 1].Position));
+            //quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].Coordinate);
+            //quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[last].InitialAxis);
 
-            Joints[last].Axis = quat.Rotate(Vector3.UnitY);
-            Joints[last].Position = DKP[last] = quat.Translation;
+            //Joints[last].Axis = quat.Rotate(Vector3.UnitY);
+            //Joints[last].Position = DKP[last] = quat.Translation;
 
-            GripperPos = DKP[Joints.Length - 1];
+            //GripperPos = DKP[Joints.Length - 1];
 
-            Joints[last].UpdateState(ref quat);
+            //Joints[last].UpdateState(ref quat);
+
+            //ImpDualQuat quat = new ImpDualQuat(Joints[0].InitialPosition);
+
+            //var last = Joints.Length - 1;
+            //for (int j = 0; j < last; j++)
+            //{
+            //    quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
+            //    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
+            //}
+
+            //quat *= ImpDualQuat.Align(Vector3.UnitY, quat.Conjugate.Rotate(Joints[last].Position - Joints[last - 1].Position));
+            //quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].Coordinate);
+            //quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[last].InitialAxis);
+
+            //Joints[last].Axis = quat.Rotate(Vector3.UnitY);
+            //Joints[last].Position = DKP[last] = quat.Translation;
+
+            //GripperPos = DKP[Joints.Length - 1];
+
+            //Joints[last].UpdateState(ref quat);
         }
 
         public void Reset()

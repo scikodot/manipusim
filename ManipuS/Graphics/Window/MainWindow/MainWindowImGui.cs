@@ -474,6 +474,8 @@ namespace Graphics
 
         private void JointProperties(Joint joint)
         {
+            ImGui.Checkbox("Activate", ref joint.Active);  // TODO: for debug use only
+
             ImGui.Checkbox("Show collider", ref joint.ShowCollider);
 
             ImGui.InputFloat3("Axis", ref joint.InitialAxis);

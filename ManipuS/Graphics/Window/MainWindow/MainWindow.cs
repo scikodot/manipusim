@@ -85,21 +85,21 @@ namespace Graphics
             _dummyColliders = new Collider[100];
             _dummyTasks = new Thread[100];
 
-            for (int i = 0; i < 2; i++)
-            {
-                int index = i;
-                _dummyColliders[index] = PhysicsHandler.CreateKinematicCollider(new BoxShape(0.5f));
-                _dummyTasks[index] = new Thread(() =>
-                {
-                    while (true)
-                    {
-                        var mat = Matrix.Identity;
-                        _dummyColliders[index].Body.WorldTransform = mat;
-                        _dummyColliders[index].Body.MotionState.SetWorldTransform(ref mat);
-                    }
-                });
-                _dummyTasks[index].Start();
-            }
+            //for (int i = 0; i < 2; i++)
+            //{
+            //    int index = i;
+            //    _dummyColliders[index] = PhysicsHandler.CreateKinematicCollider(new BoxShape(0.5f));
+            //    _dummyTasks[index] = new Thread(() =>
+            //    {
+            //        while (true)
+            //        {
+            //            var mat = Matrix.Identity;
+            //            _dummyColliders[index].Body.WorldTransform = mat;
+            //            _dummyColliders[index].Body.MotionState.SetWorldTransform(ref mat);
+            //        }
+            //    });
+            //    _dummyTasks[index].Start();
+            //}
 
             ManipulatorHandler.LoadDefaultModels();
 
@@ -474,6 +474,12 @@ namespace Graphics
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
                         _goalModels[i].State = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal);
+
+                        foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
+                        {
+                            if (joint.Active)
+                                joint.Coordinate += 0.016f;
+                        }
                     }
 
                     break;

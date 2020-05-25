@@ -80,6 +80,9 @@ namespace Logic
 
         public float Coordinate { get; set; }
 
+        private bool _active;
+        public ref bool Active => ref _active;
+
         public event EventHandler<TranslationEventArgs> TranslationChanged;
 
         public Joint(JointData data)

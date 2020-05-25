@@ -145,6 +145,16 @@ namespace Logic
             return Real.Transform(v) + Dual;
         }
 
+        public ImpDualQuat WithoutRotation()
+        {
+            return new ImpDualQuat(Quaternion.Zero, Dual);
+        }
+
+        public ImpDualQuat WithoutTranslation()
+        {
+            return new ImpDualQuat(Real, Vector3.Zero);
+        }
+
         public Matrix4 ToMatrix(bool transpose = false)
         {
             float w = Real.W, w2 = Real.W * Real.W;

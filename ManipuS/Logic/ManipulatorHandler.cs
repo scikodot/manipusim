@@ -101,7 +101,7 @@ namespace Logic
             jointAxes[0] = jointAxes[jointAxes.Length - 1] = Vector3.UnitY;
             for (int i = 1; i < linksNumber; i++)
             {
-                jointAxes[i] = Vector3.UnitX;  /*i % 2 == 0 ? Vector3.UnitZ : Vector3.UnitX;*/
+                jointAxes[i] = /*Vector3.UnitX;*/ i % 2 == 0 ? Vector3.UnitZ : Vector3.UnitX;
             }
 
             // set joints' positions
@@ -129,7 +129,7 @@ namespace Logic
             var defaultPlanner = _defaultPathPlanner;
 
             var solver = new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime);
-            var planner = new GeneticAlgorithm(defaultPlanner.k, true, 10, 0.95f, 0.1f);  /*new ARRT(manipulator, defaultPlanner.k, true, defaultPlanner.d, 5000, defaultPlanner.k / 10);*/
+            var planner = new GeneticAlgorithm(defaultPlanner.k, true, 10, 0.95f, 0.1f); /*new ARRT(manipulator, defaultPlanner.k, true, defaultPlanner.d, 5000, defaultPlanner.k / 10);*/
             manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
                    new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime), 2 * defaultPlanner.d);
 
