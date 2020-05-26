@@ -248,7 +248,7 @@ namespace Logic
             Path = null;
         }
 
-        public bool ApproxInWorkspace(Vector3 point)  // TODO: not used anywhere; fix
+        public bool ApproxWithinReach(Vector3 point)
         {
             return point.Length() <= WorkspaceRadius;
         }

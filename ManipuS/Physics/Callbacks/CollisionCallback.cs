@@ -60,8 +60,14 @@ namespace Physics
                 collisionPoint = new Vector3(vec.X, vec.Y, vec.Z);
             }
 
-            // indicate that a collision has happened
-            IsCalled = true;
+            // on collision test, Bullet performs broadphase collision test with bounding spheres;
+            // because of that, obtained contacts in general do not represent actual contacts between bodies;
+            // hence, we have to check if the distance between those two points is small enough ...
+            if (contact.Distance < 0.01f)
+            {
+                // ... and if it is, notify about a collision
+                IsCalled = true;
+            }
 
             // do stuff with the collision point
             return 0; // not actually sure if return value is used for anything...?

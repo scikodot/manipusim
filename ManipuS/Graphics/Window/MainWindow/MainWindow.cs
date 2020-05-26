@@ -166,13 +166,24 @@ namespace Graphics
                 Shininess = 8
             }), PhysicsHandler.CreateKinematicCollider(new SphereShape(0.5f), Matrix.Translation(0, 3, -1.5f))));
 
-            //ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
+            //ObstacleHandler.Add(new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new MeshMaterial
             //{
             //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
             //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
             //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
             //    Shininess = 8
-            //}), PhysicsHandler.CreateDynamicCollider(new CylinderShape(0.25f, 1, 0.25f), 1, Matrix.Translation(0, 15, 0))));
+            //}), PhysicsHandler.CreateKinematicCollider(new BoxShape(0.5f, 0.5f, 0.5f))));
+
+            //ObstacleHandler.Add(new Obstacle(new Model(new Mesh[]
+            //{
+            //    Primitives.Cylinder(0.15f, 1f, 1f, 50, new MeshMaterial
+            //    {
+            //        Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //        Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //        Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //        Shininess = 8
+            //    })
+            //}), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 1f, 0.15f))));
 
             //ObstacleHandler.Add(new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new MeshMaterial
             //{
@@ -378,9 +389,19 @@ namespace Graphics
         {
             // update physics controller
             PhysicsHandler.Update((float)e.Time);
-            Console.SetCursorPosition(0, 5);
-            Console.WriteLine("                                                        ");
-            Console.WriteLine($"Num collision objects: {PhysicsHandler.World.NumCollisionObjects}");
+            //Console.SetCursorPosition(0, 5);
+            //Console.WriteLine("                                                        ");
+            //Console.WriteLine($"Num collision objects: {PhysicsHandler.World.NumCollisionObjects}");
+
+            //if (ManipulatorHandler.Count > 0)
+            //{
+            //    var res = ObstacleHandler.Obstacles[0].Collider.CollisionPairTest(ObstacleHandler.Obstacles[1].Collider)
+            //        /*ManipulatorHandler.Manipulators[0].CollisionTest().Contains(true)*/;
+
+            //    Console.SetCursorPosition(0, 5);
+            //    Console.WriteLine("                                                        ");
+            //    Console.WriteLine($"Collision is {res}");
+            //}
 
             //if (doorHinge.HingeAngle >= MathUtil.SIMD_PI * 0.2f)
             //    doorHinge.EnableAngularMotor(true, -1f, 1);
@@ -529,10 +550,7 @@ namespace Graphics
                         if (manipulator.Controller.PathPlanner is RRT rrt)
                         {
                             // update tree model state
-                            _treeModels[i].Update(rrt);
-
-                            Console.SetCursorPosition(0, 10);
-                            Console.WriteLine(rrt.Tree.Count);
+                            _treeModels[i].Update(rrt.Tree);
                         }
 
                         if (GeneticAlgorithm.Dominant.Item2 != null && GeneticAlgorithm.Changed)

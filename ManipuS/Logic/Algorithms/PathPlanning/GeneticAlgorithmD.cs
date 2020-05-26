@@ -99,7 +99,7 @@ namespace Logic.PathPlanning
         private CrossoverMode _crossoverMode = CrossoverMode.WeightedMean;
         public ref CrossoverMode CrossoverMode => ref _crossoverMode;
 
-        private Manipulator _agent, _agentCopy;
+        private Manipulator _agent;
         private InverseKinematicsSolver _solver;
         private Vector3 _goal;
 
@@ -140,54 +140,49 @@ namespace Logic.PathPlanning
             _goal = goal;
             _solver = solver;
 
-            using (var agentCopy = agent.DeepCopy())
+            int generationsCount = 0;
+            var generation = new List<Chromosome>();
+
+            // get initial solution
+            var bezierInitial = ConstructBezier(_agent.GripperPos, goal, _bezierControlPointsCount);
+            var pathInitial = ConstructPath(bezierInitial, _bezierStep);
+            Chromosome chromosomeInitial = (bezierInitial, pathInitial, Rate(pathInitial));
+
+            generation.Add(chromosomeInitial);
+
+            Dominant = chromosomeInitial;
+
+            // evolve generations
+            Console.SetCursorPosition(0, 10);
+            Console.WriteLine("Starting genetic algorithm...");
+            while (generationsCount++ < MaxIterations)
             {
-                _agentCopy = agentCopy;
+                // get new generation
+                generation = Evolve(generation, _offspringSize, _survivalSize);
 
-                int generationsCount = 0;
-                var generation = new List<Chromosome>();
+                Console.SetCursorPosition(0, 11);
+                Console.WriteLine($"Generations passed: {generationsCount}");
+                Console.WriteLine($"Best fit: {generation[0].Item3}");
 
-                // get initial solution
-                var bezierInitial = ConstructBezier(_agentCopy.GripperPos, goal, _bezierControlPointsCount);
-                var pathInitial = ConstructPath(bezierInitial, _bezierStep);
-                Chromosome chromosomeInitial = (bezierInitial, pathInitial, Rate(pathInitial));
-
-                generation.Add(chromosomeInitial);
-
-                Dominant = chromosomeInitial;
-
-                // evolve generations
-                Console.SetCursorPosition(0, 10);
-                Console.WriteLine("Starting genetic algorithm...");
-                while (generationsCount++ < MaxIterations)
+                if (!Locked)
                 {
-                    // get new generation
-                    generation = Evolve(generation, _offspringSize, _survivalSize);
-
-                    Console.SetCursorPosition(0, 11);
-                    Console.WriteLine($"Generations passed: {generationsCount}");
-                    Console.WriteLine($"Best fit: {generation[0].Item3}");
-
-                    if (!Locked)
-                    {
-                        Dominant = generation[0];
-                        Changed = true;
-                    }
-
-                    // break if max fit reached
-                    if (generation[0].Item3 == 0)
-                        break;
+                    Dominant = generation[0];
+                    Changed = true;
                 }
 
-                Console.SetCursorPosition(0, 15);
-                Console.WriteLine("Found path's Bezier curve:");
-                foreach (var point in generation[0].Item1.Points)
-                {
-                    Console.WriteLine(point);
-                }
-
-                return (generationsCount - 1, generation[0].Item2);
+                // break if max fit reached
+                if (generation[0].Item3 == 0)
+                    break;
             }
+
+            Console.SetCursorPosition(0, 15);
+            Console.WriteLine("Found path's Bezier curve:");
+            foreach (var point in generation[0].Item1.Points)
+            {
+                Console.WriteLine(point);
+            }
+
+            return (generationsCount - 1, generation[0].Item2);
         }
 
         private BezierCurve ConstructBezier(Vector3 start, Vector3 end, int intermediaryPoints)
@@ -212,17 +207,17 @@ namespace Logic.PathPlanning
         private Path ConstructPath(BezierCurve bezierCurve, float step)
         {
             // reset agent
-            _agentCopy.q = _agent.q;
+            _agent.q = _agent.q;
 
             float counter = 0;
 
-            var points = new List<Vector3[]> { _agentCopy.DKP };
-            var configs = new List<VectorFloat> { _agentCopy.q };
+            var points = new List<Vector3[]> { _agent.DKP };
+            var configs = new List<VectorFloat> { _agent.q };
             while (counter <= 1)
             {
-                _solver.Execute(_agentCopy, bezierCurve.CalculatePoint(counter));
-                points.Add(_agentCopy.DKP);
-                configs.Add(_agentCopy.q);
+                _solver.Execute(_agent, bezierCurve.CalculatePoint(counter));
+                points.Add(_agent.DKP);
+                configs.Add(_agent.q);
 
                 counter += step;
             }
@@ -288,7 +283,7 @@ namespace Logic.PathPlanning
 
             bezierCurveRepro.Points[pointIndex] += bezierDirectionRepro;
 
-            if (_agent.ApproxInWorkspace(bezierCurveRepro.Points[pointIndex] + bezierDirectionRepro))
+            if (_agent.ApproxWithinReach(bezierCurveRepro.Points[pointIndex] + bezierDirectionRepro))
                 bezierCurveRepro.Points[pointIndex] += bezierDirectionRepro;
             else
                 bezierCurveRepro.Points[pointIndex] -= bezierDirectionRepro;
@@ -308,7 +303,7 @@ namespace Logic.PathPlanning
             // extract parameters' values from chromosome
             foreach (var node in sample.Nodes)
             {
-                _agentCopy.q = node.q;
+                _agent.q = node.q;
 
                 Vector3 currPos = node.Points[node.Points.Length - 1];
 
@@ -323,7 +318,7 @@ namespace Logic.PathPlanning
                         pointWeight += 1;
                     }
 
-                    if (_agentCopy.CollisionTest().Contains(true))
+                    if (_agent.CollisionTest().Contains(true))
                     {
                         pointWeight += 1;
                     }

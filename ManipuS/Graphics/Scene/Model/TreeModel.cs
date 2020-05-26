@@ -45,12 +45,12 @@ namespace Graphics
             _freeTop = 0;
         }
 
-        public void Update(RRT rrtPathPlanner)
+        public void Update(Tree tree)
         {
-            if (rrtPathPlanner.Tree != null)
+            if (tree != null)
             {
-                var toAdd = rrtPathPlanner.Tree.AddBuffer.DequeueAll().ToList();
-                var toRemove = rrtPathPlanner.Tree.DelBuffer.DequeueAll().ToList();
+                var toAdd = tree.AddBuffer.DequeueAll().ToList();
+                var toRemove = tree.DelBuffer.DequeueAll().ToList();
 
                 AddNodes(toAdd);
                 RemoveNodes(toRemove);

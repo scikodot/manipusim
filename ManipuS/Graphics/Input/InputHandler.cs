@@ -123,17 +123,16 @@ namespace Graphics
 
         private static Vector2 MouseToNDC(GameWindow window, MouseState mouseState)
         {
-            // cursor position relative to window
-            var cursorWindow = new Point(mouseState.X - window.X, mouseState.Y - window.Y);
+            // cursor position relative to the window
+            var cursorWindow = window.PointToClient(new Point(mouseState.X, mouseState.Y));
 
-            // take into account window borders
-            cursorWindow.X -= (int)(0.25 * window.Width + 8);  // 8 - indent for resizing feature
-            cursorWindow.Y -= 38;  // 38 = 2 * 8 + 22, where 8 - resizing, 22 - main titlebar height
+            // cursor position relative to the main viewport
+            var cursorViewport = new Vector2(cursorWindow.X - 0.25f * window.Width, cursorWindow.Y);
 
             // return cursor position in NDC coordinates
             return new Vector2(
-                (cursorWindow.X / (0.75f * window.Width) - 0.5f) * 2,
-                ((float)(window.Height - cursorWindow.Y) / window.Height - 0.5f) * 2);
+                (cursorViewport.X / (0.75f * window.Width) - 0.5f) * 2,
+                (0.5f - cursorViewport.Y / window.Height) * 2);
         }
 
         private static void PollSelection(MouseState mouseState, KeyboardState keyboardState)  // TODO: raycast is performed wrong on shapes' edges; check!
