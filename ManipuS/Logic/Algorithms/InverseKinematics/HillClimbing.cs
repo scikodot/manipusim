@@ -7,7 +7,20 @@ namespace Logic.InverseKinematics
 
     class HillClimbing : InverseKinematicsSolver
     {
-        public HillClimbing(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }
+        protected static float _stepSizeDefault = 2;
+
+        protected float _stepSize;
+        public ref float StepSize => ref _stepSize;
+
+        public HillClimbing(float threshold, int maxIterations, float stepSize) : base(threshold, maxIterations) 
+        {
+            _stepSize = stepSize;
+        }
+
+        public static HillClimbing Default()
+        {
+            return new HillClimbing(_thresholdDefault, 10 * _maxIterationsDefault, _stepSizeDefault);
+        }
 
         public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
         {
@@ -24,16 +37,16 @@ namespace Logic.InverseKinematics
             VectorFloat dq = VectorFloat.Build.Dense(agent.Joints.Length);
             float range, stepNeg, stepPos;
             int iters = 0;
-            while (iters++ < MaxTime)
+            while (iters++ < MaxIterations)
             {
                 for (int i = 0; i < joint; i++)
                 {
                     // checking GC constraints
                     range = agent.Joints[i].CoordinateRange.X - agent.q[i] * 180 / (float)Math.PI;
-                    stepNeg = range <= -StepSize ? -StepSize : range;
+                    stepNeg = range <= -_stepSize ? -_stepSize : range;
 
                     range = agent.Joints[i].CoordinateRange.Y - agent.q[i] * 180 / (float)Math.PI;
-                    stepPos = range >= StepSize ? StepSize : range;
+                    stepPos = range >= _stepSize ? _stepSize : range;
 
                     // generating random GCs' offset
                     dq[i] = (float)((stepNeg + RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * Math.PI / 180);

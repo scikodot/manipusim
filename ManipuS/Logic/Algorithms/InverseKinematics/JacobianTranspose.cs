@@ -6,10 +6,20 @@ namespace Logic.InverseKinematics
 
     public class JacobianTranspose : InverseKinematicsSolver
     {
-        private float _alpha = 0.1f;
-        public ref float Alpha => ref _alpha;
+        protected static float _dampingDefault = 0.1f;
 
-        public JacobianTranspose(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }
+        protected float _damping;
+        public ref float Damping => ref _damping;
+
+        public JacobianTranspose(float threshold, int maxIterations, float damping) : base(threshold, maxIterations) 
+        {
+            _damping = damping;
+        }
+
+        public static JacobianTranspose Default()
+        {
+            return new JacobianTranspose(_thresholdDefault, _maxIterationsDefault, _dampingDefault);
+        }
 
         public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
         {
@@ -17,10 +27,10 @@ namespace Logic.InverseKinematics
             if (joint == -1)
                 joint = agent.Joints.Length - 1;
 
-            float alpha = _alpha;
+            float alpha = _damping;
             VectorFloat initConfig = agent.q, dq;
             int iters = 0;
-            while (iters++ < _maxTime)
+            while (iters++ < _maxIterations)
             {
                 // get positional/orientational error
                 var error = GetError(agent, goal, joint);  // TODO: check for oscillations (the error starts increasing) and break if they appear

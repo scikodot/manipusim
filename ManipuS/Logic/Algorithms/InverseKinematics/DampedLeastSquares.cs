@@ -8,10 +8,20 @@ namespace Logic.InverseKinematics
 
     public class DampedLeastSquares : InverseKinematicsSolver
     {
-        private float _lambda = 1f;
-        public ref float Lambda => ref _lambda;
+        protected static float _dampingDefault = 1f;
 
-        public DampedLeastSquares(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }  // TODO: remove stepSize for Jacobian solvers
+        protected float _damping;
+        public ref float Damping => ref _damping;
+
+        public DampedLeastSquares(float threshold, int maxIterations, float damping) : base(threshold, maxIterations) 
+        {
+            _damping = damping;
+        }
+
+        public static DampedLeastSquares Default()
+        {
+            return new DampedLeastSquares(_thresholdDefault, _maxIterationsDefault, _dampingDefault);
+        }
 
         public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
         {
@@ -21,7 +31,7 @@ namespace Logic.InverseKinematics
 
             VectorFloat initConfig = agent.q, dq;
             int iters = 0;
-            while (iters++ < _maxTime)
+            while (iters++ < _maxIterations)
             {
                 // get positional/orientational error
                 var error = GetError(agent, goal, joint);  // TODO: check for oscillations (the error starts increasing) and break if they appear
@@ -32,7 +42,7 @@ namespace Logic.InverseKinematics
                 var I = Matrix<float>.Build.DenseIdentity(error.Count);
 
                 // calculate the displacement
-                dq = -JT * (J * JT + _lambda * _lambda * I).Solve(error);
+                dq = -JT * (J * JT + _damping * _damping * I).Solve(error);
 
                 // update manipulator's configuration
                 agent.q = agent.q.AddSubVector(dq);

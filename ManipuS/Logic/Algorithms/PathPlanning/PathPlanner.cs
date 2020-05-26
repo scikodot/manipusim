@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
+
 using Logic.InverseKinematics;
 
 namespace Logic.PathPlanning
 {
-    public enum PathPlannerType
+    public enum PathPlannerType  // TODO: for scalability enum should be replaced with dictionary (?) to enable adding custom derived classes
     {
         RRT,
         ARRT,
@@ -23,19 +22,22 @@ namespace Logic.PathPlanning
 
     public abstract class PathPlanner
     {
+        protected static int _maxIterationsDefault = 10000;
+        protected static bool _collisionCheckDefault = true;
+
         public static string[] Types { get; } = Enum.GetNames(typeof(PathPlannerType));
+
+        public PathPlannerType Type { get; private set; }
+
+        protected int _maxIterations;
+        public ref int MaxIterations => ref _maxIterations;
 
         protected bool _collisionCheck;
         public ref bool CollisionCheck => ref _collisionCheck;
 
-        protected int _maxTime;
-        public ref int MaxTime => ref _maxTime;
-
-        public PathPlannerType Type { get; private set; }
-
         protected PathPlanner(int maxTime, bool collisionCheck)
         {
-            _maxTime = maxTime;
+            _maxIterations = maxTime;
             _collisionCheck = collisionCheck;
 
             Type = (PathPlannerType)Enum.Parse(typeof(PathPlannerType), GetType().Name);

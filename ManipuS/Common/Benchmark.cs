@@ -1,38 +1,30 @@
-﻿using Graphics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+
 using Logic;
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 public static class Benchmark
 {
     private static Stopwatch _timer = new Stopwatch();
 
     private static int _samplesIK = 10;
-    private static int _maxTimeIK = 100;
     private static int _samplesPP = 10;
-    private static int _maxTimePP = 10000;
 
     // inverse kinematics planners
-    private static InverseKinematicsSolver[] _solvers =
+    private static List<InverseKinematicsSolver> _solvers = new List<InverseKinematicsSolver>
     {
-        new JacobianTranspose(0.05f, 0, _maxTimeIK),
-        new JacobianPseudoinverse(0.05f, 0, _maxTimeIK),
-        new DampedLeastSquares(0.05f, 0, _maxTimeIK),
-        new HillClimbing(0.05f, 3, 10 * _maxTimeIK)
+        JacobianTranspose.Default(),
+        JacobianPseudoinverse.Default(),
+        DampedLeastSquares.Default(),
+        HillClimbing.Default()
     };
 
-    private static PathPlanner[] _planners =
+    private static List<PathPlanner> _planners = new List<PathPlanner>
     {
-        new RRT(_maxTimePP, true, 0.04f),
-        //new ARRT(_maxTimePP, true, 0.04f, 0)
+        RRT.Default()
     };
 
     public static void RunInverseKinematics()
@@ -77,7 +69,7 @@ public static class Benchmark
         System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
 
         var agent = ManipulatorHandler.Manipulators[0];
-        CreateAttractors(agent);
+        _planners.Add(ARRT.Default(agent));
 
         foreach (var planner in _planners)
         {
@@ -89,7 +81,7 @@ public static class Benchmark
                 for (int i = 0; i < _samplesPP + 2; i++)
                 {
                     _timer.Restart();
-                    (var iterations, var path) = planner.Run(agent, agent.Goal, new DampedLeastSquares(0.05f, 0, _maxTimeIK));
+                    (var iterations, var path) = planner.Run(agent, agent.Goal, DampedLeastSquares.Default());
                     _timer.Stop();
 
                     // discard first few results because Stopwatch has a warmup phase which produces excessively high numbers
@@ -98,64 +90,5 @@ public static class Benchmark
                 }
             }
         }
-    }
-
-    public static void CreateAttractors(Manipulator agent)  // TODO: move to Attractor class
-    {
-        agent.Attractors = new List<Attractor>();
-
-        double workRadius = agent.WorkspaceRadius;
-        double x, yPos, y, zPos, z;
-
-        // adding main attractor
-        Vector3 attrPoint = agent.Goal;
-        float attrWeight = CalculateAttractorWeight(agent, attrPoint);
-        float attrRadius = CalculateAttractorRadius(agent, attrWeight);
-
-        agent.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
-
-        // adding ancillary attractors
-        while (agent.Attractors.Count < WorkspaceBuffer.PathPlanningBuffer.AttrNum)
-        {
-            // generating attractor point
-            x = RandomThreadStatic.NextDouble(workRadius);
-            yPos = Math.Sqrt(workRadius * workRadius - x * x);
-            y = RandomThreadStatic.NextDouble(yPos);
-            zPos = Math.Sqrt(yPos * yPos - y * y);
-            z = RandomThreadStatic.NextDouble(zPos);
-
-            Vector3 point = new Vector3((float)x, (float)y, (float)z) + agent.Base;
-
-            // checking whether the attractor is inside any obstacle or not
-            bool collision = false;
-            foreach (var obst in ObstacleHandler.Obstacles)
-            {
-                if (obst.Contains(point))
-                {
-                    collision = true;
-                    break;
-                }
-            }
-
-            if (!collision)  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
-            {
-                // adding attractor to the list
-                attrPoint = point;
-                attrWeight = CalculateAttractorWeight(agent, attrPoint);
-                attrRadius = CalculateAttractorRadius(agent, attrWeight);
-
-                agent.Attractors.Add(new Attractor(attrPoint, attrWeight, attrRadius));
-            }
-        }
-    }
-
-    private static float CalculateAttractorWeight(Manipulator agent, Vector3 point)
-    {
-        return agent.DistanceTo(point) + agent.Goal.DistanceTo(point);
-    }
-
-    private static float CalculateAttractorRadius(Manipulator agent, float weight)
-    {
-        return WorkspaceBuffer.PathPlanningBuffer.d * (float)Math.Pow(weight / agent.DistanceTo(agent.Goal), 4);
     }
 }

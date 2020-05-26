@@ -10,6 +10,8 @@ using Assimp;
 
 namespace Logic
 {
+    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+
     public enum ControllerState
     {
         Aborted = -1,  // TODO: can be used for exceptions processing
@@ -20,29 +22,21 @@ namespace Logic
 
     public class MotionController
     {
-        public Manipulator Agent { get; }
-        public Obstacle[] Obstacles { get; }
-
+        public Manipulator Manipulator { get; }
         public PathPlanner PathPlanner { get; set; }
-        
-        public InverseKinematicsSolver PlanSolver { get; set; }
+        public InverseKinematicsSolver InverseKinematicsSolver { get; set; }
 
-
-        private InverseKinematicsSolver _controlSolver;
-        private float _deformThreshold;
+        private float _deformThreshold = 0.1f;
 
         public ControllerState State { get; private set; } = ControllerState.Idle;
         public Stopwatch Timer { get; } = new Stopwatch();
         public Thread Thread { get; private set; }
 
-        public MotionController(Obstacle[] obstacles, Manipulator agent, PathPlanner pathPlanner, InverseKinematicsSolver planSolver, InverseKinematicsSolver controlSolver, float deformThreshold)
+        public MotionController(Manipulator agent, PathPlanner pathPlanner, InverseKinematicsSolver planSolver)
         {
-            Obstacles = obstacles;
-            Agent = agent;
+            Manipulator = agent;
             PathPlanner = pathPlanner;
-            PlanSolver = planSolver;
-            _controlSolver = controlSolver;
-            _deformThreshold = deformThreshold;
+            InverseKinematicsSolver = planSolver;
         }
 
         public void Run()
@@ -74,7 +68,7 @@ namespace Logic
                     State = ControllerState.Running;
 
                     // execute manipulator control process
-                    ExecuteMotion(Agent.Goal);
+                    ExecuteMotion(Manipulator.Goal);
 
                     // turn the controller off
                     State = ControllerState.Finished;
@@ -95,16 +89,16 @@ namespace Logic
         private void ExecuteMotion(Vector3 goal)
         {
             // execute path planning
-            (_, var path) = PathPlanner.Run(Agent, goal, PlanSolver);
-            Agent.Path = path;
+            (_, var path) = PathPlanner.Run(Manipulator, goal, InverseKinematicsSolver);
+            Manipulator.Path = path;
 
             // start motion control if a path has been found
-            if (Agent.Path != null)
+            if (Manipulator.Path != null)
             {
-                using (var manipulatorCopy = Agent.DeepCopy())
+                using (var manipulatorCopy = Manipulator.DeepCopy())
                 {
                     // execute motion control
-                    Path.Node gripperPos = Agent.Path.Current;
+                    Path.Node gripperPos = Manipulator.Path.Current;
                     while (gripperPos.Child != null)
                     {
                         var current = gripperPos.Child;
@@ -112,41 +106,41 @@ namespace Logic
                         {
                             for (int j = current.Points.Length - 1; j > 0; j--)
                             {
-                                foreach (var obst in Obstacles)
+                                if (ObstacleHandler.ContainmentTest(current.Points[j], out Obstacle obstacle))
                                 {
-                                    if (obst.Contains(current.Points[j]))
-                                    {
-                                        //Deform(obst, contestant, current, j);
-                                        break;
-                                    }
+                                    //Deform(manipulatorCopy, obstacle, current, j);
                                 }
                             }
 
                             current = current.Child;
                         }
 
-                        //Discretize(contestant, gripperPos);
+                        //Discretize(manipulatorCopy, gripperPos);
 
-                        gripperPos = Agent.Path.Current;
+                        gripperPos = Manipulator.Path.Current;
                     }
                 }
             }
+            else
+            {
+                // TODO: notify that the paths was not found?
+            }
         }
 
-        private void Deform(Obstacle obstacle, Manipulator contestant, Path.Node current, int joint)
+        private void Deform(Manipulator manipulator, Obstacle obstacle, Path.Node current, int joint)
         {
             Vector3 dx = obstacle.Extrude(current.Points[joint]);
 
             Vector3 pNew = current.Points[joint] + dx;
-            contestant.q = current.q;
-            MathNet.Numerics.LinearAlgebra.Vector<float> cNew = contestant.q + _controlSolver.Execute(contestant, pNew, joint).Item3;
-            contestant.q = cNew;
-            Vector3[] dkpNew = contestant.DKP;
+            manipulator.q = current.q;
+            VectorFloat cNew = manipulator.q + InverseKinematicsSolver.Execute(manipulator, pNew, joint).Item3;
+            manipulator.q = cNew;
+            Vector3[] dkpNew = manipulator.DKP;
 
-            Agent.Path.ChangeNode(current, dkpNew, cNew);
+            Manipulator.Path.ChangeNode(current, dkpNew, cNew);
         }
 
-        private void Discretize(Manipulator contestant, Path.Node gripperPos)
+        private void Discretize(Manipulator manipulator, Path.Node gripperPos)
         {
             Path.Node prev = gripperPos;
             Path.Node curr = gripperPos.Child;
@@ -157,12 +151,12 @@ namespace Logic
                 if (currPos.DistanceTo(prevPos) > _deformThreshold)
                 {
                     Vector3 pPrev = (currPos + prevPos) / 2;
-                    contestant.q = curr.q;
-                    MathNet.Numerics.LinearAlgebra.Vector<float> cPrev = contestant.q + _controlSolver.Execute(contestant, pPrev, Agent.Joints.Length - 1).Item3;
-                    contestant.q = cPrev;
-                    Vector3[] dkpPrev = contestant.DKP;
+                    manipulator.q = curr.q;
+                    VectorFloat cPrev = manipulator.q + InverseKinematicsSolver.Execute(manipulator, pPrev, Manipulator.Joints.Length - 1).Item3;
+                    manipulator.q = cPrev;
+                    Vector3[] dkpPrev = manipulator.DKP;
 
-                    Agent.Path.AddNode(new Path.Node(prev, dkpPrev, cPrev));
+                    Manipulator.Path.AddNode(new Path.Node(prev, dkpPrev, cPrev));
                 }
 
                 curr = curr.Child;

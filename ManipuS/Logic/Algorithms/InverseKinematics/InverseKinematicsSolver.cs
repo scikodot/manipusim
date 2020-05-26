@@ -1,7 +1,4 @@
-﻿using Physics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Numerics;
 
 namespace Logic.InverseKinematics
@@ -25,23 +22,23 @@ namespace Logic.InverseKinematics
 
     public abstract class InverseKinematicsSolver
     {
+        protected static float _thresholdDefault = 0.02f;
+        protected static int _maxIterationsDefault = 50;
+
         public static string[] Types { get; } = Enum.GetNames(typeof(InverseKinematicsSolverType));
 
-        protected float StepSize;  // TODO: move to where it's needed
+        public InverseKinematicsSolverType Type { get; private set; }
 
         protected float _threshold;
         public ref float Precision => ref _threshold;
 
-        protected int _maxTime;
-        public ref int MaxTime => ref _maxTime;
+        protected int _maxIterations;
+        public ref int MaxIterations => ref _maxIterations;
 
-        public InverseKinematicsSolverType Type { get; private set; }
-
-        protected InverseKinematicsSolver(float precision, float stepSize, int maxTime)
+        protected InverseKinematicsSolver(float precision, int maxTime)
         {
             _threshold = precision;
-            StepSize = stepSize;
-            MaxTime = maxTime;
+            _maxIterations = maxTime;
 
             Type = (InverseKinematicsSolverType)Enum.Parse(typeof(InverseKinematicsSolverType), GetType().Name);
         }

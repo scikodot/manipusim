@@ -7,15 +7,20 @@ namespace Logic.PathPlanning
 {
     class ARRT : RRT
     {
-        private List<Attractor> _attractors;
+        protected static int _attractorsCountDefault = 5000;
+        protected static int _trimPeriodDefailt = 1000;
 
-        private int _attractorsCount = 5000;
+        protected List<Attractor> _attractors;
+
+        protected int _attractorsCount;
         public ref int AttractorsCount => ref _attractorsCount;
 
-        private int _trimPeriod;
+        protected int _trimPeriod;
         public ref int TrimPeriod => ref _trimPeriod;
 
-        public ARRT(Manipulator manipulator, int maxTime, bool collisionCheck, float step, int attractorsCount, int trimPeriod) : base(maxTime, collisionCheck, step)
+        public ARRT(Manipulator manipulator, int maxIterations, bool collisionCheck, float step, float threshold, 
+            bool showTree, bool discardOutliers, int attractorsCount, int trimPeriod) : 
+            base(maxIterations, collisionCheck, step, threshold, showTree, discardOutliers)
         {
             _attractorsCount = attractorsCount;
             _trimPeriod = trimPeriod;
@@ -23,6 +28,12 @@ namespace Logic.PathPlanning
             // create attractors
             _attractors = Attractor.Create(manipulator, _attractorsCount, _threshold);  // TODO: if attractors count can be changed from the outside, 
                                                                                         // then the generation should happen on execution or like an event
+        }
+
+        public static ARRT Default(Manipulator manipulator)
+        {
+            return new ARRT(manipulator, _maxIterationsDefault, _collisionCheckDefault, _stepDefault, _thresholdDefault, 
+                _showTreeDefault, _discardOutliersDefault, _attractorsCountDefault, _trimPeriodDefailt);
         }
 
         protected override (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
@@ -44,7 +55,7 @@ namespace Logic.PathPlanning
             float sigma = (attractorLast.Weight - attractorFirst.Weight) / 3.0f;
 
             int iters = 0;
-            while (iters++ < _maxTime)  // TODO: rename to TimeLimit?
+            while (iters++ < _maxIterations)  // TODO: rename to TimeLimit?
             {
                 //if (i % _trimPeriod == 0 && i != 0)
                 //    agent.Tree.Trim(obstacles, agentCopy, solver);
@@ -64,7 +75,7 @@ namespace Logic.PathPlanning
                 // get new tree node point
                 Vector3 point = nodeClosest.Point + Vector3.Normalize(sample - nodeClosest.Point) * _step;
 
-                if (!(_discardOutliers && ObstacleHandler.ContainmentTest(point)))
+                if (!(_discardOutliers && ObstacleHandler.ContainmentTest(point, out _)))
                 {
                     // solve inverse kinematics for the new node
                     manipulator.q = nodeClosest.q;

@@ -8,6 +8,8 @@ using Physics;
 
 namespace Logic
 {
+    using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
+
     public struct ManipData
     {
         public int N;
@@ -38,8 +40,6 @@ namespace Logic
         public ref Vector3 Goal => ref _goal;
 
         public Path Path;
-        public Tree Tree;  // TODO: move to RRT planner!
-        public List<Attractor> Attractors;  // TODO: move to RRT planner!
 
         public MotionController Controller { get; set; }
 
@@ -49,13 +49,14 @@ namespace Logic
         private bool _showTree = true;
         public ref bool ShowTree => ref _showTree;
 
+        // TODO: rename Gripper to EndEffector
         public Vector3 GripperPos { get; private set; }  // TODO: create a separate class Gripper/Tool/etc. and probably use DKP[Joints.Length - 1]
 
         public Vector3[] DKP { get; private set; }  // TODO: rename to JointPositions/DirectKinematics/etc.
 
-        public MathNet.Numerics.LinearAlgebra.Vector<float> q
+        public VectorFloat q
         {
-            get => MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(joint => joint.Coordinate).ToArray());
+            get => VectorFloat.Build.Dense(Joints.Select(joint => joint.Coordinate).ToArray());
             set
             {
                 for (int i = 0; i < Joints.Length; i++)
@@ -127,7 +128,6 @@ namespace Logic
 
             UpdateRelativeStates();
             UpdateJoints();
-            UpdateGripper();
             UpdateLinks();
 
             // update links lengths
@@ -140,7 +140,6 @@ namespace Logic
                 Links[i].UpdateStateDesign();
             }
 
-            // TODO: add joints scaling!
             for (int i = 0; i < Joints.Length; i++)
             {
                 Joints[i].UpdateStateDesign();
@@ -169,7 +168,6 @@ namespace Logic
             DKP = new Vector3[Joints.Length];
 
             UpdateJoints();
-            UpdateGripper();
             UpdateLinks();
         }
 
@@ -207,17 +205,16 @@ namespace Logic
 
         private void UpdateJoints()
         {
-            Console.SetCursorPosition(0, 0);
             ImpDualQuat quat = ImpDualQuat.Zero;
 
             for (int i = 0; i < Joints.Length; i++)  // TODO: move to DirectKinematics() methods?
             {
+                // TODO: optimize
                 quat *= RelativeStates[i];
                 quat *= new ImpDualQuat(Vector3.UnitY, -Joints[i].Coordinate);
 
                 Joints[i].Axis = quat.Rotate(Vector3.UnitY);
                 Joints[i].Position = DKP[i] = quat.Translation;
-                Console.WriteLine("Axis: {0:0.000} | Position: {1:0.000}", Joints[i].Axis, Joints[i].Position);
 
                 Joints[i].UpdateState(ref quat);
             }
@@ -242,62 +239,18 @@ namespace Logic
             }
         }
 
-        private void UpdateGripper()  // TODO: rename Gripper to EndEffector
-        {
-            //ImpDualQuat quat = new ImpDualQuat(Joints[0].InitialPosition);
-
-            //var last = Joints.Length - 1;
-            //for (int j = 0; j < last; j++)
-            //{
-            //    quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
-            //    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
-            //}
-
-            //quat *= ImpDualQuat.Align(Vector3.UnitY, quat.Conjugate.Rotate(Joints[last].Position - Joints[last - 1].Position));
-            //quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].Coordinate);
-            //quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[last].InitialAxis);
-
-            //Joints[last].Axis = quat.Rotate(Vector3.UnitY);
-            //Joints[last].Position = DKP[last] = quat.Translation;
-
-            //GripperPos = DKP[Joints.Length - 1];
-
-            //Joints[last].UpdateState(ref quat);
-
-            //ImpDualQuat quat = new ImpDualQuat(Joints[0].InitialPosition);
-
-            //var last = Joints.Length - 1;
-            //for (int j = 0; j < last; j++)
-            //{
-            //    quat *= new ImpDualQuat(Joints[j + 1].InitialPosition - Joints[j].InitialPosition);  // TODO: this *may* cause inappropriate behaviour; consider initPos[j + 1] - initPos[i]
-            //    quat *= new ImpDualQuat(quat.Conjugate, Joints[j].InitialAxis, quat.Translation, Joints[j].Position, -Joints[j].Coordinate);  // TODO: optimize; probably, conjugation can be avoided
-            //}
-
-            //quat *= ImpDualQuat.Align(Vector3.UnitY, quat.Conjugate.Rotate(Joints[last].Position - Joints[last - 1].Position));
-            //quat *= new ImpDualQuat(Joints[last].InitialAxis, -Joints[last].Coordinate);
-            //quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[last].InitialAxis);
-
-            //Joints[last].Axis = quat.Rotate(Vector3.UnitY);
-            //Joints[last].Position = DKP[last] = quat.Translation;
-
-            //GripperPos = DKP[Joints.Length - 1];
-
-            //Joints[last].UpdateState(ref quat);
-        }
-
         public void Reset()
         {
             // reset GCs to default values
-            q = MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(x => x.InitialCoordinate).ToArray());
+            q = VectorFloat.Build.Dense(Joints.Select(x => x.InitialCoordinate).ToArray());
 
-            // clear tree and path
-            Tree = null;
+            // clear path
             Path = null;
         }
 
-        public bool InWorkspace(Vector3 point)  // TODO: not used anywhere; fix
+        public bool ApproxInWorkspace(Vector3 point)  // TODO: not used anywhere; fix
         {
-            return point.DistanceTo(Vector3.Zero) - point.DistanceTo(Vector3.Zero) <= WorkspaceRadius;
+            return point.Length() <= WorkspaceRadius;
         }
 
         public float DistanceTo(Vector3 p)  // TODO: this one is ambiguous; remove and use usual GripperPos

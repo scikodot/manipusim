@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
-using OpenTK;
+using BulletSharp.Math;
 
 using Graphics;
 using Physics;
-using BulletSharp.Math;
-
-using Vector3 = OpenTK.Vector3;
-using Vector4 = OpenTK.Vector4;
-using OpenTK.Graphics.OpenGL4;
 
 namespace Logic
 {
@@ -22,7 +18,7 @@ namespace Logic
 
             private readonly static Model _ground = Primitives.Plane(10, 10, new MeshMaterial
             {
-                Diffuse = new Vector4(1.0f, 1.0f, 1.0f, 0.5f)
+                Diffuse = new OpenTK.Vector4(1.0f, 1.0f, 1.0f, 0.5f)
             });
 
             private readonly static Collider _collider = PhysicsHandler.CreateStaticCollider(
@@ -80,16 +76,19 @@ namespace Logic
                 obstacle.Dispose();
         }
 
-        public static bool ContainmentTest(System.Numerics.Vector3 point)
+        // TODO: perhaps return all containing obstacles?
+        public static bool ContainmentTest(System.Numerics.Vector3 point, out Obstacle container)
         {
             foreach (var obstacle in Obstacles)
             {
                 if (obstacle.Contains(point))
                 {
+                    container = obstacle;
                     return true;
                 }
             }
 
+            container = null;
             return false;
         }
 

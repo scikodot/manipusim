@@ -6,7 +6,12 @@ namespace Logic.InverseKinematics
 
     public class JacobianPseudoinverse : InverseKinematicsSolver
     {
-        public JacobianPseudoinverse(float threshold, float stepSize, int maxTime) : base(threshold, stepSize, maxTime) { }
+        public JacobianPseudoinverse(float threshold, int maxIterations) : base(threshold, maxIterations) { }
+
+        public static JacobianPseudoinverse Default()
+        {
+            return new JacobianPseudoinverse(_thresholdDefault, _maxIterationsDefault);
+        }
 
         public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
         {
@@ -16,7 +21,7 @@ namespace Logic.InverseKinematics
 
             VectorFloat initConfig = agent.q, dq;
             int iters = 0;
-            while (iters++ < _maxTime)
+            while (iters++ < _maxIterations)
             {
                 // get positional/orientational error
                 var error = GetError(agent, goal, joint);  // TODO: check for oscillations (the error starts increasing) and break if they appear

@@ -514,11 +514,6 @@ namespace Graphics
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
                         Manipulator manipulator = ManipulatorHandler.Manipulators[i];
-                        if (manipulator.Tree != null)
-                        {
-                            Console.SetCursorPosition(0, 10);
-                            Console.WriteLine(manipulator.Tree.Count);
-                        }
 
                         // manipulator's path
                         if (manipulator.Path != null)
@@ -535,6 +530,9 @@ namespace Graphics
                         {
                             // update tree model state
                             _treeModels[i].Update(rrt);
+
+                            Console.SetCursorPosition(0, 10);
+                            Console.WriteLine(rrt.Tree.Count);
                         }
 
                         if (GeneticAlgorithm.Dominant.Item2 != null && GeneticAlgorithm.Changed)

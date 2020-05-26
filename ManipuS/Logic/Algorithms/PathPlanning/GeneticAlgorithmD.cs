@@ -8,9 +8,6 @@ using MoreLinq;
 using Logic.InverseKinematics;
 using Physics;
 
-using System.Drawing;
-using System.Threading.Tasks;
-
 namespace Logic.PathPlanning
 {
     using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
@@ -23,12 +20,11 @@ namespace Logic.PathPlanning
     }
 
     [Flags]
-    public enum OptimizationCriterion
+    public enum OptimizationCriteria
     {
-        GoalConvergence = 0,
+        NoOptimization = 0,
         CollisionFree = 1,
-        PathLength = 2,
-        PathSmoothness = 4
+        PathLength = 2
     }
 
     public enum SelectionMode
@@ -94,8 +90,8 @@ namespace Logic.PathPlanning
         private OptimizationMode _optimizationMode;
         public ref OptimizationMode OptimizationMode => ref _optimizationMode;
 
-        private OptimizationCriterion _optimizationCriteria = OptimizationCriterion.CollisionFree;
-        public ref OptimizationCriterion OptimizationCriteria => ref _optimizationCriteria;
+        private OptimizationCriteria _optimizationCriteria = OptimizationCriteria.CollisionFree;
+        public ref OptimizationCriteria OptimizationCriteria => ref _optimizationCriteria;
 
         private SelectionMode _selectionMode = SelectionMode.NormalDistribution;
         public ref SelectionMode SelectionMode => ref _selectionMode;
@@ -125,12 +121,17 @@ namespace Logic.PathPlanning
 
         //private float sqrt2pi = 1 / (float)Math.Sqrt(2 * Math.PI);
 
-        public GeneticAlgorithm(int maxTime, bool collisionCheck, 
-            int generationSize, float crossoverProbability, float mutationProbability) : base(maxTime, collisionCheck)
+        public GeneticAlgorithm(int maxIterations, bool collisionCheck, 
+            int generationSize, float crossoverProbability, float mutationProbability) : base(maxIterations, collisionCheck)
         {
             _generationSize = generationSize;
             _crossoverProbability = crossoverProbability;
             _mutationProbability = mutationProbability;
+        }
+
+        public static GeneticAlgorithm Default()
+        {
+            return new GeneticAlgorithm(_maxIterationsDefault, _collisionCheckDefault, 10, 0.95f, 0.1f);  // TODO: check args
         }
 
         protected override (int, Path) RunAbstract(Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
@@ -149,7 +150,7 @@ namespace Logic.PathPlanning
                 // get initial solution
                 var bezierInitial = ConstructBezier(_agentCopy.GripperPos, goal, _bezierControlPointsCount);
                 var pathInitial = ConstructPath(bezierInitial, _bezierStep);
-                Chromosome chromosomeInitial = (bezierInitial, pathInitial, Fit(pathInitial));
+                Chromosome chromosomeInitial = (bezierInitial, pathInitial, Rate(pathInitial));
 
                 generation.Add(chromosomeInitial);
 
@@ -158,7 +159,7 @@ namespace Logic.PathPlanning
                 // evolve generations
                 Console.SetCursorPosition(0, 10);
                 Console.WriteLine("Starting genetic algorithm...");
-                while (generationsCount++ < MaxTime)
+                while (generationsCount++ < MaxIterations)
                 {
                     // get new generation
                     generation = Evolve(generation, _offspringSize, _survivalSize);
@@ -271,7 +272,7 @@ namespace Logic.PathPlanning
             {
                 BezierCurve bezierCurveRepro = Repro(member.Item1);
                 Path pathRepro = ConstructPath(bezierCurveRepro, _bezierStep);
-                repro.Add((bezierCurveRepro, pathRepro, Fit(pathRepro)));
+                repro.Add((bezierCurveRepro, pathRepro, Rate(pathRepro)));
             }
 
             return repro;
@@ -287,7 +288,7 @@ namespace Logic.PathPlanning
 
             bezierCurveRepro.Points[pointIndex] += bezierDirectionRepro;
 
-            if ((bezierCurveRepro.Points[pointIndex] + bezierDirectionRepro).Length() < _agentCopy.WorkspaceRadius)
+            if (_agent.ApproxInWorkspace(bezierCurveRepro.Points[pointIndex] + bezierDirectionRepro))
                 bezierCurveRepro.Points[pointIndex] += bezierDirectionRepro;
             else
                 bezierCurveRepro.Points[pointIndex] -= bezierDirectionRepro;
@@ -300,7 +301,7 @@ namespace Logic.PathPlanning
             return offsprings.OrderBy(x => x.Item3).Take(survivalSize).ToList();
         }
 
-        private float Fit(Path sample)
+        private float Rate(Path sample)
         {
             float score = 0;
 
@@ -315,23 +316,11 @@ namespace Logic.PathPlanning
                 int criteriaCount = 0;
                 float pointWeight = 0;
 
-                if (_optimizationCriteria.HasFlag(OptimizationCriterion.CollisionFree))
+                if (_optimizationCriteria.HasFlag(OptimizationCriteria.CollisionFree))
                 {
-                    // TODO: instead of weighting, add "pulling-out", i.e. translating point along the common vector with the obst center; much better
-                    foreach (var obst in ObstacleHandler.Obstacles)
+                    if (ObstacleHandler.ContainmentTest(currPos, out _))
                     {
-                        if (obst.Contains(currPos))
-                        {
-                            //var collider = obst.Collider as SphereCollider;
-                            //var centerOfMass = collider.Body.CenterOfMassPosition;
-                            //var center = new Vector3(centerOfMass.X, centerOfMass.Y, centerOfMass.Z);
-                            //pointWeight += 100 * (float)Math.Pow(currPos.DistanceTo(center) / collider.Radius, 4);
-                            pointWeight += 1;
-                        }
-                        else
-                        {
-
-                        }
+                        pointWeight += 1;
                     }
 
                     if (_agentCopy.CollisionTest().Contains(true))
@@ -341,11 +330,7 @@ namespace Logic.PathPlanning
 
                     criteriaCount++;
                 }
-                if (_optimizationCriteria.HasFlag(OptimizationCriterion.PathLength))
-                {
-
-                }
-                if (_optimizationCriteria.HasFlag(OptimizationCriterion.PathSmoothness))
+                if (_optimizationCriteria.HasFlag(OptimizationCriteria.PathLength))
                 {
 
                 }
@@ -358,7 +343,7 @@ namespace Logic.PathPlanning
         }
 
         #region new
-        //public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver/*, Func<float, float> decode)
+        //public override Path Execute(Obstacle[] obstacles, Manipulator agent, Vector3 goal, InverseKinematicsSolver solver/*, Func<float, float> decode*/)
         //{
         //    #region old
         //    //var chs = new ChromosomeD[_generationSize];
@@ -669,315 +654,315 @@ namespace Logic.PathPlanning
         #endregion
 
         #region old
-        private static void FitnessFunctionD/*<T>*/(Manipulator agent, Obstacle[] obstacles, Vector3 goal, InverseKinematicsSolver solver,
-            ChromosomeD[] chs, float[] fit, OptimizationCriterion criterion/*, Func<T, float> decode*/)
-        {
-            Manipulator agentCopy = agent.DeepCopy();
-            for (int i = 0; i < chs.Length; i++)
-            {
-                fit[i] = 0;
+        //private static void FitnessFunctionD/*<T>*/(Manipulator agent, Obstacle[] obstacles, Vector3 goal, InverseKinematicsSolver solver,
+        //    ChromosomeD[] chs, float[] fit, OptimizationCriteria criterion/*, Func<T, float> decode*/)
+        //{
+        //    Manipulator agentCopy = agent.DeepCopy();
+        //    for (int i = 0; i < chs.Length; i++)
+        //    {
+        //        fit[i] = 0;
 
-                agent.q.CopyTo(agentCopy.q);
+        //        agent.q.CopyTo(agentCopy.q);
 
-                // extract parameters' values from chromosome
-                for (int j = 0; j < chs[i].PointsNum; j++)
-                {
-                    Vector3 currPos = chs[i].Genes[j].Item1;
+        //        // extract parameters' values from chromosome
+        //        for (int j = 0; j < chs[i].PointsNum; j++)
+        //        {
+        //            Vector3 currPos = chs[i].Genes[j].Item1;
 
-                    // apply fitness functions to the given chromosome's point
-                    int critCount = 0;
-                    float pointWeight = 0;
+        //            // apply fitness functions to the given chromosome's point
+        //            int critCount = 0;
+        //            float pointWeight = 0;
 
-                    /*if (j == 0)
-                    {
-                        chs[i].Genes[j].Item2 = Misc.CopyArray(agent.q);
-                        Vector3Weight += 100;
-                    }
-                    else
-                    {
-                        for (int k = 0; k < 1; k++)
-                        {
-                            contestant.q = Misc.CopyArray(chs[i].Genes[j - 1].Item2);
-                            var res = solver.Execute(contestant, chs[i].Genes[j].Item1);
+        //            /*if (j == 0)
+        //            {
+        //                chs[i].Genes[j].Item2 = Misc.CopyArray(agent.q);
+        //                Vector3Weight += 100;
+        //            }
+        //            else
+        //            {
+        //                for (int k = 0; k < 1; k++)
+        //                {
+        //                    contestant.q = Misc.CopyArray(chs[i].Genes[j - 1].Item2);
+        //                    var res = solver.Execute(contestant, chs[i].Genes[j].Item1);
 
-                            // assign config to continue checking other Vector3s
-                            chs[i].Genes[j].Item2 = Misc.CopyArray(contestant.q);
+        //                    // assign config to continue checking other Vector3s
+        //                    chs[i].Genes[j].Item2 = Misc.CopyArray(contestant.q);
 
-                            if (res.Item1 && !res.Item4.Contains(true))
-                            {
-                                Vector3Weight += 100;
-                                break;
-                            }
-                        }
-                    }
-                    critCount++;*/
+        //                    if (res.Item1 && !res.Item4.Contains(true))
+        //                    {
+        //                        Vector3Weight += 100;
+        //                        break;
+        //                    }
+        //                }
+        //            }
+        //            critCount++;*/
 
-                    if ((criterion & OptimizationCriterion.CollisionFree) == OptimizationCriterion.CollisionFree)
-                    {
-                        // TODO: instead of weighting, add "pulling-out", i.e. translating point along the common vector with the obst center; much better
-                        foreach (var obst in obstacles)
-                        {
-                            if (obst.Contains(currPos))
-                            {
-                                var collider = obst.Collider as SphereCollider;
-                                var centerOfMass = collider.Body.CenterOfMassPosition;
-                                var center = new Vector3(centerOfMass.X, centerOfMass.Y, centerOfMass.Z);
-                                pointWeight += 100 * (float)Math.Pow(currPos.DistanceTo(center) / collider.Radius, 4);
-                            }
-                            else
-                            {
-                                pointWeight += 100;
-                            }
-                        }
-                        critCount++;
-                    }
-                    if ((criterion & OptimizationCriterion.PathLength) == OptimizationCriterion.PathLength)
-                    {
+        //            if ((criterion & OptimizationCriteria.CollisionFree) == OptimizationCriteria.CollisionFree)
+        //            {
+        //                // TODO: instead of weighting, add "pulling-out", i.e. translating point along the common vector with the obst center; much better
+        //                foreach (var obst in obstacles)
+        //                {
+        //                    if (obst.Contains(currPos))
+        //                    {
+        //                        var collider = obst.Collider as SphereCollider;
+        //                        var centerOfMass = collider.Body.CenterOfMassPosition;
+        //                        var center = new Vector3(centerOfMass.X, centerOfMass.Y, centerOfMass.Z);
+        //                        pointWeight += 100 * (float)Math.Pow(currPos.DistanceTo(center) / collider.Radius, 4);
+        //                    }
+        //                    else
+        //                    {
+        //                        pointWeight += 100;
+        //                    }
+        //                }
+        //                critCount++;
+        //            }
+        //            if ((criterion & OptimizationCriteria.PathLength) == OptimizationCriteria.PathLength)
+        //            {
 
-                    }
-                    if ((criterion & OptimizationCriterion.PathSmoothness) == OptimizationCriterion.PathSmoothness)
-                    {
+        //            }
+        //            if ((criterion & PathPlanning.OptimizationCriteria.PathSmoothness) == PathPlanning.OptimizationCriteria.PathSmoothness)
+        //            {
 
-                    }
+        //            }
 
-                    // take median of all criteria weights
-                    fit[i] += pointWeight / critCount;
-                }
-            }
-        }
+        //            // take median of all criteria weights
+        //            fit[i] += pointWeight / critCount;
+        //        }
+        //    }
+        //}
 
-        private static void SelectionD(ChromosomeD[] chs, float[] fit, SelectionMode selectMode, OptimizationMode optimizeMode)
-        {
-            ChromosomeD[] selection = new ChromosomeD[chs.Length];
+        //private static void SelectionD(ChromosomeD[] chs, float[] fit, SelectionMode selectMode, OptimizationMode optimizeMode)
+        //{
+        //    ChromosomeD[] selection = new ChromosomeD[chs.Length];
 
-            // select chromosomes with the specified mode
-            switch (selectMode)
-            {
-                case SelectionMode.RouletteWheel:
-                    float[] sectors = new float[chs.Length];
-                    float total;
-                    switch (optimizeMode)
-                    {
-                        case OptimizationMode.Maximum:
-                            total = fit.Sum();
-                            for (int i = 0; i < chs.Length; i++)
-                                sectors[i] = fit[i] / total * 100;
-                            break;
-                        case OptimizationMode.Minimum:
-                            total = fit.Sum((x) => 1 / x);
-                            for (int i = 0; i < chs.Length; i++)
-                                sectors[i] = (1 / fit[i]) / total * 100;
-                            break;
-                    }
+        //    // select chromosomes with the specified mode
+        //    switch (selectMode)
+        //    {
+        //        case SelectionMode.RouletteWheel:
+        //            float[] sectors = new float[chs.Length];
+        //            float total;
+        //            switch (optimizeMode)
+        //            {
+        //                case OptimizationMode.Maximum:
+        //                    total = fit.Sum();
+        //                    for (int i = 0; i < chs.Length; i++)
+        //                        sectors[i] = fit[i] / total * 100;
+        //                    break;
+        //                case OptimizationMode.Minimum:
+        //                    total = fit.Sum((x) => 1 / x);
+        //                    for (int i = 0; i < chs.Length; i++)
+        //                        sectors[i] = (1 / fit[i]) / total * 100;
+        //                    break;
+        //            }
 
-                    // randomly select crossing chromosomes according to their weights
-                    for (int i = 0; i < chs.Length; i++)
-                    {
-                        float point = (float)RandomThreadStatic.NextDouble() * 100, seek = 0;
+        //            // randomly select crossing chromosomes according to their weights
+        //            for (int i = 0; i < chs.Length; i++)
+        //            {
+        //                float point = (float)RandomThreadStatic.NextDouble() * 100, seek = 0;
 
-                        for (int j = 0; j < chs.Length; j++)
-                        {
-                            seek += sectors[j];
-                            if (point < seek)
-                            {
-                                selection[i] = chs[j];
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                case SelectionMode.NormalDistribution:
-                    var fitList = fit
-                        .Select((x, i) => new KeyValuePair<int, float>(i, x))
-                        .OrderBy(x => x.Value)
-                        .ToList();
-                    var fitValues = fitList.Select(x => x.Value).ToList();
-                    var fitKeys = fitList.Select(x => x.Key).ToList();
-                    var min = fitValues[0];
-                    var max = fitValues[fitValues.Count - 1];
-                    float num;
-                    int index = 0;
+        //                for (int j = 0; j < chs.Length; j++)
+        //                {
+        //                    seek += sectors[j];
+        //                    if (point < seek)
+        //                    {
+        //                        selection[i] = chs[j];
+        //                        break;
+        //                    }
+        //                }
+        //            }
+        //            break;
+        //        case SelectionMode.NormalDistribution:
+        //            var fitList = fit
+        //                .Select((x, i) => new KeyValuePair<int, float>(i, x))
+        //                .OrderBy(x => x.Value)
+        //                .ToList();
+        //            var fitValues = fitList.Select(x => x.Value).ToList();
+        //            var fitKeys = fitList.Select(x => x.Key).ToList();
+        //            var min = fitValues[0];
+        //            var max = fitValues[fitValues.Count - 1];
+        //            float num;
+        //            int index = 0;
 
-                    switch (optimizeMode)
-                    {
-                        case OptimizationMode.Maximum:
-                            for (int i = 0; i < chs.Length; i++)
-                            {
-                                num = RandomThreadStatic.NextGaussian(max, (max - min) / 3);
+        //            switch (optimizeMode)
+        //            {
+        //                case OptimizationMode.Maximum:
+        //                    for (int i = 0; i < chs.Length; i++)
+        //                    {
+        //                        num = RandomThreadStatic.NextGaussian(max, (max - min) / 3);
 
-                                if (num <= min)
-                                    index = fitKeys[0];
-                                else if (num >= max)
-                                {
-                                    var diff = num - max;
-                                    num = max - diff;
-                                    index = fitKeys[fitValues.FindIndex(x => x >= num)];
-                                }
-                                else
-                                    index = fitKeys[fitValues.FindIndex(x => x > num)];
+        //                        if (num <= min)
+        //                            index = fitKeys[0];
+        //                        else if (num >= max)
+        //                        {
+        //                            var diff = num - max;
+        //                            num = max - diff;
+        //                            index = fitKeys[fitValues.FindIndex(x => x >= num)];
+        //                        }
+        //                        else
+        //                            index = fitKeys[fitValues.FindIndex(x => x > num)];
 
-                                selection[i] = chs[index];
-                            }
-                            break;
-                        case OptimizationMode.Minimum:
-                            for (int i = 0; i < chs.Length; i++)
-                            {
-                                num = RandomThreadStatic.NextGaussian(max, (max - min) / 3);
-                                if (num <= min)
-                                {
-                                    var diff = num - min;
-                                    num = min - diff;
-                                    index = fitKeys[fitValues.FindIndex(x => x <= num)];
-                                }
-                                else if (num >= max)
-                                    index = fitKeys[fitValues.Count - 1];
-                                else
-                                    index = fitKeys[fitValues.FindIndex(x => x < num)];
+        //                        selection[i] = chs[index];
+        //                    }
+        //                    break;
+        //                case OptimizationMode.Minimum:
+        //                    for (int i = 0; i < chs.Length; i++)
+        //                    {
+        //                        num = RandomThreadStatic.NextGaussian(max, (max - min) / 3);
+        //                        if (num <= min)
+        //                        {
+        //                            var diff = num - min;
+        //                            num = min - diff;
+        //                            index = fitKeys[fitValues.FindIndex(x => x <= num)];
+        //                        }
+        //                        else if (num >= max)
+        //                            index = fitKeys[fitValues.Count - 1];
+        //                        else
+        //                            index = fitKeys[fitValues.FindIndex(x => x < num)];
 
-                                selection[i] = chs[index];
-                            }
-                            break;
-                    }
-                    break;
-            }
+        //                        selection[i] = chs[index];
+        //                    }
+        //                    break;
+        //            }
+        //            break;
+        //    }
 
-            selection.CopyTo(chs, 0);
-        }
+        //    selection.CopyTo(chs, 0);
+        //}
 
-        private static void MutationD(ChromosomeD[] chs, float mutationProb, Func<float, float> mutate)
-        {
-            // randomly choose among chromosomes the mutating ones
-            foreach (var chr in chs)
-            {
-                if (RandomThreadStatic.NextDouble() < mutationProb)
-                {
-                    // define distortion amplitude as a normal distribution
-                    int mu = RandomThreadStatic.Next(1, chr.PointsNum - 1);
-                    float sigma = 10;
-                    float amp = mutate(0);
-                    float nd(int t) => amp * (float)Math.Exp(-0.5 * Math.Pow((t - mu) / sigma, 2));
+        //private static void MutationD(ChromosomeD[] chs, float mutationProb, Func<float, float> mutate)
+        //{
+        //    // randomly choose among chromosomes the mutating ones
+        //    foreach (var chr in chs)
+        //    {
+        //        if (RandomThreadStatic.NextDouble() < mutationProb)
+        //        {
+        //            // define distortion amplitude as a normal distribution
+        //            int mu = RandomThreadStatic.Next(1, chr.PointsNum - 1);
+        //            float sigma = 10;
+        //            float amp = mutate(0);
+        //            float nd(int t) => amp * (float)Math.Exp(-0.5 * Math.Pow((t - mu) / sigma, 2));
 
-                    // segment between prev and next Vector3s
-                    var vec = chr.Genes[mu + 1].Item1 - chr.Genes[mu - 1].Item1;
+        //            // segment between prev and next Vector3s
+        //            var vec = chr.Genes[mu + 1].Item1 - chr.Genes[mu - 1].Item1;
 
-                    // get distortion direction
-                    var x = RandomThreadStatic.NextDouble();
-                    var y = RandomThreadStatic.NextDouble();
-                    var z = (vec.X * x + vec.Y * y) / vec.Z;
-                    var dir = Vector3.Normalize(new Vector3((float)x, (float)y, (float)z));
+        //            // get distortion direction
+        //            var x = RandomThreadStatic.NextDouble();
+        //            var y = RandomThreadStatic.NextDouble();
+        //            var z = (vec.X * x + vec.Y * y) / vec.Z;
+        //            var dir = Vector3.Normalize(new Vector3((float)x, (float)y, (float)z));
 
-                    // slightly change all the points of the chromosome except start and end
-                    for (int i = 1; i < chr.PointsNum - 1; i++)
-                    {
-                        chr.Genes[i].Item1 += dir * nd(i);
+        //            // slightly change all the points of the chromosome except start and end
+        //            for (int i = 1; i < chr.PointsNum - 1; i++)
+        //            {
+        //                chr.Genes[i].Item1 += dir * nd(i);
 
-                        // pull vertex to its neighbour to retain desired step distance
-                        vec = chr.Genes[i].Item1 - chr.Genes[i - 1].Item1;
-                        chr.Genes[i].Item1 += (vec.Length() - 0.04f) * Vector3.Normalize(vec);
-                    }
-                }
-            }
-        }
+        //                // pull vertex to its neighbour to retain desired step distance
+        //                vec = chr.Genes[i].Item1 - chr.Genes[i - 1].Item1;
+        //                chr.Genes[i].Item1 += (vec.Length() - 0.04f) * Vector3.Normalize(vec);
+        //            }
+        //        }
+        //    }
+        //}
 
-        private static void CrossoverD(ChromosomeD[] chs, float[] fit, float crossoverProb, CrossoverMode crossMode)  // TODO: add generic types; add crossover probability Pc
-        {
-            var crossed = new ChromosomeD[chs.Length];
+        //private static void CrossoverD(ChromosomeD[] chs, float[] fit, float crossoverProb, CrossoverMode crossMode)  // TODO: add generic types; add crossover probability Pc
+        //{
+        //    var crossed = new ChromosomeD[chs.Length];
 
-            // form pairs
-            int[] pairs = new int[chs.Length];
-            for (int i = 0; i < chs.Length; i++)
-                pairs[i] = i;
+        //    // form pairs
+        //    int[] pairs = new int[chs.Length];
+        //    for (int i = 0; i < chs.Length; i++)
+        //        pairs[i] = i;
 
-            // shuffle array of pairs to make them random
-            int n = pairs.Length;
-            while (n > 1)
-            {
-                int k = RandomThreadStatic.Next(n--);
-                int t = pairs[n];
-                pairs[n] = pairs[k];
-                pairs[k] = t;
-            }
+        //    // shuffle array of pairs to make them random
+        //    int n = pairs.Length;
+        //    while (n > 1)
+        //    {
+        //        int k = RandomThreadStatic.Next(n--);
+        //        int t = pairs[n];
+        //        pairs[n] = pairs[k];
+        //        pairs[k] = t;
+        //    }
 
-            // crossover with the specified mode according to probability
-            switch (crossMode)
-            {
-                case CrossoverMode.CrissCross:
-                    for (int i = 0; i < pairs.Length / 2; i++)
-                    {
-                        if (RandomThreadStatic.NextDouble() < crossoverProb)
-                        {
-                            int Vector3 = RandomThreadStatic.Next(0, chs[0].PointsNum - 1);
-                            ChromosomeD ch1 = new ChromosomeD(chs[0].PointsNum),
-                                        ch2 = new ChromosomeD(chs[0].PointsNum);
-                            for (int j = 0; j < chs[0].PointsNum; j++)
-                            {
-                                if (j <= Vector3)
-                                {
-                                    ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
-                                    ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
-                                }
-                                else
-                                {
-                                    ch1.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
-                                    ch2.Genes[j] = chs[pairs[2 * i]].Genes[j];
-                                }
-                            }
+        //    // crossover with the specified mode according to probability
+        //    switch (crossMode)
+        //    {
+        //        case CrossoverMode.CrissCross:
+        //            for (int i = 0; i < pairs.Length / 2; i++)
+        //            {
+        //                if (RandomThreadStatic.NextDouble() < crossoverProb)
+        //                {
+        //                    int Vector3 = RandomThreadStatic.Next(0, chs[0].PointsNum - 1);
+        //                    ChromosomeD ch1 = new ChromosomeD(chs[0].PointsNum),
+        //                                ch2 = new ChromosomeD(chs[0].PointsNum);
+        //                    for (int j = 0; j < chs[0].PointsNum; j++)
+        //                    {
+        //                        if (j <= Vector3)
+        //                        {
+        //                            ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
+        //                            ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+        //                        }
+        //                        else
+        //                        {
+        //                            ch1.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+        //                            ch2.Genes[j] = chs[pairs[2 * i]].Genes[j];
+        //                        }
+        //                    }
 
-                            crossed[2 * i] = ch1;
-                            crossed[2 * i + 1] = ch2;
-                        }
-                        else
-                        {
-                            crossed[2 * i] = chs[pairs[2 * i]];
-                            crossed[2 * i + 1] = chs[pairs[2 * i + 1]];
-                        }
-                    }
-                    break;
-                case CrossoverMode.WeightedMean:
-                    (Vector3, VectorFloat) G1, G2;
-                    float W1, W2;
-                    for (int i = 0; i < pairs.Length / 2; i++)
-                    {
-                        if (RandomThreadStatic.NextDouble() < crossoverProb)
-                        {
-                            int Vector3 = RandomThreadStatic.Next(0, chs[0].PointsNum - 1);
-                            ChromosomeD ch1 = new ChromosomeD(chs[0].PointsNum),
-                                        ch2 = new ChromosomeD(chs[0].PointsNum);
+        //                    crossed[2 * i] = ch1;
+        //                    crossed[2 * i + 1] = ch2;
+        //                }
+        //                else
+        //                {
+        //                    crossed[2 * i] = chs[pairs[2 * i]];
+        //                    crossed[2 * i + 1] = chs[pairs[2 * i + 1]];
+        //                }
+        //            }
+        //            break;
+        //        case CrossoverMode.WeightedMean:
+        //            (Vector3, VectorFloat) G1, G2;
+        //            float W1, W2;
+        //            for (int i = 0; i < pairs.Length / 2; i++)
+        //            {
+        //                if (RandomThreadStatic.NextDouble() < crossoverProb)
+        //                {
+        //                    int Vector3 = RandomThreadStatic.Next(0, chs[0].PointsNum - 1);
+        //                    ChromosomeD ch1 = new ChromosomeD(chs[0].PointsNum),
+        //                                ch2 = new ChromosomeD(chs[0].PointsNum);
 
-                            W1 = fit[pairs[2 * i]];
-                            W2 = fit[pairs[2 * i + 1]];
-                            for (int j = 0; j < chs[0].PointsNum; j++)
-                            {
-                                if (j <= Vector3)
-                                {
-                                    ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
-                                    ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
-                                }
-                                else
-                                {
-                                    G1 = chs[pairs[2 * i]].Genes[j];
-                                    G2 = chs[pairs[2 * i + 1]].Genes[j];
-                                    ch1.Genes[j].Item1 = (G1.Item1 * W1 + G2.Item1 * W2) / (W1 + W2);
-                                    ch1.Genes[j].Item2 = G1.Item2;
-                                    ch2.Genes[j].Item1 = (G1.Item1 * W2 + G2.Item1 * W1) / (W1 + W2);
-                                    ch2.Genes[j].Item2 = G2.Item2;
-                                }
-                            }
+        //                    W1 = fit[pairs[2 * i]];
+        //                    W2 = fit[pairs[2 * i + 1]];
+        //                    for (int j = 0; j < chs[0].PointsNum; j++)
+        //                    {
+        //                        if (j <= Vector3)
+        //                        {
+        //                            ch1.Genes[j] = chs[pairs[2 * i]].Genes[j];
+        //                            ch2.Genes[j] = chs[pairs[2 * i + 1]].Genes[j];
+        //                        }
+        //                        else
+        //                        {
+        //                            G1 = chs[pairs[2 * i]].Genes[j];
+        //                            G2 = chs[pairs[2 * i + 1]].Genes[j];
+        //                            ch1.Genes[j].Item1 = (G1.Item1 * W1 + G2.Item1 * W2) / (W1 + W2);
+        //                            ch1.Genes[j].Item2 = G1.Item2;
+        //                            ch2.Genes[j].Item1 = (G1.Item1 * W2 + G2.Item1 * W1) / (W1 + W2);
+        //                            ch2.Genes[j].Item2 = G2.Item2;
+        //                        }
+        //                    }
 
-                            crossed[2 * i] = ch1;
-                            crossed[2 * i + 1] = ch2;
-                        }
-                        else
-                        {
-                            crossed[2 * i] = chs[pairs[2 * i]];
-                            crossed[2 * i + 1] = chs[pairs[2 * i + 1]];
-                        }
-                    }
-                    break;
-            }
+        //                    crossed[2 * i] = ch1;
+        //                    crossed[2 * i + 1] = ch2;
+        //                }
+        //                else
+        //                {
+        //                    crossed[2 * i] = chs[pairs[2 * i]];
+        //                    crossed[2 * i + 1] = chs[pairs[2 * i + 1]];
+        //                }
+        //            }
+        //            break;
+        //    }
 
-            crossed.CopyTo(chs, 0);
-        }
+        //    crossed.CopyTo(chs, 0);
+        //}
         #endregion
     }
 }

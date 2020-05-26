@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
+
 using BulletSharp;
-using BulletSharp.Math;
+
 using Graphics;
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
 using Physics;
+
 using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
@@ -27,30 +28,20 @@ namespace Logic
             q = 0,
             qRanges = new Vector2(-180, 180)
         };
+
         private static LinkData _defaultLink = new LinkData
         {
             Length = 1
         };
+
         private static JointData _defaultGripper = new JointData
         {
             Length = 0.2f,
             q = 0,
             qRanges = new Vector2(-180, 180)
         };
-        private static Vector3 _defaultGoal = new Vector3(0.0f/*-1.0f*/, 0.5f, -2.0f);
 
-        private static InverseKinematicsData _defaultInverseKinematicsSolver = new InverseKinematicsData
-        {
-            Precision = 0.02f,
-            StepSize = 2,
-            MaxTime = 4
-        };
-        private static PathPlanningData _defaultPathPlanner = new PathPlanningData
-        {
-            AttrNum = 5000,
-            k = 10000,
-            d = 0.04f
-        };
+        private static Vector3 _defaultGoal = new Vector3(0.0f/*-1.0f*/, 0.5f, -2.0f);
 
         public static List<Manipulator> Manipulators { get; } = new List<Manipulator>();
 
@@ -124,14 +115,9 @@ namespace Logic
                 ShowTree = true
             });
 
-            // add default motion controller default solver and planner
-            var defaultSolver = _defaultInverseKinematicsSolver;
-            var defaultPlanner = _defaultPathPlanner;
-
-            var solver = new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime);
-            var planner = new GeneticAlgorithm(defaultPlanner.k, true, 10, 0.95f, 0.1f); /*new ARRT(manipulator, defaultPlanner.k, true, defaultPlanner.d, 5000, defaultPlanner.k / 10);*/
-            manipulator.Controller = new MotionController(ObstacleHandler.Obstacles.ToArray(), manipulator, planner, solver,
-                   new DampedLeastSquares(defaultSolver.Precision, defaultSolver.StepSize, defaultSolver.MaxTime), 2 * defaultPlanner.d);
+            var solver = DampedLeastSquares.Default();
+            var planner = GeneticAlgorithm.Default(); /*ARRT.Default(manipulator);*/
+            manipulator.Controller = new MotionController(manipulator, planner, solver);
 
             // add manipulator to the list
             Add(manipulator);

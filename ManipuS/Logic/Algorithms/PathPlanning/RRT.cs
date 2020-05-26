@@ -9,61 +9,77 @@ namespace Logic.PathPlanning
 {
     public class RRT : PathPlanner
     {
-        protected float _step = 0.04f;
+        protected static float _stepDefault = 0.04f;
+        protected static float _thresholdDefault = 0.04f;
+        protected static bool _showTreeDefault = true;
+        protected static bool _discardOutliersDefault = true;
+
+        protected float _step;
         public ref float Step => ref _step;
 
-        protected float _threshold = 0.04f;
+        protected float _threshold;
         public ref float Threshold => ref _threshold;
 
-        protected bool _discardOutliers = true;
+        protected bool _showTree;
+        public ref bool ShowTree => ref _showTree;
+
+        protected bool _discardOutliers;
         public ref bool DiscardOutliers => ref _discardOutliers;
 
         public Tree Tree { get; protected set; }
 
-        public RRT(int maxTime, bool collisionCheck, float step) : base(maxTime, collisionCheck)
+        public RRT(int maxIterations, bool collisionCheck, float step, float threshold, bool showTree, bool discardOutliers) : 
+            base(maxIterations, collisionCheck)
         {
             _step = step;
+            _threshold = threshold;
+            _showTree = showTree;
+            _discardOutliers = discardOutliers;
         }
 
-        protected override (int, Path) RunAbstract(Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
+        public static RRT Default()
         {
-            Manipulator agentCopy = agent.DeepCopy();
+            return new RRT(_maxIterationsDefault, _collisionCheckDefault, _stepDefault, _thresholdDefault, 
+                _showTreeDefault, _discardOutliersDefault);
+        }
 
+        protected override (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
+        {
             // create new tree
-            agent.Tree = new Tree(new Tree.Node(null, agent.GripperPos, agent.q));  // TODO: consider creating local tree and returning it (for benchmarking or similar)
+            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q));
 
             int iters = 0;
-            while (iters++ < _maxTime)
+            while (iters++ < _maxIterations)
             {
                 // generate sample
-                Vector3 sample = RandomThreadStatic.NextPointSphere(agent.WorkspaceRadius) + agent.Base;
+                Vector3 sample = RandomThreadStatic.NextPointSphere(manipulator.WorkspaceRadius) + manipulator.Base;
 
                 // find the closest node to the generated sample point
-                Tree.Node nodeClosest = agent.Tree.Closest(sample);
+                Tree.Node nodeClosest = Tree.Closest(sample);
 
                 // get new tree node point
                 Vector3 point = nodeClosest.Point + Vector3.Normalize(sample - nodeClosest.Point) * _step;
 
-                if (!(_discardOutliers && ObstacleHandler.ContainmentTest(point)))
+                if (!(_discardOutliers && ObstacleHandler.ContainmentTest(point, out _)))
                 {
                     // solve inverse kinematics for the new node to obtain the agent configuration
-                    agentCopy.q = nodeClosest.q;
-                    (var converged, _, var distance, var offset) = solver.Execute(agentCopy, point, agentCopy.Joints.Length - 1);
-                    if (converged && !(_collisionCheck && agent.CollisionTest().Contains(true)))
+                    manipulator.q = nodeClosest.q;
+                    (var converged, _, var distance, var offset) = solver.Execute(manipulator, point, manipulator.Joints.Length - 1);
+                    if (converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))
                     {
                         // add new node to the tree
-                        Tree.Node node = new Tree.Node(nodeClosest, agentCopy.GripperPos, agentCopy.q);
-                        agent.Tree.AddNode(node);
+                        Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.q);
+                        Tree.AddNode(node);
                     }
                 }
 
                 // stop in case the main attractor has been hit
-                if (agentCopy.GripperPos.DistanceTo(goal) < _threshold)
+                if (manipulator.GripperPos.DistanceTo(goal) < _threshold)
                     break;
             }
 
             // retrieve resultant path along with respective configurations
-            return (iters - 1, agent.Tree.GetPath(agentCopy, agent.Tree.Closest(goal)));  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
+            return (iters - 1, Tree.GetPath(manipulator, Tree.Closest(goal)));  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
         }
     }
 }

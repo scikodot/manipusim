@@ -362,14 +362,11 @@ namespace Graphics
 
             ImGui.Separator();
 
-            var IB = WorkspaceBuffer.InverseKinematicsBuffer;
-            var PB = WorkspaceBuffer.PathPlanningBuffer;
-
             if (ImGui.BeginTabBar("ManipulatorTabs"))
             {
                 if (ImGui.BeginTabItem("Solver"))
                 {
-                    int currType = (int)manipulator.Controller.PlanSolver.Type;  // TODO: refactor?
+                    int currType = (int)manipulator.Controller.InverseKinematicsSolver.Type;  // TODO: refactor?
                     int newType = currType;
                     ImGui.Combo("Type", ref newType, InverseKinematicsSolver.Types, InverseKinematicsSolver.Types.Length);
 
@@ -379,13 +376,13 @@ namespace Graphics
                         switch ((InverseKinematicsSolverType)newType)
                         {
                             case InverseKinematicsSolverType.JacobianTranspose:
-                                manipulator.Controller.PlanSolver = new JacobianTranspose(IB.Precision, IB.StepSize, IB.MaxTime);
+                                manipulator.Controller.InverseKinematicsSolver = JacobianTranspose.Default();
                                 break;
                             case InverseKinematicsSolverType.JacobianInverse:
-                                manipulator.Controller.PlanSolver = new JacobianPseudoinverse(IB.Precision, IB.StepSize, IB.MaxTime);
+                                manipulator.Controller.InverseKinematicsSolver = JacobianPseudoinverse.Default();
                                 break;
                             case InverseKinematicsSolverType.DampedLeastSquares:
-                                manipulator.Controller.PlanSolver = new DampedLeastSquares(IB.Precision, IB.StepSize, IB.MaxTime);
+                                manipulator.Controller.InverseKinematicsSolver = DampedLeastSquares.Default();
                                 break;
                         }
                     }
@@ -393,19 +390,19 @@ namespace Graphics
                     ImGui.Separator();
 
                     // inverse kinematics solver properties
-                    ImGui.InputInt("Max time", ref manipulator.Controller.PlanSolver.MaxTime);
+                    ImGui.InputInt("Max iterations", ref manipulator.Controller.InverseKinematicsSolver.MaxIterations);
 
-                    if (manipulator.Controller.PlanSolver is JacobianTranspose jacobianTranspose)
+                    if (manipulator.Controller.InverseKinematicsSolver is JacobianTranspose jacobianTranspose)
                     {
-                        ImGui.InputFloat("Base damping coefficient", ref jacobianTranspose.Alpha);
+                        ImGui.InputFloat("Base damping coefficient", ref jacobianTranspose.Damping);
                     }
-                    else if (manipulator.Controller.PlanSolver is JacobianPseudoinverse jacobianInverse)
+                    else if (manipulator.Controller.InverseKinematicsSolver is JacobianPseudoinverse jacobianInverse)
                     {
                         // TODO: input something here?
                     }
-                    else if (manipulator.Controller.PlanSolver is DampedLeastSquares dampedLeastSquares)
+                    else if (manipulator.Controller.InverseKinematicsSolver is DampedLeastSquares dampedLeastSquares)
                     {
-                        ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Lambda);
+                        ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Damping);
                     }
 
                     ImGui.EndTabItem();
@@ -423,13 +420,13 @@ namespace Graphics
                         switch ((PathPlannerType)newType)
                         {
                             case PathPlannerType.RRT:
-                                manipulator.Controller.PathPlanner = new RRT(PB.k, false, PB.d);
+                                manipulator.Controller.PathPlanner = RRT.Default();
                                 break;
                             case PathPlannerType.ARRT:
-                                manipulator.Controller.PathPlanner = new ARRT(manipulator, PB.k, false, PB.d, 5000, PB.k / 10);
+                                manipulator.Controller.PathPlanner = ARRT.Default(manipulator);
                                 break;
                             case PathPlannerType.GeneticAlgorithm:
-                                manipulator.Controller.PathPlanner = new GeneticAlgorithm(PB.k, true, 10, 0.95f, 0.1f);
+                                manipulator.Controller.PathPlanner = GeneticAlgorithm.Default();
                                 break;
                         }
                     }
@@ -437,17 +434,18 @@ namespace Graphics
                     ImGui.Separator();
 
                     // path planner properties
-                    ImGui.InputInt("Max time", ref manipulator.Controller.PathPlanner.MaxTime);
+                    ImGui.Checkbox("Collision check", ref manipulator.Controller.PathPlanner.CollisionCheck);
+                    ImGui.InputInt("Max iterations", ref manipulator.Controller.PathPlanner.MaxIterations);
 
                     if (manipulator.Controller.PathPlanner is RRT rrt)
                     {
-                        ImGui.Text($"Tree size: {(manipulator.Tree == null ? 0 : manipulator.Tree.Count)} nodes");  // TODO: move to Statistics window
-                        ImGui.Checkbox($"Show tree", ref manipulator.ShowTree);  // TODO: all tree properties should be in path planner!
+                        ImGui.Text($"Tree size: {(rrt.Tree == null ? 0 : rrt.Tree.Count)} nodes");  // TODO: move to Statistics window
+                        ImGui.Checkbox($"Show tree", ref rrt.ShowTree);
                         ImGui.Checkbox("Discard outliers", ref rrt.DiscardOutliers);
                         ImGui.InputFloat("Step", ref rrt.Step);
                         ImGui.InputFloat("Threshold", ref rrt.Threshold);
 
-                        if (manipulator.Controller.PathPlanner is ARRT arrt)
+                        if (rrt is ARRT arrt)
                         {
                             ImGui.InputInt("Attractors count", ref arrt.AttractorsCount);
                             ImGui.InputInt("Trim period", ref arrt.TrimPeriod);
@@ -456,6 +454,7 @@ namespace Graphics
                     else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
                     {
                         // TODO: add genetic algorithm related properties
+
                     }
 
                     ImGui.EndTabItem();
