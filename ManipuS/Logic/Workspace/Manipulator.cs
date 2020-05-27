@@ -21,6 +21,12 @@ namespace Logic
         public bool ShowTree;
     }
 
+    public struct ForwardKinematicsResult
+    {
+        public Vector3[] JointPositions;
+        public Vector3[] JointAxes;
+    }
+
     public class Manipulator : IDisposable, ISelectable
     {
         // manipulator does not have its own model/collider, it just incorporates those from joints/links;
@@ -201,6 +207,28 @@ namespace Logic
                 // track the current state
                 quat *= quatRel;
             }
+        }
+
+        public ForwardKinematicsResult ForwardKinematics(VectorFloat coordinates)
+        {
+            var fkRes = new ForwardKinematicsResult
+            {
+                JointPositions = new Vector3[Joints.Length],
+                JointAxes = new Vector3[Joints.Length],
+            };
+
+            ImpDualQuat quat = ImpDualQuat.Zero;
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                // TODO: optimize
+                quat *= RelativeStates[i];
+                quat *= new ImpDualQuat(Vector3.UnitY, -coordinates[i]);
+
+                fkRes.JointPositions[i] = quat.Translation;
+                fkRes.JointAxes[i] = quat.Rotate(Vector3.UnitY);
+            }
+
+            return fkRes;
         }
 
         private void UpdateJoints()

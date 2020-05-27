@@ -8,7 +8,7 @@ namespace Logic.PathPlanning
     class ARRT : RRT
     {
         protected static int _attractorsCountDefault = 5000;
-        protected static int _trimPeriodDefailt = 1000;
+        protected static int _trimPeriodDefault = 1000;
 
         protected List<Attractor> _attractors;
 
@@ -33,7 +33,7 @@ namespace Logic.PathPlanning
         public static ARRT Default(Manipulator manipulator)
         {
             return new ARRT(manipulator, _maxIterationsDefault, _collisionCheckDefault, _stepDefault, _thresholdDefault, 
-                _showTreeDefault, _discardOutliersDefault, _attractorsCountDefault, _trimPeriodDefailt);
+                _showTreeDefault, _discardOutliersDefault, _attractorsCountDefault, _trimPeriodDefault);
         }
 
         protected override (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
@@ -79,9 +79,11 @@ namespace Logic.PathPlanning
                 {
                     // solve inverse kinematics for the new node
                     manipulator.q = nodeClosest.q;
-                    (var converged, _, var distance, var offset) = solver.Execute(manipulator, point, manipulator.Joints.Length - 1);
-                    if (converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))
+                    var ikRes = solver.Execute(manipulator, point);
+                    if (ikRes.Converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))  // TODO: is convergence check really needed?
                     {
+                        manipulator.q = ikRes.Configuration;
+
                         // add node to the tree
                         Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.q);
                         Tree.AddNode(node);

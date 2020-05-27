@@ -16,10 +16,10 @@ public static class Benchmark
     // inverse kinematics planners
     private static List<InverseKinematicsSolver> _solvers = new List<InverseKinematicsSolver>
     {
-        JacobianTranspose.Default(),
-        JacobianPseudoinverse.Default(),
-        DampedLeastSquares.Default(),
-        HillClimbing.Default()
+        //JacobianTranspose.Default(),
+        //JacobianPseudoinverse.Default(),
+        //DampedLeastSquares.Default(),
+        //HillClimbing.Default()
     };
 
     private static List<PathPlanner> _planners = new List<PathPlanner>
@@ -53,8 +53,8 @@ public static class Benchmark
                     _timer.Stop();
 
                     // discard first few results because Stopwatch has a warmup phase which produces excessively high numbers
-                    if (i > 1)
-                        stream.WriteLine($"{res.Item2},{_timer.ElapsedTicks / 10},{res.Item3}");
+                    //if (i > 1)
+                    //    stream.WriteLine($"{res.Item2},{_timer.ElapsedTicks / 10},{res.Item3}");
                 }
             }
         }

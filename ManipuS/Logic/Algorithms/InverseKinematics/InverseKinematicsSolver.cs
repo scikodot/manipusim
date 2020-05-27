@@ -5,10 +5,10 @@ namespace Logic.InverseKinematics
 {
     using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
 
-    public enum InverseKinematicsSolverType
+    public enum InverseKinematicsSolverType  // TODO: for scalability enum should be replaced with dictionary (?) to enable adding custom derived classes
     {
         JacobianTranspose,
-        JacobianInverse,
+        JacobianPseudoinverse,
         DampedLeastSquares
     }
 
@@ -18,6 +18,14 @@ namespace Logic.InverseKinematics
         public float StepSize;
         public float Precision;
         public int MaxTime;
+    }
+
+    public struct InverseKinematicsResult
+    {
+        public bool Converged;
+        public int Iterations;
+        public VectorFloat Configuration;
+        public VectorFloat Error;
     }
 
     public abstract class InverseKinematicsSolver
@@ -35,26 +43,26 @@ namespace Logic.InverseKinematics
         protected int _maxIterations;
         public ref int MaxIterations => ref _maxIterations;
 
-        protected InverseKinematicsSolver(float precision, int maxTime)
+        protected InverseKinematicsSolver(float precision, int maxIterations)
         {
             _threshold = precision;
-            _maxIterations = maxTime;
+            _maxIterations = maxIterations;
 
             Type = (InverseKinematicsSolverType)Enum.Parse(typeof(InverseKinematicsSolverType), GetType().Name);
         }
 
-        protected VectorFloat GetError(Manipulator manipulator, Vector3 goal, int joint)
+        protected bool ErrorExceedsThreshold(Manipulator manipulator, VectorFloat configuration, Vector3 goal, int joint, float threshold, 
+            out ForwardKinematicsResult fkRes, out VectorFloat error)
         {
-            Vector3 error = goal - manipulator.Joints[joint].Position;
-            return VectorFloat.Build.Dense(new float[]
-            {
-                error.X,
-                error.Y,
-                error.Z,
-                0, 0, 0  // TODO: integrate orientation goal somehow?
-            });
+            fkRes = manipulator.ForwardKinematics(configuration);
+            var errorPos = goal - fkRes.JointPositions[joint];
+
+            // TODO: integrate orientation goal somehow?
+            error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
+
+            return errorPos.Length() > threshold;
         }
 
-        public abstract (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1);
+        public abstract InverseKinematicsResult Execute(Manipulator agent, Vector3 goal, int joint = -1);
     }
 }

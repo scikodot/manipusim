@@ -12,7 +12,7 @@ namespace Logic.InverseKinematics
         protected float _stepSize;
         public ref float StepSize => ref _stepSize;
 
-        public HillClimbing(float threshold, int maxIterations, float stepSize) : base(threshold, maxIterations) 
+        public HillClimbing(float threshold, int maxIterations, float stepSize) : base(threshold, maxIterations)
         {
             _stepSize = stepSize;
         }
@@ -22,7 +22,7 @@ namespace Logic.InverseKinematics
             return new HillClimbing(_thresholdDefault, 10 * _maxIterationsDefault, _stepSizeDefault);
         }
 
-        public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
+        public override InverseKinematicsResult Execute(Manipulator agent, Vector3 goal, int joint = -1)  // TODO: refactor
         {
             // use gripper if default joint
             if (joint == -1)
@@ -73,7 +73,7 @@ namespace Logic.InverseKinematics
                 }
             }
 
-            return (converged, iters - 1, minDist, qBest);
+            return default;  //(converged, iters - 1, minDist, qBest);
         }
     }
 }

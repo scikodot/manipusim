@@ -378,7 +378,7 @@ namespace Graphics
                             case InverseKinematicsSolverType.JacobianTranspose:
                                 manipulator.Controller.InverseKinematicsSolver = JacobianTranspose.Default();
                                 break;
-                            case InverseKinematicsSolverType.JacobianInverse:
+                            case InverseKinematicsSolverType.JacobianPseudoinverse:
                                 manipulator.Controller.InverseKinematicsSolver = JacobianPseudoinverse.Default();
                                 break;
                             case InverseKinematicsSolverType.DampedLeastSquares:

@@ -28,7 +28,7 @@ namespace Logic.PathPlanning
 
         public Tree Tree { get; protected set; }
 
-        public RRT(int maxIterations, bool collisionCheck, float step, float threshold, bool showTree, bool discardOutliers) : 
+        public RRT(int maxIterations, bool collisionCheck, float step, float threshold, bool showTree, bool discardOutliers) :
             base(maxIterations, collisionCheck)
         {
             _step = step;
@@ -39,7 +39,7 @@ namespace Logic.PathPlanning
 
         public static RRT Default()
         {
-            return new RRT(_maxIterationsDefault, _collisionCheckDefault, _stepDefault, _thresholdDefault, 
+            return new RRT(_maxIterationsDefault, _collisionCheckDefault, _stepDefault, _thresholdDefault,
                 _showTreeDefault, _discardOutliersDefault);
         }
 
@@ -64,9 +64,11 @@ namespace Logic.PathPlanning
                 {
                     // solve inverse kinematics for the new node to obtain the agent configuration
                     manipulator.q = nodeClosest.q;
-                    (var converged, _, var distance, var offset) = solver.Execute(manipulator, point, manipulator.Joints.Length - 1);
-                    if (converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))
+                    var ikRes = solver.Execute(manipulator, point);
+                    if (ikRes.Converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))
                     {
+                        manipulator.q = ikRes.Configuration;
+
                         // add new node to the tree
                         Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.q);
                         Tree.AddNode(node);

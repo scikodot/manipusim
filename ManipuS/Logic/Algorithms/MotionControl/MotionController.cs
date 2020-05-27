@@ -127,41 +127,41 @@ namespace Logic
             }
         }
 
-        private void Deform(Manipulator manipulator, Obstacle obstacle, Path.Node current, int joint)
-        {
-            Vector3 dx = obstacle.Extrude(current.Points[joint]);
+        //private void Deform(Manipulator manipulator, Obstacle obstacle, Path.Node current, int joint)
+        //{
+        //    Vector3 dx = obstacle.Extrude(current.Points[joint]);
 
-            Vector3 pNew = current.Points[joint] + dx;
-            manipulator.q = current.q;
-            VectorFloat cNew = manipulator.q + InverseKinematicsSolver.Execute(manipulator, pNew, joint).Item3;
-            manipulator.q = cNew;
-            Vector3[] dkpNew = manipulator.DKP;
+        //    Vector3 pNew = current.Points[joint] + dx;
+        //    manipulator.q = current.q;
+        //    VectorFloat cNew = manipulator.q + InverseKinematicsSolver.Execute(manipulator, pNew, joint).Item3;
+        //    manipulator.q = cNew;
+        //    Vector3[] dkpNew = manipulator.DKP;
 
-            Manipulator.Path.ChangeNode(current, dkpNew, cNew);
-        }
+        //    Manipulator.Path.ChangeNode(current, dkpNew, cNew);
+        //}
 
-        private void Discretize(Manipulator manipulator, Path.Node gripperPos)
-        {
-            Path.Node prev = gripperPos;
-            Path.Node curr = gripperPos.Child;
-            while (curr != null)
-            {
-                Vector3 prevPos = prev.Points[prev.Points.Length - 1];
-                Vector3 currPos = curr.Points[curr.Points.Length - 1];
-                if (currPos.DistanceTo(prevPos) > _deformThreshold)
-                {
-                    Vector3 pPrev = (currPos + prevPos) / 2;
-                    manipulator.q = curr.q;
-                    VectorFloat cPrev = manipulator.q + InverseKinematicsSolver.Execute(manipulator, pPrev, Manipulator.Joints.Length - 1).Item3;
-                    manipulator.q = cPrev;
-                    Vector3[] dkpPrev = manipulator.DKP;
+        //private void Discretize(Manipulator manipulator, Path.Node gripperPos)
+        //{
+        //    Path.Node prev = gripperPos;
+        //    Path.Node curr = gripperPos.Child;
+        //    while (curr != null)
+        //    {
+        //        Vector3 prevPos = prev.Points[prev.Points.Length - 1];
+        //        Vector3 currPos = curr.Points[curr.Points.Length - 1];
+        //        if (currPos.DistanceTo(prevPos) > _deformThreshold)
+        //        {
+        //            Vector3 pPrev = (currPos + prevPos) / 2;
+        //            manipulator.q = curr.q;
+        //            VectorFloat cPrev = manipulator.q + InverseKinematicsSolver.Execute(manipulator, pPrev, Manipulator.Joints.Length - 1).Item3;
+        //            manipulator.q = cPrev;
+        //            Vector3[] dkpPrev = manipulator.DKP;
 
-                    Manipulator.Path.AddNode(new Path.Node(prev, dkpPrev, cPrev));
-                }
+        //            Manipulator.Path.AddNode(new Path.Node(prev, dkpPrev, cPrev));
+        //        }
 
-                curr = curr.Child;
-                prev = prev.Child;
-            }
-        }
+        //        curr = curr.Child;
+        //        prev = prev.Child;
+        //    }
+        //}
     }
 }

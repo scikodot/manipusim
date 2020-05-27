@@ -208,7 +208,7 @@ public static class VectorMathNetExtensions
         this MathNet.Numerics.LinearAlgebra.Vector<float> vec, 
         MathNet.Numerics.LinearAlgebra.Vector<float> sub)
     {
-        for (int i = 0; i < sub.Count; i++)
+        for (int i = 0; i < sub.Count; i++)  // TODO: test performance
         {
             vec.At(i, vec.At(i) + sub.At(i));
         }

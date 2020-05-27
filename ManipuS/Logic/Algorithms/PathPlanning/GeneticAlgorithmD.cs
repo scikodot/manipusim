@@ -100,6 +100,7 @@ namespace Logic.PathPlanning
         public ref CrossoverMode CrossoverMode => ref _crossoverMode;
 
         private Manipulator _agent;
+        private VectorFloat _initialConfiguration;
         private InverseKinematicsSolver _solver;
         private Vector3 _goal;
 
@@ -137,8 +138,9 @@ namespace Logic.PathPlanning
         protected override (int, Path) RunAbstract(Manipulator agent, Vector3 goal, InverseKinematicsSolver solver)
         {
             _agent = agent;
-            _goal = goal;
+            _initialConfiguration = agent.q;
             _solver = solver;
+            _goal = goal;
 
             int generationsCount = 0;
             var generation = new List<Chromosome>();
@@ -204,10 +206,10 @@ namespace Logic.PathPlanning
             return new BezierCurve(points);
         }
 
-        private Path ConstructPath(BezierCurve bezierCurve, float step)
+        private Path ConstructPath(BezierCurve bezierCurve, float step)  // TODO: refactor!
         {
             // reset agent
-            _agent.q = _agent.q;
+            _agent.q = _initialConfiguration;
 
             float counter = 0;
 
@@ -215,7 +217,10 @@ namespace Logic.PathPlanning
             var configs = new List<VectorFloat> { _agent.q };
             while (counter <= 1)
             {
-                _solver.Execute(_agent, bezierCurve.CalculatePoint(counter));
+                var ikRes = _solver.Execute(_agent, bezierCurve.CalculatePoint(counter));
+
+                _agent.q = ikRes.Configuration;
+
                 points.Add(_agent.DKP);
                 configs.Add(_agent.q);
 

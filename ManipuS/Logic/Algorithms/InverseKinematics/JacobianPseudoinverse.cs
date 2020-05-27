@@ -1,10 +1,10 @@
-﻿using System.Numerics;
+﻿using MathNet.Numerics.LinearAlgebra;
 
 namespace Logic.InverseKinematics
 {
     using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
 
-    public class JacobianPseudoinverse : InverseKinematicsSolver
+    public class JacobianPseudoinverse : JacobianSolver
     {
         public JacobianPseudoinverse(float threshold, int maxIterations) : base(threshold, maxIterations) { }
 
@@ -13,36 +13,46 @@ namespace Logic.InverseKinematics
             return new JacobianPseudoinverse(_thresholdDefault, _maxIterationsDefault);
         }
 
-        public override (bool, int, float, VectorFloat) Execute(Manipulator agent, Vector3 goal, int joint = -1)
+        protected override VectorFloat GetCoordinateOffset(Matrix<float> jacobian, VectorFloat error)
         {
-            // use gripper if default joint
-            if (joint == -1)
-                joint = agent.Joints.Length - 1;
+            // get Jacobian pseudoinverse
+            var JP = jacobian.PseudoInverse();
 
-            VectorFloat initConfig = agent.q, dq;
-            int iters = 0;
-            while (iters++ < _maxIterations)
-            {
-                // get positional/orientational error
-                var error = GetError(agent, goal, joint);  // TODO: check for oscillations (the error starts increasing) and break if they appear
-
-                // get Jacobian and its Moore-Penrose inverse, aka pseudoinverse
-                var J = Jacobian.Create(agent, joint);
-                var JP = J.PseudoInverse();
-
-                // calculate the displacement
-                dq = -JP * error;  // TODO: check why minus should always be presented for dq in these methods!
-
-                // update manipulator's configuration
-                agent.q = agent.q.AddSubVector(dq);
-
-                if (agent.GripperPos.DistanceTo(goal) < _threshold)
-                    break;
-            }
-
-            var dist = agent.Joints[joint].Position.DistanceTo(goal);
-
-            return (true, iters - 1, dist, agent.q - initConfig);
+            // calculate the displacement
+            return -JP * error;  // TODO: check why minus should always be presented for dq in these methods!
         }
+
+        //public override InverseKinematicsResult Execute(Manipulator agent, Vector3 goal, int joint = -1)
+        //{
+        //    // use gripper if default joint
+        //    if (joint == -1)
+        //        joint = agent.Joints.Length - 1;
+
+        //    VectorFloat configuration = agent.q, dq;
+        //    VectorFloat error;
+
+        //    // TODO: check for oscillations (the error starts increasing) and break if they appear
+        //    int iterations = 0;
+        //    while (ErrorExceedsThreshold(agent, configuration, goal, joint, _threshold, out error) && iterations++ < _maxIterations)
+        //    {
+        //        // get Jacobian and its Moore-Penrose inverse, aka pseudoinverse
+        //        var J = MathNet.Numerics.LinearAlgebra.Matrix<float>.Build.Dense(1, 1);  //JacobianSolver.CreateJacobian(agent, joint);
+        //        var JP = J.PseudoInverse();
+
+        //        // calculate the displacement
+        //        dq = -JP * error;  // TODO: check why minus should always be presented for dq in these methods!
+
+        //        // update manipulator's configuration
+        //        configuration = configuration.AddSubVector(dq);
+        //    }
+
+        //    return new InverseKinematicsResult
+        //    {
+        //        Converged = true/*iterations > _maxIterations*/,
+        //        Iterations = iterations - 1,
+        //        Configuration = configuration,
+        //        Error = error
+        //    };
+        //}
     }
 }
