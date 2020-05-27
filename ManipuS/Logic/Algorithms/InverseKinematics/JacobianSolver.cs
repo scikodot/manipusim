@@ -8,7 +8,7 @@ namespace Logic.InverseKinematics
 
     public abstract class JacobianSolver : InverseKinematicsSolver
     {
-        protected JacobianSolver(float precision, int maxIterations) : base(precision, maxIterations) { }
+        protected JacobianSolver(float threshold, int maxIterations) : base(threshold, maxIterations) { }
 
         protected Matrix<float> CreateJacobian(ForwardKinematicsResult fkRes, int joint = -1)
         {
@@ -39,18 +39,18 @@ namespace Logic.InverseKinematics
             return Matrix<float>.Build.DenseOfColumnArrays(data);
         }
 
-        public override InverseKinematicsResult Execute(Manipulator agent, Vector3 goal, int joint = -1)
+        public override InverseKinematicsResult Execute(Manipulator manipulator, Vector3 goal, int joint = -1)
         {
             // use gripper if default joint
             if (joint == -1)
-                joint = agent.Joints.Length - 1;
+                joint = manipulator.Joints.Length - 1;
 
-            VectorFloat configuration = agent.q, dq;
+            VectorFloat configuration = manipulator.q, dq;
             VectorFloat error;
 
             // TODO: check for oscillations (the error starts increasing) and break if they appear
             int iterations = 0;
-            while (ErrorExceedsThreshold(agent, configuration, goal, joint, _threshold, 
+            while (ErrorExceedsThreshold(manipulator, configuration, goal, joint, 
                 out ForwardKinematicsResult fkRes, out error) && iterations++ < _maxIterations)
             {
                 // get generalized coordinates' offset
@@ -62,7 +62,7 @@ namespace Logic.InverseKinematics
 
             return new InverseKinematicsResult
             {
-                Converged = true/*iterations > _maxIterations*/,
+                Converged = iterations <= _maxIterations,
                 Iterations = iterations - 1,
                 Configuration = configuration,
                 Error = error

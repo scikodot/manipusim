@@ -384,12 +384,16 @@ namespace Graphics
                             case InverseKinematicsSolverType.DampedLeastSquares:
                                 manipulator.Controller.InverseKinematicsSolver = DampedLeastSquares.Default();
                                 break;
+                            case InverseKinematicsSolverType.HillClimbing:
+                                manipulator.Controller.InverseKinematicsSolver = HillClimbing.Default();
+                                break;
                         }
                     }
 
                     ImGui.Separator();
 
                     // inverse kinematics solver properties
+                    ImGui.InputFloat("Threshold", ref manipulator.Controller.InverseKinematicsSolver.Threshold);
                     ImGui.InputInt("Max iterations", ref manipulator.Controller.InverseKinematicsSolver.MaxIterations);
 
                     if (manipulator.Controller.InverseKinematicsSolver is JacobianTranspose jacobianTranspose)
@@ -403,6 +407,10 @@ namespace Graphics
                     else if (manipulator.Controller.InverseKinematicsSolver is DampedLeastSquares dampedLeastSquares)
                     {
                         ImGui.InputFloat("Damping coefficient", ref dampedLeastSquares.Damping);
+                    }
+                    else if (manipulator.Controller.InverseKinematicsSolver is HillClimbing hillClimbing)
+                    {
+                        ImGui.InputFloat("Step size", ref hillClimbing.StepSize);
                     }
 
                     ImGui.EndTabItem();
@@ -454,7 +462,10 @@ namespace Graphics
                     else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
                     {
                         // TODO: add genetic algorithm related properties
-
+                        ImGui.InputInt("Offspring size", ref geneticAlgorithm.OffspringSize);
+                        ImGui.InputInt("Survival size", ref geneticAlgorithm.SurvivalSize);
+                        ImGui.InputInt("Bezier control points", ref geneticAlgorithm.BezierControlPointsCount);
+                        ImGui.InputFloat("Bezier step", ref geneticAlgorithm.BezierStep);
                     }
 
                     ImGui.EndTabItem();

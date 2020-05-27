@@ -553,7 +553,7 @@ namespace Graphics
                             _treeModels[i].Update(rrt.Tree);
                         }
 
-                        if (GeneticAlgorithm.Dominant.Item2 != null && GeneticAlgorithm.Changed)
+                        if (GeneticAlgorithm.Dominant != null && GeneticAlgorithm.Dominant.Path != null && GeneticAlgorithm.Changed)
                         {
                             _gaModels[i].Reset();
 
@@ -565,7 +565,7 @@ namespace Graphics
                             //_gaModels[i].AddNodes(toAdd);
                             //_gaModels[i].RemoveNodes(toRemove);
 
-                            _bezierPoints = new Model(GeneticAlgorithm.Dominant.Item1.Points.Select(point => new MeshVertex
+                            _bezierPoints = new Model(GeneticAlgorithm.Dominant.BezierCurve.Points.Select(point => new MeshVertex
                             {
                                 Position = point.ToOpenTK()
                             }).ToArray(), material: MeshMaterial.Red);

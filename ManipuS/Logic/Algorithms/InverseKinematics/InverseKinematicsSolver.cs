@@ -9,7 +9,8 @@ namespace Logic.InverseKinematics
     {
         JacobianTranspose,
         JacobianPseudoinverse,
-        DampedLeastSquares
+        DampedLeastSquares,
+        HillClimbing
     }
 
     public struct InverseKinematicsData  // TODO: perhaps "params" is better than "data"?
@@ -38,20 +39,20 @@ namespace Logic.InverseKinematics
         public InverseKinematicsSolverType Type { get; private set; }
 
         protected float _threshold;
-        public ref float Precision => ref _threshold;
+        public ref float Threshold => ref _threshold;
 
         protected int _maxIterations;
         public ref int MaxIterations => ref _maxIterations;
 
-        protected InverseKinematicsSolver(float precision, int maxIterations)
+        protected InverseKinematicsSolver(float threshold, int maxIterations)
         {
-            _threshold = precision;
+            _threshold = threshold;
             _maxIterations = maxIterations;
 
             Type = (InverseKinematicsSolverType)Enum.Parse(typeof(InverseKinematicsSolverType), GetType().Name);
         }
 
-        protected bool ErrorExceedsThreshold(Manipulator manipulator, VectorFloat configuration, Vector3 goal, int joint, float threshold, 
+        protected bool ErrorExceedsThreshold(Manipulator manipulator, VectorFloat configuration, Vector3 goal, int joint, 
             out ForwardKinematicsResult fkRes, out VectorFloat error)
         {
             fkRes = manipulator.ForwardKinematics(configuration);
@@ -60,9 +61,9 @@ namespace Logic.InverseKinematics
             // TODO: integrate orientation goal somehow?
             error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
 
-            return errorPos.Length() > threshold;
+            return errorPos.Length() > _threshold;
         }
 
-        public abstract InverseKinematicsResult Execute(Manipulator agent, Vector3 goal, int joint = -1);
+        public abstract InverseKinematicsResult Execute(Manipulator manipulator, Vector3 goal, int joint = -1);
     }
 }

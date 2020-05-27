@@ -20,6 +20,12 @@ namespace Logic.PathPlanning
         public float d;
     }
 
+    public struct PathPlanningResult
+    {
+        public int Iterations;
+        public Path Path;
+    }
+
     public abstract class PathPlanner
     {
         protected static int _maxIterationsDefault = 10000;
@@ -35,15 +41,15 @@ namespace Logic.PathPlanning
         protected bool _collisionCheck;
         public ref bool CollisionCheck => ref _collisionCheck;
 
-        protected PathPlanner(int maxTime, bool collisionCheck)
+        protected PathPlanner(int maxIterations, bool collisionCheck)
         {
-            _maxIterations = maxTime;
+            _maxIterations = maxIterations;
             _collisionCheck = collisionCheck;
 
             Type = (PathPlannerType)Enum.Parse(typeof(PathPlannerType), GetType().Name);
         }
 
-        public (int, Path) Run(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
+        public PathPlanningResult Run(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
         {
             using (var manipulatorCopy = manipulator.DeepCopy())
             {
@@ -51,6 +57,6 @@ namespace Logic.PathPlanning
             }
         }
 
-        protected abstract (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver);
+        protected abstract PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver);
     }
 }

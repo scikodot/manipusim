@@ -104,6 +104,25 @@ namespace Logic
         }
 
         /// <summary>
+        /// Calculates all points with the specified step.
+        /// </summary>
+        /// <param name="step">A step size by the curve's parameter t.</param>
+        /// <returns>A list of points on the curve.</returns>
+        public List<Vector3> CalculatePoints(float step)
+        {
+            var points = new List<Vector3>();
+
+            float counter = 0;
+            while (counter <= 1)
+            {
+                points.Add(CalculatePoint(counter));
+                counter += step;
+            }
+
+            return points;
+        }
+
+        /// <summary>
         /// Calculates the length of this bezier curve.
         /// </summary>
         /// <param name="precision">The precision.</param>

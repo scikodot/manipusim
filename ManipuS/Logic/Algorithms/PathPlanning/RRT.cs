@@ -43,13 +43,13 @@ namespace Logic.PathPlanning
                 _showTreeDefault, _discardOutliersDefault);
         }
 
-        protected override (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
+        protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
         {
             // create new tree
             Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q));
 
-            int iters = 0;
-            while (iters++ < _maxIterations)
+            int iterations = 0;
+            while (iterations++ < _maxIterations)
             {
                 // generate sample
                 Vector3 sample = RandomThreadStatic.NextPointSphere(manipulator.WorkspaceRadius) + manipulator.Base;
@@ -81,7 +81,11 @@ namespace Logic.PathPlanning
             }
 
             // retrieve resultant path along with respective configurations
-            return (iters - 1, Tree.GetPath(manipulator, Tree.Closest(goal)));  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
+            return new PathPlanningResult
+            {
+                Iterations = iterations - 1,
+                Path = Tree.GetPath(manipulator, Tree.Closest(goal))  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
+            };
         }
     }
 }

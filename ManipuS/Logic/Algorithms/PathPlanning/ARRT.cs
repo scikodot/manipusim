@@ -36,7 +36,7 @@ namespace Logic.PathPlanning
                 _showTreeDefault, _discardOutliersDefault, _attractorsCountDefault, _trimPeriodDefault);
         }
 
-        protected override (int, Path) RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
+        protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
         {
             // recalculate attractors' weights
             Attractor.RecalculateWeights(_attractors, manipulator, _threshold);
@@ -55,7 +55,7 @@ namespace Logic.PathPlanning
             float sigma = (attractorLast.Weight - attractorFirst.Weight) / 3.0f;
 
             int iters = 0;
-            while (iters++ < _maxIterations)  // TODO: rename to TimeLimit?
+            while (iters++ < _maxIterations)
             {
                 //if (i % _trimPeriod == 0 && i != 0)
                 //    agent.Tree.Trim(obstacles, agentCopy, solver);
@@ -102,7 +102,11 @@ namespace Logic.PathPlanning
             }
 
             // retrieve resultant path along with respective configurations
-            return (iters - 1, Tree.GetPath(manipulator, Tree.Closest(goal)));  // TODO: refactor!
+            return new PathPlanningResult
+            {
+                Iterations = iters - 1,
+                Path = Tree.GetPath(manipulator, Tree.Closest(goal))  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
+            };
         }
     }
 }

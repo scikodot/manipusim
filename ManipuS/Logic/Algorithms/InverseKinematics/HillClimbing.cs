@@ -1,5 +1,6 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
+
+using BulletSharp;
 
 namespace Logic.InverseKinematics
 {
@@ -22,58 +23,60 @@ namespace Logic.InverseKinematics
             return new HillClimbing(_thresholdDefault, 10 * _maxIterationsDefault, _stepSizeDefault);
         }
 
-        public override InverseKinematicsResult Execute(Manipulator agent, Vector3 goal, int joint = -1)  // TODO: refactor
+        public override InverseKinematicsResult Execute(Manipulator manipulator, Vector3 goal, int joint = -1)  // TODO: refactor
         {
             // use gripper if default joint
             if (joint == -1)
-                joint = agent.Joints.Length - 1;
+                joint = manipulator.Joints.Length - 1;
 
-            // initial parameters
-            VectorFloat qBest = agent.q;
-            float dist = agent.Joints[joint].Position.DistanceTo(goal), init_dist = dist, k = 1;
-            float minDist = float.PositiveInfinity;
-            bool converged = false;
+            VectorFloat configuration = manipulator.q, dq = VectorFloat.Build.Dense(manipulator.Joints.Length);
+            var errorPos = goal - manipulator.Joints[joint].Position;
+            var error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
+            float distance = errorPos.Length();
+            float scale = 1;
 
-            VectorFloat dq = VectorFloat.Build.Dense(agent.Joints.Length);
-            float range, stepNeg, stepPos;
-            int iters = 0;
-            while (iters++ < MaxIterations)
+            int iterations = 0;
+            while (distance > _threshold && iterations++ < _maxIterations)
             {
+                float range, stepNeg, stepPos;
                 for (int i = 0; i < joint; i++)
                 {
-                    // checking GC constraints
-                    range = agent.Joints[i].CoordinateRange.X - agent.q[i] * 180 / (float)Math.PI;
+                    // checking coordinate constraints
+                    range = manipulator.Joints[i].CoordinateRange.X - configuration[i] * MathUtil.SIMD_DEGS_PER_RAD;
                     stepNeg = range <= -_stepSize ? -_stepSize : range;
 
-                    range = agent.Joints[i].CoordinateRange.Y - agent.q[i] * 180 / (float)Math.PI;
+                    range = manipulator.Joints[i].CoordinateRange.Y - configuration[i] * MathUtil.SIMD_DEGS_PER_RAD;
                     stepPos = range >= _stepSize ? _stepSize : range;
 
-                    // generating random GCs' offset
-                    dq[i] = (float)((stepNeg + RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * Math.PI / 180);
-                    dq[i] *= k;
+                    // generating random coordinate offset
+                    dq[i] = (float)((stepNeg + RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * MathUtil.SIMD_RADS_PER_DEG);
+                    dq[i] *= scale;
                 }
 
-                // retrieving score of the new configuration
-                agent.q = qBest + dq;
-                float distNew = agent.Joints[joint].Position.DistanceTo(goal);
+                // get the new configuration
+                var configurationNew = configuration.AddSubVector(dq);
+                var fkRes = manipulator.ForwardKinematics(configurationNew);
 
-                if (distNew < dist)
+                float distanceNew = fkRes.JointPositions[joint].DistanceTo(goal);
+                if (distanceNew < distance)
                 {
-                    // updating agent's configuration if it's better than the previos one
-                    qBest = agent.q;
-                    minDist = dist = distNew;
-                    k = dist / init_dist;
-                }
+                    // update configuration, distance and scale
+                    configuration = configurationNew;
+                    errorPos = goal - fkRes.JointPositions[joint];
+                    error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
 
-                if (dist < _threshold)
-                {
-                    // the algorithm has converged
-                    converged = true;
-                    break;
+                    distance = distanceNew;
+                    scale *= distanceNew / distance;
                 }
             }
 
-            return default;  //(converged, iters - 1, minDist, qBest);
+            return new InverseKinematicsResult
+            {
+                Converged = iterations <= _maxIterations,
+                Iterations = iterations - 1,
+                Configuration = configuration,
+                Error = error
+            };
         }
     }
 }

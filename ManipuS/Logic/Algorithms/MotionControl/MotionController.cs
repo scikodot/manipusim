@@ -89,8 +89,8 @@ namespace Logic
         private void ExecuteMotion(Vector3 goal)
         {
             // execute path planning
-            (_, var path) = PathPlanner.Run(Manipulator, goal, InverseKinematicsSolver);
-            Manipulator.Path = path;
+            var ppRes = PathPlanner.Run(Manipulator, goal, InverseKinematicsSolver);
+            Manipulator.Path = ppRes.Path;
 
             // start motion control if a path has been found
             if (Manipulator.Path != null)

@@ -81,12 +81,13 @@ public static class Benchmark
                 for (int i = 0; i < _samplesPP + 2; i++)
                 {
                     _timer.Restart();
-                    (var iterations, var path) = planner.Run(agent, agent.Goal, DampedLeastSquares.Default());
+                    var ppRes = planner.Run(agent, agent.Goal, DampedLeastSquares.Default());
                     _timer.Stop();
 
                     // discard first few results because Stopwatch has a warmup phase which produces excessively high numbers
                     if (i > 1)
-                        stream.WriteLine($"{iterations},{_timer.ElapsedTicks / 10},{path.Count},{path.Last.Points[path.Last.Points.Length - 1].DistanceTo(agent.Goal)}");
+                        stream.WriteLine($"{ppRes.Iterations},{_timer.ElapsedTicks / 10},{ppRes.Path.Count}," +
+                            $"{ppRes.Path.Last.Points[ppRes.Path.Last.Points.Length - 1].DistanceTo(agent.Goal)}");
                 }
             }
         }
