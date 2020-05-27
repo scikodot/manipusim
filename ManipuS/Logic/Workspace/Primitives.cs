@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Logic
 {
-    public static class Primitives  // TODO: perhaps unify?
+    public static class Primitives  // TODO: refactor!!!
     {
         public static Model Grid(int lines, float stride, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
@@ -253,6 +253,9 @@ namespace Logic
 
         public static Mesh Cone(float radius, float height, int circleCount, MeshMaterial material, Vector3 origin = default/*, OpenTK.Matrix4 state = default*/, RenderFlags renderFlags = RenderFlags.Solid)
         {
+            // cone center should be in the middle
+            origin -= 0.5f * height * Vector3.UnitY;
+
             float radiusInv = 1.0f / radius;
             float angleStep = 2 * (float)Math.PI / circleCount;
 

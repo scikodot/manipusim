@@ -10,6 +10,14 @@ using Physics;
 
 namespace Logic
 {
+    public enum ObstacleShape  // TODO: for scalability enum should be replaced with dictionary (?) to enable adding custom derived classes
+    {
+        Box,
+        Sphere,
+        Cylinder,
+        Cone
+    }
+
     public static class ObstacleHandler
     {
         private static class Ground
@@ -47,12 +55,15 @@ namespace Logic
             }
         }
 
-        public static string[] ObstacleShapes = new string[]
+        private static MeshMaterial _defaultMaterial = new MeshMaterial
         {
-            "Box",
-            "Sphere",
-            "Cylinder"
+            Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            Shininess = 8
         };
+
+        public static string[] Shapes { get; } = Enum.GetNames(typeof(ObstacleShape));
 
         public static List<Obstacle> Obstacles { get; } = new List<Obstacle>();
 
@@ -67,6 +78,35 @@ namespace Logic
             {
                 if (obst != null)
                     Obstacles.Add(obst);
+            }
+        }
+
+        public static void AddDefault(ObstacleShape shape)
+        {
+            switch (shape)
+            {
+                case ObstacleShape.Box:
+                    Add(new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, _defaultMaterial),
+                        PhysicsHandler.CreateKinematicCollider(new BoxShape(0.5f, 0.5f, 0.5f))));
+                    break;
+                case ObstacleShape.Sphere:
+                    Add(new Obstacle(Primitives.Sphere(0.5f, 50, 50, _defaultMaterial),
+                        PhysicsHandler.CreateKinematicCollider(new SphereShape(0.5f))));
+                    break;
+                case ObstacleShape.Cylinder:
+                    Add(new Obstacle(new Model(new Mesh[]
+                    {
+                        Primitives.Cylinder(0.25f, 1f, 1f, 50, _defaultMaterial)
+                    }), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1f, 0.25f))));
+                    break;
+                case ObstacleShape.Cone:
+                    Add(new Obstacle(new Model(new Mesh[]
+                    {
+                        Primitives.Cone(0.5f, 2, 50, _defaultMaterial)
+                    }), PhysicsHandler.CreateKinematicCollider(new ConeShape(0.5f, 2))));  // TODO: cone's rigid body center is not the circle center, but the center of mass; fix
+                    break;
+                default:
+                    throw new ArgumentException("The given obstacle shape is not implemented yet.", "shape");
             }
         }
 

@@ -52,14 +52,11 @@ namespace Logic
             get => Collider.Body.WorldTransform;
             set
             {
-                lock (Collider.Body)  // TODO: refactor!
-                {
-                    // explicitly set position of the body
-                    Collider.Body.WorldTransform = value;
+                // explicitly set position of the body
+                Collider.Body.WorldTransform = value;
 
-                    // set its motion state to update position (for kinematic objects only)
-                    Collider.Body.MotionState.SetWorldTransform(ref value);
-                }
+                // set its motion state to update position (for kinematic objects only)
+                Collider.Body.MotionState.SetWorldTransform(ref value);
             }
         }
 

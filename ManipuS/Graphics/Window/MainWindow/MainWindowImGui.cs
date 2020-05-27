@@ -26,7 +26,7 @@ namespace Graphics
             // update GUI
             Update((float)e.Time);
 
-            //ImGui.ShowDemoWindow();
+            ImGui.ShowDemoWindow();
 
             // GUI viewport
             GL.Viewport(0, 0, Window.Width, Window.Height);
@@ -208,11 +208,14 @@ namespace Graphics
 
                 if (ImGui.BeginPopup("ObstacleCreate"))
                 {
-                    foreach (var shape in ObstacleHandler.ObstacleShapes)
+                    foreach (var shape in ObstacleHandler.Shapes)
                     {
                         if (ImGui.Selectable(shape))
                         {
                             // TODO: create an obstacle with the specified shape
+                            var shapeValue = (ObstacleShape)Enum.Parse(typeof(ObstacleShape), shape);
+                            ObstacleHandler.AddDefault(shapeValue);
+
                             ImGui.CloseCurrentPopup();
                         }
                     }
