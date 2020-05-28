@@ -4,6 +4,7 @@ using BulletSharp;
 using BulletSharp.Math;
 
 using Graphics;
+using Logic.PathPlanning;
 using Physics;
 
 using Vector3 = System.Numerics.Vector3;
@@ -23,7 +24,9 @@ namespace Logic
         public Model Model { get; }
         public Collider Collider { get; }
 
-        public BroadphaseNativeType ShapeType => Collider.Shape;
+        public Path Path { get; }
+
+        public BroadphaseNativeType Shape => Collider.Shape;
         public RigidBodyType Type
         {
             get => Collider.Type;
@@ -60,6 +63,8 @@ namespace Logic
         {
             Model = model;
             Collider = collider;
+
+            Path = new Path(new Path.Node(null, new Vector3[] { _initialPosition }, null));
 
             _initialPosition = Collider.Body.WorldTransform.Origin.ToNumerics3();
 

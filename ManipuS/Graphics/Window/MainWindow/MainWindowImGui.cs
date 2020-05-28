@@ -343,8 +343,8 @@ namespace Graphics
                 ImGui.PushID(_swapPropertiesWindows ? 1 : 0);
 
                 // set position and size of the window
-                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Width), (int)(0.75 * Window.Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.25 * Window.Height)));
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Width), (int)(0.7 * Window.Height)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.3 * Window.Width - 2), (int)(0.3 * Window.Height)));
 
                 // perform the necessary actions
                 renderProperties(selectable);
@@ -533,46 +533,126 @@ namespace Graphics
 
         private void ObstacleProperties(Obstacle obstacle)
         {
-            ImGui.Text($"Shape type: {obstacle.ShapeType}");
             ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
-
-            int type = (int)obstacle.Type;
-            ImGui.Combo("Type", ref type,
-                PhysicsHandler.RigidBodyTypes,
-                PhysicsHandler.RigidBodyTypes.Length);
-            obstacle.Type = (RigidBodyType)type;
-
-            if (obstacle.Type == RigidBodyType.Dynamic)
-            {
-                ImGui.InputFloat("Mass", ref obstacle.Mass);
-            }
-            else
-            {
-                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-                ImGui.InputFloat("Mass", ref obstacle.Mass, 0, 0, null, ImGuiInputTextFlags.ReadOnly);
-                ImGui.PopStyleVar();
-            }
-
             ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
             ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
 
-            if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
+            ImGui.Separator();
+
+            if (ImGui.BeginTabBar("ObstacleTabs"))
             {
-                ImGui.InputFloat3("Half extents", ref box.Size);
-            }
-            else if (obstacle.Collider is SphereCollider sphere)
-            {
-                ImGui.InputFloat("Radius", ref sphere.Radius);
-            }
-            else if (obstacle.Collider is CylinderCollider cylinder)
-            {
-                ImGui.InputFloat("Radius", ref cylinder.Radius);
-                ImGui.InputFloat("Half length", ref cylinder.HalfLength);
-            }
-            else if (obstacle.Collider is ConeCollider cone)
-            {
-                ImGui.InputFloat("Radius", ref cone.Radius);
-                ImGui.InputFloat("Height", ref cone.Height);
+                if (ImGui.BeginTabItem("Shape"))
+                {
+                    ImGui.Text($"Shape type: {obstacle.Shape}");
+
+                    if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
+                    {
+                        ImGui.InputFloat3("Half extents", ref box.Size);
+                    }
+                    else if (obstacle.Collider is SphereCollider sphere)
+                    {
+                        ImGui.InputFloat("Radius", ref sphere.Radius);
+                    }
+                    else if (obstacle.Collider is CylinderCollider cylinder)
+                    {
+                        ImGui.InputFloat("Radius", ref cylinder.Radius);
+                        ImGui.InputFloat("Half length", ref cylinder.HalfLength);
+                    }
+                    else if (obstacle.Collider is ConeCollider cone)
+                    {
+                        ImGui.InputFloat("Radius", ref cone.Radius);
+                        ImGui.InputFloat("Height", ref cone.Height);
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Physics"))
+                {
+                    int type = (int)obstacle.Type;
+                    ImGui.Combo("Type", ref type,
+                        PhysicsHandler.RigidBodyTypes,
+                        PhysicsHandler.RigidBodyTypes.Length);
+                    obstacle.Type = (RigidBodyType)type;
+
+                    if (obstacle.Type == RigidBodyType.Dynamic)
+                    {
+                        ImGui.InputFloat("Mass", ref obstacle.Mass);
+                    }
+                    else
+                    {
+                        ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
+                        ImGui.InputFloat("Mass", ref obstacle.Mass, 0, 0, null, ImGuiInputTextFlags.ReadOnly);
+                        ImGui.PopStyleVar();
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Path"))
+                {
+                    if (obstacle.Type == RigidBodyType.Kinematic)
+                    {
+                        var halfWidth = 0.5f * ImGui.GetWindowContentRegionWidth();
+
+                        Path.Node selectedPoint = null, current = obstacle.Path.First;
+                        int selectedIndex = -1;
+                        ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
+                        if (ImGui.BeginChild("ObstaclePath", new System.Numerics.Vector2(halfWidth, ImGui.GetContentRegionAvail().Y), true))
+                        {
+                            while (current.Child != null)
+                            {
+                                if (ImGui.Selectable($"Point {selectedIndex++}"))
+                                {
+                                    selectedPoint = current;
+                                }
+
+                                current = current.Child;
+                            }
+
+                            if (selectedIndex == -1)
+                            {
+                                ImGui.Text("Path is empty.");
+                            }
+
+                            ImGui.EndChild();
+                        }
+
+                        ImGui.SameLine();
+
+                        ImGui.BeginGroup();
+
+                        if (ImGui.Button("Add point"))
+                        {
+                            obstacle.Path.AddLast(new System.Numerics.Vector3[] 
+                            { 
+                                obstacle.Path.Last.Points[0] + System.Numerics.Vector3.UnitX 
+                            }, null);
+                        }
+
+                        ImGui.Separator();
+
+                        if (selectedPoint != null)
+                        {
+                            ImGui.Text($"Point {selectedIndex}");
+
+                            var point = selectedPoint.Points[0];
+                            ImGui.InputFloat3("", ref point);
+
+                            // TODO: change path's point
+                        }
+
+                        ImGui.EndGroup();
+                    }
+                    else
+                    {
+                        ImGui.TextWrapped("A path can be set only for Kinematic obstacles (see Physics tab).");
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
+                ImGui.EndTabBar();
             }
         }
 

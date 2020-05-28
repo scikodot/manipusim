@@ -17,9 +17,9 @@ namespace Logic.PathPlanning
             public Node Child { get; set; }
 
             public Vector3[] Points { get; set; }
-            public VectorFloat q { get; set; }
+            public VectorFloat q { get; set; }  // TODO: for unified usage of path consider replacing with "object Context" or something similar
 
-            public Node(Node parent, Vector3[] point, VectorFloat q)
+            public Node(Node parent, Vector3[] points, VectorFloat q)
             {
                 // assign the parent to the current node's parent
                 Parent = parent;
@@ -39,7 +39,7 @@ namespace Logic.PathPlanning
                     parent.Child = this;
                 }
 
-                Points = point;
+                Points = points;
                 this.q = q;
             }
 
@@ -87,6 +87,15 @@ namespace Logic.PathPlanning
         public Node Current { get; private set; }
         public int Count => Nodes.Count();
 
+        public Path(Node first)
+        {
+            AddNode(first);
+
+            First = first;
+
+            Current = First;
+        }
+
         public Path(IEnumerable<Vector3[]> points, IEnumerable<VectorFloat> configs) : this(ConstructPath(points, configs)) { }
 
         private static IEnumerable<Node> ConstructPath(IEnumerable<Vector3[]> points, IEnumerable<VectorFloat> configs)
@@ -130,6 +139,11 @@ namespace Logic.PathPlanning
                 Last = node;
 
             AddBuffer.Enqueue(node);
+        }
+
+        public void AddLast(Vector3[] points, VectorFloat configuration)
+        {
+            AddNode(new Node(Last, points, configuration));
         }
 
         public void AddNodeRange(IEnumerable<Node> nodes)
