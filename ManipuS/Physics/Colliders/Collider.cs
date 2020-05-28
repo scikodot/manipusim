@@ -11,6 +11,8 @@ namespace Physics
 {
     public abstract class Collider : IDisposable
     {
+        private static float _defaultMass = 1f;
+
         public Model Model { get; protected set; }
         public RigidBody Body { get; protected set; }
 
@@ -57,12 +59,12 @@ namespace Physics
                 state.M14, state.M24, state.M34, state.M44);
             collider.UpdateModel(ref stateMatrix);
 
-            // convert collider to kinematic for design mode
-            if (MainWindow.Mode == InteractionMode.Design)
-                collider.Convert(RigidBodyType.Kinematic);
-
             // setup a callback for the collider
-            collider.CollisionCallback = new CollisionCallback(collider.Body, null); 
+            collider.CollisionCallback = new CollisionCallback(collider.Body, null);
+
+            // convert collider to kinematic type if in design mode
+            if (MainWindow.Mode == InteractionMode.Design)
+                collider.Body.CollisionFlags = CollisionFlags.StaticObject | CollisionFlags.KinematicObject;
 
             return collider;
         }
@@ -95,51 +97,49 @@ namespace Physics
 
         public abstract void Scale();
 
-        public void Convert(RigidBodyType type)
+        public void Reset()
         {
+            //PhysicsHandler.CleanRigidBody(Body);
+        }
+
+        public void Convert(RigidBodyType type, float mass)
+        {
+            PhysicsHandler.RemoveRigidBody(Body);
+
+            // set mass properties
+            if (type != RigidBodyType.Dynamic)
+                mass = 0;
+
+            Body.SetMassProps(mass, Body.CollisionShape.CalculateLocalInertia(mass));
+
+            // set body type
             switch (type)
             {
                 case RigidBodyType.Static:
                     Body.CollisionFlags = CollisionFlags.StaticObject;
-                    Body.ActivationState = ActivationState.ActiveTag;
+                    Body.ForceActivationState(ActivationState.ActiveTag);
                     break;
                 case RigidBodyType.Kinematic:
-                    Body.CollisionFlags = CollisionFlags.KinematicObject;
-                    Body.ActivationState = ActivationState.DisableDeactivation;
+                    Body.CollisionFlags = CollisionFlags.StaticObject | CollisionFlags.KinematicObject;
+                    Body.ForceActivationState(ActivationState.DisableDeactivation);
                     break;
                 case RigidBodyType.Dynamic:
                     Body.CollisionFlags = CollisionFlags.None;
-                    Body.ActivationState = ActivationState.ActiveTag;
+                    Body.ForceActivationState(ActivationState.ActiveTag);
                     break;
             }
+
+            PhysicsHandler.AddRigidBody(Body);
         }
 
         public bool CollisionPairTest(Collider other)
         {
-            PhysicsHandler.ContactPairTest(Body, other.Body, CollisionCallback);
-            if (CollisionCallback.IsCalled)
-            {
-                CollisionCallback.IsCalled = false;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return PhysicsHandler.ContactPairTest(Body, other.Body, CollisionCallback);
         }
 
         public bool CollisionTest()
         {
-            PhysicsHandler.ContactTest(Body, CollisionCallback);
-            if (CollisionCallback.IsCalled)
-            {
-                CollisionCallback.IsCalled = false;
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return PhysicsHandler.ContactTest(Body, CollisionCallback);
         }
 
         //public void AttachGhost()
@@ -187,14 +187,15 @@ namespace Physics
                     collider = PhysicsHandler.CreateKinematicCollider(Body.CollisionShape, Body.MotionState.WorldTransform);
                     break;
                 case RigidBodyType.Dynamic:
-                    collider = PhysicsHandler.CreateDynamicCollider(Body.CollisionShape, 1.0f / Body.InvMass,Body.MotionState.WorldTransform);
+                    collider = PhysicsHandler.CreateDynamicCollider(Body.CollisionShape, 1.0f / Body.InvMass, Body.MotionState.WorldTransform);
                     break;
             }
 
             // disable collider to prevent it from producing collision impulses
             collider.Body.CollisionFlags |= CollisionFlags.NoContactResponse;
 
-            // TODO: copy callback?
+            // copy callback
+            collider.CollisionCallback = new CollisionCallback(collider.Body, null);
 
             return collider;
         }

@@ -129,59 +129,56 @@ namespace Graphics
                 ImGui.Separator();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                ImGui.BeginChild("ManipulatorList", ImGui.GetContentRegionAvail(), true);
-
-                if (ManipulatorHandler.Count != 0)
+                if (ImGui.BeginChild("ManipulatorList", ImGui.GetContentRegionAvail(), true))
                 {
-                    for (int i = 0; i < ManipulatorHandler.Count; i++)
+                    if (ManipulatorHandler.Count != 0)
                     {
-                        var manipulator = ManipulatorHandler.Manipulators[i];
-                        bool manipulatorTreeNodeOpen = ImGui.TreeNodeEx($"Manipulator {i}", _baseTreeNodeFlags | GetTreeNodeSelectionFlag(manipulator));
-                        if (ImGui.IsItemDeactivated() && !ImGui.IsItemToggledOpen())
+                        for (int i = 0; i < ManipulatorHandler.Count; i++)
                         {
-                            UpdateSelection(manipulator);
-                        }
-
-                        if (manipulatorTreeNodeOpen)  // TODO: refactor, perhaps move all updates to UpdateFrame
-                        {
-                            for (int j = 0; j < manipulator.Links.Length; j++)
+                            var manipulator = ManipulatorHandler.Manipulators[i];
+                            bool manipulatorTreeNodeOpen = ImGui.TreeNodeEx($"Manipulator {i}", _baseTreeNodeFlags | GetTreeNodeSelectionFlag(manipulator));
+                            if (ImGui.IsItemDeactivated() && !ImGui.IsItemToggledOpen())
                             {
-                                var joint = manipulator.Joints[j];
-                                ImGui.TreeNodeEx($"Joint {j}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(joint));
-                                if (ImGui.IsItemDeactivated())
-                                {
-                                    UpdateSelection(joint);
-                                }
-
-                                var link = manipulator.Links[j];
-                                ImGui.TreeNodeEx($"Link {j}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(link));
-                                if (ImGui.IsItemDeactivated())
-                                {
-                                    UpdateSelection(link);
-                                }
+                                UpdateSelection(manipulator);
                             }
 
-                            var gripper = manipulator.Joints[manipulator.Joints.Length - 1];
-                            ImGui.TreeNodeEx($"Gripper", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(gripper));
-                            if (ImGui.IsItemDeactivated())
+                            if (manipulatorTreeNodeOpen)  // TODO: refactor, perhaps move all updates to UpdateFrame
                             {
-                                UpdateSelection(gripper);
+                                for (int j = 0; j < manipulator.Links.Length; j++)
+                                {
+                                    var joint = manipulator.Joints[j];
+                                    ImGui.TreeNodeEx($"Joint {j}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(joint));
+                                    if (ImGui.IsItemDeactivated())
+                                    {
+                                        UpdateSelection(joint);
+                                    }
+
+                                    var link = manipulator.Links[j];
+                                    ImGui.TreeNodeEx($"Link {j}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(link));
+                                    if (ImGui.IsItemDeactivated())
+                                    {
+                                        UpdateSelection(link);
+                                    }
+                                }
+
+                                var gripper = manipulator.Joints[manipulator.Joints.Length - 1];
+                                ImGui.TreeNodeEx($"Gripper", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(gripper));
+                                if (ImGui.IsItemDeactivated())
+                                {
+                                    UpdateSelection(gripper);
+                                }
+
+                                ImGui.TreePop();
                             }
-
-                            ImGui.TreePop();
-
-                            //ImGui.InputInt("Links number", ref MB[j].N);
-
-                            //WorkspaceBuffer.ConfigureArrays(j);
                         }
                     }
-                }
-                else
-                {
-                    ImGui.Text("Empty.");
-                }
+                    else
+                    {
+                        ImGui.Text("Empty.");
+                    }
 
-                ImGui.EndChild();
+                    ImGui.EndChild();
+                }
 
                 ImGui.End();
             }
@@ -212,7 +209,6 @@ namespace Graphics
                     {
                         if (ImGui.Selectable(shape))
                         {
-                            // TODO: create an obstacle with the specified shape
                             var shapeValue = (ObstacleShape)Enum.Parse(typeof(ObstacleShape), shape);
                             ObstacleHandler.AddDefault(shapeValue);
 
@@ -226,26 +222,27 @@ namespace Graphics
                 ImGui.Separator();
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                ImGui.BeginChild("ObstacleList", ImGui.GetContentRegionAvail(), true);
-
-                if (ObstacleHandler.Count != 0)
+                if (ImGui.BeginChild("ObstacleList", ImGui.GetContentRegionAvail(), true))
                 {
-                    for (int i = 0; i < ObstacleHandler.Count; i++)
+                    if (ObstacleHandler.Count != 0)
                     {
-                        var obstacle = ObstacleHandler.Obstacles[i];
-                        ImGui.TreeNodeEx($"Obstacle {i}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(obstacle));
-                        if (ImGui.IsItemDeactivated())
+                        for (int i = 0; i < ObstacleHandler.Count; i++)
                         {
-                            UpdateSelection(obstacle);
+                            var obstacle = ObstacleHandler.Obstacles[i];
+                            ImGui.TreeNodeEx($"Obstacle {i}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(obstacle));
+                            if (ImGui.IsItemDeactivated())
+                            {
+                                UpdateSelection(obstacle);
+                            }
                         }
                     }
-                }
-                else
-                {
-                    ImGui.Text("Empty.");
-                }
+                    else
+                    {
+                        ImGui.Text("Empty.");
+                    }
 
-                ImGui.EndChild();
+                    ImGui.EndChild();
+                }
 
                 ImGui.End();
             }
@@ -537,14 +534,25 @@ namespace Graphics
         private void ObstacleProperties(Obstacle obstacle)
         {
             ImGui.Text($"Shape type: {obstacle.ShapeType}");
+            ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
 
             int type = (int)obstacle.Type;
-            ImGui.Combo("Physics type", ref type,
+            ImGui.Combo("Type", ref type,
                 PhysicsHandler.RigidBodyTypes,
-                PhysicsHandler.RigidBodyTypes.Length);  // TODO: add mass property to Dynamic bodies!
+                PhysicsHandler.RigidBodyTypes.Length);
             obstacle.Type = (RigidBodyType)type;
 
-            ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
+            if (obstacle.Type == RigidBodyType.Dynamic)
+            {
+                ImGui.InputFloat("Mass", ref obstacle.Mass);
+            }
+            else
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
+                ImGui.InputFloat("Mass", ref obstacle.Mass, 0, 0, null, ImGuiInputTextFlags.ReadOnly);
+                ImGui.PopStyleVar();
+            }
+
             ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
             ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
 
@@ -560,6 +568,11 @@ namespace Graphics
             {
                 ImGui.InputFloat("Radius", ref cylinder.Radius);
                 ImGui.InputFloat("Half length", ref cylinder.HalfLength);
+            }
+            else if (obstacle.Collider is ConeCollider cone)
+            {
+                ImGui.InputFloat("Radius", ref cone.Radius);
+                ImGui.InputFloat("Height", ref cone.Height);
             }
         }
 

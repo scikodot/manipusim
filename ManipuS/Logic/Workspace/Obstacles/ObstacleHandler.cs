@@ -136,8 +136,7 @@ namespace Logic
         {
             foreach (var obst in Obstacles)
             {
-                obst.Convert(RigidBodyType.Kinematic);
-
+                obst.Convert(RigidBodyType.Kinematic, obst.Mass);
                 obst.Reset();
             }
         }
@@ -146,7 +145,7 @@ namespace Logic
         {
             foreach (var obst in Obstacles)
             {
-                obst.Convert(obst.Type);
+                obst.Convert(obst.Type, obst.Mass);
             }
         }
 

@@ -60,7 +60,7 @@ namespace Physics
             _broadphase = new DbvtBroadphase();
             World = new DiscreteDynamicsWorld(_dispatcher, _broadphase, null, _collisionConf);
 
-            //World.Gravity = Vector3.Zero;
+            World.Gravity = -10.0f * Vector3.UnitY;
 
             //// create the ground
             //var groundShape = new BoxShape(5, 0.125f, 5);
@@ -130,16 +130,20 @@ namespace Physics
                 World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
         }
 
-        public static void ContactPairTest(RigidBody body, RigidBody bodyOther, CollisionCallback collisionCallback)
+        public static bool ContactPairTest(RigidBody body, RigidBody bodyOther, CollisionCallback collisionCallback)
         {
             lock (_worldSyncRoot)
                 World.ContactPairTest(body, bodyOther, collisionCallback);
+
+            return collisionCallback.ContactDetected;
         }
 
-        public static void ContactTest(RigidBody body, CollisionCallback collisionCallback)
+        public static bool ContactTest(RigidBody body, CollisionCallback collisionCallback)
         {
             lock (_worldSyncRoot)
                 World.ContactTest(body, collisionCallback);
+
+            return collisionCallback.ContactDetected;
         }
 
         public static void Update(float elapsedTime)
@@ -148,7 +152,31 @@ namespace Physics
                 World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
         }
 
+        public static void AddRigidBody(RigidBody body)
+        {
+            lock (_worldSyncRoot)
+                World.AddRigidBody(body);
+        }
+
         public static void RemoveRigidBody(RigidBody body)
+        {
+            lock (_worldSyncRoot)
+                World.RemoveRigidBody(body);
+        }
+
+        public static void CleanRigidBody(RigidBody body)
+        {
+            //// remove body from world
+            //lock (_worldSyncRoot)
+            //    World.RemoveRigidBody(body);
+
+            // clear all forces and velocities for that body
+            body.ClearForces();
+            body.LinearVelocity = Vector3.Zero;
+            body.AngularVelocity = Vector3.Zero;
+        }
+
+        public static void DisposeRigidBody(RigidBody body)
         {
             if (body != null && body.MotionState != null)
             {

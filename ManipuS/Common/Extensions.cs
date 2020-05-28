@@ -198,7 +198,7 @@ public static class RigidBodyExtensions
 {
     public static void DisposeFromWorld(this RigidBody body)
     {
-        Physics.PhysicsHandler.RemoveRigidBody(body);
+        Physics.PhysicsHandler.DisposeRigidBody(body);
     }
 }
 

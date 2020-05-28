@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Numerics;
 
 using BulletSharp;
 using BulletSharp.Math;
@@ -33,12 +32,23 @@ namespace Logic
 
         public Matrix State
         {
-            get => Collider.Body.MotionState.WorldTransform;
-            set => Collider.Body.MotionState.WorldTransform = value;
+            get => Collider.Body.WorldTransform;
+            set
+            {
+                // explicitly set position of the body
+                Collider.Body.WorldTransform = value;
+
+                // set its motion state to update position (for kinematic objects only)
+                if (Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
+                    Collider.Body.MotionState.SetWorldTransform(ref value);
+            }
         }
 
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;
+
+        private float _mass;
+        public ref float Mass => ref _mass;
 
         private Vector3 _orientation;
         public ref Vector3 Orientation => ref _orientation;
@@ -55,9 +65,6 @@ namespace Logic
 
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
             Collider.Body.UserObject = this;
-
-            //var orientation = Collider.Body.Orientation.  /*Collider.Body.Orientation.Angle * BulletSharp.Math.Vector3.Normalize(Collider.Body.Orientation.Axis);*/
-            //_orientation = new Vector3(orientation.X, orientation.Y, orientation.Z) * MathUtil.SIMD_DEGS_PER_RAD;
         }
 
         public bool Contains(Vector3 point)
@@ -83,13 +90,15 @@ namespace Logic
                 Collider.Render(shader);
         }
 
-        public void Convert(RigidBodyType type)
+        public void Convert(RigidBodyType type, float mass)
         {
-            Collider.Convert(type);
+            Collider.Convert(type, mass);
         }
 
         public void Reset()
         {
+            Collider.Reset();
+
             UpdateStateDesign();
         }
 
@@ -97,15 +106,14 @@ namespace Logic
         {
             Collider.Scale();
 
-            var inverse = Collider.Body.Orientation.Inverse;
-
             // TODO: optimize; consider using ImpDualQuats
             // TODO: create separate method RotateWorld() that will create rotation matrix about world XYZ axes
-            var matX = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitX), _orientation.X * MathUtil.SIMD_RADS_PER_DEG);
-            var matY = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitY), _orientation.Y * MathUtil.SIMD_RADS_PER_DEG);
-            var matZ = Matrix.RotationAxis(inverse.Rotate(BulletSharp.Math.Vector3.UnitZ), _orientation.Z * MathUtil.SIMD_RADS_PER_DEG);
+            var yaw = _orientation.Y * MathUtil.SIMD_RADS_PER_DEG;
+            var pitch = _orientation.X * MathUtil.SIMD_RADS_PER_DEG;
+            var roll = _orientation.Z * MathUtil.SIMD_RADS_PER_DEG;
 
-            State = matX * matY * matZ * Matrix.Translation(_initialPosition.ToBullet3());
+            State = Matrix.RotationQuaternion(BulletSharp.Math.Quaternion.RotationYawPitchRoll(yaw, pitch, roll)) * 
+                Matrix.Translation(_initialPosition.ToBullet3());
         }
 
         public void UpdateModel()

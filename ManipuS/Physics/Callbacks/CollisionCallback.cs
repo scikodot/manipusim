@@ -10,7 +10,22 @@ namespace Physics
     {
         private RigidBody _monitoredBody;
         private object _context; // External information for contact processing
-        public bool IsCalled { get; set; }
+
+        private bool _contactDetected;
+        public bool ContactDetected 
+        { 
+            get
+            {
+                if (_contactDetected)
+                {
+                    _contactDetected = false;
+                    return true;
+                }
+                else
+                    return false;
+            }
+            set => _contactDetected = value;
+        }
 
         // Constructor, pass whatever context you want to have available when processing contacts.
         // You may also want to set CollisionFilterGroups and CollisionFilterMask
@@ -66,7 +81,7 @@ namespace Physics
             if (contact.Distance < 0.01f)
             {
                 // ... and if it is, notify about a collision
-                IsCalled = true;
+                ContactDetected = true;
             }
 
             // do stuff with the collision point

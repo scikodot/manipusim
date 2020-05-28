@@ -106,16 +106,16 @@ namespace Graphics
             ShaderHandler.InitializeShaders();
 
             // attach ImGUI to this window
-            _imGui = new MainWindowImGui(this);
+            _imGui = new MainWindowImGui(this);  // TODO: make static?
 
             // Camera is 6 units back and has the proper aspect ratio
             _camera = new Camera((float)(0.75 * Width / Height), new Vector3(-5, 3, 5), -15, -45);
 
             InputHandler.TranslationalWidget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
             {
-                (new Vector3(0.3f, 0, 0), new Vector4(1, 0, 0, 1)),
-                (new Vector3(0, 0.3f, 0), new Vector4(0, 1, 0, 1)),
-                (new Vector3(0, 0, 0.3f), new Vector4(0, 0, 1, 1))
+                (new Vector3(1, 0, 0), new Vector4(1, 0, 0, 1)),
+                (new Vector3(0, 1, 0), new Vector4(0, 1, 0, 1)),
+                (new Vector3(0, 0, 1), new Vector4(0, 0, 1, 1))
             });
 
             // subscribe to the events
@@ -158,13 +158,15 @@ namespace Graphics
             //    }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
             //}
 
-            ObstacleHandler.Add(new Obstacle(Primitives.Sphere(0.5f, 100, 100, new MeshMaterial
-            {
-                Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-                Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-                Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-                Shininess = 8
-            }), PhysicsHandler.CreateKinematicCollider(new SphereShape(0.5f), Matrix.Translation(0, 3, -1.5f))));
+            ObstacleHandler.AddDefault(ObstacleShape.Sphere);
+
+            //ObstacleHandler.Add(new Obstacle(Primitives.Sphere(0.5f, 100, 100, new MeshMaterial
+            //{
+            //    Ambient = new Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            //    Diffuse = new Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            //    Specular = new Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            //    Shininess = 8
+            //}), PhysicsHandler.CreateKinematicCollider(new SphereShape(0.5f), Matrix.Translation(0, 3, -1.5f))));
 
             //ObstacleHandler.Add(new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new MeshMaterial
             //{
@@ -389,9 +391,10 @@ namespace Graphics
         {
             // update physics controller
             PhysicsHandler.Update((float)e.Time);
-            //Console.SetCursorPosition(0, 5);
-            //Console.WriteLine("                                                        ");
-            //Console.WriteLine($"Num collision objects: {PhysicsHandler.World.NumCollisionObjects}");
+            Console.SetCursorPosition(0, 5);
+            Console.Write("                                                        ");
+            Console.SetCursorPosition(0, 5);
+            Console.WriteLine($"{(PhysicsHandler.World.CollisionObjectArray[0] as RigidBody).ActivationState}");
 
             //if (ManipulatorHandler.Count > 0)
             //{
