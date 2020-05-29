@@ -394,7 +394,7 @@ namespace Graphics
             Console.SetCursorPosition(0, 5);
             Console.Write("                                                        ");
             Console.SetCursorPosition(0, 5);
-            Console.WriteLine($"{(PhysicsHandler.World.CollisionObjectArray[0] as RigidBody).ActivationState}");
+            Console.WriteLine($"{ObstacleHandler.Obstacles[0].Collider.Body.ActivationState}");
 
             //if (ManipulatorHandler.Count > 0)
             //{
@@ -509,6 +509,8 @@ namespace Graphics
                     break;
                 case InteractionMode.Animate:
 
+                    ObstacleHandler.UpdateAnimate();
+
                     //float dt;
                     //if (forward)
                     //{
@@ -546,7 +548,7 @@ namespace Graphics
                             manipulator.FollowPath();
 
                             // update path model state
-                            _pathModels[i].Update(i);
+                            _pathModels[i].Update(manipulator.Path);
                         }
 
                         // random tree

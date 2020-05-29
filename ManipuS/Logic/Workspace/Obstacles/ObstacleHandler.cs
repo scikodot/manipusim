@@ -7,6 +7,7 @@ using BulletSharp.Math;
 
 using Graphics;
 using Physics;
+using System.Linq;
 
 namespace Logic
 {
@@ -157,11 +158,21 @@ namespace Logic
             }
         }
 
+        public static void UpdateAnimate()
+        {
+            foreach (var obst in Obstacles)
+            {
+                obst.UpdateStateAnimate();
+            }
+        }
+
         public static void UpdateModel()
         {
             foreach (var obst in Obstacles)
             {
                 obst.UpdateModel();
+
+                obst.PathModel.Update(obst.Path);
             }
         }
 
@@ -179,6 +190,9 @@ namespace Logic
         {
             foreach (var obst in Obstacles)
             {
+                if (obst.Type == RigidBodyType.Kinematic)
+                    obst.PathModel.Render(shader);
+
                 if (!obst.Model.RenderFlags.HasFlag(RenderFlags.Selected))
                     obst.Render(shader);
             }

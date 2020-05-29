@@ -290,7 +290,7 @@ namespace Logic
         {
             if (Path != null)
             {
-                q = Path.Follow();
+                q = Path.Follow().q;
             }
         }
 

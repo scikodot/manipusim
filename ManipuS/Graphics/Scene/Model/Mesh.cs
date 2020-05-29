@@ -35,7 +35,7 @@ namespace Graphics
         public string Path;
     }
 
-    public struct MeshMaterial
+    public struct MeshMaterial  // TODO: consider using readonly refs
     {
         public static MeshMaterial Black => new MeshMaterial { Diffuse = Vector4.UnitW };
         public static MeshMaterial Red => new MeshMaterial { Diffuse = new Vector4(1.0f, 0.0f, 0.0f, 1.0f) };
@@ -45,6 +45,8 @@ namespace Graphics
         public static MeshMaterial Pink => new MeshMaterial { Diffuse = new Vector4(1.0f, 0.0f, 1.0f, 1.0f) };
         public static MeshMaterial Cyan => new MeshMaterial { Diffuse = new Vector4(0.0f, 1.0f, 1.0f, 1.0f) };
         public static MeshMaterial White => new MeshMaterial { Diffuse = Vector4.One };
+
+        public static MeshMaterial Brown => new MeshMaterial { Diffuse = new Vector4(0.6f, 0.2f, 0.08f, 1.0f) };
 
         public Vector4 Ambient;
         public Vector4 Diffuse;

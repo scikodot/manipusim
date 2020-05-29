@@ -18,6 +18,8 @@ namespace Graphics
         private const ImGuiTreeNodeFlags _baseTreeLeafFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
 
         private static bool _swapPropertiesWindows;
+        private static int _selectedPathIndex = -1;
+        private static Path.Node _selectedPoint;
 
         public MainWindowImGui(MainWindow mainWindow) : base(mainWindow) { }
 
@@ -593,18 +595,19 @@ namespace Graphics
                 {
                     if (obstacle.Type == RigidBodyType.Kinematic)
                     {
-                        var halfWidth = 0.5f * ImGui.GetWindowContentRegionWidth();
+                        var quarterWidth = 0.25f * ImGui.GetWindowContentRegionWidth();
 
-                        Path.Node selectedPoint = null, current = obstacle.Path.First;
+                        Path.Node current = obstacle.Path.First.Child;
                         int selectedIndex = -1;
                         ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                        if (ImGui.BeginChild("ObstaclePath", new System.Numerics.Vector2(halfWidth, ImGui.GetContentRegionAvail().Y), true))
+                        if (ImGui.BeginChild("ObstaclePath", new System.Numerics.Vector2(quarterWidth, ImGui.GetContentRegionAvail().Y), true))
                         {
-                            while (current.Child != null)
+                            while (current != null)
                             {
-                                if (ImGui.Selectable($"Point {selectedIndex++}"))
+                                if (ImGui.Selectable($"Point {++selectedIndex}"))
                                 {
-                                    selectedPoint = current;
+                                    _selectedPoint = current;
+                                    _selectedPathIndex = selectedIndex;
                                 }
 
                                 current = current.Child;
@@ -612,7 +615,7 @@ namespace Graphics
 
                             if (selectedIndex == -1)
                             {
-                                ImGui.Text("Path is empty.");
+                                ImGui.TextWrapped("Path is empty.");
                             }
 
                             ImGui.EndChild();
@@ -632,14 +635,13 @@ namespace Graphics
 
                         ImGui.Separator();
 
-                        if (selectedPoint != null)
+                        if (_selectedPoint != null)
                         {
-                            ImGui.Text($"Point {selectedIndex}");
+                            ImGui.Text($"Point {_selectedPathIndex}");
 
-                            var point = selectedPoint.Points[0];
+                            var point = _selectedPoint.Points[0];
                             ImGui.InputFloat3("", ref point);
-
-                            // TODO: change path's point
+                            obstacle.Path.ChangeNode(_selectedPoint, new System.Numerics.Vector3[] { point }, null);
                         }
 
                         ImGui.EndGroup();

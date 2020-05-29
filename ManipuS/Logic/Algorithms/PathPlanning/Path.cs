@@ -81,6 +81,7 @@ namespace Logic.PathPlanning
         public HashSet<Node> Nodes = new HashSet<Node>();
         public ConcurrentQueue<Node> AddBuffer = new ConcurrentQueue<Node>();
         public ConcurrentQueue<Node> DelBuffer = new ConcurrentQueue<Node>();
+        public ConcurrentQueue<Node> ChgBuffer = new ConcurrentQueue<Node>();
 
         public Node First { get; private set; }
         public Node Last { get; private set; }
@@ -168,23 +169,35 @@ namespace Logic.PathPlanning
             DelBuffer.Enqueue(node);
         }
 
-        public void ChangeNode(Node node, Vector3[] point, VectorFloat config)
+        public void ChangeNode(Node node, Vector3[] points, VectorFloat config)
         {
-            DelBuffer.Enqueue(node);
-
-            node.Change(point, config);
-
-            AddBuffer.Enqueue(node);
+            node.Change(points, config);
+            ChgBuffer.Enqueue(node);
         }
 
-        public VectorFloat Follow()
+        public Node Follow()
         {
             // move to the next node
             if (Current.Child != null)
                 Current = Current.Child;
 
-            // return the config of that node
-            return Current.q;
+            // return that node
+            return Current;
+        }
+
+        public void Reset()
+        {
+            Current = First;
+        }
+
+        public void Translate(Vector3 translation)
+        {
+            Node current = First;
+            while (current != null)
+            {
+                ChangeNode(current, new Vector3[] { current.Points[0] + translation }, current.q);
+                current = current.Child;
+            }
         }
 
         //public IEnumerable<Vector3> GetGripperPath()

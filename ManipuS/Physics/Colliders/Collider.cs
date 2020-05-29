@@ -126,6 +126,7 @@ namespace Physics
                 case RigidBodyType.Dynamic:
                     Body.CollisionFlags = CollisionFlags.None;
                     Body.ForceActivationState(ActivationState.ActiveTag);
+                    Body.Activate();
                     break;
             }
 
