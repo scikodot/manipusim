@@ -8,22 +8,17 @@ namespace Logic.PathPlanning
     class ARRT : RRT
     {
         protected static int _attractorsCountDefault = 5000;
-        protected static int _trimPeriodDefault = 1000;
 
         protected List<Attractor> _attractors;
 
         protected int _attractorsCount;
-        public ref int AttractorsCount => ref _attractorsCount;
+        public ref int AttractorsCount => ref _attractorsCount;        
 
-        protected int _trimPeriod;
-        public ref int TrimPeriod => ref _trimPeriod;
-
-        public ARRT(Manipulator manipulator, int maxIterations, float threshold, bool collisionCheck, float step, 
-            bool showTree, bool discardOutliers, int attractorsCount, int trimPeriod) : 
-            base(maxIterations, threshold, collisionCheck, step, showTree, discardOutliers)
+        public ARRT(Manipulator manipulator, int maxIterations, float threshold, bool collisionCheck, 
+            float step, bool showTree, bool discardOutliers, bool enableTrimming, int trimPeriod, int attractorsCount) : 
+            base(maxIterations, threshold, collisionCheck, step, showTree, discardOutliers, enableTrimming, trimPeriod)
         {
             _attractorsCount = attractorsCount;
-            _trimPeriod = trimPeriod;
 
             // create attractors
             _attractors = Attractor.Create(manipulator, _attractorsCount, _threshold);  // TODO: if attractors count can be changed from the outside, 
@@ -32,8 +27,8 @@ namespace Logic.PathPlanning
 
         public static ARRT Default(Manipulator manipulator)
         {
-            return new ARRT(manipulator, _maxIterationsDefault, _thresholdDefault, _collisionCheckDefault, _stepDefault, 
-                _showTreeDefault, _discardOutliersDefault, _attractorsCountDefault, _trimPeriodDefault);
+            return new ARRT(manipulator, _maxIterationsDefault, _thresholdDefault, _collisionCheckDefault, 
+                _stepDefault, _showTreeDefault, _discardOutliersDefault, _enableTrimmingDefault, _trimPeriodDefault, _attractorsCountDefault);
         }
 
         protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
@@ -54,11 +49,12 @@ namespace Logic.PathPlanning
             float mu = attractorFirst.Weight;
             float sigma = (attractorLast.Weight - attractorFirst.Weight) / 3.0f;
 
-            int iters = 0;
-            while (iters++ < _maxIterations)
+            int iterations = 0;
+            while (iterations++ < _maxIterations)
             {
-                //if (i % _trimPeriod == 0 && i != 0)
-                //    agent.Tree.Trim(obstacles, agentCopy, solver);
+                // trim tree
+                if (_enableTrimming && iterations % _trimPeriod == 0)
+                    Tree.Trim(manipulator, solver);
 
                 // generate normally distributed weight
                 float num = RandomThreadStatic.NextGaussian(mu, sigma);
@@ -104,7 +100,7 @@ namespace Logic.PathPlanning
             // retrieve resultant path along with respective configurations
             return new PathPlanningResult
             {
-                Iterations = iters - 1,
+                Iterations = iterations - 1,
                 Path = Tree.GetPath(manipulator, Tree.Closest(goal))  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
             };
         }

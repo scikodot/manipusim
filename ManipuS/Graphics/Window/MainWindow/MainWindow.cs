@@ -595,9 +595,9 @@ namespace Graphics
             }
         }
 
-        public static void CreateDefaultManipulator(int linksNumber)
+        public static void CreateDefaultManipulator()
         {
-            var manipulator = ManipulatorHandler.CreateDefaultManipulator(linksNumber);
+            var manipulator = ManipulatorHandler.CreateDefaultManipulator();
 
             // create new models for the manipulator goal, path and tree
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));

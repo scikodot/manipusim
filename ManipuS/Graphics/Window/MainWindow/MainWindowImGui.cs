@@ -115,14 +115,28 @@ namespace Graphics
 
                 if (ImGui.BeginPopup("ManipulatorCreate"))
                 {
-                    ImGui.Text("Links number");
-                    ImGui.InputInt("", ref ManipulatorHandler.DefaultLinksNumber, 0, 0);
+                    int linksNumber = ManipulatorHandler.DefaultLinksNumber;
+                    ImGui.InputInt("Links number", ref linksNumber);
 
-                    if (ImGui.Button("Create"))
+                    float linksLength = ManipulatorHandler.DefaultLinksLength;
+                    ImGui.InputFloat("Links length", ref linksLength);
+
+                    if (linksNumber < 2 || linksLength <= 0)
                     {
-                        MainWindow.CreateDefaultManipulator(ManipulatorHandler.DefaultLinksNumber);
+                        // TODO: handle unallowed cases
+                    }
+                    else
+                    {
+                        // memoize parameters
+                        ManipulatorHandler.DefaultLinksNumber = linksNumber;
+                        ManipulatorHandler.DefaultLinksLength = linksLength;
 
-                        ImGui.CloseCurrentPopup();
+                        if (ImGui.Button("Create"))
+                        {
+                            MainWindow.CreateDefaultManipulator();
+
+                            ImGui.CloseCurrentPopup();
+                        }
                     }
 
                     ImGui.EndPopup();
@@ -454,11 +468,12 @@ namespace Graphics
                         ImGui.Checkbox($"Show tree", ref rrt.ShowTree);
                         ImGui.Checkbox("Discard outliers", ref rrt.DiscardOutliers);
                         ImGui.InputFloat("Step", ref rrt.Step);
+                        ImGui.Checkbox("Enable trimming", ref rrt.EnableTrimming);
+                        ImGui.InputInt("Trim period", ref rrt.TrimPeriod);
 
                         if (rrt is ARRT arrt)
                         {
                             ImGui.InputInt("Attractors count", ref arrt.AttractorsCount);
-                            ImGui.InputInt("Trim period", ref arrt.TrimPeriod);
                         }
                     }
                     else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)

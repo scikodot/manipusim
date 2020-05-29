@@ -166,7 +166,7 @@ namespace Logic.PathPlanning
             // TODO: childs are not updated! fix
         }
 
-        public void Trim(Obstacle[] obstacles, Manipulator contestant, InverseKinematicsSolver solver)
+        public void Trim(Manipulator manipulator, InverseKinematicsSolver solver)
         {
             switch (Mode)
             {
@@ -178,8 +178,8 @@ namespace Logic.PathPlanning
                         var childs = new List<Node>(source.Dequeue().Childs);
                         foreach (var child in childs)
                         {
-                            contestant.q = child.q;
-                            if (contestant.CollisionTest().Contains(true))
+                            manipulator.q = child.q;
+                            if (manipulator.CollisionTest().Contains(true))
                             {
                                 RemoveNode(child);
                             }
@@ -193,16 +193,16 @@ namespace Logic.PathPlanning
                 case TreeBehaviour.Recursive:
                     foreach (var child in Root.Childs)
                     {
-                        TrimRecursive(obstacles, contestant, solver, child);
+                        TrimRecursive(manipulator, solver, child);
                     }
                     break;
             }
         }
 
-        public void TrimRecursive(Obstacle[] obstacles, Manipulator contestant, InverseKinematicsSolver solver, Node node)
+        public void TrimRecursive(Manipulator manipulator, InverseKinematicsSolver solver, Node node)
         {
-            contestant.q = node.q;
-            if (contestant.CollisionTest().Contains(true))
+            manipulator.q = node.q;
+            if (manipulator.CollisionTest().Contains(true))
             {
                 RemoveNode(node);
                 return;
@@ -211,7 +211,7 @@ namespace Logic.PathPlanning
             var childs = new List<Node>(node.Childs);
             foreach (var child in childs)
             {
-                TrimRecursive(obstacles, contestant, solver, child);
+                TrimRecursive(manipulator, solver, child);
             }
         }
 

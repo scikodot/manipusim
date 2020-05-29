@@ -18,6 +18,9 @@ namespace Logic
         private static int _defaultLinksNumber = 3;
         public static ref int DefaultLinksNumber => ref _defaultLinksNumber;
 
+        private static float _defaultLinksLength = 1f;
+        public static ref float DefaultLinksLength => ref _defaultLinksLength;
+
         private static Model _defaultJointModel;
         private static Model _defaultLinkModel;
         private static Model _defaultGripperModel;
@@ -26,12 +29,7 @@ namespace Logic
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new Vector2(-90, 90)
-        };
-
-        private static LinkData _defaultLink = new LinkData
-        {
-            Length = 1
+            qRanges = new Vector2(-120, 120)
         };
 
         private static JointData _defaultGripper = new JointData
@@ -58,11 +56,14 @@ namespace Logic
             }));
         }
 
-        public static Manipulator CreateDefaultManipulator(int linksNumber)
+        public static Manipulator CreateDefaultManipulator()
         {
             // set links' parameters
-            var links = new LinkData[linksNumber];
-            links.Fill(_defaultLink);
+            var links = new LinkData[_defaultLinksNumber];
+            links.Fill(new LinkData
+            {
+                Length = _defaultLinksLength
+            });
 
             // define model and collider for each link
             for (int i = 0; i < links.Length; i++)
@@ -72,7 +73,7 @@ namespace Logic
             }
 
             // set joints' parameters
-            var joints = new JointData[linksNumber + 1];
+            var joints = new JointData[_defaultLinksNumber + 1];
             joints.Fill(_defaultJoint);
             joints[joints.Length - 1] = _defaultGripper;
 
@@ -84,21 +85,21 @@ namespace Logic
             }
 
             // TODO: gripper collider is not affected by the initial transform; fix!
-            joints[linksNumber].Model = _defaultGripperModel.ShallowCopy();
-            joints[linksNumber].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.1f));
+            joints[_defaultLinksNumber].Model = _defaultGripperModel.ShallowCopy();
+            joints[_defaultLinksNumber].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.1f));
 
             // set joints' axes
-            var jointAxes = new Vector3[linksNumber + 1];
+            var jointAxes = new Vector3[_defaultLinksNumber + 1];
             jointAxes[0] = jointAxes[jointAxes.Length - 1] = Vector3.UnitY;
-            for (int i = 1; i < linksNumber; i++)
+            for (int i = 1; i < _defaultLinksNumber; i++)
             {
                 jointAxes[i] = /*Vector3.UnitX;*/ i % 2 == 0 ? Vector3.UnitZ : Vector3.UnitX;
             }
 
             // set joints' positions
-            var jointPositions = new Vector3[linksNumber + 1];
+            var jointPositions = new Vector3[_defaultLinksNumber + 1];
             jointPositions[0] = Vector3.Zero;
-            for (int i = 1; i < linksNumber + 1; i++)
+            for (int i = 1; i < _defaultLinksNumber + 1; i++)
             {
                 jointPositions[i] = jointPositions[i - 1] + ((joints[i - 1].Length + joints[i].Length) / 2 + links[i - 1].Length) * Vector3.UnitY;
             }
@@ -106,7 +107,7 @@ namespace Logic
             // create a default manipulator
             var manipulator = new Manipulator(new ManipData
             {
-                N = linksNumber,
+                N = _defaultLinksNumber,
                 Links = links,
                 Joints = joints,
                 JointAxes = jointAxes,

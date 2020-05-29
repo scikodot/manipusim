@@ -12,6 +12,8 @@ namespace Logic.PathPlanning
         protected static float _stepDefault = 0.04f;
         protected static bool _showTreeDefault = true;
         protected static bool _discardOutliersDefault = true;
+        protected static bool _enableTrimmingDefault = true;
+        protected static int _trimPeriodDefault = 1000;
 
         protected float _step;
         public ref float Step => ref _step;
@@ -22,21 +24,30 @@ namespace Logic.PathPlanning
         protected bool _discardOutliers;
         public ref bool DiscardOutliers => ref _discardOutliers;
 
+        protected bool _enableTrimming;
+        public ref bool EnableTrimming => ref _enableTrimming;
+
+        protected int _trimPeriod;
+        public ref int TrimPeriod => ref _trimPeriod;
+
         public Tree Tree { get; protected set; }
 
-        public RRT(int maxIterations, float threshold, bool collisionCheck, float step, bool showTree, bool discardOutliers) :
+        public RRT(int maxIterations, float threshold, bool collisionCheck, 
+            float step, bool showTree, bool discardOutliers, bool enableTrimming, int trimPeriod) : 
             base(maxIterations, threshold, collisionCheck)
         {
             _step = step;
             _threshold = threshold;
             _showTree = showTree;
             _discardOutliers = discardOutliers;
+            _enableTrimming = enableTrimming;
+            _trimPeriod = trimPeriod;
         }
 
         public static RRT Default()
         {
-            return new RRT(_maxIterationsDefault, _thresholdDefault, _collisionCheckDefault, _stepDefault,
-                _showTreeDefault, _discardOutliersDefault);
+            return new RRT(_maxIterationsDefault, _thresholdDefault, _collisionCheckDefault, 
+                _stepDefault, _showTreeDefault, _discardOutliersDefault, _enableTrimmingDefault, _trimPeriodDefault);
         }
 
         protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
@@ -47,6 +58,10 @@ namespace Logic.PathPlanning
             int iterations = 0;
             while (iterations++ < _maxIterations)
             {
+                // trim tree
+                if (_enableTrimming && iterations % _trimPeriod == 0)
+                    Tree.Trim(manipulator, solver);
+
                 // generate sample
                 Vector3 sample = RandomThreadStatic.NextPointSphere(manipulator.WorkspaceRadius) + manipulator.Base;
 
