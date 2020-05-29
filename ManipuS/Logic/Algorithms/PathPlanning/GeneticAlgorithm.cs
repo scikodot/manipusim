@@ -64,8 +64,8 @@ namespace Logic.PathPlanning
         private float _bezierStep;
         public ref float BezierStep => ref _bezierStep;
 
-        public GeneticAlgorithm(int maxIterations, bool collisionCheck, 
-            int offspringSize, int survivalSize, int bezierControlPointsCount, float bezierStep) : base(maxIterations, collisionCheck)
+        public GeneticAlgorithm(int maxIterations, float threshold, bool collisionCheck, 
+            int offspringSize, int survivalSize, int bezierControlPointsCount, float bezierStep) : base(maxIterations, threshold, collisionCheck)
         {
             _offspringSize = offspringSize;
             _survivalSize = survivalSize;
@@ -75,8 +75,8 @@ namespace Logic.PathPlanning
 
         public static GeneticAlgorithm Default()
         {
-            return new GeneticAlgorithm(_maxIterationsDefault, _collisionCheckDefault, _offspringSizeDefault, _survivalSizeDefault, 
-                _bezierControlPointsCountDefault, _bezierStepDefault);
+            return new GeneticAlgorithm(_maxIterationsDefault / 100, _thresholdDefault, _collisionCheckDefault, 
+                _offspringSizeDefault, _survivalSizeDefault, _bezierControlPointsCountDefault, _bezierStepDefault);
         }
 
         protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
@@ -224,6 +224,12 @@ namespace Logic.PathPlanning
         private float Rate(Path sample)
         {
             float score = 0;
+
+            // apply goal convergence criterion
+            _manipulator.q = sample.Last.q;
+            var distance = _manipulator.DistanceTo(_goal);
+            if (distance > _threshold)
+                score += distance - _threshold;
 
             // extract parameters' values from chromosome
             foreach (var node in sample.Nodes)

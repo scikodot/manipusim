@@ -446,6 +446,7 @@ namespace Graphics
                     // path planner properties
                     ImGui.Checkbox("Collision check", ref manipulator.Controller.PathPlanner.CollisionCheck);
                     ImGui.InputInt("Max iterations", ref manipulator.Controller.PathPlanner.MaxIterations);
+                    ImGui.InputFloat("Threshold", ref manipulator.Controller.PathPlanner.Threshold);
 
                     if (manipulator.Controller.PathPlanner is RRT rrt)
                     {
@@ -453,7 +454,6 @@ namespace Graphics
                         ImGui.Checkbox($"Show tree", ref rrt.ShowTree);
                         ImGui.Checkbox("Discard outliers", ref rrt.DiscardOutliers);
                         ImGui.InputFloat("Step", ref rrt.Step);
-                        ImGui.InputFloat("Threshold", ref rrt.Threshold);
 
                         if (rrt is ARRT arrt)
                         {

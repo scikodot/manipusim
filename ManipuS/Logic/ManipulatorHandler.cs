@@ -26,7 +26,7 @@ namespace Logic
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new Vector2(-180, 180)
+            qRanges = new Vector2(-90, 90)
         };
 
         private static LinkData _defaultLink = new LinkData

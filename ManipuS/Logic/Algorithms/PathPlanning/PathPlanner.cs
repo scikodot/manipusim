@@ -29,6 +29,7 @@ namespace Logic.PathPlanning
     public abstract class PathPlanner
     {
         protected static int _maxIterationsDefault = 10000;
+        protected static float _thresholdDefault = 0.04f;
         protected static bool _collisionCheckDefault = true;
 
         public static string[] Types { get; } = Enum.GetNames(typeof(PathPlannerType));
@@ -38,12 +39,16 @@ namespace Logic.PathPlanning
         protected int _maxIterations;
         public ref int MaxIterations => ref _maxIterations;
 
+        protected float _threshold;
+        public ref float Threshold => ref _threshold;
+
         protected bool _collisionCheck;
         public ref bool CollisionCheck => ref _collisionCheck;
 
-        protected PathPlanner(int maxIterations, bool collisionCheck)
+        protected PathPlanner(int maxIterations, float threshold, bool collisionCheck)
         {
             _maxIterations = maxIterations;
+            _threshold = threshold;
             _collisionCheck = collisionCheck;
 
             Type = (PathPlannerType)Enum.Parse(typeof(PathPlannerType), GetType().Name);

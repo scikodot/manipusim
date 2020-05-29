@@ -10,15 +10,11 @@ namespace Logic.PathPlanning
     public class RRT : PathPlanner
     {
         protected static float _stepDefault = 0.04f;
-        protected static float _thresholdDefault = 0.04f;
         protected static bool _showTreeDefault = true;
         protected static bool _discardOutliersDefault = true;
 
         protected float _step;
         public ref float Step => ref _step;
-
-        protected float _threshold;
-        public ref float Threshold => ref _threshold;
 
         protected bool _showTree;
         public ref bool ShowTree => ref _showTree;
@@ -28,8 +24,8 @@ namespace Logic.PathPlanning
 
         public Tree Tree { get; protected set; }
 
-        public RRT(int maxIterations, bool collisionCheck, float step, float threshold, bool showTree, bool discardOutliers) :
-            base(maxIterations, collisionCheck)
+        public RRT(int maxIterations, float threshold, bool collisionCheck, float step, bool showTree, bool discardOutliers) :
+            base(maxIterations, threshold, collisionCheck)
         {
             _step = step;
             _threshold = threshold;
@@ -39,7 +35,7 @@ namespace Logic.PathPlanning
 
         public static RRT Default()
         {
-            return new RRT(_maxIterationsDefault, _collisionCheckDefault, _stepDefault, _thresholdDefault,
+            return new RRT(_maxIterationsDefault, _thresholdDefault, _collisionCheckDefault, _stepDefault,
                 _showTreeDefault, _discardOutliersDefault);
         }
 

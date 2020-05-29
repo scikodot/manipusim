@@ -18,9 +18,9 @@ namespace Logic.PathPlanning
         protected int _trimPeriod;
         public ref int TrimPeriod => ref _trimPeriod;
 
-        public ARRT(Manipulator manipulator, int maxIterations, bool collisionCheck, float step, float threshold, 
+        public ARRT(Manipulator manipulator, int maxIterations, float threshold, bool collisionCheck, float step, 
             bool showTree, bool discardOutliers, int attractorsCount, int trimPeriod) : 
-            base(maxIterations, collisionCheck, step, threshold, showTree, discardOutliers)
+            base(maxIterations, threshold, collisionCheck, step, showTree, discardOutliers)
         {
             _attractorsCount = attractorsCount;
             _trimPeriod = trimPeriod;
@@ -32,7 +32,7 @@ namespace Logic.PathPlanning
 
         public static ARRT Default(Manipulator manipulator)
         {
-            return new ARRT(manipulator, _maxIterationsDefault, _collisionCheckDefault, _stepDefault, _thresholdDefault, 
+            return new ARRT(manipulator, _maxIterationsDefault, _thresholdDefault, _collisionCheckDefault, _stepDefault, 
                 _showTreeDefault, _discardOutliersDefault, _attractorsCountDefault, _trimPeriodDefault);
         }
 

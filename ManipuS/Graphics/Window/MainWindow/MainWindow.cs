@@ -511,32 +511,6 @@ namespace Graphics
 
                     ObstacleHandler.UpdateAnimate();
 
-                    //float dt;
-                    //if (forward)
-                    //{
-                    //    dt = (float)e.Time;
-                    //    if (time > 1)
-                    //        forward = false;
-                    //}
-                    //else
-                    //{
-                    //    dt = -(float)e.Time;
-                    //    if (time < -1)
-                    //        forward = true;
-                    //}
-                    //time += dt;
-
-                    //if (!ManipHandler.Manipulators.All(x => x.Controller.State == ControllerState.Finished))
-                    //{
-                    //    ObstacleHandler.Obstacles[0].Move(dt * System.Numerics.Vector3.UnitX);
-
-                    //    var center = ObstacleHandler.Obstacles[0].Collider.Body.CenterOfMassPosition;
-                    //    Console.SetCursorPosition(0, 10);
-                    //    Console.WriteLine("Center: ({0}, {1}, {2})", center.X, center.Y, center.Z);
-                    //    Manager.Obstacles[1].Move(dt * new Vector3(-1, 0, -1));
-                    //    Manager.Obstacles[2].Move(-dt * new Vector3(-1, -1, -1));
-                    //}
-
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
                         Manipulator manipulator = ManipulatorHandler.Manipulators[i];
@@ -564,11 +538,7 @@ namespace Graphics
 
                             GeneticAlgorithm.Locked = true;
 
-                            //var toAdd = GeneticAlgorithm.Dominant.Item2.AddBuffer.DequeueAll().ToList();
-                            //var toRemove = GeneticAlgorithm.Dominant.Item2.DelBuffer.DequeueAll().ToList();
-
-                            //_gaModels[i].AddNodes(toAdd);
-                            //_gaModels[i].RemoveNodes(toRemove);
+                            _gaModels[i].Update(GeneticAlgorithm.Dominant.Path);
 
                             _bezierPoints = new Model(GeneticAlgorithm.Dominant.BezierCurve.Points.Select(point => new MeshVertex
                             {

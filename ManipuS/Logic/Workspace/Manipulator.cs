@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using BulletSharp;
 using Graphics;
 using Logic.PathPlanning;
 using Physics;
@@ -66,7 +67,16 @@ namespace Logic
             set
             {
                 for (int i = 0; i < Joints.Length; i++)
-                    Joints[i].Coordinate = value[i];
+                {
+                    var jointLimits = Joints[i].CoordinateRange * MathUtil.SIMD_RADS_PER_DEG;
+
+                    if (value[i] > jointLimits.Y)
+                        Joints[i].Coordinate = jointLimits.Y;
+                    else if (value[i] < jointLimits.X)
+                        Joints[i].Coordinate = jointLimits.X;
+                    else
+                        Joints[i].Coordinate = value[i];
+                }
 
                 UpdateStateAnimate();
             }
@@ -90,10 +100,6 @@ namespace Logic
             }
 
             UpdateRelativeStates();
-
-            //q = MathNet.Numerics.LinearAlgebra.Vector<float>.Build.Dense(Joints.Select(x => x.Coordinate).ToArray());
-
-            //UpdateStateDesign();
 
             WorkspaceRadius = Links.Sum(link => link.Length) + 2 * Joints.Sum(joint => joint.Radius);
             
@@ -122,10 +128,10 @@ namespace Logic
                 yield return link.CollisionTest();
             }
 
-            //foreach (var joint in Joints)
-            //{
-            //    yield return joint.Collider.CollisionTest();
-            //}
+            foreach (var joint in Joints)
+            {
+                yield return joint.Collider.CollisionTest();
+            }
         }
 
         public void UpdateStateDesign()
