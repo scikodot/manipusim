@@ -20,7 +20,7 @@ namespace Logic.PathPlanning
         public float d;
     }
 
-    public struct PathPlanningResult
+    public struct PathPlanningResult  // TODO: add Converged field?
     {
         public int Iterations;
         public Path Path;

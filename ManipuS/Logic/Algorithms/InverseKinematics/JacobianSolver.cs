@@ -51,19 +51,21 @@ namespace Logic.InverseKinematics
             // TODO: check for oscillations (the error starts increasing) and break if they appear
             int iterations = 0;
             while (ErrorExceedsThreshold(manipulator, configuration, goal, joint, 
-                out ForwardKinematicsResult fkRes, out error) && iterations++ < _maxIterations)
+                out ForwardKinematicsResult fkRes, out error) && iterations < _maxIterations)
             {
                 // get generalized coordinates' offset
                 dq = GetCoordinateOffset(CreateJacobian(fkRes, joint), error);
 
                 // update configuration
                 configuration = configuration.AddSubVector(dq);
+
+                iterations++;
             }
 
             return new InverseKinematicsResult
             {
-                Converged = iterations <= _maxIterations,
-                Iterations = iterations - 1,
+                Converged = iterations <= _maxIterations && !JointLimitsExceeded(manipulator, configuration),
+                Iterations = iterations,
                 Configuration = configuration,
                 Error = error
             };

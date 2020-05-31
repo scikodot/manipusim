@@ -426,7 +426,7 @@ namespace Graphics
                     }
                     else if (manipulator.Controller.InverseKinematicsSolver is HillClimbing hillClimbing)
                     {
-                        ImGui.InputFloat("Step size", ref hillClimbing.StepSize);
+                        ImGui.InputFloat("Max step size", ref hillClimbing.MaxStepSize);
                     }
 
                     ImGui.EndTabItem();
@@ -466,7 +466,6 @@ namespace Graphics
                     {
                         ImGui.Text($"Tree size: {(rrt.Tree == null ? 0 : rrt.Tree.Count)} nodes");  // TODO: move to Statistics window
                         ImGui.Checkbox($"Show tree", ref rrt.ShowTree);
-                        ImGui.Checkbox("Discard outliers", ref rrt.DiscardOutliers);
                         ImGui.InputFloat("Step", ref rrt.Step);
                         ImGui.Checkbox("Enable trimming", ref rrt.EnableTrimming);
                         ImGui.InputInt("Trim period", ref rrt.TrimPeriod);

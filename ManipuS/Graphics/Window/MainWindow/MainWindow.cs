@@ -601,9 +601,9 @@ namespace Graphics
 
             // create new models for the manipulator goal, path and tree
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
-            _treeModels.Add(new TreeModel(10001, MeshMaterial.Black));
-            _pathModels.Add(new PathModel(10001, MeshMaterial.Red));
-            _gaModels.Add(new PathModel(10001, MeshMaterial.Black));
+            _treeModels.Add(new TreeModel(50001, MeshMaterial.Black));
+            _pathModels.Add(new PathModel(50001, MeshMaterial.Red));
+            _gaModels.Add(new PathModel(50001, MeshMaterial.Black));
         }
 
         public static void SwitchMode()

@@ -8,19 +8,19 @@ namespace Logic.InverseKinematics
 
     class HillClimbing : InverseKinematicsSolver
     {
-        protected static float _stepSizeDefault = 2;
+        protected static float _maxStepSizeDefault = 2;
 
-        protected float _stepSize;
-        public ref float StepSize => ref _stepSize;
+        protected float _maxStepSize;
+        public ref float MaxStepSize => ref _maxStepSize;
 
-        public HillClimbing(float threshold, int maxIterations, float stepSize) : base(threshold, maxIterations)
+        public HillClimbing(float threshold, int maxIterations, float maxStepSize) : base(threshold, maxIterations)
         {
-            _stepSize = stepSize;
+            _maxStepSize = maxStepSize;
         }
 
         public static HillClimbing Default()
         {
-            return new HillClimbing(_thresholdDefault, 10 * _maxIterationsDefault, _stepSizeDefault);
+            return new HillClimbing(_thresholdDefault, 10 * _maxIterationsDefault, _maxStepSizeDefault);
         }
 
         public override InverseKinematicsResult Execute(Manipulator manipulator, Vector3 goal, int joint = -1)  // TODO: refactor
@@ -36,17 +36,17 @@ namespace Logic.InverseKinematics
             float scale = 1;
 
             int iterations = 0;
-            while (distance > _threshold && iterations++ < _maxIterations)
+            while (distance > _threshold && iterations < _maxIterations)
             {
                 float range, stepNeg, stepPos;
                 for (int i = 0; i < joint; i++)
                 {
                     // checking coordinate constraints
                     range = manipulator.Joints[i].CoordinateRange.X - configuration[i] * MathUtil.SIMD_DEGS_PER_RAD;
-                    stepNeg = range <= -_stepSize ? -_stepSize : range;
+                    stepNeg = range <= -_maxStepSize ? -_maxStepSize : range;
 
                     range = manipulator.Joints[i].CoordinateRange.Y - configuration[i] * MathUtil.SIMD_DEGS_PER_RAD;
-                    stepPos = range >= _stepSize ? _stepSize : range;
+                    stepPos = range >= _maxStepSize ? _maxStepSize : range;
 
                     // generating random coordinate offset
                     dq[i] = (float)((stepNeg + RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * MathUtil.SIMD_RADS_PER_DEG);
@@ -68,12 +68,14 @@ namespace Logic.InverseKinematics
                     distance = distanceNew;
                     scale *= distanceNew / distance;
                 }
+
+                iterations++;
             }
 
             return new InverseKinematicsResult
             {
-                Converged = iterations <= _maxIterations,
-                Iterations = iterations - 1,
+                Converged = iterations <= _maxIterations && !JointLimitsExceeded(manipulator, configuration),
+                Iterations = iterations,
                 Configuration = configuration,
                 Error = error
             };

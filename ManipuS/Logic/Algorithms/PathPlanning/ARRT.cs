@@ -15,8 +15,8 @@ namespace Logic.PathPlanning
         public ref int AttractorsCount => ref _attractorsCount;        
 
         public ARRT(Manipulator manipulator, int maxIterations, float threshold, bool collisionCheck, 
-            float step, bool showTree, bool discardOutliers, bool enableTrimming, int trimPeriod, int attractorsCount) : 
-            base(maxIterations, threshold, collisionCheck, step, showTree, discardOutliers, enableTrimming, trimPeriod)
+            float step, bool showTree, bool enableTrimming, int trimPeriod, int attractorsCount) : 
+            base(maxIterations, threshold, collisionCheck, step, showTree, enableTrimming, trimPeriod)
         {
             _attractorsCount = attractorsCount;
 
@@ -28,42 +28,58 @@ namespace Logic.PathPlanning
         public static ARRT Default(Manipulator manipulator)
         {
             return new ARRT(manipulator, _maxIterationsDefault, _thresholdDefault, _collisionCheckDefault, 
-                _stepDefault, _showTreeDefault, _discardOutliersDefault, _enableTrimmingDefault, _trimPeriodDefault, _attractorsCountDefault);
+                _stepDefault, _showTreeDefault, _enableTrimmingDefault, _trimPeriodDefault, _attractorsCountDefault);
         }
 
         protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
         {
-            // recalculate attractors' weights
-            Attractor.RecalculateWeights(_attractors, manipulator, _threshold);
+            if (manipulator.DistanceTo(goal) < _threshold)
+                // the goal is already reached
+                return new PathPlanningResult
+                {
+                    Iterations = 0,
+                    Path = null
+                };
 
             // create new tree
             Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q));
 
+            // copy attractors
+            var attractors = new List<Attractor>(_attractors);
+
+            // recalculate attractors' weights
+            Attractor.RecalculateWeights(attractors, manipulator, _threshold);
+
             // sort attractors
-            _attractors = _attractors.OrderBy(a => a.Weight).ToList();
+            attractors = attractors.OrderBy(a => a.Weight).ToList();
 
             // create necessary locals
-            Attractor attractorFirst = _attractors.First();
-            Attractor attractorLast = _attractors.Last();  // TODO: last attractor has too big radius (~5 units for 0.04 step); fix!
+            Attractor attractorFirst = attractors.First();
+            Attractor attractorLast = attractors.Last();  // TODO: last attractor has too big radius (~5 units for 0.04 step); fix!
 
             float mu = attractorFirst.Weight;
-            float sigma = (attractorLast.Weight - attractorFirst.Weight) / 3.0f;
+            float sigma = (attractorLast.Weight - attractorFirst.Weight) / 2.0f;
+
+            List<float> weights = new List<float>();
 
             int iterations = 0;
-            while (iterations++ < _maxIterations)
+            while (iterations < _maxIterations)
             {
+                iterations++;
+
                 // trim tree
                 if (_enableTrimming && iterations % _trimPeriod == 0)
                     Tree.Trim(manipulator, solver);
 
                 // generate normally distributed weight
                 float num = RandomThreadStatic.NextGaussian(mu, sigma);
+                weights.Add(num);
 
                 // get the index of the most relevant attractor
-                int index = _attractors.IndexOfNearest(num, a => a.Weight);
+                int index = attractors.IndexOfNearest(num, a => a.Weight);
 
                 // get point of the obtained attractor
-                Vector3 sample = _attractors[index].Center;
+                Vector3 sample = attractors[index].Center;
 
                 // find the closest node to that attractor
                 Tree.Node nodeClosest = Tree.Closest(sample);
@@ -71,7 +87,7 @@ namespace Logic.PathPlanning
                 // get new tree node point
                 Vector3 point = nodeClosest.Point + Vector3.Normalize(sample - nodeClosest.Point) * _step;
 
-                if (!(_discardOutliers && ObstacleHandler.ContainmentTest(point, out _)))
+                if (!(_collisionCheck && ObstacleHandler.ContainmentTest(point, out _)))
                 {
                     // solve inverse kinematics for the new node
                     manipulator.q = nodeClosest.q;
@@ -83,24 +99,25 @@ namespace Logic.PathPlanning
                         // add node to the tree
                         Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.q);
                         Tree.AddNode(node);
-                    }
-                }
 
-                if (point.DistanceTo(_attractors[index].Center) < _attractors[index].Radius)
-                {
-                    if (index == 0)
-                        // stop in case the main attractor has been hit
-                        break;
-                    else
-                        // remove attractor if it has been hit
-                        _attractors.RemoveAt(index);
+                        // check exit condition
+                        if (point.DistanceTo(attractors[index].Center) < attractors[index].Radius)
+                        {
+                            if (index == 0)
+                                // stop in case the main attractor has been hit
+                                break;
+                            else
+                                // remove attractor if it has been hit
+                                attractors.RemoveAt(index);
+                        }
+                    }
                 }
             }
 
             // retrieve resultant path along with respective configurations
             return new PathPlanningResult
             {
-                Iterations = iterations - 1,
+                Iterations = iterations,
                 Path = Tree.GetPath(manipulator, Tree.Closest(goal))  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
             };
         }

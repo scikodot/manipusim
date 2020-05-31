@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BulletSharp;
+using System;
 using System.Numerics;
 
 namespace Logic.InverseKinematics
@@ -62,6 +63,18 @@ namespace Logic.InverseKinematics
             error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
 
             return errorPos.Length() > _threshold;
+        }
+
+        protected bool JointLimitsExceeded(Manipulator manipulator, VectorFloat configuration)
+        {
+            for (int i = 0; i < manipulator.Joints.Length; i++)
+            {
+                if (configuration[i] < manipulator.Joints[i].CoordinateRange.X * MathUtil.SIMD_RADS_PER_DEG || 
+                    configuration[i] > manipulator.Joints[i].CoordinateRange.Y * MathUtil.SIMD_RADS_PER_DEG)
+                    return true;
+            }
+
+            return false;
         }
 
         public abstract InverseKinematicsResult Execute(Manipulator manipulator, Vector3 goal, int joint = -1);

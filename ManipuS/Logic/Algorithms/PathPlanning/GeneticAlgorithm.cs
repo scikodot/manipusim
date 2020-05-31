@@ -81,6 +81,14 @@ namespace Logic.PathPlanning
 
         protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
         {
+            if (manipulator.DistanceTo(goal) < _threshold)
+                // the goal is already reached
+                return new PathPlanningResult
+                {
+                    Iterations = 0,
+                    Path = null
+                };
+
             _manipulator = manipulator;
             _initialConfiguration = manipulator.q;
             _solver = solver;
