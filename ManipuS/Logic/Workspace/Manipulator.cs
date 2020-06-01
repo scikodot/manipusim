@@ -208,6 +208,16 @@ namespace Logic
                     quatRel *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
                 }
 
+                //var quatRotAbs = i == 0 ?
+                //    ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis) :
+                //    ImpDualQuat.Align(Joints[i - 1].InitialAxis, Joints[i].InitialAxis);
+
+                //var offsetAbs = i == 0 ? Joints[i].InitialPosition : Joints[i].InitialPosition - Joints[i - 1].InitialPosition;
+                //var quatTransAbs = new ImpDualQuat(offsetAbs);
+                //var quatAbs = quatTransAbs * quatRotAbs;
+
+                //quatRel = quat * quatAbs * quat.Conjugate;
+
                 RelativeStates[i] = quatRel;
 
                 // track the current state

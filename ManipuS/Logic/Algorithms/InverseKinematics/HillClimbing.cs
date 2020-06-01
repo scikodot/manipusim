@@ -33,24 +33,24 @@ namespace Logic.InverseKinematics
             var errorPos = goal - manipulator.Joints[joint].Position;
             var error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
             float distance = errorPos.Length();
-            float scale = 1;
+            float maxStepSize, scale = 1;
 
             int iterations = 0;
             while (distance > _threshold && iterations < _maxIterations)
             {
+                maxStepSize = _maxStepSize * scale;
                 float range, stepNeg, stepPos;
                 for (int i = 0; i < joint; i++)
                 {
                     // checking coordinate constraints
                     range = manipulator.Joints[i].CoordinateRange.X - configuration[i] * MathUtil.SIMD_DEGS_PER_RAD;
-                    stepNeg = range <= -_maxStepSize ? -_maxStepSize : range;
+                    stepNeg = range <= -maxStepSize ? -maxStepSize : range;
 
                     range = manipulator.Joints[i].CoordinateRange.Y - configuration[i] * MathUtil.SIMD_DEGS_PER_RAD;
-                    stepPos = range >= _maxStepSize ? _maxStepSize : range;
+                    stepPos = range >= maxStepSize ? maxStepSize : range;
 
                     // generating random coordinate offset
                     dq[i] = (float)((stepNeg + RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * MathUtil.SIMD_RADS_PER_DEG);
-                    dq[i] *= scale;
                 }
 
                 // get the new configuration

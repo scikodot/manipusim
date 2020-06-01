@@ -502,7 +502,7 @@ namespace Graphics
                         foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
                         {
                             if (joint.Active)
-                                joint.Coordinate += 0.016f;
+                                joint.InitialCoordinate += 0.016f;
                         }
                     }
 
