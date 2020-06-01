@@ -192,31 +192,31 @@ namespace Logic
 
             for (int i = 0; i < Joints.Length; i++)  // TODO: move to DirectKinematics() methods?
             {
-                var offsetAbs = i == 0 ? Joints[i].InitialPosition : Joints[i].InitialPosition - Joints[i - 1].InitialPosition;
-                var offsetRel = i == 0 ? offsetAbs : quat.Conjugate.Rotate(offsetAbs);
-                quatRel = new ImpDualQuat(offsetRel);
-
-                if (i == 0)
-                    quatRel *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
-                else
-                {
-                    // orientation of the joint should not change when the previous joints' axes are changed;
-                    // to maintain this, we have to reset the orientation of the current joint
-                    quatRel *= quat.Conjugate.WithoutTranslation();
-
-                    // and align the joint with its axis
-                    quatRel *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
-                }
-
-                //var quatRotAbs = i == 0 ?
-                //    ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis) :
-                //    ImpDualQuat.Align(Joints[i - 1].InitialAxis, Joints[i].InitialAxis);
-
                 //var offsetAbs = i == 0 ? Joints[i].InitialPosition : Joints[i].InitialPosition - Joints[i - 1].InitialPosition;
-                //var quatTransAbs = new ImpDualQuat(offsetAbs);
-                //var quatAbs = quatTransAbs * quatRotAbs;
+                //var offsetRel = i == 0 ? offsetAbs : quat.Conjugate.Rotate(offsetAbs);
+                //quatRel = new ImpDualQuat(offsetRel);
 
-                //quatRel = quat * quatAbs * quat.Conjugate;
+                //if (i == 0)
+                //    quatRel *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
+                //else
+                //{
+                //    // orientation of the joint should not change when the previous joints' axes are changed;
+                //    // to maintain this, we have to reset the orientation of the current joint
+                //    quatRel *= quat.Conjugate.WithoutTranslation();
+
+                //    // and align the joint with its axis
+                //    quatRel *= ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis);
+                //}
+
+                var quatRotAbs = i == 0 ?
+                    ImpDualQuat.Align(Vector3.UnitY, Joints[i].InitialAxis) :
+                    ImpDualQuat.Align(Joints[i - 1].InitialAxis, Joints[i].InitialAxis);
+
+                var offsetAbs = i == 0 ? Joints[i].InitialPosition : Joints[i].InitialPosition - Joints[i - 1].InitialPosition;
+                var quatTransAbs = new ImpDualQuat(offsetAbs);
+                var quatAbs = quatTransAbs * quatRotAbs;
+
+                quatRel = quat.Conjugate.WithoutTranslation() * quatAbs * quat.WithoutTranslation();
 
                 RelativeStates[i] = quatRel;
 
