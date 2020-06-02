@@ -97,7 +97,7 @@ namespace Graphics
             PollKeyboard(window, camera, keyboardState, e);
 
             // poll the screen for events
-            PollScreen(window);
+            PollScreen(window, keyboardState);
         }
 
         private static void PollMouse(GameWindow window, Camera camera, MouseState mouseState)
@@ -257,13 +257,16 @@ namespace Graphics
             }
         }
 
-        private static void PollScreen(GameWindow window)
+        private static void PollScreen(GameWindow window, KeyboardState keyboardState)
         {
-            if (Capture)  // TODO: try to implement an event-based system
-            {
+            if (keyboardState.IsKeyDown(Key.K))
                 CaptureScreenshot(window);
-                Capture = false;
-            }
+
+            //if (Capture)  // TODO: try to implement an event-based system
+            //{
+            //    CaptureScreenshot(window);
+            //    Capture = false;
+            //}
         }
 
         public static void CaptureScreenshot(GameWindow window)

@@ -48,9 +48,9 @@ namespace Logic.PathPlanning
         private InverseKinematicsSolver _solver;
         private Vector3 _goal;
 
-        public static volatile Chromosome Dominant;
-        public static volatile bool Locked;
-        public static volatile bool Changed;
+        public volatile Chromosome Dominant;
+        public volatile bool Locked;
+        public volatile bool Changed;
 
         private int _offspringSize;
         public ref int OffspringSize => ref _offspringSize;
@@ -65,7 +65,8 @@ namespace Logic.PathPlanning
         public ref float BezierStep => ref _bezierStep;
 
         public GeneticAlgorithm(int maxIterations, float threshold, bool collisionCheck, 
-            int offspringSize, int survivalSize, int bezierControlPointsCount, float bezierStep) : base(maxIterations, threshold, collisionCheck)
+            int offspringSize, int survivalSize, int bezierControlPointsCount, float bezierStep) : 
+            base(maxIterations, threshold, collisionCheck)
         {
             _offspringSize = offspringSize;
             _survivalSize = survivalSize;
@@ -94,7 +95,6 @@ namespace Logic.PathPlanning
             _solver = solver;
             _goal = goal;
 
-            int generationsCount = 0;
             var generation = new List<Chromosome>();
 
             // get initial solution
@@ -109,13 +109,14 @@ namespace Logic.PathPlanning
             // evolve generations
             Console.SetCursorPosition(0, 10);
             Console.WriteLine("Starting genetic algorithm...");
-            while (generation[0].Weight > 0 && generationsCount++ < _maxIterations)
+            Iterations = 0;
+            while (generation[0].Weight > 0 && Iterations++ < _maxIterations)
             {
                 // get new generation
                 generation = Evolve(generation, _offspringSize, _survivalSize);
 
                 Console.SetCursorPosition(0, 11);
-                Console.WriteLine($"Generations passed: {generationsCount}");
+                Console.WriteLine($"Generations passed: {Iterations}");
                 Console.WriteLine($"Best fit: {generation[0].Weight}");
 
                 if (!Locked)
@@ -134,7 +135,7 @@ namespace Logic.PathPlanning
 
             return new PathPlanningResult
             {
-                Iterations = generationsCount - 1,
+                Iterations = Iterations - 1,
                 Path = generation[0].Path
             };
         }
@@ -252,14 +253,17 @@ namespace Logic.PathPlanning
 
                 if (_optimizationCriteria.HasFlag(OptimizationCriteria.CollisionFree))
                 {
-                    if (ObstacleHandler.ContainmentTest(currPos, out _))
+                    if (_collisionCheck)
                     {
-                        pointWeight += 1;
-                    }
+                        if (ObstacleHandler.ContainmentTest(currPos, out _))
+                        {
+                            pointWeight += 1;
+                        }
 
-                    if (_manipulator.CollisionTest().Contains(true))
-                    {
-                        pointWeight += 1;
+                        if (_manipulator.CollisionTest().Contains(true))
+                        {
+                            pointWeight += 1;
+                        }
                     }
 
                     criteriaCount++;

@@ -12,7 +12,7 @@ namespace Logic.PathPlanning
         protected List<Attractor> _attractors;
 
         protected int _attractorsCount;
-        public ref int AttractorsCount => ref _attractorsCount;        
+        public ref int AttractorsCount => ref _attractorsCount;
 
         public ARRT(Manipulator manipulator, int maxIterations, float threshold, bool collisionCheck, 
             float step, bool showTree, bool enableTrimming, int trimPeriod, int attractorsCount) : 
@@ -62,13 +62,13 @@ namespace Logic.PathPlanning
 
             List<float> weights = new List<float>();
 
-            int iterations = 0;
-            while (iterations < _maxIterations)
+            Iterations = 0;
+            while (Iterations < _maxIterations)
             {
-                iterations++;
+                Iterations++;
 
                 // trim tree
-                if (_enableTrimming && iterations % _trimPeriod == 0)
+                if (_enableTrimming && Iterations % _trimPeriod == 0)
                     Tree.Trim(manipulator, solver);
 
                 // generate normally distributed weight
@@ -117,7 +117,7 @@ namespace Logic.PathPlanning
             // retrieve resultant path along with respective configurations
             return new PathPlanningResult
             {
-                Iterations = iterations,
+                Iterations = Iterations,
                 Path = Tree.GetPath(manipulator, Tree.Closest(goal))  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
             };
         }

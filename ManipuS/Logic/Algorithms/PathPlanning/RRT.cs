@@ -9,10 +9,11 @@ namespace Logic.PathPlanning
 {
     public class RRT : PathPlanner
     {
-        protected static float _stepDefault = 0.04f;
-        protected static bool _showTreeDefault = true;
+        protected static bool _showTreeDefault = true;  // TODO: make constants?
         protected static bool _enableTrimmingDefault = true;
+        protected static float _stepDefault = 0.04f;
         protected static int _trimPeriodDefault = 1000;
+        protected const int _goalBiasPeriodDefault = 100;
 
         protected float _step;
         public ref float Step => ref _step;
@@ -26,10 +27,13 @@ namespace Logic.PathPlanning
         protected int _trimPeriod;
         public ref int TrimPeriod => ref _trimPeriod;
 
+        protected int _goalBiasPeriod;
+        public ref int GoalBiasPeriod => ref _goalBiasPeriod;
+
         public Tree Tree { get; protected set; }
 
         public RRT(int maxIterations, float threshold, bool collisionCheck, 
-            float step, bool showTree, bool enableTrimming, int trimPeriod) : 
+            float step, bool showTree, bool enableTrimming, int trimPeriod, int goalBiasPeriod = _goalBiasPeriodDefault) : 
             base(maxIterations, threshold, collisionCheck)
         {
             _threshold = threshold;
@@ -37,6 +41,7 @@ namespace Logic.PathPlanning
             _showTree = showTree;
             _enableTrimming = enableTrimming;
             _trimPeriod = trimPeriod;
+            _goalBiasPeriod = goalBiasPeriod;
         }
 
         public static RRT Default()
@@ -58,17 +63,23 @@ namespace Logic.PathPlanning
             // create new tree
             Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q));
 
-            int iterations = 0;
-            while (iterations < _maxIterations)
+            Iterations = 0;
+            while (Iterations < _maxIterations)
             {
-                iterations++;
+                Iterations++;
 
                 // trim tree
-                if (_enableTrimming && iterations % _trimPeriod == 0)
+                if (_enableTrimming && Iterations % _trimPeriod == 0)
                     Tree.Trim(manipulator, solver);
 
-                // generate sample
-                Vector3 sample = RandomThreadStatic.NextPointSphere(manipulator.WorkspaceRadius) + manipulator.Base;
+                // get sample point
+                Vector3 sample;
+                if (Iterations % _goalBiasPeriod == 0)
+                    // use goal bias
+                    sample = goal;
+                else
+                    // generate sample
+                    sample = RandomThreadStatic.NextPointSphere(manipulator.WorkspaceRadius) + manipulator.Base;
 
                 // find the closest node to the generated sample point
                 Tree.Node nodeClosest = Tree.Closest(sample);
@@ -99,7 +110,7 @@ namespace Logic.PathPlanning
             // retrieve resultant path along with respective configurations
             return new PathPlanningResult
             {
-                Iterations = iterations,
+                Iterations = Iterations,
                 Path = Tree.GetPath(manipulator, Tree.Closest(goal))  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
             };
         }

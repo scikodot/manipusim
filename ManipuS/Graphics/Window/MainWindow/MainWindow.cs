@@ -389,12 +389,15 @@ namespace Graphics
         #region UPDATE
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
+            // update framerate in title
+            Title = $"ManipuSim | Framerate: {ImGui.GetIO().Framerate : 0.0}";
+
             // update physics controller
             PhysicsHandler.Update((float)e.Time);
-            Console.SetCursorPosition(0, 5);
-            Console.Write("                                                        ");
-            Console.SetCursorPosition(0, 5);
-            Console.WriteLine($"{ObstacleHandler.Obstacles[0].Collider.Body.ActivationState}");
+            //Console.SetCursorPosition(0, 5);
+            //Console.Write("                                                        ");
+            //Console.SetCursorPosition(0, 5);
+            //Console.WriteLine($"{ObstacleHandler.Obstacles[0].Collider.Body.ActivationState}");
 
             //if (ManipulatorHandler.Count > 0)
             //{
@@ -531,21 +534,23 @@ namespace Graphics
                             // update tree model state
                             _treeModels[i].Update(rrt.Tree);
                         }
-
-                        if (GeneticAlgorithm.Dominant != null && GeneticAlgorithm.Dominant.Path != null && GeneticAlgorithm.Changed)
+                        else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
                         {
-                            _gaModels[i].Reset();
-
-                            GeneticAlgorithm.Locked = true;
-
-                            _gaModels[i].Update(GeneticAlgorithm.Dominant.Path);
-
-                            _bezierPoints = new Model(GeneticAlgorithm.Dominant.BezierCurve.Points.Select(point => new MeshVertex
+                            if (geneticAlgorithm.Dominant != null && geneticAlgorithm.Dominant.Path != null && geneticAlgorithm.Changed)
                             {
-                                Position = point.ToOpenTK()
-                            }).ToArray(), material: MeshMaterial.Red);
+                                _gaModels[i].Reset();
 
-                            GeneticAlgorithm.Locked = GeneticAlgorithm.Changed = false;
+                                geneticAlgorithm.Locked = true;
+
+                                _gaModels[i].Update(geneticAlgorithm.Dominant.Path);
+
+                                _bezierPoints = new Model(geneticAlgorithm.Dominant.BezierCurve.Points.Select(point => new MeshVertex
+                                {
+                                    Position = point.ToOpenTK()
+                                }).ToArray(), material: MeshMaterial.Red);
+
+                                geneticAlgorithm.Locked = geneticAlgorithm.Changed = false;
+                            }
                         }
                     }
 
@@ -638,6 +643,9 @@ namespace Graphics
 
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
+            if (e.KeyChar == 'p')
+                SwitchMode();
+
             _imGui.PressChar(e.KeyChar);
 
             base.OnKeyPress(e);

@@ -20,6 +20,7 @@ namespace Graphics
         private static bool _swapPropertiesWindows;
         private static int _selectedPathIndex = -1;
         private static Path.Node _selectedPoint;
+        private static int _selectedStatIndex = -1;
 
         public MainWindowImGui(MainWindow mainWindow) : base(mainWindow) { }
 
@@ -28,7 +29,7 @@ namespace Graphics
             // update GUI
             Update((float)e.Time);
 
-            ImGui.ShowDemoWindow();
+            //ImGui.ShowDemoWindow();
 
             // GUI viewport
             GL.Viewport(0, 0, Window.Width, Window.Height);
@@ -44,11 +45,15 @@ namespace Graphics
             RenderMenu();
             RenderManipulatorsWindow();
             RenderObstaclesWindow();
-            RenderOptionsWindow();
+            //RenderOptionsWindow();
 
             if (MainWindow.Mode == InteractionMode.Design)
             {
                 RenderPropertiesWindow();
+            }
+            else
+            {
+                RenderStatisticsWindow();
             }
 
             // render controller and check for errors
@@ -72,11 +77,30 @@ namespace Graphics
 
                         ImGui.EndMenu();
                     }
+
                     if (ImGui.MenuItem("Save as..."))
                     {
 
                     }
 
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("Edit"))
+                {
+
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("View"))
+                {
+
+
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("Extra"))
+                {
                     if (ImGui.MenuItem("BenchmarkIK"))
                     {
                         Benchmark.RunInverseKinematics();
@@ -106,11 +130,21 @@ namespace Graphics
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, 19));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.375 * (Window.Height - 19))));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.5 * (Window.Height - 19))));
 
                 if (ImGui.Button("Create"))
                 {
                     ImGui.OpenPopup("ManipulatorCreate");
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button("Remove"))
+                {
+                    if (InputHandler.CurrentSelectedObject is Manipulator manipulator)
+                    {
+                        ManipulatorHandler.Remove(manipulator);
+                    }
                 }
 
                 if (ImGui.BeginPopup("ManipulatorCreate"))
@@ -211,12 +245,23 @@ namespace Graphics
                 ImGuiWindowFlags.NoResize |
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.375 * (Window.Height - 19) + 19)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.375 * (Window.Height - 19))));
+                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.5 * (Window.Height - 19) + 19)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.5 * (Window.Height - 19))));
 
                 if (ImGui.Button("Create"))
                 {
                     ImGui.OpenPopup("ObstacleCreate");
+                }
+
+                ImGui.SameLine();
+
+                if (ImGui.Button("Remove"))
+                {
+                    if (InputHandler.CurrentSelectedObject is Obstacle obstacle)
+                    {
+                        ObstacleHandler.Remove(obstacle);
+                        InputHandler.ClearSelection();
+                    }
                 }
 
                 if (ImGui.BeginPopup("ObstacleCreate"))
@@ -266,64 +311,64 @@ namespace Graphics
         #endregion
 
         #region OPTIONS_WINDOW
-        private void RenderOptionsWindow()
-        {
-            // options and info window
-            if (ImGui.Begin("Options & Info",
-                ImGuiWindowFlags.NoCollapse |
-                ImGuiWindowFlags.NoMove |
-                ImGuiWindowFlags.NoResize))
-            {
-                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.75 * (Window.Height - 19) + 19)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.25 * (Window.Height - 19))));
+        //private void RenderOptionsWindow()
+        //{
+        //    // options and info window
+        //    if (ImGui.Begin("Options & Info",
+        //        ImGuiWindowFlags.NoCollapse |
+        //        ImGuiWindowFlags.NoMove |
+        //        ImGuiWindowFlags.NoResize))
+        //    {
+        //        ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.75 * (Window.Height - 19) + 19)));
+        //        ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.25 * (Window.Height - 19))));
 
-                string targetMode;
-                switch (MainWindow.Mode)
-                {
-                    case InteractionMode.Animate:
-                    case InteractionMode.ToDesign:
-                        targetMode = "Design";
-                        break;
-                    case InteractionMode.Design:
-                    case InteractionMode.ToAnimate:
-                        targetMode = "Animate";
-                        break;
-                    default:
-                        throw new ArgumentException("The given mode is unsupported!", "MainWindow.Mode");
-                }
+        //        string targetMode;
+        //        switch (MainWindow.Mode)
+        //        {
+        //            case InteractionMode.Animate:
+        //            case InteractionMode.ToDesign:
+        //                targetMode = "Design";
+        //                break;
+        //            case InteractionMode.Design:
+        //            case InteractionMode.ToAnimate:
+        //                targetMode = "Animate";
+        //                break;
+        //            default:
+        //                throw new ArgumentException("The given mode is unsupported!", "MainWindow.Mode");
+        //        }
 
-                if (ImGui.Button(targetMode))
-                {
-                    MainWindow.SwitchMode();
-                }
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SameLine();
-                    ImGui.TextWrapped("Switch between design/animate modes");
-                }
+        //        if (ImGui.Button(targetMode))
+        //        {
+        //            MainWindow.SwitchMode();
+        //        }
+        //        if (ImGui.IsItemHovered())
+        //        {
+        //            ImGui.SameLine();
+        //            ImGui.TextWrapped("Switch between design/animate modes");
+        //        }
 
-                if (ImGui.Button("Screenshot"))
-                {
-                    // inform the input handler that the window capture has been queried
-                    InputHandler.Capture = true;
-                }
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SameLine();
-                    ImGui.TextWrapped("Takes a picture of the entire window");
-                }
+        //        //if (ImGui.Button("Screenshot"))
+        //        //{
+        //        //    // inform the input handler that the window capture has been queried
+        //        //    InputHandler.Capture = true;
+        //        //}
+        //        //if (ImGui.IsItemHovered())
+        //        //{
+        //        //    ImGui.SameLine();
+        //        //    ImGui.TextWrapped("Takes a picture of the entire window");
+        //        //}
 
-                // savepath for captured screenshot
-                ImGui.InputText("Savepath", ref InputHandler.ScreenshotsPath, 100);
-                InputHandler.TextIsEdited = ImGui.IsItemActive();
+        //        //// savepath for captured screenshot
+        //        //ImGui.InputText("Savepath", ref InputHandler.ScreenshotsPath, 100);
+        //        //InputHandler.TextIsEdited = ImGui.IsItemActive();
 
-                // application current framerate
-                ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Window.Height - 8 - ImGui.CalcTextSize("Framerate:").Y));
-                ImGui.Text(string.Format("Framerate: {0:F1} FPS", ImGui.GetIO().Framerate));
+        //        // application current framerate
+        //        ImGui.SetCursorScreenPos(new System.Numerics.Vector2(8, Window.Height - 8 - ImGui.CalcTextSize("Framerate:").Y));
+        //        ImGui.Text(string.Format("Framerate: {0:F1} FPS", ImGui.GetIO().Framerate));
 
-                ImGui.End();
-            }
-        }
+        //        ImGui.End();
+        //    }
+        //}
         #endregion
 
         #region PROPERTIES_WINDOW
@@ -372,7 +417,6 @@ namespace Graphics
 
         private void ManipulatorProperties(Manipulator manipulator)
         {
-            ImGui.Text($"Time spent: {manipulator.Controller.Timer.ElapsedMilliseconds / 1000.0f} s");  // TODO: move to Statistics window
             ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
             ImGui.InputFloat3("Goal", ref manipulator.Goal);
 
@@ -464,7 +508,6 @@ namespace Graphics
 
                     if (manipulator.Controller.PathPlanner is RRT rrt)
                     {
-                        ImGui.Text($"Tree size: {(rrt.Tree == null ? 0 : rrt.Tree.Count)} nodes");  // TODO: move to Statistics window
                         ImGui.Checkbox($"Show tree", ref rrt.ShowTree);
                         ImGui.InputFloat("Step", ref rrt.Step);
                         ImGui.Checkbox("Enable trimming", ref rrt.EnableTrimming);
@@ -473,6 +516,10 @@ namespace Graphics
                         if (rrt is ARRT arrt)
                         {
                             ImGui.InputInt("Attractors count", ref arrt.AttractorsCount);
+                        }
+                        else
+                        {
+                            ImGui.InputInt("Goal bias period", ref rrt.GoalBiasPeriod);
                         }
                     }
                     else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
@@ -500,7 +547,7 @@ namespace Graphics
 
         private void JointProperties(Joint joint)
         {
-            ImGui.Checkbox("Activate", ref joint.Active);  // TODO: for debug use only
+            //ImGui.Checkbox("Activate", ref joint.Active);  // TODO: for debug use only
 
             ImGui.Checkbox("Show collider", ref joint.ShowCollider);
 
@@ -520,31 +567,40 @@ namespace Graphics
 
         private void LinkProperties(Link link)
         {
-            if (ImGui.BeginTabBar("LinkTabs"))
+            ImGui.Checkbox("Show collider", ref link.ShowCollider);
+
+            // TODO: add length property
+            if (link.Collider is CylinderCollider cylinder)
             {
-                if (ImGui.BeginTabItem("Model"))
-                {
-                    // TODO: add model related properties
-
-                    ImGui.EndTabItem();
-                }
-
-                if (ImGui.BeginTabItem("Collider"))
-                {
-                    ImGui.Checkbox("Show collider", ref link.ShowCollider);
-
-                    // TODO: add length property
-                    if (link.Collider is CylinderCollider cylinder)
-                    {
-                        ImGui.InputFloat("Radius", ref cylinder.Radius);
-                        ImGui.InputFloat("Half length", ref cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
-                    }
-
-                    ImGui.EndTabItem();
-                }
-
-                ImGui.EndTabBar();
+                ImGui.InputFloat("Radius", ref cylinder.Radius);
+                ImGui.InputFloat("Half length", ref cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
             }
+
+            //if (ImGui.BeginTabBar("LinkTabs"))
+            //{
+            //    if (ImGui.BeginTabItem("Model"))
+            //    {
+            //        // TODO: add model related properties
+
+            //        ImGui.EndTabItem();
+            //    }
+
+            //    if (ImGui.BeginTabItem("Collider"))
+            //    {
+            //        ImGui.Checkbox("Show collider", ref link.ShowCollider);
+
+            //        // TODO: add length property
+            //        if (link.Collider is CylinderCollider cylinder)
+            //        {
+            //            ImGui.InputFloat("Radius", ref cylinder.Radius);
+            //            ImGui.InputFloat("Half length", ref cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
+            //        }
+
+            //        ImGui.EndTabItem();
+            //    }
+
+            //    ImGui.EndTabBar();
+            //}
         }
 
         private void ObstacleProperties(Obstacle obstacle)
@@ -560,6 +616,8 @@ namespace Graphics
                 if (ImGui.BeginTabItem("Shape"))
                 {
                     ImGui.Text($"Shape type: {obstacle.Shape}");
+
+                    ImGui.Separator();
 
                     if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
                     {
@@ -614,7 +672,8 @@ namespace Graphics
                         Path.Node current = obstacle.Path.First.Child;
                         int selectedIndex = -1;
                         ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
-                        if (ImGui.BeginChild("ObstaclePath", new System.Numerics.Vector2(quarterWidth, ImGui.GetContentRegionAvail().Y), true))
+                        if (ImGui.BeginChild("ObstaclePath", new System.Numerics.Vector2(quarterWidth, ImGui.GetContentRegionAvail().Y), true,
+                            ImGuiWindowFlags.HorizontalScrollbar))
                         {
                             while (current != null)
                             {
@@ -675,6 +734,79 @@ namespace Graphics
         private void SwapPropertiesWindows()
         {
             _swapPropertiesWindows = !_swapPropertiesWindows;
+        }
+        #endregion
+
+        #region STATISTICS_WINDOW
+        private void RenderStatisticsWindow()
+        {
+            if (ImGui.Begin("Statistics",
+                    ImGuiWindowFlags.NoCollapse |
+                    ImGuiWindowFlags.NoMove |
+                    ImGuiWindowFlags.NoResize |
+                    ImGuiWindowFlags.HorizontalScrollbar))
+            {
+                // set position and size of the window
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Width), (int)(0.7 * Window.Height)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.3 * Window.Width - 2), (int)(0.3 * Window.Height)));
+
+                if (ManipulatorHandler.Count > 0)
+                {
+                    var quarterWidth = 0.25f * ImGui.GetWindowContentRegionWidth();
+
+                    int selectedIndex = -1;
+                    ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
+                    if (ImGui.BeginChild("ManipulatorStat", new System.Numerics.Vector2(quarterWidth, ImGui.GetContentRegionAvail().Y), true,
+                        ImGuiWindowFlags.HorizontalScrollbar))
+                    {
+                        foreach (var manipulator in ManipulatorHandler.Manipulators)
+                        {
+                            if (ImGui.Selectable($"Manip {++selectedIndex}"))
+                            {
+                                _selectedStatIndex = selectedIndex;
+                            }
+                        }
+
+                        ImGui.EndChild();
+                    }
+
+                    ImGui.SameLine();
+
+                    ImGui.BeginGroup();
+
+                    if (_selectedStatIndex != -1)
+                    {
+                        ImGui.Text($"Manipulator {_selectedStatIndex}");
+
+                        ImGui.Separator();
+
+                        RenderAlgorithmStatistics(ManipulatorHandler.Manipulators[_selectedStatIndex]);
+                    }
+
+                    ImGui.EndGroup();
+                }
+                else
+                {
+                    ImGui.Text("No manipulators on the scene.");
+                }
+            }
+        }
+
+        private void RenderAlgorithmStatistics(Manipulator manipulator)
+        {
+            ImGui.Text($"Iterations: {manipulator.Controller.PathPlanner.Iterations}");
+            ImGui.Text($"Time: {manipulator.Controller.Timer.Elapsed.TotalSeconds : 0.000} s");
+
+            ImGui.Separator();
+
+            if (manipulator.Controller.PathPlanner is RRT rrt)
+            {
+                ImGui.Text($"Tree size: {(rrt.Tree == null ? 0 : rrt.Tree.Count)} vertices");
+            }
+            else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
+            {
+                ImGui.Text($"Dominant weight: {(geneticAlgorithm.Dominant == null ? float.PositiveInfinity : geneticAlgorithm.Dominant.Weight) : 0.000}");
+            }
         }
         #endregion
 

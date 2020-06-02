@@ -90,6 +90,10 @@ namespace Logic
         {
             // execute path planning
             var ppRes = PathPlanner.Run(Manipulator, goal, InverseKinematicsSolver);
+
+            // stop measuring planning time
+            Timer.Stop();
+
             Manipulator.Path = ppRes.Path;
 
             // start motion control if a path has been found

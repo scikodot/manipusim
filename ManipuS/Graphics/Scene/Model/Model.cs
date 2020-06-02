@@ -6,6 +6,7 @@ using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
 using System.Linq;
+using MoreLinq;
 
 namespace Graphics
 {
@@ -21,7 +22,7 @@ namespace Graphics
     public class Model : IDisposable
     {
         private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
-        public List<Mesh> Meshes { get; } = new List<Mesh>();
+        public List<Mesh> Meshes { get; private set; } = new List<Mesh>();
         public bool IsSetup => Meshes.All(mesh => mesh.IsSetup);
 
         public string Directory { get; private set; }  // TODO: remove
@@ -248,7 +249,16 @@ namespace Graphics
 
         public Model ShallowCopy()
         {
-            return (Model)MemberwiseClone();
+            var model = (Model)MemberwiseClone();
+
+            // copy all meshes
+            model.Meshes = new List<Mesh>();
+            for (int i = 0; i < Meshes.Count; i++)
+            {
+                model.Meshes.Add(Meshes[i].DeepCopy());
+            }
+
+            return model;
         }
 
         public void Dispose()  // TODO: fix finalization, it seems to be not proper

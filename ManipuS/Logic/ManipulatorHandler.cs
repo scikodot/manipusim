@@ -133,7 +133,8 @@ namespace Logic
 
         public static void Remove(Manipulator manipulator)
         {
-            // TODO: implement
+            if (Manipulators.Remove(manipulator))
+                manipulator.Dispose();
         }
 
         //public static void Initialize()
