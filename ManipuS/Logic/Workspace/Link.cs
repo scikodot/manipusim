@@ -16,7 +16,7 @@ namespace Logic
 
     public class Link : IDisposable, ISelectable
     {
-        public Model Model { get; }
+        public Model Model { get; private set; }
         public Collider Collider { get; private set; }
 
         public float Length => 2 * (Collider as CylinderCollider).HalfLength;  // TODO: perhaps optimize? or use another approach?
@@ -51,6 +51,7 @@ namespace Logic
         {
             var link = (Link)MemberwiseClone();
 
+            link.Model = Model.DeepCopy();
             link.Collider = Collider.DeepCopy();
 
             return link;

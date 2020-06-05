@@ -62,6 +62,8 @@ namespace Logic.PathPlanning
             {
                 return RunAbstract(manipulatorCopy, goal, solver);
             }
+
+            //return RunAbstract(manipulator, goal, solver);
         }
 
         protected abstract PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver);

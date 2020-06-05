@@ -161,7 +161,7 @@ namespace Logic.PathPlanning
 
         private Path ConstructPath(BezierCurve bezierCurve, float step)  // TODO: refactor!
         {
-            // reset agent
+            // reset manipulator
             _manipulator.q = _initialConfiguration;
 
             float counter = 0;

@@ -50,6 +50,8 @@ namespace Graphics
         private static Collider[] _dummyColliders;
         private static Thread[] _dummyTasks;
 
+        public static bool enter;
+
         //private static GhostObject ghostObject;
         //private static Model ghostObjectModel;
         //private static GhostPairCallback ghostCallback;
@@ -158,7 +160,7 @@ namespace Graphics
             //    }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
             //}
 
-            ObstacleHandler.AddDefault(ObstacleShape.Sphere);
+            //ObstacleHandler.AddDefault(ObstacleShape.Sphere);
 
             //ObstacleHandler.Add(new Obstacle(Primitives.Sphere(0.5f, 100, 100, new MeshMaterial
             //{
@@ -604,6 +606,12 @@ namespace Graphics
         {
             var manipulator = ManipulatorHandler.CreateDefaultManipulator();
 
+            //Task.Run(() =>
+            //{
+            //    var solver = DampedLeastSquares.Default();
+            //    solver.Execute(manipulator, manipulator.Goal);
+            //});
+
             // create new models for the manipulator goal, path and tree
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
             _treeModels.Add(new TreeModel(50001, MeshMaterial.Black));
@@ -645,6 +653,9 @@ namespace Graphics
         {
             if (e.KeyChar == 'p')
                 SwitchMode();
+
+            if (e.KeyChar == 'h')
+                enter = true;
 
             _imGui.PressChar(e.KeyChar);
 

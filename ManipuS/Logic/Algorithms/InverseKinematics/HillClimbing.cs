@@ -8,7 +8,7 @@ namespace Logic.InverseKinematics
 
     class HillClimbing : InverseKinematicsSolver
     {
-        protected static float _maxStepSizeDefault = 2;
+        protected static float _maxStepSizeDefault = 180;
 
         protected float _maxStepSize;
         public ref float MaxStepSize => ref _maxStepSize;
@@ -20,7 +20,7 @@ namespace Logic.InverseKinematics
 
         public static HillClimbing Default()
         {
-            return new HillClimbing(_thresholdDefault, 10 * _maxIterationsDefault, _maxStepSizeDefault);
+            return new HillClimbing(_thresholdDefault, 10 * _maxIterationsDefault,  _maxStepSizeDefault);
         }
 
         public override InverseKinematicsResult Execute(Manipulator manipulator, Vector3 goal, int joint = -1)  // TODO: refactor
@@ -33,14 +33,16 @@ namespace Logic.InverseKinematics
             var errorPos = goal - manipulator.Joints[joint].Position;
             var error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
             float distance = errorPos.Length();
-            float maxStepSize, scale = 1;
+            float maxStepSize = _maxStepSize, scale = 1;
 
             int iterations = 0;
             while (distance > _threshold && iterations < _maxIterations)
             {
-                maxStepSize = _maxStepSize * scale;
+                errorMod.Add(error.L2Norm());
+                configs.Add(VectorFloat.Build.DenseOfVector(configuration));
+
                 float range, stepNeg, stepPos;
-                for (int i = 0; i < joint; i++)
+                for (int i = 0; i <= joint; i++)
                 {
                     // checking coordinate constraints
                     range = manipulator.Joints[i].CoordinateRange.X - configuration[i] * MathUtil.SIMD_DEGS_PER_RAD;
@@ -50,11 +52,12 @@ namespace Logic.InverseKinematics
                     stepPos = range >= maxStepSize ? maxStepSize : range;
 
                     // generating random coordinate offset
-                    dq[i] = (float)((stepNeg + RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * MathUtil.SIMD_RADS_PER_DEG);
+                    dq[i] = (stepNeg + (float)RandomThreadStatic.NextDouble() * (stepPos - stepNeg)) * MathUtil.SIMD_RADS_PER_DEG;
                 }
 
                 // get the new configuration
-                var configurationNew = configuration.AddSubVector(dq);
+                var configurationNew = VectorFloat.Build.DenseOfVector(configuration);
+                configurationNew.AddSubVector(dq);
                 var fkRes = manipulator.ForwardKinematics(configurationNew);
 
                 float distanceNew = fkRes.JointPositions[joint].DistanceTo(goal);
@@ -65,8 +68,10 @@ namespace Logic.InverseKinematics
                     errorPos = goal - fkRes.JointPositions[joint];
                     error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
 
-                    distance = distanceNew;
                     scale *= distanceNew / distance;
+                    distance = distanceNew;
+
+                    maxStepSize = _maxStepSize * scale;
                 }
 
                 iterations++;
@@ -74,7 +79,7 @@ namespace Logic.InverseKinematics
 
             return new InverseKinematicsResult
             {
-                Converged = iterations <= _maxIterations && !JointLimitsExceeded(manipulator, configuration),
+                Converged = iterations < _maxIterations && !JointLimitsExceeded(manipulator, configuration),
                 Iterations = iterations,
                 Configuration = configuration,
                 Error = error

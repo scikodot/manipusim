@@ -39,7 +39,7 @@ namespace Logic
 
     public class Joint : IDisposable, ISelectable, ITranslatable  // TODO: consider using abstract class Selectable instead of interface
     {
-        public Model Model { get; }
+        public Model Model { get; private set; }
         public Collider Collider { get; private set; }
 
         public float Radius => (Collider as SphereCollider).Radius;
@@ -110,6 +110,7 @@ namespace Logic
         {
             var joint = (Joint)MemberwiseClone();
 
+            joint.Model = Model.DeepCopy();
             joint.Collider = Collider.DeepCopy();
 
             return joint;

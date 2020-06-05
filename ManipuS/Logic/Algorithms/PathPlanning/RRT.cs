@@ -10,10 +10,10 @@ namespace Logic.PathPlanning
     public class RRT : PathPlanner
     {
         protected static bool _showTreeDefault = true;  // TODO: make constants?
-        protected static bool _enableTrimmingDefault = true;
+        protected static bool _enableTrimmingDefault = false;
         protected static float _stepDefault = 0.04f;
         protected static int _trimPeriodDefault = 1000;
-        protected const int _goalBiasPeriodDefault = 100;
+        protected const int _goalBiasPeriodDefault = 50;
 
         protected float _step;
         public ref float Step => ref _step;

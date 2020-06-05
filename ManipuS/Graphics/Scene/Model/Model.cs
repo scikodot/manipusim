@@ -247,7 +247,7 @@ namespace Graphics
             return texture;
         }
 
-        public Model ShallowCopy()
+        public Model DeepCopy()
         {
             var model = (Model)MemberwiseClone();
 

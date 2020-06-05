@@ -1,5 +1,6 @@
 ﻿using BulletSharp;
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace Logic.InverseKinematics
@@ -33,7 +34,7 @@ namespace Logic.InverseKinematics
     public abstract class InverseKinematicsSolver
     {
         protected static float _thresholdDefault = 0.02f;
-        protected static int _maxIterationsDefault = 50;
+        protected static int _maxIterationsDefault = 100;
 
         public static string[] Types { get; } = Enum.GetNames(typeof(InverseKinematicsSolverType));
 
@@ -44,6 +45,9 @@ namespace Logic.InverseKinematics
 
         protected int _maxIterations;
         public ref int MaxIterations => ref _maxIterations;
+
+        public List<double> errorMod = new List<double>();
+        public List<VectorFloat> configs = new List<VectorFloat>();
 
         protected InverseKinematicsSolver(float threshold, int maxIterations)
         {

@@ -29,7 +29,7 @@ namespace Logic
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new Vector2(-120, 120)
+            qRanges = new Vector2(-180, 180)
         };
 
         private static JointData _defaultGripper = new JointData
@@ -68,7 +68,7 @@ namespace Logic
             // define model and collider for each link
             for (int i = 0; i < links.Length; i++)
             {
-                links[i].Model = _defaultLinkModel.ShallowCopy();
+                links[i].Model = _defaultLinkModel.DeepCopy();
                 links[i].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 0.5f, 0.15f));
             }
 
@@ -80,12 +80,12 @@ namespace Logic
             // define model and collider for each joint
             for (int i = 0; i < joints.Length - 1; i++)
             {
-                joints[i].Model = _defaultJointModel.ShallowCopy();
+                joints[i].Model = _defaultJointModel.DeepCopy();
                 joints[i].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
             }
 
             // TODO: gripper collider is not affected by the initial transform; fix!
-            joints[_defaultLinksNumber].Model = _defaultGripperModel.ShallowCopy();
+            joints[_defaultLinksNumber].Model = _defaultGripperModel.DeepCopy();
             joints[_defaultLinksNumber].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.1f));
 
             // set joints' axes

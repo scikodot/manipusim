@@ -1,5 +1,7 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.Remoting;
+using Graphics;
 using MathNet.Numerics.LinearAlgebra;
 
 namespace Logic.InverseKinematics
@@ -22,8 +24,8 @@ namespace Logic.InverseKinematics
             for (int i = 0; i <= joint; i++)
             {
                 var elem = Vector3.Cross(fkRes.JointAxes[i], jointPos - fkRes.JointPositions[i]);
-                if (elem != Vector3.Zero)
-                    elem = Vector3.Normalize(elem);  // TODO: any use of normalization?
+                //if (elem != Vector3.Zero)
+                //    elem = Vector3.Normalize(elem);  // TODO: any use of normalization?
 
                 data[i] = new float[]
                 {
@@ -53,18 +55,26 @@ namespace Logic.InverseKinematics
             while (ErrorExceedsThreshold(manipulator, configuration, goal, joint, 
                 out ForwardKinematicsResult fkRes, out error) && iterations < _maxIterations)
             {
+                errorMod.Add(error.L2Norm());
+                configs.Add(VectorFloat.Build.DenseOfVector(configuration));
+
                 // get generalized coordinates' offset
                 dq = GetCoordinateOffset(CreateJacobian(fkRes, joint), error);
 
                 // update configuration
-                configuration = configuration.AddSubVector(dq);
+                configuration.AddSubVector(dq);
+
+                //for (int i = 0; i < manipulator.Joints.Length; i++)
+                //{
+                //    manipulator.Joints[i].InitialCoordinate = configuration[i];
+                //}
 
                 iterations++;
             }
 
             return new InverseKinematicsResult
             {
-                Converged = iterations <= _maxIterations && !JointLimitsExceeded(manipulator, configuration),
+                Converged = iterations < _maxIterations && !JointLimitsExceeded(manipulator, configuration),
                 Iterations = iterations,
                 Configuration = configuration,
                 Error = error

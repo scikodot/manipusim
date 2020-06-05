@@ -185,6 +185,20 @@ namespace Logic.PathPlanning
             return Current;
         }
 
+        public float GetLength()
+        {
+            float length = 0;
+            Node current = First;
+            int lastIndex = current.Points.Length - 1;
+            while (current.Child != null)
+            {
+                length += current.Points[lastIndex].DistanceTo(current.Child.Points[lastIndex]);
+                current = current.Child;
+            }
+
+            return length;
+        }
+
         public void Reset()
         {
             Current = First;
