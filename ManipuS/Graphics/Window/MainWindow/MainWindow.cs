@@ -38,10 +38,10 @@ namespace Graphics
     {
         private static Camera _camera;
 
-        private static readonly List<Model> _goalModels = new List<Model>();  // TODO: consider distributing to the appropriate classes and checking whether the types (Model, etc.) are available at runtime
-        private static readonly List<TreeModel> _treeModels = new List<TreeModel>();
-        private static readonly List<PathModel> _pathModels = new List<PathModel>();
-        private static readonly List<PathModel> _gaModels = new List<PathModel>();
+        public static readonly List<Model> _goalModels = new List<Model>();  // TODO: consider distributing to the appropriate classes and checking whether the types (Model, etc.) are available at runtime
+        public static readonly List<TreeModel> _treeModels = new List<TreeModel>();
+        public static readonly List<PathModel> _pathModels = new List<PathModel>();
+        public static readonly List<PathModel> _gaModels = new List<PathModel>();
         private static Model _bezierPoints;
 
         private static float time = 0;

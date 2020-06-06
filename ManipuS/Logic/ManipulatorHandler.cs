@@ -117,7 +117,7 @@ namespace Logic
             });
 
             var solver = DampedLeastSquares.Default();
-            var planner = GeneticAlgorithm.Default(); /*ARRT.Default(manipulator);*/
+            var planner = /*GeneticAlgorithm.Default();*/ ARRT.Default(manipulator);
             manipulator.Controller = new MotionController(manipulator, planner, solver);
 
             // add manipulator to the list
@@ -133,8 +133,27 @@ namespace Logic
 
         public static void Remove(Manipulator manipulator)
         {
+            int index = Manipulators.IndexOf(manipulator);
             if (Manipulators.Remove(manipulator))
+            {
                 manipulator.Dispose();
+
+                // remove goal model
+                MainWindow._goalModels[index].Dispose();
+                MainWindow._goalModels.RemoveAt(index);
+
+                // remove goal model
+                MainWindow._treeModels[index].Dispose();
+                MainWindow._treeModels.RemoveAt(index);
+
+                // remove goal model
+                MainWindow._pathModels[index].Dispose();
+                MainWindow._pathModels.RemoveAt(index);
+
+                // remove goal model
+                MainWindow._gaModels[index].Dispose();
+                MainWindow._gaModels.RemoveAt(index);
+            }
         }
 
         //public static void Initialize()

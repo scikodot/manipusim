@@ -26,10 +26,10 @@ namespace Logic
         {
             var attractors = new List<Attractor>();
 
-            // adding goal attractor
-            Vector3 attrPoint = manipulator.Goal;
+            //// adding goal attractor
+            //Vector3 attrPoint = manipulator.Goal;
 
-            attractors.Add(new Attractor(attrPoint));
+            //attractors.Add(new Attractor(attrPoint));
 
             // adding ancillary attractors
             while (attractors.Count < count)
@@ -41,7 +41,7 @@ namespace Logic
                 if (!(discardOutliers && ObstacleHandler.ContainmentTest(point, out _)))  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
                 {
                     // adding attractor to the list
-                    attrPoint = point;
+                    Vector3 attrPoint = point;
                     attractors.Add(new Attractor(attrPoint));
                 }
             }

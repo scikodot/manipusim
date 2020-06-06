@@ -29,7 +29,7 @@ namespace Graphics
 
         private static void Main()
         {
-            int desWidth = 1200, desHeight = 800;
+            int desWidth = 1600, desHeight = 750/*800*/;
 
             // Retrieve screen scaling factor
             float scale = GetScalingFactor();

@@ -42,7 +42,7 @@ namespace Graphics
             GL.Disable(EnableCap.ScissorTest);
 
             // render all the necessary windows
-            RenderMenu();
+            //RenderMenu();
             RenderManipulatorsWindow();
             RenderObstaclesWindow();
             //RenderOptionsWindow();
@@ -53,7 +53,7 @@ namespace Graphics
             }
             else
             {
-                RenderStatisticsWindow();
+                //RenderStatisticsWindow();
             }
 
             // render controller and check for errors

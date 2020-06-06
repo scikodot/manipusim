@@ -45,8 +45,9 @@ namespace Logic.PathPlanning
             // create new tree
             Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q));
 
-            // copy attractors
-            var attractors = new List<Attractor>(_attractors);
+            // define local attractors as the goal attractor and copies of static attractors
+            var attractors = new List<Attractor>() { new Attractor(goal) };
+            attractors.AddRange(_attractors);
 
             // recalculate attractors' weights
             Attractor.RecalculateWeights(attractors, manipulator, _threshold);

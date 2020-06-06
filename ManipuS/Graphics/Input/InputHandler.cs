@@ -29,7 +29,7 @@ namespace Graphics
         public static string JointPath => SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
         public static string GripperPath => SolutionDirectory + @"\Resources\Models\manipulator\Gripper.obj";
 
-        private static string _screenshotsPath = SolutionDirectory + @"\Screenshots";
+        private static string _screenshotsPath = SolutionDirectory + @"\Screenshot";
         public static ref string ScreenshotsPath => ref _screenshotsPath;
 
         // variables for mouse state processing
@@ -260,7 +260,7 @@ namespace Graphics
         private static void PollScreen(GameWindow window, KeyboardState keyboardState)
         {
             if (keyboardState.IsKeyDown(Key.K))
-                CaptureScreenshot(window);
+                CaptureScreenFull(window);
 
             //if (Capture)  // TODO: try to implement an event-based system
             //{
@@ -269,23 +269,33 @@ namespace Graphics
             //}
         }
 
-        public static void CaptureScreenshot(GameWindow window)
+        public static void CaptureScreenFull(GameWindow window)
+        {
+            CaptureScreenArea(0, 0, window.Width, window.Height);
+        }
+
+        public static void CaptureScreenWorkspace(GameWindow window)
+        {
+            CaptureScreenArea((int)(0.25 * window.Width), 0, (int)(0.75 * window.Width), window.Height);
+        }
+
+        private static void CaptureScreenArea(int x, int y, int width, int height)
         {
             // taking a picture of a viewport
-            byte[,,] img = new byte[window.Height, window.Width, 3];
-            GL.ReadPixels(0, 0, window.Width, window.Height, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, img);
+            byte[,,] img = new byte[height, width, 3];
+            GL.ReadPixels(x, y, width, height, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, img);
 
             System.Threading.Tasks.Task.Run(() =>
             {
                 // create a bitmap representing captured screenshot
-                var bitmap = new Bitmap(window.Width, window.Height);
+                var bitmap = new Bitmap(width, height);
 
                 // write all captured data to that bitmap
-                for (int i = 0; i < window.Height; i++)
+                for (int i = 0; i < height; i++)
                 {
-                    for (int j = 0; j < window.Width; j++)
+                    for (int j = 0; j < width; j++)
                     {
-                        bitmap.SetPixel(j, window.Height - 1 - i, Color.FromArgb(img[i, j, 0], img[i, j, 1], img[i, j, 2]));
+                        bitmap.SetPixel(j, height - 1 - i, Color.FromArgb(img[i, j, 0], img[i, j, 1], img[i, j, 2]));
                     }
                 }
 
