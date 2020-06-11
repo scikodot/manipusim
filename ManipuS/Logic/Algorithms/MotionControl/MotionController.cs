@@ -7,6 +7,7 @@ using System;
 using System.Threading;
 using System.Linq;
 using Assimp;
+using System.Threading.Tasks;
 
 namespace Logic
 {
@@ -31,6 +32,7 @@ namespace Logic
         public ControllerState State { get; private set; } = ControllerState.Idle;
         public Stopwatch Timer { get; } = new Stopwatch();
         public Thread Thread { get; private set; }
+        public Task Task { get; private set; }
 
         public MotionController(Manipulator agent, PathPlanner pathPlanner, InverseKinematicsSolver planSolver)
         {
@@ -45,18 +47,21 @@ namespace Logic
             UpdateThread();
 
             // run thread
-            Thread.Start();
+            Task.Start();
+            //Thread.Start();
         }
 
         public void Abort()
         {
-            if (State == ControllerState.Running)
-                Thread.Abort();
+            // TODO: implement
+
+            //if (State == ControllerState.Running)
+            //    Thread.Abort();
         }
 
         private void UpdateThread()
         {
-            Thread = new Thread(() =>  // TODO: consider changing to Tasks
+            Task = new Task(() => /*Thread = new Thread(() =>*/  // TODO: consider changing to Tasks
             {
                 try
                 {

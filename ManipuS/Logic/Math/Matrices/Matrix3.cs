@@ -126,10 +126,10 @@ namespace Logic
             return new Matrix3(m.Row0 / s, m.Row1 / s, m.Row2 / s);
         }
 
-        public static implicit operator OpenTK.Matrix3(Matrix3 m) => new OpenTK.Matrix3(m.Row0.X, m.Row0.Y, m.Row0.Z,
+        public static implicit operator OpenToolkit.Mathematics.Matrix3(Matrix3 m) => new OpenToolkit.Mathematics.Matrix3(m.Row0.X, m.Row0.Y, m.Row0.Z,
                                                                                         m.Row1.X, m.Row1.Y, m.Row1.Z,
                                                                                         m.Row2.X, m.Row2.Y, m.Row2.Z);
-        public static implicit operator Matrix3(OpenTK.Matrix3 m) => new Matrix3(m.Row0.X, m.Row0.Y, m.Row0.Z,
+        public static implicit operator Matrix3(OpenToolkit.Mathematics.Matrix3 m) => new Matrix3(m.Row0.X, m.Row0.Y, m.Row0.Z,
                                                                                  m.Row1.X, m.Row1.Y, m.Row1.Z,
                                                                                  m.Row2.X, m.Row2.Y, m.Row2.Z);
 

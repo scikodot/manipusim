@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Runtime.InteropServices;
 
-using OpenTK;
-using OpenTK.Graphics.OpenGL4;
+using OpenToolkit.Graphics.OpenGL4;
+using OpenToolkit.Mathematics;
 
 namespace Graphics
 {
@@ -221,9 +221,12 @@ namespace Graphics
             // TODO: check for disposed; see documentation
 
             // clear unmanaged resources
-            GL.DeleteVertexArray(VAO);
-            GL.DeleteBuffer(VBO);
-            GL.DeleteBuffer(EBO);
+            Dispatcher.RenderActions.Enqueue(() =>
+            {
+                GL.DeleteVertexArray(VAO);
+                GL.DeleteBuffer(VBO);
+                GL.DeleteBuffer(EBO);
+            });
 
             Console.WriteLine($"Disposed mesh: VAO - {VAO}, VBO - {VBO}");
         }

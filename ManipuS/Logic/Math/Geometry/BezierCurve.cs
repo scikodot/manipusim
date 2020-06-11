@@ -222,7 +222,7 @@ namespace Logic
 
             foreach (var point in points)
             {
-                temp = OpenTK.MathHelper.BinomialCoefficient
+                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient
                 (
                     points.Count - 1, i) * (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 1 - i)
                 );
@@ -271,7 +271,7 @@ namespace Logic
 
             foreach (var point in points)
             {
-                temp = OpenTK.MathHelper.BinomialCoefficient
+                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient
                 (
                     points.Count - 2, i) * (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 2 - i)
                 );

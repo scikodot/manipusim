@@ -125,9 +125,9 @@ public static class Vector3Extensions
         return (v2 - v1).Length();
     }
 
-    public static OpenTK.Vector3 ToOpenTK(this Vector3 vec)
+    public static OpenToolkit.Mathematics.Vector3 ToOpenTK(this Vector3 vec)
     {
-        return new OpenTK.Vector3(vec.X, vec.Y, vec.Z);
+        return new OpenToolkit.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
     }
 
     public static Vector3 Sum(this IEnumerable<Vector3> source)
@@ -138,12 +138,12 @@ public static class Vector3Extensions
 
 public static class VectorConversionExtensions
 {
-    public static BulletSharp.Math.Vector4 ToBullet4(this OpenTK.Vector4 vec)
+    public static BulletSharp.Math.Vector4 ToBullet4(this OpenToolkit.Mathematics.Vector4 vec)
     {
         return new BulletSharp.Math.Vector4(vec.X, vec.Y, vec.Z, vec.W);
     }
 
-    public static BulletSharp.Math.Vector3 ToBullet3(this OpenTK.Vector4 vec)
+    public static BulletSharp.Math.Vector3 ToBullet3(this OpenToolkit.Mathematics.Vector4 vec)
     {
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
     }
@@ -153,17 +153,17 @@ public static class VectorConversionExtensions
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static System.Numerics.Vector4 ToNumerics4(this OpenTK.Vector4 vec)
+    public static System.Numerics.Vector4 ToNumerics4(this OpenToolkit.Mathematics.Vector4 vec)
     {
         return new Vector4(vec.X, vec.Y, vec.Z, vec.W);
     }
 
-    public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Vector4 vec)
+    public static System.Numerics.Vector3 ToNumerics3(this OpenToolkit.Mathematics.Vector4 vec)
     {
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Vector3 vec)
+    public static System.Numerics.Vector3 ToNumerics3(this OpenToolkit.Mathematics.Vector3 vec)
     {
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
@@ -173,12 +173,12 @@ public static class VectorConversionExtensions
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static OpenTK.Vector3 ToOpenTK3(this BulletSharp.Math.Vector3 vec)
+    public static OpenToolkit.Mathematics.Vector3 ToOpenTK3(this BulletSharp.Math.Vector3 vec)
     {
-        return new OpenTK.Vector3(vec.X, vec.Y, vec.Z);
+        return new OpenToolkit.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static System.Numerics.Vector2 ToNumerics2(this OpenTK.Vector2 vec)
+    public static System.Numerics.Vector2 ToNumerics2(this OpenToolkit.Mathematics.Vector2 vec)
     {
         return new Vector2(vec.X, vec.Y);
     }

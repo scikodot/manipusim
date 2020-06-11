@@ -1,10 +1,12 @@
-﻿using ImGuiNET;
-using OpenTK;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Input;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+
+using ImGuiNET;
+using OpenToolkit.Graphics.OpenGL4;
+using OpenToolkit.Mathematics;
+using OpenToolkit.Windowing.Common.Input;
+using OpenToolkit.Windowing.Desktop;
 
 namespace Graphics
 {
@@ -175,37 +177,37 @@ void main()
         {
             ImGuiIOPtr io = ImGui.GetIO();
             io.DisplaySize = new System.Numerics.Vector2(
-                Window.Width/*_windowWidth*/ / _scaleFactor.X,
-                Window.Height/*_windowHeight*/ / _scaleFactor.Y);
+                Window.Size.X/*_windowWidth*/ / _scaleFactor.X,
+                Window.Size.Y/*_windowHeight*/ / _scaleFactor.Y);
             io.DisplayFramebufferScale = _scaleFactor;
             io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
         }
 
-        MouseState PrevMouseState;
-        KeyboardState PrevKeyboardState;
         readonly List<char> PressedChars = new List<char>();
+        private Vector2 MouseScroll;
 
         private void UpdateImGuiInput()
         {
             ImGuiIOPtr io = ImGui.GetIO();
 
-            MouseState MouseState = Mouse.GetCursorState();
-            KeyboardState KeyboardState = Keyboard.GetState();
+            MouseState MouseState = Window.MouseState;
+            KeyboardState KeyboardState = Window.KeyboardState;
 
-            io.MouseDown[0] = MouseState.LeftButton == ButtonState.Pressed;
-            io.MouseDown[1] = MouseState.RightButton == ButtonState.Pressed;
-            io.MouseDown[2] = MouseState.MiddleButton == ButtonState.Pressed;
+            io.MouseDown[0] = MouseState.IsButtonDown(MouseButton.Left);
+            io.MouseDown[1] = MouseState.IsButtonDown(MouseButton.Right);
+            io.MouseDown[2] = MouseState.IsButtonDown(MouseButton.Middle);
 
-            var screenPoint = new System.Drawing.Point(MouseState.X, MouseState.Y);
-            var point = Window.PointToClient(screenPoint);
+            var point = new Vector2i((int)MouseState.X, (int)MouseState.Y);  // TODO: check
+
             io.MousePos = new System.Numerics.Vector2(point.X, point.Y);
-
-            io.MouseWheel = MouseState.Scroll.Y - PrevMouseState.Scroll.Y;
-            io.MouseWheelH = MouseState.Scroll.X - PrevMouseState.Scroll.X;
+            io.MouseWheel = MouseScroll.Y;
+            io.MouseWheelH = MouseScroll.X;
+            MouseScroll = Vector2.Zero;
 
             foreach (Key key in Enum.GetValues(typeof(Key)))
             {
-                io.KeysDown[(int)key] = KeyboardState.IsKeyDown(key);
+                if (key != Key.Unknown)
+                    io.KeysDown[(int)key] = KeyboardState.IsKeyDown(key);
             }
 
             foreach (var c in PressedChars)
@@ -218,14 +220,16 @@ void main()
             io.KeyAlt = KeyboardState.IsKeyDown(Key.AltLeft) || KeyboardState.IsKeyDown(Key.AltRight);
             io.KeyShift = KeyboardState.IsKeyDown(Key.ShiftLeft) || KeyboardState.IsKeyDown(Key.ShiftRight);
             io.KeySuper = KeyboardState.IsKeyDown(Key.WinLeft) || KeyboardState.IsKeyDown(Key.WinRight);
-
-            PrevMouseState = MouseState;
-            PrevKeyboardState = KeyboardState;
         }
 
         internal void PressChar(char keyChar)
         {
             PressedChars.Add(keyChar);
+        }
+
+        internal void Scroll(Vector2 scroll)
+        {
+            MouseScroll = scroll;
         }
 
         private void SetKeyMappings()
@@ -345,7 +349,7 @@ void main()
 
                         // We do _windowHeight - (int)clip.W instead of (int)clip.Y because gl has flipped Y when it comes to these coordinates
                         var clip = pcmd.ClipRect;
-                        GL.Scissor((int)clip.X, Window.Height/*_windowHeight*/ - (int)clip.W, (int)(clip.Z - clip.X), (int)(clip.W - clip.Y));
+                        GL.Scissor((int)clip.X, Window.Size.Y/*_windowHeight*/ - (int)clip.W, (int)(clip.Z - clip.X), (int)(clip.W - clip.Y));
                         Util.CheckGLError("Scissor");
 
                         GL.DrawElementsBaseVertex(PrimitiveType.Triangles, (int)pcmd.ElemCount, DrawElementsType.UnsignedShort, (IntPtr)(idx_offset * sizeof(ushort)), vtx_offset);

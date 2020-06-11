@@ -1,9 +1,7 @@
 ﻿using BulletSharp;
-using OpenTK;
 
 using Physics;
-using System.Collections;
-using System.Collections.Generic;
+
 using Vector3 = System.Numerics.Vector3;
 
 namespace Graphics
@@ -19,7 +17,7 @@ namespace Graphics
 
         void Render(Shader shader);
 
-        void UpdateState(ref Matrix4 state);
+        void UpdateState(ref OpenToolkit.Mathematics.Matrix4 state);
     }
 
     public interface ISelectable  // TODO: consider switching to abstract class Selectable

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-using OpenTK.Graphics.OpenGL4;
+using OpenToolkit.Graphics.OpenGL4;
 
 using Logic.PathPlanning;
 using Logic;
@@ -63,7 +63,7 @@ namespace Graphics
                 uint index = _freeIndices.Count == 0 ? _freeTop++ : _freeIndices.Dequeue();
                 Model.Meshes[0].UpdateVertices(index, 1, new MeshVertex[]
                 {
-                    new MeshVertex { Position = new OpenTK.Vector3(point.X, point.Y, point.Z) }
+                    new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
                 });
 
                 // memoize the index of the node for later use
@@ -92,7 +92,7 @@ namespace Graphics
                 // change the node point presented in the vertex buffer
                 Model.Meshes[0].UpdateVertices(node.ID, 1, new MeshVertex[]
                 {
-                    new MeshVertex { Position = new OpenTK.Vector3(point.X, point.Y, point.Z) }
+                    new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
                 });
             }
         }

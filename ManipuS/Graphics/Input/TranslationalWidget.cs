@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using OpenTK;
-using OpenTK.Input;
+using OpenToolkit.Mathematics;
+using OpenToolkit.Windowing.Common.Input;
 
 using MoreLinq;
 using Logic;
 
-using Matrix4 = OpenTK.Matrix4;
+using Matrix4 = OpenToolkit.Mathematics.Matrix4;
 
 namespace Graphics
 {
@@ -101,12 +101,12 @@ namespace Graphics
 
             public Vector3 Poll(Camera camera, Ray ray, MouseState currState, MouseState prevState)  // TODO: optimize
             {
-                if (currState.LeftButton == ButtonState.Pressed && prevState.LeftButton == ButtonState.Released)
+                if (currState.IsButtonDown(MouseButton.Left) && prevState.IsButtonUp(MouseButton.Left))
                 {
                     // button was pressed ---> start transformation
                     Active = true;
                 }
-                else if (currState.LeftButton == ButtonState.Released && prevState.LeftButton == ButtonState.Pressed)
+                else if (currState.IsButtonUp(MouseButton.Left) && prevState.IsButtonDown(MouseButton.Left))
                 {
                     // button was released ---> stop transformation
                     Active = false;

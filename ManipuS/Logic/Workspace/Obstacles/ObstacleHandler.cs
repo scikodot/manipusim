@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using OpenTK.Graphics.OpenGL4;
+using OpenToolkit.Graphics.OpenGL4;
 using BulletSharp;
 using BulletSharp.Math;
 
@@ -27,7 +27,7 @@ namespace Logic
 
             private readonly static Model _ground = Primitives.Plane(10, 10, new MeshMaterial
             {
-                Diffuse = new OpenTK.Vector4(1.0f, 1.0f, 1.0f, 0.5f)
+                Diffuse = new OpenToolkit.Mathematics.Vector4(1.0f, 1.0f, 1.0f, 0.5f)
             });
 
             private readonly static Collider _collider = PhysicsHandler.CreateStaticCollider(
@@ -58,9 +58,9 @@ namespace Logic
 
         private static MeshMaterial _defaultMaterial = new MeshMaterial
         {
-            Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-            Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-            Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
+            Ambient = new OpenToolkit.Mathematics.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
+            Diffuse = new OpenToolkit.Mathematics.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
+            Specular = new OpenToolkit.Mathematics.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
             Shininess = 8
         };
 

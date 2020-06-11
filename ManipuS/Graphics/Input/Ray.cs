@@ -1,4 +1,4 @@
-﻿using OpenTK;
+﻿using OpenToolkit.Mathematics;
 
 namespace Graphics
 {
@@ -35,7 +35,7 @@ namespace Graphics
             var rayEndWorld = pointEnd * projViewInv;
             rayEndWorld /= rayEndWorld.W;
 
-            var rayDir = OpenTK.Vector4.Normalize(rayEndWorld - rayStartWorld);
+            var rayDir = Vector4.Normalize(rayEndWorld - rayStartWorld);
             rayEndWorld = rayStartWorld + rayDir * 1000;
 
             return new Ray(rayStartWorld, rayEndWorld, rayDir);

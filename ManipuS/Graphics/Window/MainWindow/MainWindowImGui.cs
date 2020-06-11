@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
 
-using OpenTK;
-using OpenTK.Graphics.OpenGL4;
+using OpenToolkit.Windowing.Common;
+using OpenToolkit.Graphics.OpenGL4;
 using ImGuiNET;
 
 using Logic;
@@ -32,11 +32,11 @@ namespace Graphics
             //ImGui.ShowDemoWindow();
 
             // GUI viewport
-            GL.Viewport(0, 0, Window.Width, Window.Height);
+            GL.Viewport(0, 0, Window.Size.X, Window.Size.Y);
 
             // clear viewport
             GL.Enable(EnableCap.ScissorTest);
-            GL.Scissor(0, 0, (int)(0.25 * Window.Width), Window.Height);
+            GL.Scissor(0, 0, (int)(0.25 * Window.Size.X), Window.Size.Y);
             GL.ClearColor(0.3f, 0.3f, 0.3f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
@@ -130,7 +130,7 @@ namespace Graphics
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
                 ImGui.SetWindowPos(new System.Numerics.Vector2(0, 19));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.5 * (Window.Height - 19))));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Size.X - 2), (int)(0.5 * (Window.Size.Y - 19))));
 
                 if (ImGui.Button("Create"))
                 {
@@ -245,8 +245,8 @@ namespace Graphics
                 ImGuiWindowFlags.NoResize |
                 ImGuiWindowFlags.HorizontalScrollbar))
             {
-                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.5 * (Window.Height - 19) + 19)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Width - 2), (int)(0.5 * (Window.Height - 19))));
+                ImGui.SetWindowPos(new System.Numerics.Vector2(0, (int)(0.5 * (Window.Size.Y - 19) + 19)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.25 * Window.Size.X - 2), (int)(0.5 * (Window.Size.Y - 19))));
 
                 if (ImGui.Button("Create"))
                 {
@@ -404,8 +404,8 @@ namespace Graphics
                 ImGui.PushID(_swapPropertiesWindows ? 1 : 0);
 
                 // set position and size of the window
-                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Width), (int)(0.7 * Window.Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.3 * Window.Width - 2), (int)(0.3 * Window.Height)));
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Size.X), (int)(0.7 * Window.Size.Y)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.3 * Window.Size.X - 2), (int)(0.3 * Window.Size.Y)));
 
                 // perform the necessary actions
                 renderProperties(selectable);
@@ -747,8 +747,8 @@ namespace Graphics
                     ImGuiWindowFlags.HorizontalScrollbar))
             {
                 // set position and size of the window
-                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Width), (int)(0.7 * Window.Height)));
-                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.3 * Window.Width - 2), (int)(0.3 * Window.Height)));
+                ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Size.X), (int)(0.7 * Window.Size.Y)));
+                ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.3 * Window.Size.X - 2), (int)(0.3 * Window.Size.Y)));
 
                 if (ManipulatorHandler.Count > 0)
                 {

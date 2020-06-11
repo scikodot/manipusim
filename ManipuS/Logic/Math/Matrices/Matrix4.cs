@@ -190,11 +190,11 @@ namespace Logic
             return new Matrix4(m.Row0 / s, m.Row1 / s, m.Row2 / s, m.Row3 / s);
         }
 
-        public static implicit operator OpenTK.Matrix4(Matrix4 m) => new OpenTK.Matrix4(m.Row0.X, m.Row0.Y, m.Row0.Z, m.Row0.W,
+        public static implicit operator OpenToolkit.Mathematics.Matrix4(Matrix4 m) => new OpenToolkit.Mathematics.Matrix4(m.Row0.X, m.Row0.Y, m.Row0.Z, m.Row0.W,
                                                                                         m.Row1.X, m.Row1.Y, m.Row1.Z, m.Row1.W,
                                                                                         m.Row2.X, m.Row2.Y, m.Row2.Z, m.Row2.W,
                                                                                         m.Row3.X, m.Row3.Y, m.Row3.Z, m.Row3.W);
-        public static implicit operator Matrix4(OpenTK.Matrix4 m) => new Matrix4(m.Row0.X, m.Row0.Y, m.Row0.Z, m.Row0.W,
+        public static implicit operator Matrix4(OpenToolkit.Mathematics.Matrix4 m) => new Matrix4(m.Row0.X, m.Row0.Y, m.Row0.Z, m.Row0.W,
                                                                                  m.Row1.X, m.Row1.Y, m.Row1.Z, m.Row1.W,
                                                                                  m.Row2.X, m.Row2.Y, m.Row2.Z, m.Row2.W,
                                                                                  m.Row3.X, m.Row3.Y, m.Row3.Z, m.Row3.W);

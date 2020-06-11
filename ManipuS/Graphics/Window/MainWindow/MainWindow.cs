@@ -4,17 +4,19 @@ using System.Linq;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
-using OpenTK;
-using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Input;
+using OpenToolkit.Windowing.Common;
+using OpenToolkit.Windowing.Common.Input;
+using OpenToolkit.Windowing.Desktop;
+using OpenToolkit.Graphics;
+using OpenToolkit.Graphics.OpenGL4;
+using OpenToolkit.Input;
 
 using ImGuiNET;
 using Logic;
 
 using Matrix4 = Logic.Matrix4;
-using Vector3 = OpenTK.Vector3;
-using Vector4 = OpenTK.Vector4;
+using Vector3 = OpenToolkit.Mathematics.Vector3;
+using Vector4 = OpenToolkit.Mathematics.Vector4;
 using Physics;
 using BulletSharp;
 using System.Threading;
@@ -70,14 +72,17 @@ namespace Graphics
         public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
         public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
 
-        public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
-            base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
-        {
+        //public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
+        //    base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
+        //{
             
-        }
+        //}
+
+        public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : 
+            base(gameWindowSettings, nativeWindowSettings) { }
 
         #region LOAD
-        protected override void OnLoad(EventArgs e)
+        protected override void OnLoad()
         {
             //var unptr = Assimp.Unmanaged.AssimpLibrary.Instance.ImportFile(JointPath, Assimp.PostProcessSteps.None, Assimp.Unmanaged.AssimpLibrary.Instance.CreatePropertyStore());
             //var manptr = Assimp.Scene.FromUnmanagedScene(unptr);
@@ -111,7 +116,7 @@ namespace Graphics
             _imGui = new MainWindowImGui(this);  // TODO: make static?
 
             // Camera is 6 units back and has the proper aspect ratio
-            _camera = new Camera((float)(0.75 * Width / Height), new Vector3(-5, 3, 5), -15, -45);
+            _camera = new Camera((float)(0.75 * Size.X / Size.Y), new Vector3(-5, 3, 5), -15, -45);
 
             InputHandler.TranslationalWidget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
             {
@@ -160,6 +165,10 @@ namespace Graphics
             //    }), PhysicsHandler.CreateDynamicCollider(new BoxShape(0.5f, 0.5f, 0.5f), 1, stateInit));
             //}
 
+            //for (int i = 0; i < 100; i++)
+            //{
+            //    ObstacleHandler.AddDefault(ObstacleShape.Sphere);
+            //}
             //ObstacleHandler.AddDefault(ObstacleShape.Sphere);
 
             //ObstacleHandler.Add(new Obstacle(Primitives.Sphere(0.5f, 100, 100, new MeshMaterial
@@ -231,13 +240,16 @@ namespace Graphics
 
             //doorHinge.EnableAngularMotor(true, 10f, 10);
 
-            base.OnLoad(e);
+            base.OnLoad();
         }
         #endregion
 
         #region RENDER
         protected override void OnRenderFrame(FrameEventArgs e)
         {
+            if (IsExiting)
+                return;
+
             // render main part, i.e. workspace
             RenderCore(e);
 
@@ -265,13 +277,13 @@ namespace Graphics
         private void RenderCore(FrameEventArgs e)
         {
             // workspace viewport
-            GL.Viewport((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
+            GL.Viewport((int)(0.25 * Size.X), 0, (int)(0.75 * Size.X), Size.Y);
 
             GL.Enable(EnableCap.DepthTest);
 
             // clearing viewport
             GL.Enable(EnableCap.ScissorTest);
-            GL.Scissor((int)(0.25 * Width), 0, (int)(0.75 * Width), Height);
+            GL.Scissor((int)(0.25 * Size.X), 0, (int)(0.75 * Size.X), Size.Y);
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
@@ -391,6 +403,12 @@ namespace Graphics
         #region UPDATE
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
+            // process all the input events
+            InputHandler.PollEvents(this, _camera, MouseState, KeyboardState, e);
+
+            if (IsExiting)
+                return;
+
             // update framerate in title
             Title = $"ManipuSim | Framerate: {ImGui.GetIO().Framerate : 0.0}";
 
@@ -480,7 +498,8 @@ namespace Graphics
             //}
 
             // check to see if the window is focused
-            if (!Focused)  // TODO: this may cause weird things when window is minimized; check
+            //Console.WriteLine($"Focused: {IsFocused}");
+            if (!IsFocused)  // TODO: this may cause weird things when window is minimized; check
             {
                 return;
             }
@@ -488,9 +507,6 @@ namespace Graphics
             // update camera state
             _camera.UpdateViewMatrix();
             _camera.UpdateProjectionMatrix();
-
-            // process all the input events
-            InputHandler.PollEvents(this, _camera, Mouse.GetCursorState(), Keyboard.GetState(), e);
 
             switch (Mode)
             {
@@ -644,33 +660,43 @@ namespace Graphics
         {
             // apply zoom only if no GUI window is currently hovered over
             if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
-                _camera.Fov -= e.DeltaPrecise;
+                _camera.Fov -= e.OffsetY;
+
+            _imGui.Scroll(e.Offset);
 
             base.OnMouseWheel(e);
         }
 
-        protected override void OnKeyPress(KeyPressEventArgs e)
+        protected override void OnTextInput(TextInputEventArgs e)
         {
-            if (e.KeyChar == 'p')
-                SwitchMode();
+            _imGui.PressChar(e.AsString[0]);  // TODO: check
 
-            if (e.KeyChar == 'h')
-                enter = true;
-
-            _imGui.PressChar(e.KeyChar);
-
-            base.OnKeyPress(e);
+            base.OnTextInput(e);
         }
 
-        protected override void OnResize(EventArgs e)
+        protected override void OnKeyDown(KeyboardKeyEventArgs e)
+        {
+            if (e.Key == Key.P)
+                SwitchMode();
+
+            if (e.Key == Key.H)
+                enter = true;
+
+            base.OnKeyDown(e);
+        }
+
+        protected override void OnResize(ResizeEventArgs e)
         {
             // We need to update the aspect ratio once the window has been resized
-            _camera.AspectRatio = (float)(0.75 * Width / Height);
-
-            // report to GUI controller about resizing
-            //_imGui.WindowResized(Width, Height);
+            if (_camera != null)
+                _camera.AspectRatio = (float)(0.75 * e.Width / e.Height);
 
             base.OnResize(e);
+        }
+
+        protected override void OnFocusedChanged(FocusedChangedEventArgs e)
+        {
+            base.OnFocusedChanged(e);
         }
 
         private void OnSelectedObjectChanged(object sender, EventArgs e)
@@ -681,7 +707,7 @@ namespace Graphics
         #endregion
 
         #region UNLOAD
-        protected override void OnUnload(EventArgs e)
+        protected override void OnUnload()
         {
             // TODO: threads are not disposed correctly; fix!
 
@@ -717,7 +743,7 @@ namespace Graphics
             GL.BindVertexArray(0);
             GL.UseProgram(0);
 
-            base.OnUnload(e);
+            base.OnUnload();
         }
         #endregion
     }

@@ -3,22 +3,23 @@ using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
 
-using OpenTK;
-using OpenTK.Input;
-using OpenTK.Graphics.OpenGL4;
+using OpenToolkit.Windowing.Common.Input;
+using OpenToolkit.Windowing.Desktop;
+using OpenToolkit.Mathematics;
+using OpenToolkit.Graphics.OpenGL4;
 
 using BulletSharp;
 using Physics;
 using System.Collections.Generic;
 using ImGuiNET;
 using Logic;
-using System.Runtime.CompilerServices;
+using OpenToolkit.Windowing.Common;
 
 namespace Graphics
 {
     public static class InputHandler
     {
-        private static readonly DirectoryInfo projDir = Directory.GetParent(Environment.CurrentDirectory).Parent;
+        private static readonly DirectoryInfo projDir = Directory.GetParent(Environment.CurrentDirectory).Parent.Parent;
         private static readonly DirectoryInfo solDir = projDir.Parent;
 
         public static string ProjectDirectory => projDir.FullName;
@@ -106,15 +107,11 @@ namespace Graphics
             {
                 _firstMove = false;
             }
-            else if (mouseState.MiddleButton == ButtonState.Pressed)  // update camera orientation if the middle button is pressed
+            else if (mouseState.IsButtonDown(MouseButton.Middle))  // update camera orientation if the middle button is pressed
             {
-                // Calculate the offset of the mouse position
-                var deltaX = mouseState.X - _lastState.X;
-                var deltaY = mouseState.Y - _lastState.Y;
-
                 // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
-                camera.Yaw += deltaX * camera.Sensitivity;
-                camera.Pitch -= deltaY * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
+                camera.Yaw += -window.MouseDelta.X * camera.Sensitivity;
+                camera.Pitch -= -window.MouseDelta.Y * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
             }
 
             // update last mouse state after all necessary queries
@@ -124,15 +121,16 @@ namespace Graphics
         private static Vector2 MouseToNDC(GameWindow window, MouseState mouseState)
         {
             // cursor position relative to the window
-            var cursorWindow = window.PointToClient(new Point(mouseState.X, mouseState.Y));
+            //var cursorWindow = window.PointToClient(new Vector2i((int)mouseState.X, (int)mouseState.Y));
 
             // cursor position relative to the main viewport
-            var cursorViewport = new Vector2(cursorWindow.X - 0.25f * window.Width, cursorWindow.Y);
+            var cursorViewport = new Vector2(mouseState.X - 0.25f * window.Size.X, mouseState.Y);
+            //var cursorViewport = new Vector2(cursorWindow.X - 0.25f * window.Size.X, cursorWindow.Y);
 
             // return cursor position in NDC coordinates
             return new Vector2(
-                (cursorViewport.X / (0.75f * window.Width) - 0.5f) * 2,
-                (0.5f - cursorViewport.Y / window.Height) * 2);
+                (cursorViewport.X / (0.75f * window.Size.X) - 0.5f) * 2,
+                (0.5f - cursorViewport.Y / window.Size.Y) * 2);
         }
 
         private static void PollSelection(MouseState mouseState, KeyboardState keyboardState)  // TODO: raycast is performed wrong on shapes' edges; check!
@@ -143,7 +141,7 @@ namespace Graphics
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
                 PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (mouseState.RightButton == ButtonState.Pressed && _lastState.RightButton == ButtonState.Released)
+                if (mouseState.IsButtonDown(MouseButton.Right) && _lastState.IsButtonUp(MouseButton.Right))  // TODO: perhaps use Window built-in method?
                 {
                     if (raycastCallback.HasHit)
                     {
@@ -240,7 +238,7 @@ namespace Graphics
             // exit program if queried
             if (keyboardState.IsKeyDown(Key.Escape))
             {
-                window.Exit();
+                window.Close();
             }
 
             if (!TextIsEdited)
@@ -261,29 +259,23 @@ namespace Graphics
         {
             if (keyboardState.IsKeyDown(Key.K))
                 CaptureScreenFull(window);
-
-            //if (Capture)  // TODO: try to implement an event-based system
-            //{
-            //    CaptureScreenshot(window);
-            //    Capture = false;
-            //}
         }
 
         public static void CaptureScreenFull(GameWindow window)
         {
-            CaptureScreenArea(0, 0, window.Width, window.Height);
+            CaptureScreenArea(0, 0, window.Size.X, window.Size.Y);
         }
 
         public static void CaptureScreenWorkspace(GameWindow window)
         {
-            CaptureScreenArea((int)(0.25 * window.Width), 0, (int)(0.75 * window.Width), window.Height);
+            CaptureScreenArea((int)(0.25 * window.Size.X), 0, (int)(0.75 * window.Size.X), window.Size.Y);
         }
 
         private static void CaptureScreenArea(int x, int y, int width, int height)
         {
             // taking a picture of a viewport
             byte[,,] img = new byte[height, width, 3];
-            GL.ReadPixels(x, y, width, height, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, img);
+            GL.ReadPixels(x, y, width, height, OpenToolkit.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, img);
 
             System.Threading.Tasks.Task.Run(() =>
             {

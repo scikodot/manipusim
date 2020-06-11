@@ -1,14 +1,15 @@
-﻿using Graphics;
-using OpenTK;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+
+using OpenToolkit.Mathematics;
+
+using Graphics;
 
 namespace Logic
 {
     public static class Primitives  // TODO: refactor!!!
     {
-        public static Model Grid(int lines, float stride, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Grid(int lines, float stride, MeshMaterial material, OpenToolkit.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float lineLengthHalf = (lines - 1) * stride / 2;
 
@@ -35,7 +36,7 @@ namespace Logic
             return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
         }
 
-        public static Model Plane(float width, float height, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Plane(float width, float height, MeshMaterial material, OpenToolkit.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             var vertices = new MeshVertex[]
             {
@@ -53,7 +54,7 @@ namespace Logic
             return new Model(vertices, indices, material, state, renderFlags: renderFlags);
         }
 
-        public static Model Cube(float halfX, float halfY, float halfZ, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Cube(float halfX, float halfY, float halfZ, MeshMaterial material, OpenToolkit.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             var vertices = new List<MeshVertex>();
 
@@ -103,7 +104,7 @@ namespace Logic
             return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
         }
 
-        public static Model Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material, OpenToolkit.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float radiusInv = 1.0f / radius;
             float pi2 = (float)Math.PI / 2;
@@ -178,7 +179,7 @@ namespace Logic
             return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
         }
 
-        public static Mesh Cylinder(float radius, float extentDown, float extentUp, int circleCount, MeshMaterial material, OpenTK.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Cylinder(float radius, float extentDown, float extentUp, int circleCount, MeshMaterial material, OpenToolkit.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float radiusInv = 1.0f / radius;
             float angleStep = 2 * (float)Math.PI / circleCount;

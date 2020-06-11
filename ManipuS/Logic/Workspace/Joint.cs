@@ -133,7 +133,7 @@ namespace Logic
         {
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
 
-            OpenTK.Matrix4 stateMatrix = new OpenTK.Matrix4(
+            var stateMatrix = new OpenToolkit.Mathematics.Matrix4(
                 state.M11, state.M21, state.M31, state.M41,
                 state.M12, state.M22, state.M32, state.M42,
                 state.M13, state.M23, state.M33, state.M43,
