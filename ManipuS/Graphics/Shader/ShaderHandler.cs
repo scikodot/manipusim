@@ -5,9 +5,13 @@ namespace Graphics
 {
     public static class ShaderHandler
     {
-        private static string VertexShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\VertexShader.glsl";
-        private static string ComplexFragmentShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\FragmentShader.glsl";
-        private static string GenericFragmentShader => InputHandler.ProjectDirectory + @"\Graphics\Shader\Shaders\LineShader.glsl";
+        //private static string VertexShader => InputHandler.ExeDirectory + @"\Graphics\Shader\Shaders\VertexShader.glsl";
+        //private static string ComplexFragmentShader => InputHandler.ExeDirectory + @"\Graphics\Shader\Shaders\FragmentShader.glsl";
+        //private static string GenericFragmentShader => InputHandler.ExeDirectory + @"\Graphics\Shader\Shaders\LineShader.glsl";
+
+        private static string VertexShader => InputHandler.ExeDirectory + @"\Resources\Shaders\VertexShader.glsl";
+        private static string ComplexFragmentShader => InputHandler.ExeDirectory + @"\Resources\Shaders\FragmentShader.glsl";
+        private static string GenericFragmentShader => InputHandler.ExeDirectory + @"\Resources\Shaders\LineShader.glsl";
 
         public static Shader GenericShader { get; private set; }
         public static Shader ComplexShader { get; private set; }

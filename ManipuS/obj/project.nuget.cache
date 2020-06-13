@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "ILhyCHi2fXLZCFlvwhLNK2Il36BkBzRFSi4E6jHckJpH98mc4iDVrTYYGQP8Qk8umXKzOQmxCYAdUVj+t+a5DQ==",
+  "dgSpecHash": "p+o8pQ36EzYXz5mDPVAKHQ5LitIYUR8x/B15o6zZwHpDvCrzboYLM6WqKVZhNtk7C9CsAaFOwykXPbybJ4rZag==",
   "success": true,
   "projectFilePath": "C:\\Users\\Dan\\source\\repos\\manipus\\ManipuS\\ManipuS.csproj",
   "expectedPackageFiles": [
@@ -9,9 +9,10 @@
     "C:\\Users\\Dan\\.nuget\\packages\\imgui.net\\1.75.0\\imgui.net.1.75.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\mathnet.numerics\\4.9.1\\mathnet.numerics.4.9.1.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\microsoft.csharp\\4.7.0\\microsoft.csharp.4.7.0.nupkg.sha512",
-    "C:\\Users\\Dan\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Users\\Dan\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\microsoft.netcore.targets\\1.1.0\\microsoft.netcore.targets.1.1.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\microsoft.win32.primitives\\4.3.0\\microsoft.win32.primitives.4.3.0.nupkg.sha512",
+    "C:\\Users\\Dan\\.nuget\\packages\\microsoft.win32.systemevents\\4.7.0\\microsoft.win32.systemevents.4.7.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\morelinq\\3.3.2\\morelinq.3.3.2.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\netstandard.library\\1.6.1\\netstandard.library.1.6.1.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\opentk\\4.0.0-pre9.1\\opentk.4.0.0-pre9.1.nupkg.sha512",
@@ -52,6 +53,7 @@
     "C:\\Users\\Dan\\.nuget\\packages\\system.diagnostics.diagnosticsource\\4.3.0\\system.diagnostics.diagnosticsource.4.3.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\system.diagnostics.tools\\4.3.0\\system.diagnostics.tools.4.3.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\system.diagnostics.tracing\\4.3.0\\system.diagnostics.tracing.4.3.0.nupkg.sha512",
+    "C:\\Users\\Dan\\.nuget\\packages\\system.drawing.common\\4.7.0\\system.drawing.common.4.7.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\system.globalization\\4.3.0\\system.globalization.4.3.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\system.globalization.calendars\\4.3.0\\system.globalization.calendars.4.3.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\system.globalization.extensions\\4.3.0\\system.globalization.extensions.4.3.0.nupkg.sha512",

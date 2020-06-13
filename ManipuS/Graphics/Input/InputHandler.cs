@@ -19,18 +19,28 @@ namespace Graphics
 {
     public static class InputHandler
     {
-        private static readonly DirectoryInfo projDir = Directory.GetParent(Environment.CurrentDirectory).Parent.Parent;
-        private static readonly DirectoryInfo solDir = projDir.Parent;
+        //private static readonly DirectoryInfo projDir = Directory.GetParent(Environment.CurrentDirectory).Parent.Parent;
+        //private static readonly DirectoryInfo solDir = projDir.Parent;
 
-        public static string ProjectDirectory => projDir.FullName;
-        public static string SolutionDirectory => solDir.FullName;
+        //public static string ProjectDirectory => projDir.FullName;
+        //public static string SolutionDirectory => solDir.FullName;
 
-        public static string NanosuitPath => SolutionDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
-        public static string LinkPath => SolutionDirectory + @"\Resources\Models\manipulator\Link.obj";
-        public static string JointPath => SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
-        public static string GripperPath => SolutionDirectory + @"\Resources\Models\manipulator\Gripper.obj";
+        //public static string NanosuitPath => SolutionDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
+        //public static string LinkPath => SolutionDirectory + @"\Resources\Models\manipulator\Link.obj";
+        //public static string JointPath => SolutionDirectory + @"\Resources\Models\manipulator\Joint.obj";
+        //public static string GripperPath => SolutionDirectory + @"\Resources\Models\manipulator\Gripper.obj";
 
-        private static string _screenshotsPath = SolutionDirectory + @"\Screenshot";
+        //private static string _screenshotsPath = SolutionDirectory + @"\Screenshot";
+        //public static ref string ScreenshotsPath => ref _screenshotsPath;
+
+        public static string ExeDirectory => Environment.CurrentDirectory;
+
+        public static string NanosuitPath => ExeDirectory + @"\Resources\Models\nanosuit\nanosuit.obj";
+        public static string LinkPath => ExeDirectory + @"\Resources\Models\manipulator\Link.obj";
+        public static string JointPath => ExeDirectory + @"\Resources\Models\manipulator\Joint.obj";
+        public static string GripperPath => ExeDirectory + @"\Resources\Models\manipulator\Gripper.obj";
+
+        private static string _screenshotsPath = ExeDirectory + @"\Screenshot";
         public static ref string ScreenshotsPath => ref _screenshotsPath;
 
         // variables for mouse state processing
@@ -257,7 +267,7 @@ namespace Graphics
 
         private static void PollScreen(GameWindow window, KeyboardState keyboardState)
         {
-            if (keyboardState.IsKeyDown(Key.K))
+            if (window.IsKeyPressed(Key.K))
                 CaptureScreenFull(window);
         }
 
@@ -277,64 +287,65 @@ namespace Graphics
             byte[,,] img = new byte[height, width, 3];
             GL.ReadPixels(x, y, width, height, OpenToolkit.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, img);
 
+            Console.WriteLine("Capturing screen...");
             System.Threading.Tasks.Task.Run(() =>
             {
-                // create a bitmap representing captured screenshot
-                var bitmap = new Bitmap(width, height);
-
-                // write all captured data to that bitmap
-                for (int i = 0; i < height; i++)
+                using (var bitmap = new Bitmap(width, height))
                 {
-                    for (int j = 0; j < width; j++)
+                    // write all captured data to that bitmap
+                    for (int i = 0; i < height; i++)
                     {
-                        bitmap.SetPixel(j, height - 1 - i, Color.FromArgb(img[i, j, 0], img[i, j, 1], img[i, j, 2]));
+                        for (int j = 0; j < width; j++)
+                        {
+                            bitmap.SetPixel(j, height - 1 - i, Color.FromArgb(img[i, j, 0], img[i, j, 1], img[i, j, 2]));
+                        }
                     }
+
+                    // get the image format
+                    string savepathLow = ScreenshotsPath.ToLower();
+                    string formatString = "";
+                    for (int i = savepathLow.Length - 1; i >= 0; i--)
+                    {
+                        formatString += savepathLow[i];
+
+                        if (savepathLow[i] == '.' || savepathLow[i] == '/' || savepathLow[i] == '\\')
+                            break;
+                    }
+
+                    // reverse string to obtain the format
+                    var chars = formatString.ToCharArray();
+                    Array.Reverse(chars);
+                    formatString = new string(chars);
+
+                    // check format support
+                    ImageFormat format = ImageFormat.Bmp;
+                    bool formatSpecified = true;
+                    switch (formatString)
+                    {
+                        case ".bmp":
+                            format = ImageFormat.Bmp;
+                            break;
+                        case ".jpg":
+                        case ".jpeg":
+                            format = ImageFormat.Jpeg;
+                            break;
+                        case ".png":
+                            format = ImageFormat.Png;
+                            break;
+                        case ".gif":
+                            format = ImageFormat.Gif;
+                            break;
+                        default:
+                            formatSpecified = false;
+                            break;
+                    }
+
+                    // save the obtained bitmap
+                    if (formatSpecified)
+                        bitmap.Save(ScreenshotsPath, format);
+                    else
+                        bitmap.Save(ScreenshotsPath + ".bmp", ImageFormat.Bmp);
                 }
-
-                // get the image format
-                string savepathLow = ScreenshotsPath.ToLower();
-                string formatString = "";
-                for (int i = savepathLow.Length - 1; i >= 0; i--)
-                {
-                    formatString += savepathLow[i];
-
-                    if (savepathLow[i] == '.' || savepathLow[i] == '/' || savepathLow[i] == '\\')
-                        break;
-                }
-
-                // reverse string to obtain the format
-                var chars = formatString.ToCharArray();
-                Array.Reverse(chars);
-                formatString = new string(chars);
-
-                // check format support
-                ImageFormat format = ImageFormat.Bmp;
-                bool formatSpecified = true;
-                switch (formatString)
-                {
-                    case ".bmp":
-                        format = ImageFormat.Bmp;
-                        break;
-                    case ".jpg":
-                    case ".jpeg":
-                        format = ImageFormat.Jpeg;
-                        break;
-                    case ".png":
-                        format = ImageFormat.Png;
-                        break;
-                    case ".gif":
-                        format = ImageFormat.Gif;
-                        break;
-                    default:
-                        formatSpecified = false;
-                        break;
-                }
-
-                // save the obtained bitmap
-                if (formatSpecified)
-                    bitmap.Save(ScreenshotsPath, format);
-                else
-                    bitmap.Save(ScreenshotsPath + ".bmp", ImageFormat.Bmp);
             });
         }
 
