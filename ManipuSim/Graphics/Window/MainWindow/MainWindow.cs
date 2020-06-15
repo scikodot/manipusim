@@ -504,7 +504,7 @@ namespace Graphics
                     // update goals positions
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        _goalModels[i].State = Matrix4.Transpose(Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK()));  /*Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal);*/
+                        _goalModels[i].State = /*Matrix4.Transpose(*/Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK())/*)*/;  /*Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal);*/
 
                         foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
                         {

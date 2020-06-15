@@ -141,7 +141,7 @@ namespace Graphics
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
                 PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (window.IsMouseButtonPressed(MouseButton.Right)/*mouseState.IsButtonDown(MouseButton.Right) && _lastState.IsButtonUp(MouseButton.Right)*/)  // TODO: perhaps use Window built-in method?
+                if (/*window.IsMouseButtonPressed(MouseButton.Right)*/mouseState.IsButtonDown(MouseButton.Right) && _lastState.IsButtonUp(MouseButton.Right))  // TODO: perhaps use Window built-in method?
                 {
                     if (raycastCallback.HasHit)
                     {

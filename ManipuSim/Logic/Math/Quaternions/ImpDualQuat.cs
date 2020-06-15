@@ -126,52 +126,14 @@ namespace Logic
             return new ImpDualQuat(_real, Vector3.Zero);
         }
 
-        public OpenToolkit.Mathematics.Matrix4 ToMatrix(bool transpose = false)
+        public OpenToolkit.Mathematics.Matrix4 ToMatrix()
         {
-            var m = _real.ToMatrix();
-            
-            var tx = _dual.X;
-            var ty = _dual.Y;
-            var tz = _dual.Z;
-
-            if (transpose)
-                return new OpenToolkit.Mathematics.Matrix4(
-                    m.M11, m.M21, m.M31, 0,
-                    m.M12, m.M22, m.M32, 0,
-                    m.M13, m.M23, m.M33, 0,
-                    tx, ty, tz, 1
-                );
-            else
-                return new OpenToolkit.Mathematics.Matrix4(
-                    m.M11, m.M12, m.M13, tx,
-                    m.M21, m.M22, m.M23, ty,
-                    m.M31, m.M32, m.M33, tz,
-                    0, 0, 0, 1
-                );
-        }
-
-        public BulletSharp.Math.Matrix ToBulletMatrix(bool transpose = false)  // TODO: replace with OpenTK -> Bullet conversion
-        {
-            var m = _real.ToMatrix();
-
-            var tx = _dual.X;
-            var ty = _dual.Y;
-            var tz = _dual.Z;
-
-            if (!transpose)
-                return new BulletSharp.Math.Matrix(
-                    m.M11, m.M21, m.M31, 0,
-                    m.M12, m.M22, m.M32, 0,
-                    m.M13, m.M23, m.M33, 0,
-                    tx, ty, tz, 1
-                );
-            else
-                return new BulletSharp.Math.Matrix(
-                    m.M11, m.M12, m.M13, tx,
-                    m.M21, m.M22, m.M23, ty,
-                    m.M31, m.M32, m.M33, tz,
-                    0, 0, 0, 1
-                );
+            return new OpenToolkit.Mathematics.Matrix4(_real.ToMatrix())
+            {
+                M41 = _dual.X,
+                M42 = _dual.Y,
+                M43 = _dual.Z
+            };
         }
 
         public static ImpDualQuat operator +(ImpDualQuat q1, ImpDualQuat q2)

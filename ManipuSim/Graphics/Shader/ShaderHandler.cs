@@ -27,8 +27,8 @@ namespace Graphics
         {
             // setup generic shader
             GenericShader.Use();
-            GenericShader.SetMatrix4("view", ref camera.ViewMatrix, false);
-            GenericShader.SetMatrix4("projection", ref camera.ProjectionMatrix, false);
+            GenericShader.SetMatrix4("view", ref camera.ViewMatrix);
+            GenericShader.SetMatrix4("projection", ref camera.ProjectionMatrix);
             GenericShader.SetVector3("color", Vector3.One);
 
             // setup complex shader
@@ -36,8 +36,8 @@ namespace Graphics
 
             // set view and projection matrices;
             // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader file)
-            ComplexShader.SetMatrix4("view", ref camera.ViewMatrix, false);
-            ComplexShader.SetMatrix4("projection", ref camera.ProjectionMatrix, false);
+            ComplexShader.SetMatrix4("view", ref camera.ViewMatrix);
+            ComplexShader.SetMatrix4("projection", ref camera.ProjectionMatrix);
 
             // set general properties
             ComplexShader.SetVector3("viewPos", camera.Position);

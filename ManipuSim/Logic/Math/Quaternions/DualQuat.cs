@@ -11,14 +11,7 @@ namespace Logic
         public Quaternion Rotation => _real;
 
         private Quaternion _dual;
-        public Vector3 Translation
-        {
-            get
-            {
-                var quat = _dual * Quaternion.Conjugate(_real);
-                return 2 * new Vector3(quat.X, quat.Y, quat.Z);
-            }
-        }
+        public Vector3 Translation => 2 * (_dual * Quaternion.Conjugate(_real)).XYZ();
 
         public float Length => (this * Conjugate())._real.W;
 
@@ -62,9 +55,7 @@ namespace Logic
         {
             if (axis == Vector3.Zero) throw new ArgumentException("The rotation axis cannot be zero.", "axis");
 
-            var qR = new DualQuat(axis, angle);
-            var qT = new DualQuat(axisOffset);
-            var res = qT * qR * qT.Conjugate();
+            var res = new DualQuat(axisOffset) * new DualQuat(axis, angle) * new DualQuat(-axisOffset);
 
             _real = res._real;
             _dual = res._dual;
@@ -91,30 +82,15 @@ namespace Logic
             return new DualQuat(Quaternion.Conjugate(_real), Quaternion.Conjugate(_dual));
         }
 
-        public OpenToolkit.Mathematics.Matrix4 ToMatrix(bool transpose = false)
+        public OpenToolkit.Mathematics.Matrix4 ToMatrix()
         {
-            var m = _real.ToMatrix();
-
-            var dualNew = _dual * Quaternion.Conjugate(_real);
-
-            var tx = 2 * dualNew.X;
-            var ty = 2 * dualNew.Y;
-            var tz = 2 * dualNew.Z;
-
-            if (transpose)
-                return new OpenToolkit.Mathematics.Matrix4(
-                    m.M11, m.M21, m.M31, 0,
-                    m.M12, m.M22, m.M32, 0,
-                    m.M13, m.M23, m.M33, 0,
-                    tx, ty, tz, 1
-                );
-            else
-                return new OpenToolkit.Mathematics.Matrix4(
-                    m.M11, m.M12, m.M13, tx,
-                    m.M21, m.M22, m.M23, ty,
-                    m.M31, m.M32, m.M33, tz,
-                    0, 0, 0, 1
-                );
+            var translation = Translation;
+            return new OpenToolkit.Mathematics.Matrix4(_real.ToMatrix())
+            {
+                M41 = translation.X,
+                M42 = translation.Y,
+                M43 = translation.Z
+            };
         }
 
         public static DualQuat operator +(DualQuat q1, DualQuat q2)

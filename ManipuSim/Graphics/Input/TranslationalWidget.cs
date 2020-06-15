@@ -57,7 +57,7 @@ namespace Graphics
                     {
                         Diffuse = color
                     }, Vector3.UnitY)
-                }, Matrix4.Transpose(align) * Matrix4.CreateScale(_scale));
+                }, align * Matrix4.CreateScale(_scale));
             }
 
             public void SetOrigin(Vector3 origin)
@@ -78,9 +78,9 @@ namespace Graphics
 
                 // update axis model
                 ref var model = ref Model.State;
-                model.M14 += translation.X;
-                model.M24 += translation.Y;
-                model.M34 += translation.Z;
+                model.M41 += translation.X;
+                model.M42 += translation.Y;
+                model.M43 += translation.Z;
             }
 
             public void Scale(Camera camera)
@@ -93,7 +93,7 @@ namespace Graphics
 
                 // scale axis model
                 ref var modelX = ref Model.State;
-                modelX *= Matrix4.CreateScale(scaleNew / _scale);
+                modelX = Matrix4.CreateScale(scaleNew / _scale) * modelX;
 
                 // save new scale
                 _scale = scaleNew;

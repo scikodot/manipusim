@@ -59,7 +59,7 @@ namespace Graphics
         public void Render(Shader shader, Action render = default)
         {
             // setup model matrix
-            shader.SetMatrix4("model", ref State, true);
+            shader.SetMatrix4("model", ref State);
 
             foreach (var mesh in Meshes)
                 mesh.Render(shader, RenderFlags, render);

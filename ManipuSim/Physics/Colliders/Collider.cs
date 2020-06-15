@@ -51,13 +51,7 @@ namespace Physics
                 collider.Type = RigidBodyType.Dynamic;
 
             // apply initial transformation to the collider model
-            var state = body.MotionState.WorldTransform;
-            var stateMatrix = new OpenToolkit.Mathematics.Matrix4(
-                state.M11, state.M21, state.M31, state.M41,
-                state.M12, state.M22, state.M32, state.M42,
-                state.M13, state.M23, state.M33, state.M43,
-                state.M14, state.M24, state.M34, state.M44);
-            collider.UpdateModel(ref stateMatrix);
+            collider.UpdateModel();
 
             // setup a callback for the collider
             collider.CollisionCallback = new CollisionCallback(collider.Body, null);
@@ -83,16 +77,10 @@ namespace Physics
             });
         }
 
-        public void UpdateModel(ref OpenToolkit.Mathematics.Matrix4 stateOther)
+        public void UpdateModel()
         {
             var state = Matrix.Scaling(Body.CollisionShape.LocalScaling) * Body.MotionState.WorldTransform;
-            var stateMatrix = new OpenToolkit.Mathematics.Matrix4(
-                state.M11, state.M21, state.M31, state.M41,
-                state.M12, state.M22, state.M32, state.M42,
-                state.M13, state.M23, state.M33, state.M43,
-                state.M14, state.M24, state.M34, state.M44);
-
-            Model.State = stateMatrix;
+            Model.State = state.TopOpenTK();
         }
 
         public abstract void Scale();

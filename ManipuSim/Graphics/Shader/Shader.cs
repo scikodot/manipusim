@@ -208,12 +208,12 @@ namespace Graphics
         ///   The matrix is transposed before being sent to the shader.
         ///   </para>
         /// </remarks>
-        public void SetMatrix4(string name, ref Matrix4 data, bool transpose = false)
+        public void SetMatrix4(string name, ref Matrix4 data)
         {
             if (_uniformLocations.ContainsKey(name))
             {
                 GL.UseProgram(Handle);
-                GL.UniformMatrix4(_uniformLocations[name], transpose, ref data);
+                GL.UniformMatrix4(_uniformLocations[name], false, ref data);
             }
         }
 

@@ -174,18 +174,12 @@ namespace Logic
             }
         }
 
-        public void UpdateModel()
+        public void UpdateModel()  // TODO: unify
         {
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
+            Model.State = state.TopOpenTK();
 
-            var stateMatrix = new OpenToolkit.Mathematics.Matrix4(
-                state.M11, state.M21, state.M31, state.M41,
-                state.M12, state.M22, state.M32, state.M42,
-                state.M13, state.M23, state.M33, state.M43,
-                state.M14, state.M24, state.M34, state.M44);
-
-            Model.State = stateMatrix;
-            Collider.UpdateModel(ref stateMatrix);
+            Collider.UpdateModel();
         }
 
         public void Dispose()

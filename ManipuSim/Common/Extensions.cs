@@ -239,6 +239,11 @@ public static class BulletSharpQuaternionExtensions
 
 public static class QuaternionExtensions
 {
+    public static Vector3 XYZ(this Quaternion quat)
+    {
+        return new Vector3(quat.X, quat.Y, quat.Z);
+    }
+
     public static Vector3 Rotate(this Quaternion quat, Vector3 vec)
     {
         var xyz = new Vector3(quat.X, quat.Y, quat.Z);
@@ -265,9 +270,32 @@ public static class QuaternionExtensions
         var rzz = w2 - x2 - y2 + z2;
 
         return new OpenToolkit.Mathematics.Matrix3(
-            rxx, rxy, rxz,
-            ryx, ryy, ryz,
-            rzx, rzy, rzz
+            rxx, ryx, rzx,
+            rxy, ryy, rzy,
+            rxz, ryz, rzz
+        );
+    }
+}
+
+public static class MatrixExtensions
+{
+    public static OpenToolkit.Mathematics.Matrix4 TopOpenTK(this BulletSharp.Math.Matrix mat)
+    {
+        return new OpenToolkit.Mathematics.Matrix4(
+            mat.M11, mat.M12, mat.M13, mat.M14,
+            mat.M21, mat.M22, mat.M23, mat.M24,
+            mat.M31, mat.M32, mat.M33, mat.M34,
+            mat.M41, mat.M42, mat.M43, mat.M44
+        );
+    }
+
+    public static BulletSharp.Math.Matrix ToBullet(this OpenToolkit.Mathematics.Matrix4 mat)
+    {
+        return new BulletSharp.Math.Matrix(
+            mat.M11, mat.M12, mat.M13, mat.M14,
+            mat.M21, mat.M22, mat.M23, mat.M24,
+            mat.M31, mat.M32, mat.M33, mat.M34,
+            mat.M41, mat.M42, mat.M43, mat.M44
         );
     }
 }
