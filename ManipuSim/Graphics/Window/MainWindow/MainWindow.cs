@@ -1,30 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Diagnostics;
-using System.Threading.Tasks;
+using System.Threading;
 
 using OpenToolkit.Windowing.Common;
 using OpenToolkit.Windowing.Common.Input;
 using OpenToolkit.Windowing.Desktop;
-using OpenToolkit.Graphics;
 using OpenToolkit.Graphics.OpenGL4;
-using OpenToolkit.Input;
-
 using ImGuiNET;
-using Logic;
 
-using Matrix4 = Logic.Matrix4;
+using Logic;
+using Logic.PathPlanning;
+using Physics;
+
+using Matrix4 = OpenToolkit.Mathematics.Matrix4;
 using Vector3 = OpenToolkit.Mathematics.Vector3;
 using Vector4 = OpenToolkit.Mathematics.Vector4;
-using Physics;
-using BulletSharp;
-using System.Threading;
-using MathNet.Numerics;
-using BulletSharp.Math;
-using System.Runtime.InteropServices;
-using Logic.PathPlanning;
-using Logic.InverseKinematics;
 
 namespace Graphics
 {
@@ -71,12 +62,6 @@ namespace Graphics
 
         public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
         public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
-
-        //public MainWindow(int width, int height, GraphicsMode gMode, string title) : 
-        //    base(width, height, gMode, title, GameWindowFlags.Default, DisplayDevice.Default, 4, 6, GraphicsContextFlags.ForwardCompatible) 
-        //{
-            
-        //}
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : 
             base(gameWindowSettings, nativeWindowSettings) { }
@@ -404,8 +389,9 @@ namespace Graphics
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             // process all the input events
-            InputHandler.PollEvents(this, _camera, MouseState, KeyboardState, e);
-
+            if (!IsExiting)
+                InputHandler.PollEvents(this, _camera, MouseState, KeyboardState, e);
+            
             if (IsExiting)
                 return;
 
@@ -518,7 +504,7 @@ namespace Graphics
                     // update goals positions
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        _goalModels[i].State = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal);
+                        _goalModels[i].State = Matrix4.Transpose(Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK()));  /*Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal);*/
 
                         foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
                         {
@@ -622,14 +608,8 @@ namespace Graphics
         {
             var manipulator = ManipulatorHandler.CreateDefaultManipulator();
 
-            //Task.Run(() =>
-            //{
-            //    var solver = DampedLeastSquares.Default();
-            //    solver.Execute(manipulator, manipulator.Goal);
-            //});
-
             // create new models for the manipulator goal, path and tree
-            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.CreateTranslation(manipulator.Goal)));
+            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK()))));
             _treeModels.Add(new TreeModel(50001, MeshMaterial.Black));
             _pathModels.Add(new PathModel(50001, MeshMaterial.Red));
             _gaModels.Add(new PathModel(50001, MeshMaterial.Black));

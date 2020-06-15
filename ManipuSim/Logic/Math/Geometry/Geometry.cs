@@ -35,29 +35,29 @@ namespace Logic
             return VectorOrtho(v, n);
         }
 
-        //public static Vector3 LinesIntersection(Vector3 p1, Vector3 a1, Vector3 p2, Vector3 a2)  // TODO: try to optimize
-        //{
-        //    var p = p1 - p2;
-        //    var f1 = Vector3.Dot(a1, p);
-        //    var f2 = Vector3.Dot(a1, a1);
-        //    var f3 = Vector3.Dot(a1, a2);
-        //    var f4 = Vector3.Dot(a2, p);
-        //    var f5 = Vector3.Dot(a2, a2);
+        public static Vector3 LinesIntersection(Vector3 p1, Vector3 a1, Vector3 p2, Vector3 a2)  // TODO: try to optimize
+        {
+            var p = p1 - p2;
+            var f1 = Vector3.Dot(a1, p);
+            var f2 = Vector3.Dot(a1, a1);
+            var f3 = Vector3.Dot(a1, a2);
+            var f4 = Vector3.Dot(a2, p);
+            var f5 = Vector3.Dot(a2, a2);
 
-        //    var denom = f3 * f3 - f2 * f5;
-        //    if (denom != 0)
-        //    {
-        //        // the lines are not parallel ---> use the general formula
-        //        var t2 = (f1 * f3 - f2 * f4) / denom;
+            var denom = f3 * f3 - f2 * f5;
+            if (denom != 0)
+            {
+                // the lines are not parallel ---> use the general formula
+                var t2 = (f1 * f3 - f2 * f4) / denom;
 
-        //        return p2 + t2 * a2;
-        //    }
-        //    else
-        //    {
-        //        // ???
-        //        return default;
-        //    }
-        //}
+                return p2 + t2 * a2;
+            }
+            else
+            {
+                // ???
+                return default;
+            }
+        }
 
         public static float PointLineDistance(Vector3 p, Vector3 pLine, Vector3 nLine)
         {

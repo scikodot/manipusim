@@ -216,7 +216,7 @@ namespace Logic
                 var quatTransAbs = new ImpDualQuat(offsetAbs);
                 var quatAbs = quatTransAbs * quatRotAbs;
 
-                quatRel = quat.Conjugate.WithoutTranslation() * quatAbs * quat.WithoutTranslation();
+                quatRel = quat.Conjugate().WithoutTranslation() * quatAbs * quat.WithoutTranslation();
 
                 RelativeStates[i] = quatRel;
 
@@ -277,7 +277,7 @@ namespace Logic
                 quat *= ImpDualQuat.Align(Vector3.UnitY, Joints[i + 1].Position - Joints[i].Position);
 
                 quat *= new ImpDualQuat(
-                    (Joints[i].Radius + Links[i].Length / 2) * quat.Conjugate.Rotate(Vector3.Normalize(Joints[i + 1].Position - Joints[i].Position)));
+                    (Joints[i].Radius + Links[i].Length / 2) * quat.Conjugate().Rotate(Vector3.Normalize(Joints[i + 1].Position - Joints[i].Position)));
 
                 Links[i].UpdateState(ref quat);
             }

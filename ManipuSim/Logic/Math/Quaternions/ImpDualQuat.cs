@@ -5,237 +5,190 @@ namespace Logic
 {
     public struct ImpDualQuat
     {
-        public Quaternion Real;
-        public Vector3 Dual;
+        public static readonly ImpDualQuat Zero = new ImpDualQuat(Quaternion.Identity, Vector3.Zero);  // TODO: make readonly ref?
 
-        public static ImpDualQuat Zero => new ImpDualQuat(Quaternion.Zero, Vector3.Zero);
+        private Quaternion _real;
+        public Quaternion Rotation => _real;  // TODO: make readonly ref?
 
-        public float Length => (this * Conjugate).Real.W;
+        private Vector3 _dual;
+        public Vector3 Translation => _dual;  // TODO: make readonly ref?
 
-        public ImpDualQuat Normalized => new ImpDualQuat(Real.Normalized, Dual);
-
-        public ImpDualQuat Conjugate
-        {
-            get
-            {
-                var conjugateReal = Real.Conjugate;
-                return new ImpDualQuat(conjugateReal, -conjugateReal.Transform(Dual));
-            }
-        }
-
-        public Quaternion Rotation => Real;
-
-        public Vector3 Translation => Dual;
+        public float Length => (this * Conjugate())._real.W;  // TODO: optimize?
 
         private ImpDualQuat(Quaternion real, Vector3 dual)
         {
-            Real = real;
-            Dual = dual;
+            _real = real;
+            _dual = dual;
         }
 
-        public ImpDualQuat(Vector3 offset)
+        public ImpDualQuat(Vector3 translation)
         {
-            Real = Quaternion.Zero;
-            Dual = offset;
+            _real = Quaternion.Identity;
+            _dual = translation;
         }
 
         public ImpDualQuat(Vector3 axis, float angle)
         {
-            if (axis != Vector3.Zero)
-                axis = Vector3.Normalize(axis);
-            var cos = (float)Math.Cos(angle / 2);
-            var sin = (float)Math.Sin(angle / 2);
+            if (axis == Vector3.Zero) throw new ArgumentException("The rotation axis cannot be zero.", "axis");
 
-            Real = new Quaternion(axis * sin, cos);
-            Dual = Vector3.Zero;
+            var halfAngle = 0.5f * angle;
+            var cos = (float)Math.Cos(halfAngle);
+            var sin = (float)Math.Sin(halfAngle);
+
+            _real = new Quaternion(Vector3.Normalize(axis) * sin, cos);
+            _dual = Vector3.Zero;
         }
 
-        public ImpDualQuat(Vector3 axis, float angle, Vector3 offset)
+        public ImpDualQuat(Vector3 axis, float angle, Vector3 translation)
         {
-            if (axis != Vector3.Zero)
-                axis = Vector3.Normalize(axis);
-            var cos = (float)Math.Cos(angle / 2);
-            var sin = (float)Math.Sin(angle / 2);
+            if (axis == Vector3.Zero) throw new ArgumentException("The rotation axis cannot be zero.", "axis");
 
-            Real = new Quaternion(axis * sin, cos);
-            Dual = offset;
+            var halfAngle = 0.5f * angle;
+            var cos = (float)Math.Cos(halfAngle);
+            var sin = (float)Math.Sin(halfAngle);
+
+            _real = new Quaternion(Vector3.Normalize(axis) * sin, cos);
+            _dual = translation;
         }
 
-        public ImpDualQuat(Vector3 axis, Vector3 point, float angle)
+        public ImpDualQuat(Vector3 axis, Vector3 axisOffset, float angle)
         {
-            if (axis != Vector3.Zero)
-                axis = Vector3.Normalize(axis);
-            var res = new ImpDualQuat(point) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-point);
+            if (axis == Vector3.Zero) throw new ArgumentException("The rotation axis cannot be zero.", "axis");
 
-            Real = res.Real;
-            Dual = res.Dual;
-        }
+            var res = new ImpDualQuat(axisOffset) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-axisOffset);
 
-        public ImpDualQuat(Vector3 axis, Vector3 currPoint, Vector3 targetPoint, float angle)
-        {
-            if (axis != Vector3.Zero)
-                axis = Vector3.Normalize(axis);
-            var toPoint = new ImpDualQuat(targetPoint - currPoint);
-            var rotate = new ImpDualQuat(axis, angle);
-            var fromPoint = new ImpDualQuat(-(targetPoint - currPoint));
-            var one = toPoint * rotate;
-            var two = one * fromPoint;
-            var res = two;
-            //var res = new ImpDualQuat(targetPoint - currPoint) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(targetPoint - currPoint));
-
-            Real = res.Real;
-            Dual = res.Dual;
-        }
-
-        public ImpDualQuat(ImpDualQuat currState, Vector3 axis, Vector3 currPoint, Vector3 targetPoint, float angle)
-        {
-            if (axis != Vector3.Zero)
-                axis = Vector3.Normalize(axis);
-            var toPoint = new ImpDualQuat(currState.Rotate(targetPoint - currPoint));
-            var rotate = new ImpDualQuat(axis, angle);
-            var fromPoint = new ImpDualQuat(currState.Rotate(-(targetPoint - currPoint)));
-            var one = toPoint * rotate;
-            var two = one * fromPoint;
-            var res = two;
-            //var res = new ImpDualQuat(targetPoint - currPoint) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(targetPoint - currPoint));
-
-            Real = res.Real;
-            Dual = res.Dual;
+            _real = res._real;
+            _dual = res._dual;
         }
 
         // TODO: make more clear use; here, an ambiguity is presented - offset/rotate or rotate/offset? (each option looks weird anyway)
-        public ImpDualQuat(Vector3 axis, Vector3 point, float angle, Vector3 offset)
+        public ImpDualQuat(Vector3 axis, Vector3 axisOffset, float angle, Vector3 translation)
         {
-            if (axis != Vector3.Zero)
-                axis = Vector3.Normalize(axis);
-            var res = new ImpDualQuat(offset) * new ImpDualQuat(point - offset) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-(point + offset));
+            if (axis == Vector3.Zero) throw new ArgumentException("The rotation axis cannot be zero.", "axis");
 
-            Real = res.Real;
-            Dual = res.Dual;
+            var res = new ImpDualQuat(axisOffset) * new ImpDualQuat(axis, angle) * new ImpDualQuat(-axisOffset) * new ImpDualQuat(translation);
+
+            _real = res._real;
+            _dual = res._dual;
         }
 
-        public static ImpDualQuat Align(Vector3 axis1, Vector3 axis2)
+        public ImpDualQuat Normalized()
         {
-            if (axis1 != Vector3.Zero)
-                axis1 = Vector3.Normalize(axis1);
+            return new ImpDualQuat(Quaternion.Normalize(_real), _dual);
+        }
 
-            if (axis2 != Vector3.Zero)
-                axis2 = Vector3.Normalize(axis2);
+        public ImpDualQuat Conjugate()
+        {
+            var conjugateReal = Quaternion.Conjugate(_real);
+            return new ImpDualQuat(conjugateReal, -conjugateReal.Rotate(_dual));
+        }
 
-            var alignAxis = Vector3.Cross(axis1, axis2);
-            if (alignAxis != Vector3.Zero)
-                alignAxis = Vector3.Normalize(alignAxis);
+        public static ImpDualQuat Align(Vector3 vec1, Vector3 vec2)
+        {
+            if (vec1 == Vector3.Zero) throw new ArgumentException("The rotation axis cannot be zero.", "axis");
+            if (vec2 == Vector3.Zero) throw new ArgumentException("The rotation axis cannot be zero.", "axis");
 
-            var alignAngle = (float)Math.Acos(Vector3.Dot(axis1, axis2));  // TODO: make check for success; Acos is prone to errors
-            return new ImpDualQuat(alignAxis, alignAngle);
+            vec1 = Vector3.Normalize(vec1);
+            vec2 = Vector3.Normalize(vec2);
+
+            var alignAxis = Vector3.Cross(vec1, vec2);
+            if (alignAxis == Vector3.Zero)
+                return Zero;
+            else
+            {
+                var alignAngle = (float)Math.Acos(Vector3.Dot(vec1, vec2));  // TODO: make check for success; Acos is prone to errors
+                return new ImpDualQuat(alignAxis, alignAngle);
+            }
         }
 
         public Vector3 Rotate(Vector3 v)
         {
-            return Real.Transform(v);
+            return _real.Rotate(v);
         }
 
         public Vector3 Translate(Vector3 v)
         {
-            return v + Dual;
+            return v + _dual;
         }
 
         public Vector3 Transform(Vector3 v)
         {
-            return Real.Transform(v) + Dual;
+            return _real.Rotate(v) + _dual;
         }
 
         public ImpDualQuat WithoutRotation()
         {
-            return new ImpDualQuat(Quaternion.Zero, Dual);
+            return new ImpDualQuat(Quaternion.Identity, _dual);
         }
 
         public ImpDualQuat WithoutTranslation()
         {
-            return new ImpDualQuat(Real, Vector3.Zero);
+            return new ImpDualQuat(_real, Vector3.Zero);
         }
 
-        public Matrix4 ToMatrix(bool transpose = false)
+        public OpenToolkit.Mathematics.Matrix4 ToMatrix(bool transpose = false)
         {
-            float w = Real.W, w2 = Real.W * Real.W;
-            float x = Real.X, x2 = Real.X * Real.X;
-            float y = Real.Y, y2 = Real.Y * Real.Y;
-            float z = Real.Z, z2 = Real.Z * Real.Z;
-
-            var rxx = w2 + x2 - y2 - z2;
-            var rxy = 2 * x * y - 2 * w * z;
-            var rxz = 2 * x * z + 2 * w * y;
-            var ryx = 2 * x * y + 2 * w * z;
-            var ryy = w2 - x2 + y2 - z2;
-            var ryz = 2 * y * z - 2 * w * x;
-            var rzx = 2 * x * z - 2 * w * y;
-            var rzy = 2 * y * z + 2 * w * x;
-            var rzz = w2 - x2 - y2 + z2;
+            var m = _real.ToMatrix();
+            
+            var tx = _dual.X;
+            var ty = _dual.Y;
+            var tz = _dual.Z;
 
             if (transpose)
-                return new Matrix4(
-                    new Vector4(rxx, ryx, rzx, 0),
-                    new Vector4(rxy, ryy, rzy, 0),
-                    new Vector4(rxz, ryz, rzz, 0),
-                    new Vector4(Dual, 1)
+                return new OpenToolkit.Mathematics.Matrix4(
+                    m.M11, m.M21, m.M31, 0,
+                    m.M12, m.M22, m.M32, 0,
+                    m.M13, m.M23, m.M33, 0,
+                    tx, ty, tz, 1
                 );
             else
-                return new Matrix4(
-                    new Vector4(rxx, rxy, rxz, Dual.X),
-                    new Vector4(ryx, ryy, ryz, Dual.Y),
-                    new Vector4(rzx, rzy, rzz, Dual.Z),
-                    new Vector4(0, 0, 0, 1)
+                return new OpenToolkit.Mathematics.Matrix4(
+                    m.M11, m.M12, m.M13, tx,
+                    m.M21, m.M22, m.M23, ty,
+                    m.M31, m.M32, m.M33, tz,
+                    0, 0, 0, 1
                 );
         }
 
-        public BulletSharp.Math.Matrix ToBulletMatrix(bool transpose = false)
+        public BulletSharp.Math.Matrix ToBulletMatrix(bool transpose = false)  // TODO: replace with OpenTK -> Bullet conversion
         {
-            float w = Real.W, w2 = Real.W * Real.W;
-            float x = Real.X, x2 = Real.X * Real.X;
-            float y = Real.Y, y2 = Real.Y * Real.Y;
-            float z = Real.Z, z2 = Real.Z * Real.Z;
+            var m = _real.ToMatrix();
 
-            var rxx = w2 + x2 - y2 - z2;
-            var rxy = 2 * x * y - 2 * w * z;
-            var rxz = 2 * x * z + 2 * w * y;
-            var ryx = 2 * x * y + 2 * w * z;
-            var ryy = w2 - x2 + y2 - z2;
-            var ryz = 2 * y * z - 2 * w * x;
-            var rzx = 2 * x * z - 2 * w * y;
-            var rzy = 2 * y * z + 2 * w * x;
-            var rzz = w2 - x2 - y2 + z2;
+            var tx = _dual.X;
+            var ty = _dual.Y;
+            var tz = _dual.Z;
 
             if (!transpose)
                 return new BulletSharp.Math.Matrix(
-                    rxx, ryx, rzx, 0,
-                    rxy, ryy, rzy, 0,
-                    rxz, ryz, rzz, 0,
-                    Dual.X, Dual.Y, Dual.Z, 1
+                    m.M11, m.M21, m.M31, 0,
+                    m.M12, m.M22, m.M32, 0,
+                    m.M13, m.M23, m.M33, 0,
+                    tx, ty, tz, 1
                 );
             else
                 return new BulletSharp.Math.Matrix(
-                    rxx, rxy, rxz, Dual.X,
-                    ryx, ryy, ryz, Dual.Y,
-                    rzx, rzy, rzz, Dual.Z,
+                    m.M11, m.M12, m.M13, tx,
+                    m.M21, m.M22, m.M23, ty,
+                    m.M31, m.M32, m.M33, tz,
                     0, 0, 0, 1
                 );
         }
 
         public static ImpDualQuat operator +(ImpDualQuat q1, ImpDualQuat q2)
         {
-            return new ImpDualQuat(q1.Real + q2.Real, q1.Dual + q2.Dual);
+            return new ImpDualQuat(q1._real + q2._real, q1._dual + q2._dual);
         }
 
         public static ImpDualQuat operator -(ImpDualQuat q1, ImpDualQuat q2)
         {
-            return new ImpDualQuat(q1.Real - q2.Real, q1.Dual - q2.Dual);
+            return new ImpDualQuat(q1._real - q2._real, q1._dual - q2._dual);
         }
 
         public static ImpDualQuat operator *(ImpDualQuat q1, ImpDualQuat q2)
         {
-            return new ImpDualQuat(q1.Real * q2.Real, q1.Dual + q1.Real.Transform(q2.Dual));
+            return new ImpDualQuat(q1._real * q2._real, q1._dual + q1._real.Rotate(q2._dual));
         }
 
-        public override string ToString() => string.Format("R: [{0}], D: [{1}]", Real, Dual);
+        public override string ToString() => string.Format("R: [{0}], D: [{1}]", _real, _dual);
     }
 }

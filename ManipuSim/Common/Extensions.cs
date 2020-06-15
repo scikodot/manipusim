@@ -236,3 +236,38 @@ public static class BulletSharpQuaternionExtensions
         return eulers;
     }
 }
+
+public static class QuaternionExtensions
+{
+    public static Vector3 Rotate(this Quaternion quat, Vector3 vec)
+    {
+        var xyz = new Vector3(quat.X, quat.Y, quat.Z);
+        Vector3 uv = Vector3.Cross(xyz, vec);
+        uv += uv;
+        return vec + quat.W * uv + Vector3.Cross(xyz, uv);
+    }
+
+    public static OpenToolkit.Mathematics.Matrix3 ToMatrix(this Quaternion quat)
+    {
+        float w = quat.W, w2 = w * w;
+        float x = quat.X, x2 = x * x;
+        float y = quat.Y, y2 = y * y;
+        float z = quat.Z, z2 = z * z;
+
+        var rxx = w2 + x2 - y2 - z2;
+        var rxy = 2 * x * y - 2 * w * z;
+        var rxz = 2 * x * z + 2 * w * y;
+        var ryx = 2 * x * y + 2 * w * z;
+        var ryy = w2 - x2 + y2 - z2;
+        var ryz = 2 * y * z - 2 * w * x;
+        var rzx = 2 * x * z - 2 * w * y;
+        var rzy = 2 * y * z + 2 * w * x;
+        var rzz = w2 - x2 - y2 + z2;
+
+        return new OpenToolkit.Mathematics.Matrix3(
+            rxx, rxy, rxz,
+            ryx, ryy, ryz,
+            rzx, rzy, rzz
+        );
+    }
+}

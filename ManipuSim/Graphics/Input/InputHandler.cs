@@ -81,7 +81,7 @@ namespace Graphics
                 ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?
             {
                 // check whether any physical object is being selected
-                PollSelection(mouseState, keyboardState);
+                PollSelection(window, mouseState, keyboardState);
 
                 // poll widget for interaction
                 TranslationalWidget.Poll(camera, RaycastResult, mouseState, _lastState);
@@ -106,12 +106,16 @@ namespace Graphics
             else if (mouseState.IsButtonDown(MouseButton.Middle))  // update camera orientation if the middle button is pressed
             {
                 // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
-                camera.Yaw += -window.MouseDelta.X * camera.Sensitivity;
-                camera.Pitch -= -window.MouseDelta.Y * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
+                // TODO: LastMouseState returns incorrect states; report!
+                var delta = window.MouseState.Position - _lastState.Position;
+                camera.Yaw += delta.X * camera.Sensitivity;
+                camera.Pitch -= delta.Y * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
+
+                Console.WriteLine($"{window.MouseState.Position}, {window.MousePosition}, {window.LastMouseState.Position}, {window.MouseDelta}");
             }
 
             // update last mouse state after all necessary queries
-            _lastState = mouseState;
+            _lastState = window.MouseState;
         }
 
         private static Vector2 MouseToNDC(GameWindow window, MouseState mouseState)
@@ -129,7 +133,7 @@ namespace Graphics
                 (0.5f - cursorViewport.Y / window.Size.Y) * 2);
         }
 
-        private static void PollSelection(MouseState mouseState, KeyboardState keyboardState)  // TODO: raycast is performed wrong on shapes' edges; check!
+        private static void PollSelection(GameWindow window, MouseState mouseState, KeyboardState keyboardState)  // TODO: raycast is performed wrong on shapes' edges; check!
         {
             var startWorld = RaycastResult.StartWorld.ToBullet3();
             var endWorld = RaycastResult.EndWorld.ToBullet3();
@@ -137,7 +141,7 @@ namespace Graphics
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
                 PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (mouseState.IsButtonDown(MouseButton.Right) && _lastState.IsButtonUp(MouseButton.Right))  // TODO: perhaps use Window built-in method?
+                if (window.IsMouseButtonPressed(MouseButton.Right)/*mouseState.IsButtonDown(MouseButton.Right) && _lastState.IsButtonUp(MouseButton.Right)*/)  // TODO: perhaps use Window built-in method?
                 {
                     if (raycastCallback.HasHit)
                     {
