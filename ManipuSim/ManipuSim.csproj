@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
+  <!-- Project properties -->
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputType>Exe</OutputType>
@@ -25,7 +26,7 @@
     <RootNamespace>ManipuSim</RootNamespace>
   </PropertyGroup>
   
-  <ItemGroup>
+  <!--<ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4.6.1 %28x86 и x64%29</ProductName>
@@ -36,30 +37,31 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
-  </ItemGroup>
+  </ItemGroup>-->
 
+  <!-- Copy resources to the output directory -->
   <ItemGroup>
     <Content Include="$(ProjectDir)Resources\**" LinkBase="" CopyToOutputDirectory="PreserveNewest" />
-    <!--Link="resources\%(RecursiveDir)%(Filename)%(Extension)"-->
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="_libs\BulletSharpNetCore\BulletSharp.dll" />
-    <None Remove="_libs\BulletSharpNetCore\libbulletc.dll" />
-    <None Remove="_libs\BulletSharpNetCore\libbulletc.so" />
   </ItemGroup>
   
   <ItemGroup>
-    <ContentWithTargetPath Include="_libs\BulletSharpNetCore\BulletSharp.dll" CopyToOutputDirectory="Always" TargetPath="BulletSharp.dll" />
+    <!--<None Remove="_libs\BulletSharpNetCore\BulletSharp.dll" />-->
+    <None Remove="_libs\BulletSharpNetCore\libbulletc.dll" />
+    <None Remove="_libs\BulletSharpNetCore\libbulletc.so" />
+  </ItemGroup>
+
+  <!-- Copy external modules to the output directory -->
+  <ItemGroup>
+    <!--<ContentWithTargetPath Include="_libs\BulletSharpNetCore\BulletSharp.dll" CopyToOutputDirectory="Always" TargetPath="BulletSharp.dll" />-->
     <ContentWithTargetPath Include="_libs\BulletSharpNetCore\libbulletc.dll" CopyToOutputDirectory="Always" TargetPath="libbulletc.dll" />
     <ContentWithTargetPath Include="_libs\BulletSharpNetCore\libbulletc.so" CopyToOutputDirectory="Always" TargetPath="libbulletc.so" />
   </ItemGroup>
   
+  <!-- Included packages -->
   <ItemGroup>
     <PackageReference Include="AssimpNet">
       <Version>4.1.0</Version>
     </PackageReference>
-    <PackageReference Include="BulletSharp" Version="0.11.1" />
     <PackageReference Include="ImGui.NET">
       <Version>1.75.0</Version>
     </PackageReference>
@@ -91,16 +93,22 @@
       <Version>4.5.0</Version>
     </PackageReference>
   </ItemGroup>
+  
+  <!-- Included external modules -->
+  <ItemGroup>
+    <Reference Include="BulletSharp">
+      <HintPath>..\..\_libs\BulletSharpNetCore\BulletSharp.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
 
-  <!--<Target Name="MaintainPublishFolder" AfterTargets="PostBuildEvent">
-    <Message Text="Inside AfterPublish" Importance="high" />
-  </Target>-->
-
+  <!-- Post-build event that resets the publish folder to not retain old files -->
   <Target Name="ResetPublishFolder" AfterTargets="PostBuildEvent">
     <RemoveDir Directories="$(PublishDir)" />
     <MakeDir Directories="$(PublishDir)" />
   </Target>
 
+  <!-- Setup the publish folder; here we rename the GLFW library because its default name is retrieved incorrectly in OpenTK 4.0.0-pre9.1 build -->
   <Target Name="MaintainPublishFolder" AfterTargets="BundlePublishDirectory">
     <Exec Command="ren &quot;$(PublishDir)libglfw.so.3.3&quot; &quot;libglfw.so.3&quot;" />
   </Target>

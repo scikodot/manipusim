@@ -1,11 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "+eJG2mmuzzs8eLasSBaClYzt0SmO4p3vKdYUywZunWqcoWrkCMmVpQ+Lo/S27g5rnPBvW3BsOvtQzMD+tywrkQ==",
+  "dgSpecHash": "/Dtl3TDePTy0ILiG2gualBX8hOF+ZB4BptgSNPMrLa0qwGhYKCO9CG4D9WC3xtMpHxprZ7sJIwy3q03b6ts5gQ==",
   "success": true,
   "projectFilePath": "C:\\Users\\Dan\\source\\repos\\manipusim\\ManipuSim\\ManipuSim.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Dan\\.nuget\\packages\\assimpnet\\4.1.0\\assimpnet.4.1.0.nupkg.sha512",
-    "C:\\Users\\Dan\\.nuget\\packages\\bulletsharp\\0.11.1\\bulletsharp.0.11.1.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\imgui.net\\1.75.0\\imgui.net.1.75.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\mathnet.numerics\\4.9.1\\mathnet.numerics.4.9.1.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\microsoft.csharp\\4.7.0\\microsoft.csharp.4.7.0.nupkg.sha512",
@@ -101,16 +100,5 @@
     "C:\\Users\\Dan\\.nuget\\packages\\system.xml.readerwriter\\4.3.0\\system.xml.readerwriter.4.3.0.nupkg.sha512",
     "C:\\Users\\Dan\\.nuget\\packages\\system.xml.xdocument\\4.3.0\\system.xml.xdocument.4.3.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1701",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'BulletSharp 0.11.1' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8' instead of the project target framework '.NETCoreApp,Version=v3.1'. This package may not be fully compatible with your project.",
-      "libraryId": "BulletSharp",
-      "targetGraphs": [
-        ".NETCoreApp,Version=v3.1"
-      ]
-    }
-  ]
+  "logs": []
 }

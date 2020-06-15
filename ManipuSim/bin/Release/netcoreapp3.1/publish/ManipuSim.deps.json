@@ -9,7 +9,6 @@
       "ManipuSim/1.0.0": {
         "dependencies": {
           "AssimpNet": "4.1.0",
-          "BulletSharp": "0.11.1",
           "ImGui.NET": "1.75.0",
           "MathNet.Numerics": "4.9.1",
           "Microsoft.CSharp": "4.7.0",
@@ -21,7 +20,8 @@
           "System.Numerics.Vectors": "4.5.0",
           "System.Runtime.CompilerServices.Unsafe": "4.7.0",
           "System.ValueTuple": "4.5.0",
-          "morelinq": "3.3.2"
+          "morelinq": "3.3.2",
+          "BulletSharp": "1.0.0.0"
         },
         "runtime": {
           "ManipuSim.dll": {}
@@ -57,14 +57,6 @@
             "rid": "win-x86",
             "assetType": "native",
             "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "BulletSharp/0.11.1": {
-        "runtime": {
-          "lib/net40-client/BulletSharp.dll": {
-            "assemblyVersion": "0.11.0.0",
-            "fileVersion": "0.11.0.0"
           }
         }
       },
@@ -951,6 +943,14 @@
           "System.Threading": "4.3.0",
           "System.Xml.ReaderWriter": "4.3.0"
         }
+      },
+      "BulletSharp/1.0.0.0": {
+        "runtime": {
+          "BulletSharp.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
       }
     }
   },
@@ -966,13 +966,6 @@
       "sha512": "sha512-z/4Tmf3Q2r1+vN6o/szArEZvPsdYNRYiS0L/yArybQd7n7KCiS9L4lRZhwwlHJb/edECM+Jky0XisVspr5aQWQ==",
       "path": "assimpnet/4.1.0",
       "hashPath": "assimpnet.4.1.0.nupkg.sha512"
-    },
-    "BulletSharp/0.11.1": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-h63YXDBPZV2WZJ5YmP65NTAq0PiNN37lGrX/Ln+Of8ya1kZasIR815dkb/q2xE2HCafIbS9iRf7w7QzLoCTWRw==",
-      "path": "bulletsharp/0.11.1",
-      "hashPath": "bulletsharp.0.11.1.nupkg.sha512"
     },
     "ImGui.NET/1.75.0": {
       "type": "package",
@@ -1631,6 +1624,11 @@
       "sha512": "sha512-5zJ0XDxAIg8iy+t4aMnQAu0MqVbqyvfoUVl1yDV61xdo3Vth45oA2FoY4pPkxYAH5f8ixpmTqXeEIya95x0aCQ==",
       "path": "system.xml.xdocument/4.3.0",
       "hashPath": "system.xml.xdocument.4.3.0.nupkg.sha512"
+    },
+    "BulletSharp/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
     }
   }
 }
