@@ -60,7 +60,7 @@ namespace Logic.PathPlanning
                 };
 
             // create new tree
-            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q));
+            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q), _maxIterations + 1);
 
             Iterations = 0;
             while (Iterations < _maxIterations)

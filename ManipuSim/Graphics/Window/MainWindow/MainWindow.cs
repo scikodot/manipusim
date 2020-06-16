@@ -32,7 +32,7 @@ namespace Graphics
         private static Camera _camera;
 
         public static readonly List<Model> _goalModels = new List<Model>();  // TODO: consider distributing to the appropriate classes and checking whether the types (Model, etc.) are available at runtime
-        public static readonly List<TreeModel> _treeModels = new List<TreeModel>();
+        //public static readonly List<TreeModel> _treeModels = new List<TreeModel>();
         public static readonly List<PathModel> _pathModels = new List<PathModel>();
         public static readonly List<PathModel> _gaModels = new List<PathModel>();
         private static Model _bezierPoints;
@@ -315,12 +315,12 @@ namespace Graphics
                     path.Render(ShaderHandler.ComplexShader);
             }
 
-            // render RRT trees
-            foreach (var tree in _treeModels)
-            {
-                if (tree.IsSetup)
-                    tree.Render(ShaderHandler.ComplexShader);
-            }
+            //// render RRT trees
+            //foreach (var tree in _treeModels)
+            //{
+            //    if (tree.IsSetup)
+            //        tree.Render(ShaderHandler.ComplexShader);
+            //}
 
             // render genetic algorithm paths
             foreach (var path in _gaModels)
@@ -536,7 +536,9 @@ namespace Graphics
                         if (manipulator.Controller.PathPlanner is RRT rrt)
                         {
                             // update tree model state
-                            _treeModels[i].Update(rrt.Tree);
+                            if (rrt.Tree != null)
+                                rrt.Tree.Model.Update();
+                            //_treeModels[i].Update(rrt.Tree);
                         }
                         else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
                         {
@@ -591,11 +593,11 @@ namespace Graphics
 
         protected void ResetScene()
         {
-            // reset trees
-            foreach (var tree in _treeModels)
-            {
-                tree.Reset();
-            }
+            //// reset trees
+            //foreach (var tree in _treeModels)
+            //{
+            //    tree.Reset();
+            //}
 
             // reset paths
             foreach (var path in _pathModels)
@@ -610,7 +612,7 @@ namespace Graphics
 
             // create new models for the manipulator goal, path and tree
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK()))));
-            _treeModels.Add(new TreeModel(50001, MeshMaterial.Black));
+            //_treeModels.Add(new TreeModel(50001, MeshMaterial.Black));
             _pathModels.Add(new PathModel(50001, MeshMaterial.Red));
             _gaModels.Add(new PathModel(50001, MeshMaterial.Black));
         }
@@ -705,11 +707,11 @@ namespace Graphics
                 goal.Dispose();
             }
 
-            // remove trees models
-            foreach (var tree in _treeModels)
-            {
-                tree.Dispose();
-            }
+            //// remove trees models
+            //foreach (var tree in _treeModels)
+            //{
+            //    tree.Dispose();
+            //}
 
             // remove paths models
             foreach (var path in _pathModels)

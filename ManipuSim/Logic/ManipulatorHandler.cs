@@ -144,8 +144,8 @@ namespace Logic
                 MainWindow._goalModels.RemoveAt(index);
 
                 // remove goal model
-                MainWindow._treeModels[index].Dispose();
-                MainWindow._treeModels.RemoveAt(index);
+                //MainWindow._treeModels[index].Dispose();
+                //MainWindow._treeModels.RemoveAt(index);
 
                 // remove goal model
                 MainWindow._pathModels[index].Dispose();
@@ -222,6 +222,12 @@ namespace Logic
             foreach (var manipulator in Manipulators)
             {
                 manipulator.RenderUnselected(shader);
+
+                if (manipulator.Controller.PathPlanner is RRT rrt)
+                {
+                    if (rrt.Tree != null)
+                        rrt.Tree.Model.Render(shader);
+                }
             }
         }
 
@@ -238,6 +244,11 @@ namespace Logic
             foreach (var manipulator in Manipulators)
             {
                 manipulator.Reset();
+
+                if (manipulator.Controller.PathPlanner is RRT rrt)
+                {
+                    rrt.Tree.Model.Reset();
+                }
             }
         }
 
@@ -263,6 +274,11 @@ namespace Logic
             foreach (var manipulator in Manipulators)
             {
                 manipulator.Dispose();
+
+                if (manipulator.Controller.PathPlanner is RRT rrt)
+                {
+                    rrt.Tree.Dispose();
+                }
             }
         }
 

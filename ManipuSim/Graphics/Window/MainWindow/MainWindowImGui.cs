@@ -797,7 +797,7 @@ namespace Graphics
             ImGui.Text($"Planning iterations: {manipulator.Controller.PathPlanner.Iterations}");
             ImGui.Text($"Planning time: {manipulator.Controller.PathPlanner.Timer.Elapsed.TotalSeconds : 0.000} s");
             ImGui.Text($"Control time: {manipulator.Controller.MotionController.Timer.Elapsed.TotalSeconds : 0.000} s");
-
+            
             ImGui.Separator();
 
             if (manipulator.Controller.PathPlanner is RRT rrt)

@@ -4,10 +4,11 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Numerics;
 
-using Logic.InverseKinematics;
-
+using OpenToolkit.Graphics.OpenGL4;
 using MoreLinq.Extensions;
-using Physics;
+
+using Logic.InverseKinematics;
+using Graphics;
 
 namespace Logic.PathPlanning
 {
@@ -19,7 +20,7 @@ namespace Logic.PathPlanning
         Recursive
     }
 
-    public class Tree
+    public class Tree : IDisposable
     {
         public class Node
         {
@@ -59,21 +60,127 @@ namespace Logic.PathPlanning
             }
         }
 
-        public HashSet<Node> Nodes = new HashSet<Node>();
-        public ConcurrentQueue<Node> AddBuffer = new ConcurrentQueue<Node>();
-        public ConcurrentQueue<Node> DelBuffer = new ConcurrentQueue<Node>();
+        public class TreeModel : IDisposable
+        {
+            private readonly Queue<uint> _freeIndices = new Queue<uint>();
+            private uint _freeTop;
+
+            public Tree Tree { get; }
+            public Model Model { get; }
+
+            private Vector3 _color = Vector3.Zero;
+            public ref Vector3 Color => ref _color;  // TODO: use in GUI!
+
+            public bool IsSetup => Model.IsSetup;
+
+            public TreeModel(Tree tree)
+            {
+                Tree = tree;
+
+                // create an empty model with the specified max buffer size and material
+                Model = new Model(new MeshVertex[tree.MaxSize], new uint[2 * tree.MaxSize], 
+                    new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 0.0f) });
+            }
+
+            public void Render(Shader shader)
+            {
+                if (IsSetup)
+                    Model.Render(shader, () =>
+                    {
+                        GL.DrawElements(BeginMode.Lines, 2 * ((int)_freeTop - 1), DrawElementsType.UnsignedInt, 0);
+                    });
+            }
+
+            public void Reset()
+            {
+                Model.Meshes[0].UpdateVertices(0, Tree.MaxSize, new MeshVertex[Tree.MaxSize]);
+                Model.Meshes[0].UpdateIndices(0, 2 * Tree.MaxSize, new uint[2 * Tree.MaxSize]);
+
+                _freeIndices.Clear();
+                _freeTop = 0;
+            }
+
+            public void Update()
+            {
+                if (IsSetup)
+                    AddNodes(Tree.AddBuffer.DequeueAll().ToList());
+                    RemoveNodes(Tree.DelBuffer.DequeueAll().ToList());
+            }
+
+            private void AddNodes(List<Node> nodes)
+            {
+                foreach (var node in nodes)
+                {
+                    var point = node.Point;
+
+                    // add the node to the vertex buffer
+                    uint index = _freeIndices.Count == 0 ? _freeTop++ : _freeIndices.Dequeue();
+                    Model.Meshes[0].UpdateVertices(index, 1, new MeshVertex[]
+                    {
+                    new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
+                    });
+
+                    // memoize the index of the node for later use
+                    node.ID = index;
+                    
+                    if (node.Parent != null)
+                    {
+                        // add new indices pair to the element buffer
+                        Model.Meshes[0].UpdateIndices(2 * (node.ID - 1), 2, new uint[] { node.Parent.ID, node.ID });
+                    }
+                }
+            }
+
+            private void RemoveNodes(List<Node> nodes)
+            {
+                // sort nodes list for sequential buffer filling
+                nodes = nodes.OrderBy(x => x.ID).ToList();
+
+                foreach (var node in nodes)
+                {
+                    // add the freed index to the list
+                    _freeIndices.Enqueue(node.ID);
+
+                    // remove the indices pair from the element buffer by setting it to all-zero
+                    // TODO: this may cause performance damage if indices do not remove duplicate vertices; check!
+                    Model.Meshes[0].UpdateIndices(2 * (node.ID - 1), 2, new uint[2] { 0, 0 });
+                }
+            }
+
+            public void Dispose()
+            {
+                // clear managed resources
+                Model.Dispose();
+
+                // suppress finalization
+                GC.SuppressFinalize(this);
+            }
+        }
+
+        public int MaxSize { get; }
+
+        public HashSet<Node> Nodes { get; } = new HashSet<Node>();
+        public ConcurrentQueue<Node> AddBuffer { get; } = new ConcurrentQueue<Node>();
+        public ConcurrentQueue<Node> DelBuffer { get; } = new ConcurrentQueue<Node>();
+
+        public TreeModel Model { get; }
+
         public TreeBehaviour Mode;
 
         public Node Root { get; private set; }
         public int Count => Nodes.Count;
 
-        public Tree(Node root, TreeBehaviour mode = TreeBehaviour.Cyclic)
+        public Tree(Node root, int maxSize, TreeBehaviour mode = TreeBehaviour.Cyclic)
         {
+            MaxSize = maxSize;
+
             Nodes.Add(root);
 
             Root = root;
 
             AddBuffer.Enqueue(root);
+
+            Model = new TreeModel(this);
 
             Mode = mode;
         }
@@ -253,6 +360,13 @@ namespace Logic.PathPlanning
                 node = node.Parent;
             }
             yield return node.q;
+        }
+
+        public void Dispose()
+        {
+            Model.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }
