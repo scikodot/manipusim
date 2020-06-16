@@ -48,7 +48,7 @@ namespace Logic
 
         public Path Path;
 
-        public MotionController Controller { get; set; }
+        public Controller Controller { get; set; }
 
         private bool _showCollider;
         public ref bool ShowCollider => ref _showCollider;

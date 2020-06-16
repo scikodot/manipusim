@@ -118,7 +118,8 @@ namespace Logic
 
             var solver = DampedLeastSquares.Default();
             var planner = /*GeneticAlgorithm.Default();*/ ARRT.Default(manipulator);
-            manipulator.Controller = new MotionController(manipulator, planner, solver);
+            var controller = MotionController.Default();
+            manipulator.Controller = new Controller(manipulator, planner, solver, controller);
 
             // add manipulator to the list
             Add(manipulator);

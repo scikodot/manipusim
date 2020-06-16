@@ -2,7 +2,7 @@
 
 namespace Logic
 {
-    static class Ziggurat
+    public static class Ziggurat
     {
         // normal distribution constants
         private const double r = 3.6541528853610088;  // position of the right-most rectangle right side

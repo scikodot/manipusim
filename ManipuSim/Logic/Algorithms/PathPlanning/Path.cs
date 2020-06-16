@@ -78,15 +78,15 @@ namespace Logic.PathPlanning
             }
         }
 
-        public HashSet<Node> Nodes = new HashSet<Node>();
-        public ConcurrentQueue<Node> AddBuffer = new ConcurrentQueue<Node>();
-        public ConcurrentQueue<Node> DelBuffer = new ConcurrentQueue<Node>();
-        public ConcurrentQueue<Node> ChgBuffer = new ConcurrentQueue<Node>();
+        public HashSet<Node> Nodes { get; } = new HashSet<Node>();
+        public ConcurrentQueue<Node> AddBuffer { get; } = new ConcurrentQueue<Node>();
+        public ConcurrentQueue<Node> DelBuffer { get; } = new ConcurrentQueue<Node>();
+        public ConcurrentQueue<Node> ChgBuffer { get; } = new ConcurrentQueue<Node>();
 
         public Node First { get; private set; }
         public Node Last { get; private set; }
         public Node Current { get; private set; }
-        public int Count => Nodes.Count();
+        public int Count => Nodes.Count;
 
         public Path(Node first)
         {
@@ -126,7 +126,7 @@ namespace Logic.PathPlanning
             while (current != null)
             {
                 yield return func(current);
-                current = current.Child;  // TODO: might be not executed; check
+                current = current.Child;
             }
         }
 

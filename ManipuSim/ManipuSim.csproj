@@ -61,6 +61,9 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Logic\Algorithms\PathPlanning\GridBased\" />
+  </ItemGroup>
 
   <!-- Post-build event that cleans the publish folder, i.e. all of its contents -->
   <Target Name="CleanPublishDirectory" AfterTargets="PostBuildEvent">

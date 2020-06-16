@@ -1,138 +1,88 @@
-﻿using System.Collections.Generic;
-using System.Numerics;
+﻿using System.Numerics;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+
 using Logic.PathPlanning;
 using Logic.InverseKinematics;
-using System.Diagnostics;
 using System;
-using System.Threading;
-using System.Linq;
-using Assimp;
-using System.Threading.Tasks;
 
 namespace Logic
 {
     using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
 
-    public enum ControllerState
-    {
-        Aborted = -1,  // TODO: can be used for exceptions processing
-        Idle = 0,
-        Running = 1,
-        Finished = 2
-    }
-
     public class MotionController
     {
-        public Manipulator Manipulator { get; }
-        public PathPlanner PathPlanner { get; set; }
-        public InverseKinematicsSolver InverseKinematicsSolver { get; set; }
-
         private float _deformThreshold = 0.1f;
 
         public ControllerState State { get; private set; } = ControllerState.Idle;
         public Stopwatch Timer { get; } = new Stopwatch();
-        public Thread Thread { get; private set; }
         public Task Task { get; private set; }
 
-        public MotionController(Manipulator agent, PathPlanner pathPlanner, InverseKinematicsSolver planSolver)
+        public MotionController()
         {
-            Manipulator = agent;
-            PathPlanner = pathPlanner;
-            InverseKinematicsSolver = planSolver;
+            
         }
 
-        public void Run()
+        public static MotionController Default()
         {
-            // update thread
-            UpdateThread();
-
-            // run thread
-            Task.Start();
-            //Thread.Start();
+            return new MotionController();
         }
 
-        public void Abort()
+        public void Run(Manipulator manipulator, CancellationToken cancellationToken = default)
         {
-            // TODO: implement
-
-            //if (State == ControllerState.Running)
-            //    Thread.Abort();
-        }
-
-        private void UpdateThread()
-        {
-            Task = new Task(() => /*Thread = new Thread(() =>*/  // TODO: consider changing to Tasks
+            try
             {
-                try
+                // start measuring execution time
+                Timer.Restart();
+
+                // turn the controller on
+                State = ControllerState.Running;
+
+                // start motion control if a path has been found
+                if (manipulator.Path != null)
                 {
-                    // start measuring execution time
-                    Timer.Reset();
-                    Timer.Start();
-
-                    // turn the controller on
-                    State = ControllerState.Running;
-
-                    // execute manipulator control process
-                    ExecuteMotion(Manipulator.Goal);
-
-                    // turn the controller off
-                    State = ControllerState.Finished;
-                }
-                catch (ThreadAbortException e)  // checking for abort query
-                {
-                    // indicate that the process has been aborted
-                    State = ControllerState.Aborted;
-                }
-                finally
-                {
-                    // stop measuring execution time
-                    Timer.Stop();
-                }
-            });
-        }
-
-        private void ExecuteMotion(Vector3 goal)
-        {
-            // execute path planning
-            var ppRes = PathPlanner.Run(Manipulator, goal, InverseKinematicsSolver);
-
-            // stop measuring planning time
-            Timer.Stop();
-
-            Manipulator.Path = ppRes.Path;
-
-            // start motion control if a path has been found
-            if (Manipulator.Path != null)
-            {
-                using (var manipulatorCopy = Manipulator.DeepCopy())
-                {
-                    // execute motion control
-                    Path.Node gripperPos = Manipulator.Path.Current;
-                    while (gripperPos.Child != null)
+                    using (var manipulatorCopy = manipulator.DeepCopy())
                     {
-                        var current = gripperPos.Child;
-                        while (current.Child != null)  // last point may not be deformed, since it is a goal point
+                        // execute motion control
+                        Path.Node gripperPos = manipulator.Path.Current;
+                        while (gripperPos.Child != null)
                         {
-                            for (int j = current.Points.Length - 1; j > 0; j--)
+                            cancellationToken.ThrowIfCancellationRequested();
+
+                            var current = gripperPos.Child;
+                            while (current.Child != null)  // last point may not be deformed, since it is a goal point
                             {
-                                if (ObstacleHandler.ContainmentTest(current.Points[j], out Obstacle obstacle))
+                                for (int j = current.Points.Length - 1; j > 0; j--)
                                 {
-                                    //Deform(manipulatorCopy, obstacle, current, j);
+                                    if (ObstacleHandler.ContainmentTest(current.Points[j], out Obstacle obstacle))
+                                    {
+                                        //Deform(manipulatorCopy, obstacle, current, j);
+                                    }
                                 }
+
+                                current = current.Child;
                             }
 
-                            current = current.Child;
+                            //Discretize(manipulatorCopy, gripperPos);
+
+                            gripperPos = manipulator.Path.Current;
                         }
-
-                        //Discretize(manipulatorCopy, gripperPos);
-
-                        gripperPos = Manipulator.Path.Current;
                     }
                 }
+
+                // turn the controller off
+                State = ControllerState.Idle;
             }
-            else
+            catch (OperationCanceledException oce)
             {
-                // TODO: notify that the paths was not found?
+                // indicate that the process has been aborted
+                State = ControllerState.Aborted;
+            }
+            finally
+            {
+                // stop measuring execution time
+                Timer.Stop();
             }
         }
 

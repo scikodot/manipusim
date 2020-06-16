@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using Logic.InverseKinematics;
-using Physics;
 
 namespace Logic.PathPlanning
 {
@@ -50,7 +49,7 @@ namespace Logic.PathPlanning
                 _stepDefault, _showTreeDefault, _enableTrimmingDefault, _trimPeriodDefault);
         }
 
-        protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
+        protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver, CancellationToken cancellationToken)
         {
             if (manipulator.DistanceTo(goal) < _threshold)
                 // the goal is already reached
@@ -66,6 +65,8 @@ namespace Logic.PathPlanning
             Iterations = 0;
             while (Iterations < _maxIterations)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 Iterations++;
 
                 // trim tree
@@ -113,6 +114,11 @@ namespace Logic.PathPlanning
                 Iterations = Iterations,
                 Path = Tree.GetPath(manipulator, Tree.Closest(goal))  // TODO: refactor! tree should be written to temp variable in path planner, not permanent in manipulator
             };
+        }
+
+        protected override void Reset()
+        {
+            Tree = null;
         }
     }
 }

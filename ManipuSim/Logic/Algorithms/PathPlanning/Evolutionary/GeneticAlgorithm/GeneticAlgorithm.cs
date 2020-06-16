@@ -6,6 +6,7 @@ using System.Numerics;
 using MoreLinq;
 
 using Logic.InverseKinematics;
+using System.Threading;
 
 namespace Logic.PathPlanning
 {
@@ -80,7 +81,7 @@ namespace Logic.PathPlanning
                 _offspringSizeDefault, _survivalSizeDefault, _bezierControlPointsCountDefault, _bezierStepDefault);
         }
 
-        protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver)
+        protected override PathPlanningResult RunAbstract(Manipulator manipulator, Vector3 goal, InverseKinematicsSolver solver, CancellationToken cancellationToken)
         {
             if (manipulator.DistanceTo(goal) < _threshold)
                 // the goal is already reached
@@ -112,6 +113,8 @@ namespace Logic.PathPlanning
             Iterations = 0;
             while (generation[0].Weight > 0 && Iterations++ < _maxIterations)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // get new generation
                 generation = Evolve(generation, _offspringSize, _survivalSize);
 

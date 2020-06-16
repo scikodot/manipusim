@@ -1,7 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Numerics;
-using System.Runtime.Remoting;
-using Graphics;
+﻿using System.Numerics;
+
 using MathNet.Numerics.LinearAlgebra;
 
 namespace Logic.InverseKinematics

@@ -100,38 +100,38 @@ public static class Benchmark
 
     public static void RunPathPlanning()
     {
-        // setup dot separator for floats
-        System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
-        customCulture.NumberFormat.NumberDecimalSeparator = ".";
+        //// setup dot separator for floats
+        //System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
+        //customCulture.NumberFormat.NumberDecimalSeparator = ".";
 
-        System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
+        //System.Threading.Thread.CurrentThread.CurrentCulture = customCulture;
 
-        var agent = ManipulatorHandler.Manipulators[0];
-        _planners.Add(ARRT.Default(agent));
+        //var agent = ManipulatorHandler.Manipulators[0];
+        //_planners.Add(ARRT.Default(agent));
 
-        foreach (var planner in _planners)
-        {
-            var type = planner.GetType().Name;
-            using (var stream = new StreamWriter($@"C:\Users\Dan\PyScripts\ManipusBenchmark\Planners\{type}.csv"))
-            {
-                stream.WriteLine("Iterations,Time,PathLength,Error");
+        //foreach (var planner in _planners)
+        //{
+        //    var type = planner.GetType().Name;
+        //    using (var stream = new StreamWriter($@"C:\Users\Dan\PyScripts\ManipusBenchmark\Planners\{type}.csv"))
+        //    {
+        //        stream.WriteLine("Iterations,Time,PathLength,Error");
 
-                for (int i = 0; i < _samplesPP + 1; i++)
-                {
-                    PathPlanningResult ppRes;
-                    using (var manipulatorCopy = agent.DeepCopy())
-                    {
-                        _timer.Restart();
-                        ppRes = planner.Run(manipulatorCopy, manipulatorCopy.Goal, _plannerSolver);
-                        _timer.Stop();
-                    }
+        //        for (int i = 0; i < _samplesPP + 1; i++)
+        //        {
+        //            PathPlanningResult ppRes;
+        //            using (var manipulatorCopy = agent.DeepCopy())
+        //            {
+        //                _timer.Restart();
+        //                ppRes = planner.Run(manipulatorCopy, manipulatorCopy.Goal, _plannerSolver);
+        //                _timer.Stop();
+        //            }
 
-                    // discard first few results because Stopwatch has a warmup phase which produces excessively high numbers
-                    if (i > 0)
-                        stream.WriteLine($"{ppRes.Iterations},{_timer.Elapsed.TotalMilliseconds},{ppRes.Path.GetLength()}," +
-                            $"{ppRes.Path.Last.Points[ppRes.Path.Last.Points.Length - 1].DistanceTo(agent.Goal)}");
-                }
-            }
-        }
+        //            // discard first few results because Stopwatch has a warmup phase which produces excessively high numbers
+        //            if (i > 0)
+        //                stream.WriteLine($"{ppRes.Iterations},{_timer.Elapsed.TotalMilliseconds},{ppRes.Path.GetLength()}," +
+        //                    $"{ppRes.Path.Last.Points[ppRes.Path.Last.Points.Length - 1].DistanceTo(agent.Goal)}");
+        //        }
+        //    }
+        //}
     }
 }

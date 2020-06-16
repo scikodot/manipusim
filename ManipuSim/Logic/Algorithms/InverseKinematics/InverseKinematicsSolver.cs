@@ -15,14 +15,6 @@ namespace Logic.InverseKinematics
         HillClimbing
     }
 
-    public struct InverseKinematicsData  // TODO: perhaps "params" is better than "data"?
-    {
-        public int InverseKinematicsSolverID;
-        public float StepSize;
-        public float Precision;
-        public int MaxTime;
-    }
-
     public struct InverseKinematicsResult
     {
         public bool Converged;
