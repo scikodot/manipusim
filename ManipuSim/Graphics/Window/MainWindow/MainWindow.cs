@@ -32,10 +32,7 @@ namespace Graphics
         private static Camera _camera;
 
         public static readonly List<Model> _goalModels = new List<Model>();  // TODO: consider distributing to the appropriate classes and checking whether the types (Model, etc.) are available at runtime
-        //public static readonly List<TreeModel> _treeModels = new List<TreeModel>();
-        public static readonly List<PathModel> _pathModels = new List<PathModel>();
-        public static readonly List<PathModel> _gaModels = new List<PathModel>();
-        private static Model _bezierPoints;
+        //private static Model _bezierPoints;
 
         private static float time = 0;
         private static bool forward;
@@ -308,37 +305,16 @@ namespace Graphics
                     goal.Render(ShaderHandler.ComplexShader);
             }
 
-            // render paths
-            foreach (var path in _pathModels)
-            {
-                if (path.IsSetup)
-                    path.Render(ShaderHandler.ComplexShader);
-            }
-
-            //// render RRT trees
-            //foreach (var tree in _treeModels)
+            //// render Bezier curve points
+            //if (_bezierPoints != null)
             //{
-            //    if (tree.IsSetup)
-            //        tree.Render(ShaderHandler.ComplexShader);
+            //    _bezierPoints.Render(ShaderHandler.ComplexShader, () =>
+            //    {
+            //        GL.PointSize(8);
+            //        GL.DrawArrays(PrimitiveType.Points, 0, 4);
+            //        GL.PointSize(1);
+            //    });
             //}
-
-            // render genetic algorithm paths
-            foreach (var path in _gaModels)
-            {
-                if (path.IsSetup)
-                    path.Render(ShaderHandler.ComplexShader);
-            }
-
-            // render Bezier curve points
-            if (_bezierPoints != null)
-            {
-                _bezierPoints.Render(ShaderHandler.ComplexShader, () =>
-                {
-                    GL.PointSize(8);
-                    GL.DrawArrays(PrimitiveType.Points, 0, 4);
-                    GL.PointSize(1);
-                });
-            }
 
             // workspace grid
             ObstacleHandler.RenderGrid(ShaderHandler.ComplexShader);
@@ -504,7 +480,7 @@ namespace Graphics
                     // update goals positions
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        _goalModels[i].State = /*Matrix4.Transpose(*/Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK())/*)*/;  /*Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal);*/
+                        _goalModels[i].State = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK());
 
                         foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
                         {
@@ -529,7 +505,7 @@ namespace Graphics
                             manipulator.FollowPath();
 
                             // update path model state
-                            _pathModels[i].Update(manipulator.Path);
+                            manipulator.Path.Model.Update();
                         }
 
                         // random tree
@@ -538,22 +514,23 @@ namespace Graphics
                             // update tree model state
                             if (rrt.Tree != null)
                                 rrt.Tree.Model.Update();
-                            //_treeModels[i].Update(rrt.Tree);
                         }
                         else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
                         {
                             if (geneticAlgorithm.Dominant != null && geneticAlgorithm.Dominant.Path != null && geneticAlgorithm.Changed)
                             {
-                                _gaModels[i].Reset();
+                                //geneticAlgorithm.Dominant.Path.Model.Reset();
 
                                 geneticAlgorithm.Locked = true;
 
-                                _gaModels[i].Update(geneticAlgorithm.Dominant.Path);
+                                geneticAlgorithm.Dominant.BezierCurve.SetModel();
 
-                                _bezierPoints = new Model(geneticAlgorithm.Dominant.BezierCurve.Points.Select(point => new MeshVertex
-                                {
-                                    Position = point.ToOpenTK()
-                                }).ToArray(), material: MeshMaterial.Red);
+                                //geneticAlgorithm.Dominant.Path.Model.Update();
+
+                                //_bezierPoints = new Model(geneticAlgorithm.Dominant.BezierCurve.Points.Select(point => new MeshVertex
+                                //{
+                                //    Position = point.ToOpenTK()
+                                //}).ToArray(), material: MeshMaterial.Red);
 
                                 geneticAlgorithm.Locked = geneticAlgorithm.Changed = false;
                             }
@@ -566,9 +543,6 @@ namespace Graphics
                     ManipulatorHandler.ToDesign();
                     ObstacleHandler.ToDesign();
                     InputHandler.ToDesign();
-
-                    // update workspace
-                    ResetScene();
 
                     Mode = InteractionMode.Design;
 
@@ -591,30 +565,12 @@ namespace Graphics
             base.OnUpdateFrame(e);
         }
 
-        protected void ResetScene()
-        {
-            //// reset trees
-            //foreach (var tree in _treeModels)
-            //{
-            //    tree.Reset();
-            //}
-
-            // reset paths
-            foreach (var path in _pathModels)
-            {
-                path.Reset();
-            }
-        }
-
         public static void CreateDefaultManipulator()
         {
             var manipulator = ManipulatorHandler.CreateDefaultManipulator();
 
-            // create new models for the manipulator goal, path and tree
+            // create new model for the manipulator goal
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK()))));
-            //_treeModels.Add(new TreeModel(50001, MeshMaterial.Black));
-            _pathModels.Add(new PathModel(50001, MeshMaterial.Red));
-            _gaModels.Add(new PathModel(50001, MeshMaterial.Black));
         }
 
         public static void SwitchMode()
@@ -705,18 +661,6 @@ namespace Graphics
             foreach (var goal in _goalModels)
             {
                 goal.Dispose();
-            }
-
-            //// remove trees models
-            //foreach (var tree in _treeModels)
-            //{
-            //    tree.Dispose();
-            //}
-
-            // remove paths models
-            foreach (var path in _pathModels)
-            {
-                path.Dispose();
             }
 
             // free buffers and program

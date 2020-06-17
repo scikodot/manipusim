@@ -25,7 +25,6 @@ namespace Logic
         public Collider Collider { get; }
 
         public Path Path { get; }
-        public PathModel PathModel { get; }
 
         public BroadphaseNativeType Shape => Collider.Shape;
         public RigidBodyType Type
@@ -69,7 +68,7 @@ namespace Logic
             Collider = collider;
 
             Path = new Path(new Path.Node(null, new Vector3[] { _initialPosition }, null));
-            PathModel = new PathModel(50, MeshMaterial.Brown);
+            Path.Model.SetColor(new Vector3(0.2f, 0.6f, 0.08f));
 
             _initialPosition = Collider.Body.WorldTransform.Origin.ToNumerics3();
 
@@ -187,7 +186,7 @@ namespace Logic
             // clear managed resources
             Model.Dispose();
             Collider.Dispose();
-            PathModel.Dispose();
+            Path.Dispose();
 
             // suppress finalization
             GC.SuppressFinalize(this);

@@ -351,6 +351,8 @@ namespace Logic
             manip.Links = Array.ConvertAll(Links, x => x.DeepCopy());
             manip.Joints = Array.ConvertAll(Joints, x => x.DeepCopy());
 
+            manip.Path = null;  // TODO: ???
+
             return manip;
         }
 
@@ -366,6 +368,9 @@ namespace Logic
             {
                 link.Dispose();
             }
+
+            if (Path != null)
+                Path.Dispose();
 
             // suppress finalization
             GC.SuppressFinalize(this);

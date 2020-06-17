@@ -78,8 +78,13 @@ namespace Logic.PathPlanning
                 Tree = tree;
 
                 // create an empty model with the specified max buffer size and material
-                Model = new Model(new MeshVertex[tree.MaxSize], new uint[2 * tree.MaxSize], 
-                    new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 0.0f) });
+                Model = new Model(new MeshVertex[tree.MaxSize], new uint[2 * (tree.MaxSize - 1)], 
+                    new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
+            }
+
+            public void SetColor(Vector3 color)
+            {
+                Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(color.X, color.Y, color.Z, 1.0f) };
             }
 
             public void Render(Shader shader)
@@ -94,7 +99,7 @@ namespace Logic.PathPlanning
             public void Reset()
             {
                 Model.Meshes[0].UpdateVertices(0, Tree.MaxSize, new MeshVertex[Tree.MaxSize]);
-                Model.Meshes[0].UpdateIndices(0, 2 * Tree.MaxSize, new uint[2 * Tree.MaxSize]);
+                Model.Meshes[0].UpdateIndices(0, 2 * (Tree.MaxSize - 1), new uint[2 * (Tree.MaxSize - 1)]);
 
                 _freeIndices.Clear();
                 _freeTop = 0;
@@ -117,7 +122,7 @@ namespace Logic.PathPlanning
                     uint index = _freeIndices.Count == 0 ? _freeTop++ : _freeIndices.Dequeue();
                     Model.Meshes[0].UpdateVertices(index, 1, new MeshVertex[]
                     {
-                    new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
+                        new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
                     });
 
                     // memoize the index of the node for later use

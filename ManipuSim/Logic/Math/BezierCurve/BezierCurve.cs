@@ -3,15 +3,76 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 
+using OpenToolkit.Graphics.OpenGL4;
+
+using Graphics;
+using System.Linq;
+
 namespace Logic
 {
     /// <summary>
     /// Represents a bezier curve with as many points as you want.
     /// </summary>
     [Serializable]
-    public struct BezierCurve
+    public class BezierCurve : IDisposable
     {
+        public class BezierCurveModel : IDisposable
+        {
+            private static int _pointsCount = 1000;
+            public static ref int PointsCount => ref _pointsCount;
+
+            private static Vector3 _color = Vector3.Zero;
+            public static ref Vector3 Color => ref _color;  // TODO: use in GUI!
+
+            public BezierCurve BezierCurve { get; }
+            public Model Model { get; }
+
+            public bool IsSetup => Model.IsSetup;
+
+            public BezierCurveModel(BezierCurve bezierCurve)
+            {
+                BezierCurve = bezierCurve;
+
+                // create an empty model with the specified material
+                Model = new Model(new MeshVertex[_pointsCount], new uint[2 * _pointsCount],
+                    new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
+
+                float step = 1.0f / (_pointsCount - 1);
+                var vertices = bezierCurve.CalculatePoints(step).Select(p => new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(p.X, p.Y, p.Z) });
+                
+                var indices = new List<uint>();
+                for (uint i = 0; i < _pointsCount - 1; i++)
+                {
+                    indices.Add(i);
+                    indices.Add(i + 1);
+                }
+
+                Model.Meshes[0].UpdateVertices(0, _pointsCount, vertices.ToArray());
+                Model.Meshes[0].UpdateIndices(0, 2 * (_pointsCount - 1), indices.ToArray());
+            }
+
+            public void Render(Shader shader)
+            {
+                if (IsSetup)
+                    Model.Render(shader, () =>
+                    {
+                        GL.DrawElements(BeginMode.Lines, 2 * (_pointsCount - 1), DrawElementsType.UnsignedInt, 0);
+                    });
+            }
+
+            public void Dispose()
+            {
+                // clear managed resources
+                Model.Dispose();
+
+                // suppress finalization
+                GC.SuppressFinalize(this);
+            }
+        }
+
         private readonly List<Vector3> _points;
+
+        public BezierCurveModel Model { get; private set; }
 
         /// <summary>
         /// The parallel value.
@@ -92,6 +153,11 @@ namespace Logic
             _points = new List<Vector3>(points);
         }
 
+        public void SetModel()
+        {
+            Model = new BezierCurveModel(this);
+        }
+
         /// <summary>
         /// Calculates the point with the specified t.
         /// </summary>
@@ -104,7 +170,7 @@ namespace Logic
         }
 
         /// <summary>
-        /// Calculates all points with the specified step.
+        /// Discretize the curve with the specified step.
         /// </summary>
         /// <param name="step">A step size by the curve's parameter t.</param>
         /// <returns>A list of points on the curve.</returns>
@@ -121,6 +187,24 @@ namespace Logic
 
             return points;
         }
+
+        /// <summary>
+        /// Discretize the curve on the specified amount of points.
+        /// </summary>
+        /// <param name="step">An amount of points the discretized curve should contain.</param>
+        /// <returns>A list of points on the curve.</returns>
+        //public List<Vector3> CalculatePoints(int pointsCount)
+        //{
+        //    var points = new List<Vector3>();
+
+        //    float step = 1.0f / (pointsCount - 1);
+        //    for (int i = 0; i < pointsCount; i++)
+        //    {
+        //        points.Add(CalculatePoint(i * step));
+        //    }
+
+        //    return points;
+        //}
 
         /// <summary>
         /// Calculates the length of this bezier curve.
@@ -222,10 +306,8 @@ namespace Logic
 
             foreach (var point in points)
             {
-                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient
-                (
-                    points.Count - 1, i) * (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 1 - i)
-                );
+                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient(points.Count - 1, i) * 
+                    (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 1 - i));
 
                 r.X += temp * point.X;
                 r.Y += temp * point.Y;
@@ -271,10 +353,8 @@ namespace Logic
 
             foreach (var point in points)
             {
-                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient
-                (
-                    points.Count - 2, i) * (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 2 - i)
-                );
+                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient(points.Count - 2, i) * 
+                    (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 2 - i));
 
                 r.X += temp * point.X;
                 r.Y += temp * point.Y;
@@ -283,6 +363,13 @@ namespace Logic
             }
 
             return r;
+        }
+
+        public void Dispose()
+        {
+            Model.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }

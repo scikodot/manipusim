@@ -106,6 +106,7 @@ namespace Logic.PathPlanning
             generation.Add(chromosomeInitial);
 
             Dominant = chromosomeInitial;
+            Changed = true;
 
             // evolve generations
             Console.SetCursorPosition(0, 10);
@@ -124,7 +125,7 @@ namespace Logic.PathPlanning
 
                 if (!Locked)
                 {
-                    Dominant = generation[0];
+                    Dominant = generation[0];  // TODO: it seems like previous dominant is not disposed properly; fix!!
                     Changed = true;
                 }
             }
@@ -136,10 +137,13 @@ namespace Logic.PathPlanning
                 Console.WriteLine(point);
             }
 
+            var path = generation[0].Path;
+            path.SetModel();
+
             return new PathPlanningResult
             {
                 Iterations = Iterations - 1,
-                Path = generation[0].Path
+                Path = path
             };
         }
 
@@ -183,7 +187,7 @@ namespace Logic.PathPlanning
                 counter += step;
             }
 
-            return new Path(points, configs);
+            return new Path(points, configs, false);
         }
 
         private List<Chromosome> Evolve(List<Chromosome> generation, int offspringSize, int survivalSize)

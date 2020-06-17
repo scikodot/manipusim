@@ -64,7 +64,7 @@ namespace Graphics
         public MeshVertex[] Vertices { get; }
         public uint[] Indices { get; }
         public MeshTexture[] Textures { get; }
-        public MeshMaterial Material { get; private set; }
+        public MeshMaterial Material { get; set; }
 
         public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshMaterial material)
         {

@@ -117,7 +117,7 @@ namespace Logic
             });
 
             var solver = DampedLeastSquares.Default();
-            var planner = /*GeneticAlgorithm.Default();*/ ARRT.Default(manipulator);
+            var planner = GeneticAlgorithm.Default(); /*ARRT.Default(manipulator);*/
             var controller = MotionController.Default();
             manipulator.Controller = new Controller(manipulator, planner, solver, controller);
 
@@ -148,12 +148,12 @@ namespace Logic
                 //MainWindow._treeModels.RemoveAt(index);
 
                 // remove goal model
-                MainWindow._pathModels[index].Dispose();
-                MainWindow._pathModels.RemoveAt(index);
+                //MainWindow._pathModels[index].Dispose();
+                //MainWindow._pathModels.RemoveAt(index);
 
                 // remove goal model
-                MainWindow._gaModels[index].Dispose();
-                MainWindow._gaModels.RemoveAt(index);
+                //MainWindow._gaModels[index].Dispose();
+                //MainWindow._gaModels.RemoveAt(index);
             }
         }
 
@@ -223,10 +223,18 @@ namespace Logic
             {
                 manipulator.RenderUnselected(shader);
 
+                if (manipulator.Path != null)
+                    manipulator.Path.Model.Render(shader);
+
                 if (manipulator.Controller.PathPlanner is RRT rrt)
                 {
                     if (rrt.Tree != null)
                         rrt.Tree.Model.Render(shader);
+                }
+                else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
+                {
+                    if (geneticAlgorithm.Dominant != null && geneticAlgorithm.Dominant.BezierCurve.Model != null)
+                        geneticAlgorithm.Dominant.BezierCurve.Model.Render(shader);
                 }
             }
         }
@@ -245,9 +253,16 @@ namespace Logic
             {
                 manipulator.Reset();
 
+                if (manipulator.Path != null)
+                    manipulator.Path.Reset();
+
                 if (manipulator.Controller.PathPlanner is RRT rrt)
                 {
                     rrt.Tree.Model.Reset();
+                }
+                else if (manipulator.Controller.PathPlanner is GeneticAlgorithm geneticAlgorithm)
+                {
+                    geneticAlgorithm.Dominant = null;
                 }
             }
         }

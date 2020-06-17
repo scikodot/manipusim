@@ -172,7 +172,7 @@ namespace Logic
             {
                 obst.UpdateModel();
 
-                obst.PathModel.Update(obst.Path);
+                obst.Path.Model.Update();
             }
         }
 
@@ -191,7 +191,7 @@ namespace Logic
             foreach (var obst in Obstacles)
             {
                 if (obst.Type == RigidBodyType.Kinematic)
-                    obst.PathModel.Render(shader);
+                    obst.Path.Model.Render(shader);
 
                 if (!obst.Model.RenderFlags.HasFlag(RenderFlags.Selected))
                     obst.Render(shader);

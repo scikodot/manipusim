@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
+using OpenToolkit.Mathematics;
 using OpenToolkit.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
-using System.Linq;
-using MoreLinq;
-using OpenToolkit.Mathematics;
 
 namespace Graphics
 {

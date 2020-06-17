@@ -4,11 +4,15 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Numerics;
 
+using OpenToolkit.Graphics.OpenGL4;
+
+using Graphics;
+
 namespace Logic.PathPlanning
 {
     using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
 
-    public class Path
+    public class Path : IDisposable
     {
         public class Node
         {
@@ -78,10 +82,146 @@ namespace Logic.PathPlanning
             }
         }
 
+        public class PathModel : IDisposable
+        {
+            private static int _maxSize = 10000;
+            public static ref int MaxSize => ref _maxSize;  // TODO: use in GUI!
+
+            private readonly Queue<uint> _freeIndices = new Queue<uint>();
+            private uint _freeTop;
+
+            public Path Path { get; }
+            public Model Model { get; }
+
+            private Vector3 _color = Vector3.UnitX;
+            public ref Vector3 Color => ref _color;  // TODO: use in GUI!
+
+            public bool IsSetup => Model.IsSetup;
+
+            public PathModel(Path path)
+            {
+                Path = path;
+
+                // create an empty model with the specified material
+                Model = new Model(new MeshVertex[_maxSize], new uint[2 * (_maxSize - 1)], 
+                    new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
+            }
+
+            public void SetColor(Vector3 color)
+            {
+                Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(color.X, color.Y, color.Z, 1.0f) };
+            }
+
+            public void Render(Shader shader)
+            {
+                if (IsSetup)
+                    Model.Render(shader, () =>
+                    {
+                        GL.DrawElements(BeginMode.Lines, 2 * ((int)_freeTop - 1), DrawElementsType.UnsignedInt, 0);
+                    });
+            }
+
+            public void Reset()
+            {
+                Model.Meshes[0].UpdateVertices(0, _maxSize, new MeshVertex[_maxSize]);
+                Model.Meshes[0].UpdateIndices(0, 2 * (_maxSize - 1), new uint[2 * (_maxSize - 1)]);
+
+                _freeIndices.Clear();
+                _freeTop = 0;
+            }
+
+            public void Update()
+            {
+                if (IsSetup)
+                {
+                    AddNodes(Path.AddBuffer.DequeueAll().ToList());
+                    ChangeNodes(Path.ChgBuffer.DequeueAll().ToList());
+                    RemoveNodes(Path.DelBuffer.DequeueAll().ToList());
+                }
+            }
+
+            public void AddNodes(List<Node> nodes)
+            {
+                foreach (var node in nodes)
+                {
+                    var point = node.Points[node.Points.Length - 1];  // TODO: add property GripperPos to Path.Node
+
+                    // add the node to the vertex buffer
+                    uint index = _freeIndices.Count == 0 ? _freeTop++ : _freeIndices.Dequeue();
+                    Model.Meshes[0].UpdateVertices(index, 1, new MeshVertex[]
+                    {
+                        new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
+                    });
+
+                    // memoize the index of the node for later use
+                    node.ID = index;
+
+                    if (node.Parent != null)
+                    {
+                        // add new indices pair to the element buffer
+                        Model.Meshes[0].UpdateIndices(2 * (node.ID - 1), 2, new uint[2] { node.Parent.ID, node.ID });
+                    }
+
+                    if (node.Child != null)
+                    {
+                        // update child indices
+                        Model.Meshes[0].UpdateIndices(2 * (node.Child.ID - 1), 1, new uint[1] { node.ID });
+                    }
+                }
+            }
+
+            public void ChangeNodes(List<Node> nodes)
+            {
+                foreach (var node in nodes)
+                {
+                    var point = node.Points[node.Points.Length - 1];  // TODO: add property GripperPos to Path.Node
+
+                    // change the node point presented in the vertex buffer
+                    Model.Meshes[0].UpdateVertices(node.ID, 1, new MeshVertex[]
+                    {
+                        new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
+                    });
+                }
+            }
+
+            public void RemoveNodes(List<Node> nodes)
+            {
+                // sort nodes list for sequential buffer filling
+                nodes = nodes.OrderBy(x => x.ID).ToList();
+
+                foreach (var node in nodes)
+                {
+                    // add the freed index to the list
+                    _freeIndices.Enqueue(node.ID);
+
+                    // remove the indices pair from the element buffer by setting it to all-zero
+                    // TODO: this may cause performance damage if indices do not remove duplicate vertices; check!
+                    Model.Meshes[0].UpdateIndices(2 * (node.ID - 1), 2, new uint[2] { 0, 0 });
+
+                    if (node.Parent != null && node.Child != null)
+                    {
+                        // update child indices
+                        Model.Meshes[0].UpdateIndices(2 * (node.Child.ID - 1), 1, new uint[1] { node.Parent.ID });
+                    }
+                }
+            }
+
+            public void Dispose()
+            {
+                // clear managed resources
+                Model.Dispose();
+
+                // suppress finalization
+                GC.SuppressFinalize(this);
+            }
+        }
+
         public HashSet<Node> Nodes { get; } = new HashSet<Node>();
         public ConcurrentQueue<Node> AddBuffer { get; } = new ConcurrentQueue<Node>();
         public ConcurrentQueue<Node> DelBuffer { get; } = new ConcurrentQueue<Node>();
         public ConcurrentQueue<Node> ChgBuffer { get; } = new ConcurrentQueue<Node>();
+
+        public PathModel Model { get; private set; }
 
         public Node First { get; private set; }
         public Node Last { get; private set; }
@@ -95,9 +235,12 @@ namespace Logic.PathPlanning
             First = first;
 
             Current = First;
+
+            Model = new PathModel(this);
         }
 
-        public Path(IEnumerable<Vector3[]> points, IEnumerable<VectorFloat> configs) : this(ConstructPath(points, configs)) { }
+        public Path(IEnumerable<Vector3[]> points, IEnumerable<VectorFloat> configs, bool setModel = true) : 
+            this(ConstructPath(points, configs), setModel) { }
 
         private static IEnumerable<Node> ConstructPath(IEnumerable<Vector3[]> points, IEnumerable<VectorFloat> configs)
         {
@@ -107,10 +250,10 @@ namespace Logic.PathPlanning
                 var current = new Node(parent, p, c);
                 parent = current;
                 return current;
-            }).ToList();  // force evaluation to prevent losing references between nodes
+            }).ToList();  // force evaluation to prevent references loss between nodes
         }
 
-        private Path(IEnumerable<Node> nodes)
+        private Path(IEnumerable<Node> nodes, bool setModel)
         {
             AddNodeRange(nodes);
 
@@ -118,6 +261,14 @@ namespace Logic.PathPlanning
 
             // on construction, current node is the first node
             Current = First;
+
+            if (setModel)
+                Model = new PathModel(this);
+        }
+
+        public void SetModel()
+        {
+            Model = new PathModel(this);
         }
 
         public IEnumerable<T> Select<T>(Func<Node, T> func)  // TODO: remove IEnumerables!
@@ -226,7 +377,7 @@ namespace Logic.PathPlanning
 
         public Path DeepCopy()
         {
-            return new Path(DeepCopyNodes());
+            return new Path(DeepCopyNodes(), Model != null);
         }
 
         private List<Node> DeepCopyNodes()
@@ -255,6 +406,13 @@ namespace Logic.PathPlanning
             }
 
             return nodes;
+        }
+
+        public void Dispose()
+        {
+            Model.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }
