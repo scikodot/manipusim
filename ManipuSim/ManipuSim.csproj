@@ -1,0 +1,89 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
+  <!-- Project properties -->
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWindowsForms>false</UseWindowsForms>
+    <LangVersion>7.2</LangVersion>
+    <AssemblyName>ManipuSim</AssemblyName>
+    <RootNamespace>ManipuSim</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Copy resources to the output directory -->
+  <ItemGroup>
+    <Content Include="$(ProjectDir)Resources\**" LinkBase="" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Copy native assemblies to the output directory -->
+  <ItemGroup>
+    <ContentWithTargetPath Include="_libs\BulletSharpNetCore\libbulletc.dll" CopyToOutputDirectory="Always" TargetPath="libbulletc.dll" />
+    <ContentWithTargetPath Include="_libs\BulletSharpNetCore\libbulletc.so" CopyToOutputDirectory="Always" TargetPath="libbulletc.so" />
+  </ItemGroup>
+
+  <!-- Assemblies dependencies -->
+  <ItemGroup>
+    <Reference Include="BulletSharp">
+      <HintPath>..\..\_libs\BulletSharpNetCore\BulletSharp.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+  
+  <!-- Packages dependencies -->
+  <ItemGroup>
+    <PackageReference Include="AssimpNet" Version="4.1.0" />
+    <PackageReference Include="ImGui.NET" Version="1.75.0" />
+    <PackageReference Include="MathNet.Numerics" Version="4.9.1" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="morelinq" Version="3.3.2" />
+    <PackageReference Include="OpenTK" Version="4.0.0-pre9.1" />
+    <PackageReference Include="StbImageSharp" Version="2.22.4" />
+    <PackageReference Include="System.Buffers" Version="4.5.0" />
+    <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Logic\Algorithms\PathPlanning\GridBased\" />
+  </ItemGroup>
+
+  <!-- Post-build event that cleans the publish folder, i.e. all of its contents -->
+  <Target Name="CleanPublishDirectory" AfterTargets="PostBuildEvent">
+
+    <PropertyGroup>
+      <TargetFolder>$(PublishDir)</TargetFolder>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <FilesToClean Include="$(TargetFolder)\**\*" />
+      <Directories Include="$([System.IO.Directory]::GetDirectories('$(TargetFolder)', '*', System.IO.SearchOption.AllDirectories))" Exclude="$(TargetFolder)" />
+    </ItemGroup>
+
+    <Delete Files="@(FilesToClean)" ContinueOnError="true" />
+    <RemoveDir Directories="@(Directories)" />
+  </Target>
+
+  <!-- Setup the publish folder; here we rename the GLFW library because its default name is retrieved incorrectly in OpenTK 4.0.0-pre9.1 build -->
+  <Target Name="SetupPublishDirectory" AfterTargets="BundlePublishDirectory">
+    <Exec Command="ren &quot;$(PublishDir)libglfw.so.3.3&quot; &quot;libglfw.so.3&quot;" />
+  </Target>
+  
+</Project>
