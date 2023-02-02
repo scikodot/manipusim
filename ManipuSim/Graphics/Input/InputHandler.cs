@@ -3,17 +3,17 @@ using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
 
-using OpenToolkit.Windowing.Common.Input;
-using OpenToolkit.Windowing.Desktop;
-using OpenToolkit.Mathematics;
-using OpenToolkit.Graphics.OpenGL4;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Windowing.Desktop;
+using OpenTK.Mathematics;
+using OpenTK.Graphics.OpenGL4;
 
 using BulletSharp;
 using Physics;
 using System.Collections.Generic;
 using ImGuiNET;
 using Logic;
-using OpenToolkit.Windowing.Common;
+using OpenTK.Windowing.Common;
 
 namespace Graphics
 {
@@ -111,7 +111,7 @@ namespace Graphics
                 camera.Yaw += delta.X * camera.Sensitivity;
                 camera.Pitch -= delta.Y * camera.Sensitivity; // reversed since y-coordinates range from bottom to top
 
-                Console.WriteLine($"{window.MouseState.Position}, {window.MousePosition}, {window.LastMouseState.Position}, {window.MouseDelta}");
+                Console.WriteLine($"{window.MouseState.Position}, {window.MousePosition}, {window.MouseState.PreviousPosition}, {window.MouseState.Delta}");
             }
 
             // update last mouse state after all necessary queries
@@ -141,11 +141,11 @@ namespace Graphics
             using (var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld))
             {
                 PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (/*window.IsMouseButtonPressed(MouseButton.Right)*/mouseState.IsButtonDown(MouseButton.Right) && _lastState.IsButtonUp(MouseButton.Right))  // TODO: perhaps use Window built-in method?
+                if (/*window.IsMouseButtonPressed(MouseButton.Right)*/mouseState.IsButtonPressed(MouseButton.Right))
                 {
                     if (raycastCallback.HasHit)
                     {
-                        if (!keyboardState.IsKeyDown(Key.ControlLeft) && SelectedObjects.Find(x => x != raycastCallback.CollisionObject) != null)
+                        if (!keyboardState.IsKeyDown(Keys.LeftControl) && SelectedObjects.Find(x => x != raycastCallback.CollisionObject) != null)
                         {
                             // Control is not pressed and other objects are already selected ---> clear selection and add the new object to the selection
                             ClearAndAddSelection(raycastCallback.CollisionObject);
@@ -236,7 +236,7 @@ namespace Graphics
         private static void PollKeyboard(GameWindow window, Camera camera, KeyboardState keyboardState, FrameEventArgs e)
         {
             // exit program if queried
-            if (keyboardState.IsKeyDown(Key.Escape))
+            if (keyboardState.IsKeyDown(Keys.Escape))
             {
                 window.Close();
             }
@@ -244,20 +244,20 @@ namespace Graphics
             if (!TextIsEdited)
             {
                 // panning
-                if (keyboardState.IsKeyDown(Key.W))
+                if (keyboardState.IsKeyDown(Keys.W))
                     camera.Position += camera.Up * camera.Speed * (float)e.Time; // Up 
-                if (keyboardState.IsKeyDown(Key.S))
+                if (keyboardState.IsKeyDown(Keys.S))
                     camera.Position -= camera.Up * camera.Speed * (float)e.Time; // Down
-                if (keyboardState.IsKeyDown(Key.A))
+                if (keyboardState.IsKeyDown(Keys.A))
                     camera.Position -= camera.Right * camera.Speed * (float)e.Time; // Left
-                if (keyboardState.IsKeyDown(Key.D))
+                if (keyboardState.IsKeyDown(Keys.D))
                     camera.Position += camera.Right * camera.Speed * (float)e.Time; // Right
             }
         }
 
         private static void PollScreen(GameWindow window, KeyboardState keyboardState)
         {
-            if (window.IsKeyPressed(Key.K))
+            if (window.IsKeyPressed(Keys.K))
                 CaptureScreenFull(window);
         }
 
@@ -275,7 +275,7 @@ namespace Graphics
         {
             // taking a picture of a viewport
             byte[,,] img = new byte[height, width, 3];
-            GL.ReadPixels(x, y, width, height, OpenToolkit.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, img);
+            GL.ReadPixels(x, y, width, height, OpenTK.Graphics.OpenGL4.PixelFormat.Rgb, PixelType.UnsignedByte, img);
 
             Console.WriteLine("Capturing screen...");
             System.Threading.Tasks.Task.Run(() =>

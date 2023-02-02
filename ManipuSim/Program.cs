@@ -1,4 +1,4 @@
-﻿using OpenToolkit.Windowing.Desktop;
+﻿using OpenTK.Windowing.Desktop;
 
 namespace Graphics
 {
@@ -18,14 +18,14 @@ namespace Graphics
 
             var nativeWindowSettings = new NativeWindowSettings()
             {
-                Size = new OpenToolkit.Mathematics.Vector2i(_defaultWidth, _defaultHeight),
+                Size = new OpenTK.Mathematics.Vector2i(_defaultWidth, _defaultHeight),
                 Title = "ManipuSim",
                 StartFocused = true  // TODO: works on Ubuntu, doesn't work on Windows 10; seems like a bug in source; report!
             };
 
             using (var window = new MainWindow(gameWindowSettings, nativeWindowSettings))
             {
-                window.VSync = OpenToolkit.Windowing.Common.VSyncMode.Adaptive;
+                window.VSync = OpenTK.Windowing.Common.VSyncMode.Adaptive;
                 window.Run();
             }
         }

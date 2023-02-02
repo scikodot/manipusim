@@ -3,19 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-using OpenToolkit.Windowing.Common;
-using OpenToolkit.Windowing.Common.Input;
-using OpenToolkit.Windowing.Desktop;
-using OpenToolkit.Graphics.OpenGL4;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Windowing.Desktop;
+using OpenTK.Graphics.OpenGL4;
 using ImGuiNET;
 
 using Logic;
 using Logic.PathPlanning;
 using Physics;
 
-using Matrix4 = OpenToolkit.Mathematics.Matrix4;
-using Vector3 = OpenToolkit.Mathematics.Vector3;
-using Vector4 = OpenToolkit.Mathematics.Vector4;
+using Matrix4 = OpenTK.Mathematics.Matrix4;
+using Vector3 = OpenTK.Mathematics.Vector3;
+using Vector4 = OpenTK.Mathematics.Vector4;
 
 namespace Graphics
 {
@@ -614,10 +614,10 @@ namespace Graphics
 
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
         {
-            if (e.Key == Key.P)
+            if (e.Key == Keys.P)
                 SwitchMode();
 
-            if (e.Key == Key.H)
+            if (e.Key == Keys.H)
                 enter = true;
 
             base.OnKeyDown(e);

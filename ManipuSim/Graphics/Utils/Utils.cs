@@ -2,7 +2,7 @@
 {
     public static class Utils
     {
-        public static float[] GLConvert(System.Numerics.Vector3[] data, OpenToolkit.Mathematics.Color4 color)  // TODO: decide where to place
+        public static float[] GLConvert(System.Numerics.Vector3[] data, OpenTK.Mathematics.Color4 color)  // TODO: decide where to place
         {
             // converting program data to OpenGL buffer format
             float[] res = new float[data.Length * 7];

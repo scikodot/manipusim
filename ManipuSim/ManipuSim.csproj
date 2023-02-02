@@ -2,7 +2,7 @@
   
   <!-- Project properties -->
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
@@ -21,7 +21,7 @@
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWindowsForms>false</UseWindowsForms>
-    <LangVersion>7.2</LangVersion>
+    <LangVersion>10.0</LangVersion>
     <AssemblyName>ManipuSim</AssemblyName>
     <RootNamespace>ManipuSim</RootNamespace>
   </PropertyGroup>
@@ -48,42 +48,17 @@
   <!-- Packages dependencies -->
   <ItemGroup>
     <PackageReference Include="AssimpNet" Version="4.1.0" />
-    <PackageReference Include="ImGui.NET" Version="1.75.0" />
-    <PackageReference Include="MathNet.Numerics" Version="4.9.1" />
+    <PackageReference Include="ImGui.NET" Version="1.89.3" />
+    <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="morelinq" Version="3.3.2" />
-    <PackageReference Include="OpenTK" Version="4.0.0-pre9.1" />
-    <PackageReference Include="StbImageSharp" Version="2.22.4" />
-    <PackageReference Include="System.Buffers" Version="4.5.0" />
+    <PackageReference Include="OpenTK" Version="4.7.5" />
+    <PackageReference Include="StbImageSharp" Version="2.27.13" />
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
-    <PackageReference Include="System.Drawing.Common" Version="4.7.0" />
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Logic\Algorithms\PathPlanning\GridBased\" />
-  </ItemGroup>
-
-  <!-- Post-build event that cleans the publish folder, i.e. all of its contents -->
-  <Target Name="CleanPublishDirectory" AfterTargets="PostBuildEvent">
-
-    <PropertyGroup>
-      <TargetFolder>$(PublishDir)</TargetFolder>
-    </PropertyGroup>
-
-    <ItemGroup>
-      <FilesToClean Include="$(TargetFolder)\**\*" />
-      <Directories Include="$([System.IO.Directory]::GetDirectories('$(TargetFolder)', '*', System.IO.SearchOption.AllDirectories))" Exclude="$(TargetFolder)" />
-    </ItemGroup>
-
-    <Delete Files="@(FilesToClean)" ContinueOnError="true" />
-    <RemoveDir Directories="@(Directories)" />
-  </Target>
-
-  <!-- Setup the publish folder; here we rename the GLFW library because its default name is retrieved incorrectly in OpenTK 4.0.0-pre9.1 build -->
-  <Target Name="SetupPublishDirectory" AfterTargets="BundlePublishDirectory">
-    <Exec Command="ren &quot;$(PublishDir)libglfw.so.3.3&quot; &quot;libglfw.so.3&quot;" />
-  </Target>
   
 </Project>

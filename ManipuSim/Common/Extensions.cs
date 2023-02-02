@@ -125,9 +125,9 @@ public static class Vector3Extensions
         return (v2 - v1).Length();
     }
 
-    public static OpenToolkit.Mathematics.Vector3 ToOpenTK(this Vector3 vec)
+    public static OpenTK.Mathematics.Vector3 ToOpenTK(this Vector3 vec)
     {
-        return new OpenToolkit.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
+        return new OpenTK.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
     }
 
     public static Vector3 Sum(this IEnumerable<Vector3> source)
@@ -138,12 +138,12 @@ public static class Vector3Extensions
 
 public static class VectorConversionExtensions
 {
-    public static BulletSharp.Math.Vector4 ToBullet4(this OpenToolkit.Mathematics.Vector4 vec)
+    public static BulletSharp.Math.Vector4 ToBullet4(this OpenTK.Mathematics.Vector4 vec)
     {
         return new BulletSharp.Math.Vector4(vec.X, vec.Y, vec.Z, vec.W);
     }
 
-    public static BulletSharp.Math.Vector3 ToBullet3(this OpenToolkit.Mathematics.Vector4 vec)
+    public static BulletSharp.Math.Vector3 ToBullet3(this OpenTK.Mathematics.Vector4 vec)
     {
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
     }
@@ -153,17 +153,17 @@ public static class VectorConversionExtensions
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static System.Numerics.Vector4 ToNumerics4(this OpenToolkit.Mathematics.Vector4 vec)
+    public static System.Numerics.Vector4 ToNumerics4(this OpenTK.Mathematics.Vector4 vec)
     {
         return new Vector4(vec.X, vec.Y, vec.Z, vec.W);
     }
 
-    public static System.Numerics.Vector3 ToNumerics3(this OpenToolkit.Mathematics.Vector4 vec)
+    public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Mathematics.Vector4 vec)
     {
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static System.Numerics.Vector3 ToNumerics3(this OpenToolkit.Mathematics.Vector3 vec)
+    public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Mathematics.Vector3 vec)
     {
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
@@ -173,12 +173,12 @@ public static class VectorConversionExtensions
         return new Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static OpenToolkit.Mathematics.Vector3 ToOpenTK3(this BulletSharp.Math.Vector3 vec)
+    public static OpenTK.Mathematics.Vector3 ToOpenTK3(this BulletSharp.Math.Vector3 vec)
     {
-        return new OpenToolkit.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
+        return new OpenTK.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static System.Numerics.Vector2 ToNumerics2(this OpenToolkit.Mathematics.Vector2 vec)
+    public static System.Numerics.Vector2 ToNumerics2(this OpenTK.Mathematics.Vector2 vec)
     {
         return new Vector2(vec.X, vec.Y);
     }
@@ -252,7 +252,7 @@ public static class QuaternionExtensions
         return vec + quat.W * uv + Vector3.Cross(xyz, uv);
     }
 
-    public static OpenToolkit.Mathematics.Matrix3 ToMatrix(this Quaternion quat)
+    public static OpenTK.Mathematics.Matrix3 ToMatrix(this Quaternion quat)
     {
         float w = quat.W, w2 = w * w;
         float x = quat.X, x2 = x * x;
@@ -269,7 +269,7 @@ public static class QuaternionExtensions
         var rzy = 2 * y * z + 2 * w * x;
         var rzz = w2 - x2 - y2 + z2;
 
-        return new OpenToolkit.Mathematics.Matrix3(
+        return new OpenTK.Mathematics.Matrix3(
             rxx, ryx, rzx,
             rxy, ryy, rzy,
             rxz, ryz, rzz
@@ -279,9 +279,9 @@ public static class QuaternionExtensions
 
 public static class MatrixExtensions
 {
-    public static OpenToolkit.Mathematics.Matrix4 TopOpenTK(this BulletSharp.Math.Matrix mat)
+    public static OpenTK.Mathematics.Matrix4 TopOpenTK(this BulletSharp.Math.Matrix mat)
     {
-        return new OpenToolkit.Mathematics.Matrix4(
+        return new OpenTK.Mathematics.Matrix4(
             mat.M11, mat.M12, mat.M13, mat.M14,
             mat.M21, mat.M22, mat.M23, mat.M24,
             mat.M31, mat.M32, mat.M33, mat.M34,
@@ -289,7 +289,7 @@ public static class MatrixExtensions
         );
     }
 
-    public static BulletSharp.Math.Matrix ToBullet(this OpenToolkit.Mathematics.Matrix4 mat)
+    public static BulletSharp.Math.Matrix ToBullet(this OpenTK.Mathematics.Matrix4 mat)
     {
         return new BulletSharp.Math.Matrix(
             mat.M11, mat.M12, mat.M13, mat.M14,

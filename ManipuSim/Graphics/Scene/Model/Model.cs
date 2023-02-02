@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using OpenToolkit.Mathematics;
-using OpenToolkit.Graphics.OpenGL4;
+using OpenTK.Mathematics;
+using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
 
@@ -229,8 +229,8 @@ namespace Graphics
                     GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
                     // set the texture wrapping/filtering options (on the currently bound texture object)
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenToolkit.Graphics.OpenGL4.TextureWrapMode.Repeat);
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenToolkit.Graphics.OpenGL4.TextureWrapMode.Repeat);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
+                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
                     GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
                 });

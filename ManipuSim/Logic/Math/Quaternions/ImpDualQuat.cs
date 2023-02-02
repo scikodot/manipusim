@@ -126,9 +126,9 @@ namespace Logic
             return new ImpDualQuat(_real, Vector3.Zero);
         }
 
-        public OpenToolkit.Mathematics.Matrix4 ToMatrix()
+        public OpenTK.Mathematics.Matrix4 ToMatrix()
         {
-            return new OpenToolkit.Mathematics.Matrix4(_real.ToMatrix())
+            return new OpenTK.Mathematics.Matrix4(_real.ToMatrix())
             {
                 M41 = _dual.X,
                 M42 = _dual.Y,

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 
-using OpenToolkit.Graphics.OpenGL4;
+using OpenTK.Graphics.OpenGL4;
 
 using Graphics;
 using System.Linq;
@@ -35,10 +35,10 @@ namespace Logic
 
                 // create an empty model with the specified material
                 Model = new Model(new MeshVertex[_pointsCount], new uint[2 * _pointsCount],
-                    new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
+                    new MeshMaterial { Diffuse = new OpenTK.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
 
                 float step = 1.0f / (_pointsCount - 1);
-                var vertices = bezierCurve.CalculatePoints(step).Select(p => new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(p.X, p.Y, p.Z) });
+                var vertices = bezierCurve.CalculatePoints(step).Select(p => new MeshVertex { Position = new OpenTK.Mathematics.Vector3(p.X, p.Y, p.Z) });
                 
                 var indices = new List<uint>();
                 for (uint i = 0; i < _pointsCount - 1; i++)
@@ -306,7 +306,7 @@ namespace Logic
 
             foreach (var point in points)
             {
-                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient(points.Count - 1, i) * 
+                temp = OpenTK.Mathematics.MathHelper.BinomialCoefficient(points.Count - 1, i) * 
                     (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 1 - i));
 
                 r.X += temp * point.X;
@@ -353,7 +353,7 @@ namespace Logic
 
             foreach (var point in points)
             {
-                temp = OpenToolkit.Mathematics.MathHelper.BinomialCoefficient(points.Count - 2, i) * 
+                temp = OpenTK.Mathematics.MathHelper.BinomialCoefficient(points.Count - 2, i) * 
                     (float)(Math.Pow(t, i) * Math.Pow(c, points.Count - 2 - i));
 
                 r.X += temp * point.X;

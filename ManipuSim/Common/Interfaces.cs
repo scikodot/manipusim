@@ -17,7 +17,7 @@ namespace Graphics
 
         void Render(Shader shader);
 
-        void UpdateState(ref OpenToolkit.Mathematics.Matrix4 state);
+        void UpdateState(ref OpenTK.Mathematics.Matrix4 state);
     }
 
     public interface ISelectable  // TODO: consider switching to abstract class Selectable

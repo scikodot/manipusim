@@ -4,8 +4,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Numerics;
 
-using OpenToolkit.Graphics.OpenGL4;
-using MoreLinq.Extensions;
+using OpenTK.Graphics.OpenGL4;
 
 using Logic.InverseKinematics;
 using Graphics;
@@ -79,12 +78,12 @@ namespace Logic.PathPlanning
 
                 // create an empty model with the specified max buffer size and material
                 Model = new Model(new MeshVertex[tree.MaxSize], new uint[2 * (tree.MaxSize - 1)], 
-                    new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
+                    new MeshMaterial { Diffuse = new OpenTK.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
             }
 
             public void SetColor(Vector3 color)
             {
-                Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenToolkit.Mathematics.Vector4(color.X, color.Y, color.Z, 1.0f) };
+                Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenTK.Mathematics.Vector4(color.X, color.Y, color.Z, 1.0f) };
             }
 
             public void Render(Shader shader)
@@ -122,7 +121,7 @@ namespace Logic.PathPlanning
                     uint index = _freeIndices.Count == 0 ? _freeTop++ : _freeIndices.Dequeue();
                     Model.Meshes[0].UpdateVertices(index, 1, new MeshVertex[]
                     {
-                        new MeshVertex { Position = new OpenToolkit.Mathematics.Vector3(point.X, point.Y, point.Z) }
+                        new MeshVertex { Position = new OpenTK.Mathematics.Vector3(point.X, point.Y, point.Z) }
                     });
 
                     // memoize the index of the node for later use
@@ -250,7 +249,7 @@ namespace Logic.PathPlanning
 
         public Node Closest(Vector3 point)
         {
-            return Nodes.MinBy(x => x.Point.DistanceTo(point)).First();
+            return Nodes.MinBy(x => x.Point.DistanceTo(point));
         }
 
         public void Rectify()

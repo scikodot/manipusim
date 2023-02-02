@@ -1,5 +1,5 @@
-﻿using OpenToolkit.Mathematics;
-using OpenToolkit.Graphics.OpenGL4;
+﻿using OpenTK.Mathematics;
+using OpenTK.Graphics.OpenGL4;
 
 namespace Graphics
 {

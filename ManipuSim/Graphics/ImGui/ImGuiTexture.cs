@@ -2,9 +2,9 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 
-using OpenToolkit.Graphics.OpenGL4;
+using OpenTK.Graphics.OpenGL4;
 
-using PixelFormat = OpenToolkit.Graphics.OpenGL4.PixelFormat;
+using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
 namespace Graphics
 {

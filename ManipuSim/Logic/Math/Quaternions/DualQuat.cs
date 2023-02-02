@@ -82,10 +82,10 @@ namespace Logic
             return new DualQuat(Quaternion.Conjugate(_real), Quaternion.Conjugate(_dual));
         }
 
-        public OpenToolkit.Mathematics.Matrix4 ToMatrix()
+        public OpenTK.Mathematics.Matrix4 ToMatrix()
         {
             var translation = Translation;
-            return new OpenToolkit.Mathematics.Matrix4(_real.ToMatrix())
+            return new OpenTK.Mathematics.Matrix4(_real.ToMatrix())
             {
                 M41 = translation.X,
                 M42 = translation.Y,

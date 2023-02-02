@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
 
-using OpenToolkit.Windowing.Common;
-using OpenToolkit.Graphics.OpenGL4;
+using OpenTK.Windowing.Common;
+using OpenTK.Graphics.OpenGL4;
 using ImGuiNET;
 
 using Logic;
@@ -667,7 +667,7 @@ namespace Graphics
                 {
                     if (obstacle.Type == RigidBodyType.Kinematic)
                     {
-                        var quarterWidth = 0.25f * ImGui.GetWindowContentRegionWidth();
+                        var quarterWidth = 0.25f * ImGui.GetWindowWidth();
 
                         Path.Node current = obstacle.Path.First.Child;
                         int selectedIndex = -1;
@@ -752,7 +752,7 @@ namespace Graphics
 
                 if (ManipulatorHandler.Count > 0)
                 {
-                    var quarterWidth = 0.25f * ImGui.GetWindowContentRegionWidth();
+                    var quarterWidth = 0.25f * ImGui.GetWindowWidth();
 
                     int selectedIndex = -1;
                     ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
