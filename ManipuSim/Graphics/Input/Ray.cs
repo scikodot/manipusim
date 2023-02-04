@@ -20,7 +20,9 @@ namespace Graphics
             Direction = rayDir;
         }
 
-        public static Ray Cast(ref Matrix4 view, ref Matrix4 proj)  // TODO: casting is performed inaccurately; fix, optimize
+        public static Ray Cast(Camera camera) => Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
+
+        private static Ray Cast(ref Matrix4 view, ref Matrix4 proj)  // TODO: casting is performed inaccurately; fix, optimize
         {
             var cursorPos = InputHandler.CursorPositionNDC;
 

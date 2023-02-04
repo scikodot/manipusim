@@ -98,7 +98,7 @@ namespace Graphics
                 _scale = scaleNew;
             }
 
-            public Vector3 Poll(Camera camera, Ray ray, MouseState currState, MouseState prevState)  // TODO: optimize
+            public Vector3 Poll(Camera camera, Ray ray, MouseState currState)  // TODO: optimize
             {
                 if (currState.IsButtonPressed(MouseButton.Left))
                 {
@@ -246,7 +246,7 @@ namespace Graphics
             Parent = null;
         }
 
-        public void Poll(Camera camera, Ray ray, MouseState currState, MouseState prevState)
+        public void Poll(Camera camera, Ray ray, MouseState currState)
         {
             if (IsAttached)
             {
@@ -263,7 +263,7 @@ namespace Graphics
                 if (ActiveAxis != null)
                 {
                     // poll axis for interaction
-                    var translation = ActiveAxis.Poll(camera, ray, currState, prevState);
+                    var translation = ActiveAxis.Poll(camera, ray, currState);
 
                     // translate the parent object and the widget with the acquired translation
                     Translate(translation);

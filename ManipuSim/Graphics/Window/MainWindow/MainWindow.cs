@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Desktop;
@@ -16,6 +17,7 @@ using Physics;
 using Matrix4 = OpenTK.Mathematics.Matrix4;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using Vector4 = OpenTK.Mathematics.Vector4;
+using System.Reflection;
 
 namespace Graphics
 {
@@ -29,7 +31,15 @@ namespace Graphics
 
     public class MainWindow : GameWindow
     {
-        private static Camera _camera;
+        public InputHandler InputHandler { get; private set; }
+
+        public Camera Camera { get; private set; }
+        private readonly Vector3 _cameraDefaultPosition = new(-5, 3, 5);
+        private readonly Vector2 _cameraDefaultOrientation = new(-15, -45);
+
+        public Vector2i ViewportOrigin => new((int)(0.25f * Size.X), 0);
+        public Vector2i ViewportSize => new() { X = (int)(0.75f * Size.X), Y = Size.Y };
+        public float ViewportAspectRatio => (float)ViewportSize.X / ViewportSize.Y;
 
         public static readonly List<Model> _goalModels = new List<Model>();  // TODO: consider distributing to the appropriate classes and checking whether the types (Model, etc.) are available at runtime
         //private static Model _bezierPoints;
@@ -61,7 +71,11 @@ namespace Graphics
         public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : 
-            base(gameWindowSettings, nativeWindowSettings) { }
+            base(gameWindowSettings, nativeWindowSettings)
+        {
+            // attach handlers
+            InputHandler = new InputHandler(this);
+        }
 
         #region LOAD
         protected override void OnLoad()
@@ -73,7 +87,7 @@ namespace Graphics
 
             _dummyColliders = new Collider[100];
             _dummyTasks = new Thread[100];
-
+            
             //for (int i = 0; i < 2; i++)
             //{
             //    int index = i;
@@ -98,7 +112,7 @@ namespace Graphics
             _imGui = new MainWindowImGui(this);  // TODO: make static?
 
             // Camera is 6 units back and has the proper aspect ratio
-            _camera = new Camera((float)(0.75 * Size.X / Size.Y), new Vector3(-5, 3, 5), -15, -45);
+            Camera = new Camera(_cameraDefaultPosition, _cameraDefaultOrientation, ViewportAspectRatio);
 
             InputHandler.TranslationalWidget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
             {
@@ -108,7 +122,9 @@ namespace Graphics
             });
 
             // subscribe to the events
-            InputHandler.SelectedObjectChanged += OnSelectedObjectChanged;
+            InputHandler.SelectedObjectChanged += _imGui.OnSelectedObjectChanged;
+            InputHandler.CameraPositionChanged += _camera.OnCameraMove;
+            InputHandler.CameraOrientationChanged += _camera.OnCameraRotate;
 
             //ObstacleHandler.Add(new Obstacle(new Model(new Mesh[]
             //    {
@@ -364,12 +380,11 @@ namespace Graphics
         #region UPDATE
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            // process all the input events
-            if (!IsExiting)
-                InputHandler.PollEvents(this, _camera, MouseState, KeyboardState, e);
-            
             if (IsExiting)
                 return;
+
+            // poll for input events
+            InputHandler.Poll(e);
 
             // update framerate in title
             Title = $"ManipuSim | Framerate: {ImGui.GetIO().Framerate : 0.0}";
@@ -465,10 +480,6 @@ namespace Graphics
             {
                 return;
             }
-
-            // update camera state
-            _camera.UpdateViewMatrix();
-            _camera.UpdateProjectionMatrix();
 
             switch (Mode)
             {
@@ -596,10 +607,6 @@ namespace Graphics
         
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
-            // apply zoom only if no GUI window is currently hovered over
-            if (!ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
-                _camera.Fov -= e.OffsetY;
-
             _imGui.Scroll(e.Offset);
 
             base.OnMouseWheel(e);
@@ -625,22 +632,12 @@ namespace Graphics
 
         protected override void OnResize(ResizeEventArgs e)
         {
-            // We need to update the aspect ratio once the window has been resized
-            if (_camera != null)
-                _camera.AspectRatio = (float)(0.75 * e.Width / e.Height);
-
             base.OnResize(e);
         }
 
         protected override void OnFocusedChanged(FocusedChangedEventArgs e)
         {
             base.OnFocusedChanged(e);
-        }
-
-        private void OnSelectedObjectChanged(object sender, EventArgs e)
-        {
-            // notify ImGui about the change
-            _imGui.OnSelectedObjectChanged(sender, e);
         }
         #endregion
 

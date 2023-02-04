@@ -141,7 +141,7 @@ namespace Graphics
 
                 if (ImGui.Button("Remove"))
                 {
-                    if (InputHandler.CurrentSelectedObject is Manipulator manipulator)
+                    if (InputHandler.SelectedObject is Manipulator manipulator)
                     {
                         ManipulatorHandler.Remove(manipulator);
                     }
@@ -257,10 +257,10 @@ namespace Graphics
 
                 if (ImGui.Button("Remove"))
                 {
-                    if (InputHandler.CurrentSelectedObject is Obstacle obstacle)
+                    if (InputHandler.SelectedObject is Obstacle obstacle)
                     {
                         ObstacleHandler.Remove(obstacle);
-                        InputHandler.ClearSelection();
+                        InputHandler.clearSelection();
                     }
                 }
 
@@ -374,19 +374,19 @@ namespace Graphics
         #region PROPERTIES_WINDOW
         private void RenderPropertiesWindow()
         {
-            if (InputHandler.CurrentSelectedObject is Manipulator manipulator)
+            if (InputHandler.SelectedObject is Manipulator manipulator)
             {
                 RenderPropertiesWindowTemplate("Manipulator properties", manipulator, ManipulatorProperties);
             }
-            else if (InputHandler.CurrentSelectedObject is Joint joint)
+            else if (InputHandler.SelectedObject is Joint joint)
             {
                 RenderPropertiesWindowTemplate("Joint properties", joint, JointProperties);
             }
-            else if (InputHandler.CurrentSelectedObject is Link link)
+            else if (InputHandler.SelectedObject is Link link)
             {
                 RenderPropertiesWindowTemplate("Link properties", link, LinkProperties);
             }
-            else if (InputHandler.CurrentSelectedObject is Obstacle obstacle)
+            else if (InputHandler.SelectedObject is Obstacle obstacle)
             {
                 RenderPropertiesWindowTemplate("Obstacle properties", obstacle, ObstacleProperties);
             }
@@ -812,18 +812,18 @@ namespace Graphics
         #endregion
 
         #region SELECTION
-        public void OnSelectedObjectChanged(object sender, EventArgs e)
+        public void OnSelectedObjectChanged(ObjectSelectEventArgs e)
         {
             SwapPropertiesWindows();
         }
 
         private void UpdateSelection(object selected)
         {
-            InputHandler.ClearSelection();
+            InputHandler.clearSelection();
 
-            if (selected == InputHandler.CurrentSelectedObject)
+            if (selected == InputHandler.SelectedObject)
             {
-                InputHandler.CurrentSelectedObject = null;
+                InputHandler.SelectedObject = null;
             }
             else
             {
@@ -845,14 +845,14 @@ namespace Graphics
                     InputHandler.AddSelection(obstacle.Collider.Body);
                 }
 
-                InputHandler.CurrentSelectedObject = selected;
+                InputHandler.SelectedObject = selected;
                 SwapPropertiesWindows();
             }
         }
 
         private ImGuiTreeNodeFlags GetTreeNodeSelectionFlag(object selected)
         {
-            return selected == InputHandler.CurrentSelectedObject ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None;
+            return selected == InputHandler.SelectedObject ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None;
         }
         #endregion
     }
