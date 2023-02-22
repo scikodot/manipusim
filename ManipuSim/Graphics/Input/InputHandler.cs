@@ -55,7 +55,7 @@ namespace Graphics
 
         public bool TextIsEdited { get; set; }
 
-        public TranslationalWidget TranslationalWidget { get; set; }
+        private readonly TranslationalWidget _translationalWidget;
 
         private readonly HashSet<CollisionObject> _selectedObjects = new();
         public CollisionObject SelectedObject => _selectedObjects.Count == 1 ? _selectedObjects.First() : null;
@@ -71,6 +71,15 @@ namespace Graphics
             _parent = parent;
 
             // widgets
+            _translationalWidget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
+            {
+                (new Vector3(1, 0, 0), new Vector4(1, 0, 0, 1)),
+                (new Vector3(0, 1, 0), new Vector4(0, 1, 0, 1)),
+                (new Vector3(0, 0, 1), new Vector4(0, 0, 1, 1))
+            });
+
+            // subscribe widgets to the events
+            SelectedObjectChanged += _translationalWidget.
         }
 
         public void ToAnimate()
@@ -206,7 +215,29 @@ namespace Graphics
 
         private void PollWidgets(Ray ray)
         {
-            TranslationalWidget.Poll(ray);
+            if (SelectedObject.UserObject is not ITranslatable translatable)
+                return;
+
+            if (_parent.MouseState.IsButtonPressed(MouseButton.Left))
+            {
+                // try activate widget
+                _translationalWidget.TryActivate(ray);
+            }
+
+            if (!_translationalWidget.IsActive)
+                return;
+
+            if (_parent.MouseState.IsButtonDown(MouseButton.Left))
+            {
+                // operate widget
+                _translationalWidget.Operate(ray);
+            }
+            else
+            {
+                // deactivate widget
+            }
+
+            _translationalWidget.Poll(ray);
         }
 
         public void AttachWidgets()
@@ -226,7 +257,7 @@ namespace Graphics
                 }
 
                 // attach the widget
-                TranslationalWidget.Attach(SelectedObject as ITranslatable, _parent.Camera);
+                _translationalWidget.Attach(SelectedObject as ITranslatable, _parent.Camera);
             }
             else
             {
@@ -368,7 +399,7 @@ namespace Graphics
         public void Dispose()
         {
             // dispose of the widgets
-            TranslationalWidget.Dispose();
+            _translationalWidget.Dispose();
         }
     }
 }

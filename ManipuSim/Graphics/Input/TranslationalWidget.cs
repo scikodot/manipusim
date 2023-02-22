@@ -8,6 +8,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Logic;
 
 using Matrix4 = OpenTK.Mathematics.Matrix4;
+using Assimp;
 
 namespace Graphics
 {
@@ -15,18 +16,15 @@ namespace Graphics
     {
         private class Axis : IDisposable
         {
-            private Model Model { get; set; }
-            private Vector3 Offset { get; set; }
-            private bool FirstClick { get; set; } = true;
+            private const float _scaleFactor = 0.15f;  // this value defines a constant size of axis on the screen
+
+            private readonly Model _model;
+            private Vector3 _offset;
+            private float _scale;
 
             public Vector3 Origin { get; private set; }
             public Vector3 Direction { get; private set; }
             public Vector3 End { get; private set; }
-
-            public bool Active { get; private set; }
-
-            private const float _scaleFactor = 0.15f;  // this value defines a constant size of axis on the screen
-            private float _scale;
 
             public Axis(Vector3 origin, Vector3 direction, Vector4 color)
             {
@@ -36,7 +34,7 @@ namespace Graphics
                 _scale = _scaleFactor;
                 End = Origin + _scale * Direction;
 
-                Model = CreateModel(Origin, Direction, color);
+                _model = CreateModel(Origin, Direction, color);
             }
 
             public Model CreateModel(Vector3 origin, Vector3 direction, Vector4 color)
@@ -66,7 +64,7 @@ namespace Graphics
 
             public void Render(Shader shader, Action render)
             {
-                Model.Render(shader, render);
+                _model.Render(shader, render);
             }
 
             public void Translate(Vector3 translation)
@@ -76,7 +74,7 @@ namespace Graphics
                 End += translation;
 
                 // update axis model
-                ref var model = ref Model.State;
+                ref var model = ref _model.State;
                 model.M41 += translation.X;
                 model.M42 += translation.Y;
                 model.M43 += translation.Z;
@@ -91,92 +89,81 @@ namespace Graphics
                 End = Origin + scaleNew * Direction;
 
                 // scale axis model
-                ref var modelX = ref Model.State;
+                ref var modelX = ref _model.State;
                 modelX = Matrix4.CreateScale(scaleNew / _scale) * modelX;
 
                 // save new scale
                 _scale = scaleNew;
             }
 
-            public Vector3 Poll(Camera camera, Ray ray, MouseState currState)  // TODO: optimize
+            public void Setup(Camera camera, Ray ray)
             {
-                if (currState.IsButtonPressed(MouseButton.Left))
-                {
-                    // button was pressed ---> start transformation
-                    Active = true;
-                }
-                else if (currState.IsButtonReleased(MouseButton.Left))
-                {
-                    // button was released ---> stop transformation
-                    Active = false;
-                    FirstClick = true;
-                }
-
-                if (Active)
-                {
-                    // project axis onto the view plane
-                    var axisView = Logic.Geometry.VectorPlaneProjection(  // TODO: refactor?
-                        Direction.ToNumerics3(),
-                        camera.Front.ToNumerics3()).ToOpenTK();
-
-                    // find vector orthogonal to the projected axis
-                    var axisViewOrtho = Vector3.Cross(axisView, camera.Front);
-
-                    // construct a ray plane
-                    var planeNormal = Vector3.Cross(axisViewOrtho, ray.Direction.Xyz);
-
-                    // find the point of intersection between the ray plane and the axis
-                    var intersection = Logic.Geometry.LinePlaneIntersection(  // TODO: refactor?
-                        Origin.ToNumerics3(),
-                        Direction.ToNumerics3(),
-                        ray.StartWorld.Xyz.ToNumerics3(),
-                        planeNormal.ToNumerics3()).ToOpenTK();
-
-                    if (FirstClick)
-                    {
-                        // at first click memoize the offset of cursor from end point
-                        Offset = intersection - End;
-                        FirstClick = false;
-                    }
-                    else
-                    {
-                        // retrieve translation for the axis (in World space)
-                        return intersection - Offset - End;
-                    }
-                }
-
-                return default;
+                // memoize the offset of the cursor from the axis tip
+                _offset = GetAxisCursorIntersection(camera, ray) - End;
             }
 
-            public bool IsActive(ref Matrix4 view, ref Matrix4 proj, out Vector3 endNDC)
+            public Vector3 Poll(Camera camera, Ray ray)
             {
-                // transform the axis to the NDC space
-                (var endProj, var originProj) = Project(ref view, ref proj);
-                endNDC = endProj;
+                // get world space translation for the axis
+                return GetAxisCursorIntersection(camera, ray) - End - _offset;
+            }
 
-                //// get the distance to the projected line
-                //var cursor = InputHandler.CursorPositionNDC;  // TODO; refactor!
-                //var direction = endProj - originProj;
-                //var distance = Geometry.PointLineDistance(
-                //    cursor.ToNumerics2(), 
-                //    originProj.Xy.ToNumerics2(), 
-                //    direction.Xy.ToNumerics2());
+            private Vector3 GetAxisCursorIntersection(Ray ray)
+            {
+                // TODO: optimize
+                // TODO: the intersection check can probably be simplified:
+                // 1. Find the axis projection onto the view plane
+                // 2. Find the ray intersection point with the view plane (it must be the ray's start point)
+                // 3. Check whether these two overlap; this can be done by projecting the point onto the axis projection line
+                //    and then checking if the point projection is between the start and end of the axis projection
 
-                //if (distance < 0.05f)
-                //{
-                //    // test whether the point is projected onto the segment
-                //    var e1 = (endProj - originProj).Xy;
-                //    var upperLimit = Vector2.Dot(e1, e1);
-                //    var e2 = endProj.Xy - cursor;
-                //    var dot = Vector2.Dot(e1, e2);
+                /*// project axis onto the view plane
+                var axisView = Geometry.VectorPlaneProjection(  // TODO: refactor?
+                    Direction.ToNumerics3(),
+                    camera.Front.ToNumerics3()).ToOpenTK();
 
-                //    return dot > 0 && dot < upperLimit;
-                //}
-                //else
-                //    return false;
+                // find vector orthogonal to the projected axis
+                var axisViewOrtho = Vector3.Cross(axisView, camera.Front);
 
-                // return the distance between the projected axis tip and the cursor
-                return Vector2.Distance(InputHandler.CursorPositionNDC, endNDC.Xy) < 0.08f;
+                // construct a ray plane
+                var planeNormal = Vector3.Cross(axisViewOrtho, ray.Direction.Xyz);
+
+                // find the point of intersection between the ray plane and the axis
+                var intersection = Geometry.LinePlaneIntersection(  // TODO: refactor?
+                    Origin.ToNumerics3(),
+                    Direction.ToNumerics3(),
+                    ray.StartWorld.Xyz.ToNumerics3(),
+                    planeNormal.ToNumerics3()).ToOpenTK();
+
+                return intersection;*/
+            }
+
+            /*public bool IsInteracted(Ray ray)
+            {
+                // treat an axis tip as a cylinder and find its intersection with the ray
+                var distance = Geometry.LinesDistance(
+                    Origin.ToNumerics3(),
+                    Direction.ToNumerics3(),
+                    ray.StartWorld.ToNumerics3(),
+                    ray.Direction.ToNumerics3());
+
+                return distance <= 0.05f;
+            }*/
+
+            public bool IsPrioritized(Ray ray, out float priority)
+            {
+                // find the distance between the axis tip (sphere approx) and a ray
+                var origin = Origin + Direction * 1.1f * _scale;
+                var distance = Geometry.PointLineDistance(
+                    origin.ToNumerics3(), 
+                    ray.StartWorld.ToNumerics3(), 
+                    ray.Direction.ToNumerics3());
+
+                // priority is the distance between the axis tip and a ray's origin, 
+                // but it is only defined if the ray comes close enough to the tip
+                bool prioritized = distance <= 0.1f * _scale;
+                priority = prioritized ? (origin - ray.StartWorld.Xyz).Length : float.MaxValue;
+                return prioritized;
             }
 
             public (Vector3, Vector3) Project(ref Matrix4 view, ref Matrix4 proj)
@@ -191,95 +178,90 @@ namespace Graphics
             public void Dispose()
             {
                 // clear managed resources
-                Model.Dispose();
+                _model.Dispose();
 
                 // suppress finalization
                 GC.SuppressFinalize(this);
             }
         }
 
-        private Axis[] Axes { get; set; }
-        private Axis ActiveAxis { get; set; }
-        public ITranslatable Parent { get; private set; }
+        private readonly Axis _axisX;
+        private readonly Axis _axisY;
+        private readonly Axis _axisZ;
+        private Axis _activeAxis;
+        private ITranslatable _parent;
 
-        public bool IsAttached => Parent != null;
-        public bool IsActive => ActiveAxis != null;
+        public bool IsAttached => _parent != null;
+        public bool IsActive => _activeAxis != null;
 
-        public TranslationalWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors)
+        public TranslationalWidget(Vector3 origin)
         {
-            Axes = axesDirectionsColors.Select(((Vector3 dir, Vector4 col) axis) => new Axis(origin, axis.dir, axis.col)).ToArray();
+            // standard right-handed system with RGB color scheme
+            _axisX = new Axis(origin, new Vector3(1, 0, 0), new Vector4(1, 0, 0, 1));
+            _axisY = new Axis(origin, new Vector3(0, 1, 0), new Vector4(0, 1, 0, 1));
+            _axisZ = new Axis(origin, new Vector3(0, 0, 1), new Vector4(0, 0, 1, 1));
         }
-
-        //public TranslationalWidget(Vector3 origin, IEnumerable<(Vector3, Vector4)> axesDirectionsColors, ITranslatable selectable)
-        //{
-        //    Axes = axesDirectionsColors.Select(((Vector3 dir, Vector4 col) axis) => new Axis(origin, axis.dir, axis.col)).ToArray();
-
-        //    Attach(selectable);
-        //}
 
         public void Render(Shader shader, Action render)
         {
-            if (IsAttached && Parent.Model.RenderFlags.HasFlag(RenderFlags.Selected))
-                foreach (var axis in Axes)
-                    axis.Render(shader, render);
-        }
-
-        public void Attach(ITranslatable selectable, Camera camera)
-        {
-            if (selectable == Parent || selectable == null)
-                return;
-
-            var selectablePosition = selectable.Collider.Body.MotionState.WorldTransform.Origin;
-            foreach (var axis in Axes)
+            if (IsAttached && _parent.Model.RenderFlags.HasFlag(RenderFlags.Selected))
             {
-                axis.SetOrigin(selectablePosition.ToOpenTK3());
+                _axisX.Render(shader, render);
+                _axisY.Render(shader, render);
+                _axisZ.Render(shader, render);
             }
-
-            Parent = selectable;
-
-            // perform an initial scale change
-            Scale(camera);
         }
 
-        public void Detach()
+        public void OnSelectedObjectChanged(ObjectSelectEventArgs e)
         {
-            Parent = null;
-        }
+            _parent = e.Object as ITranslatable;
 
-        public void Poll(Camera camera, Ray ray, MouseState currState)
-        {
-            if (IsAttached)
+            // attach the widget only if the selected object is translatable
+            if (_parent != null)
             {
-                // get current view and projection matrices
-                ref var view = ref camera.ViewMatrix;
-                ref var proj = ref camera.ProjectionMatrix;  // TODO: make matrices ref properties
+                var origin = _parent.Collider.Body.MotionState.WorldTransform.Origin.ToOpenTK3();
+                _axisX.SetOrigin(origin);
+                _axisY.SetOrigin(origin);
+                _axisZ.SetOrigin(origin);
 
-                if (ActiveAxis == null || (ActiveAxis != null && !ActiveAxis.Active))
-                {
-                    // get active priority axis
-                    ActiveAxis = GetActiveAxis(ref view, ref proj);
-                }
-
-                if (ActiveAxis != null)
-                {
-                    // poll axis for interaction
-                    var translation = ActiveAxis.Poll(camera, ray, currState);
-
-                    // translate the parent object and the widget with the acquired translation
-                    Translate(translation);
-                }
-
+                // perform an initial scale change
+                Scale(camera);
             }
+        }
+
+        public void TryActivate(Ray ray)
+        {
+            if (!IsAttached)
+                throw new ArgumentException("Attempt to activate an unattached widget.");
+
+            // get active priority axis
+            _activeAxis = GetActiveAxis(ray);
+            _activeAxis?.Setup(ray);
+        }
+
+        public void Operate(Ray ray)
+        {
+            if (!IsActive)
+                throw new ArgumentException("Attempt to operate a widget while no axis is active.");
+
+            // poll the active axis for translation
+            Translate(_activeAxis.Poll(ray));
+        }
+
+        public void Deactivate()
+        {
+
         }
 
         private void Translate(Vector3 translation)
         {
             // translate the parent object
-            Parent.Translate(translation.ToNumerics3());
+            _parent.Translate(translation.ToNumerics3());
 
             // translate the widget axes
-            foreach (var axis in Axes)
-                axis.Translate(translation);
+            _axisX.Translate(translation);
+            _axisY.Translate(translation);
+            _axisZ.Translate(translation);
         }
 
         public void Scale(Camera camera)
@@ -288,25 +270,29 @@ namespace Graphics
                 axis.Scale(camera);
         }
 
-        private Axis GetActiveAxis(ref Matrix4 view, ref Matrix4 proj)
+        private Axis GetActiveAxis(Ray ray)
         {
-            var axesActive = new List<(Axis, Vector3)>();
-            foreach (var axis in Axes)
-            {
-                if (axis.IsActive(ref view, ref proj, out Vector3 endNDC))
-                    axesActive.Add((axis, endNDC));
-            }
+            //var axes = new List<(Axis, Vector3)>();
+            //bool interactedX = _axisX.IsInteracted(ray);
+            //bool interactedY = _axisY.IsInteracted(ray);
+            //bool interactedZ = _axisZ.IsInteracted(ray);
 
-            return axesActive.Count == 0 ? null : axesActive.MinBy(x => Math.Abs(x.Item2.Z)).Item1;
+            // active axis is the one with the lowest priority,
+            // i.e. with the smallest distance from its tip to the view plane
+            var priorities = new Dictionary<Axis, float>();
+            if (_axisX.IsPrioritized(ray, out float priorityX)) priorities.Add(_axisX, priorityX);
+            if (_axisY.IsPrioritized(ray, out float priorityY)) priorities.Add(_axisY, priorityY);
+            if (_axisZ.IsPrioritized(ray, out float priorityZ)) priorities.Add(_axisZ, priorityZ);
+
+            return priorities.Count == 0 ? null : priorities.MinBy(kvp => kvp.Value).Key;
         }
 
         public void Dispose()
         {
             // clear managed resources
-            foreach (var axis in Axes)
-            {
-                axis.Dispose();
-            }
+            _axisX.Dispose();
+            _axisY.Dispose();
+            _axisZ.Dispose();
 
             // suppress finalization
             GC.SuppressFinalize(this);

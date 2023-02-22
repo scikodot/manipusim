@@ -114,13 +114,6 @@ namespace Graphics
             // Camera is 6 units back and has the proper aspect ratio
             Camera = new Camera(_cameraDefaultPosition, _cameraDefaultOrientation, ViewportAspectRatio);
 
-            InputHandler.TranslationalWidget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
-            {
-                (new Vector3(1, 0, 0), new Vector4(1, 0, 0, 1)),
-                (new Vector3(0, 1, 0), new Vector4(0, 1, 0, 1)),
-                (new Vector3(0, 0, 1), new Vector4(0, 0, 1, 1))
-            });
-
             // subscribe to the events
             InputHandler.SelectedObjectChanged += _imGui.OnSelectedObjectChanged;
             InputHandler.CameraPositionChanged += _camera.OnCameraMove;
