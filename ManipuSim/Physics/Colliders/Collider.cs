@@ -67,21 +67,21 @@ namespace Physics
             return _physicsHandler.ContactTest(Body, CollisionCallback);
         }
 
-        public void Convert(Collider collider, RigidBodyType type, float mass = 0)
+        // TODO: consider making changes to mass in a separate method
+        public void Convert(RigidBodyType type, float? mass = null)
         {
-            var body = collider.Body;
-
             // temporarily remove the body from the world
-            _physicsHandler.RemoveRigidBody(body);
+            _physicsHandler.RemoveRigidBody(Body);
 
             // set the given body type
-            body.SetType(type);
+            Body.SetType(type);
 
-            // set mass properties
-            body.SetMassProps(mass, body.CollisionShape.CalculateLocalInertia(mass));
+            // set mass properties if needed
+            if (mass != null)
+                Body.SetMassProps(mass.Value, Body.CollisionShape.CalculateLocalInertia(mass.Value));
 
             // return the body to the world
-            _physicsHandler.AddRigidBody(body);
+            _physicsHandler.AddRigidBody(Body);
         }
 
         //public void AttachGhost()

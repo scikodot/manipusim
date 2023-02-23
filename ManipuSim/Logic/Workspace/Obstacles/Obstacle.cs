@@ -11,27 +11,22 @@ using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
-    public struct ObstData
+    /*public struct ObstData
     {
         public float Radius;
         public Vector3 Center;
         public int PointsNum;
         public bool ShowCollider;
-    }
+    }*/
 
     public class Obstacle : IDisposable, ISelectable, ITranslatable
     {
         public Model Model { get; }
         public Collider Collider { get; }
-
         public Path Path { get; }
 
+        public RigidBodyType Type => Collider.Type;
         public BroadphaseNativeType Shape => Collider.Shape;
-        public RigidBodyType Type
-        {
-            get => Collider.Type;
-            set => Collider.Type = value;
-        }
 
         public Matrix State
         {
@@ -40,7 +35,7 @@ namespace Logic
             {
                 // explicitly set position of the body
                 Collider.Body.WorldTransform = value;
-
+                
                 // set its motion state to update position (for kinematic objects only)
                 if (Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
                     Collider.Body.MotionState.SetWorldTransform(ref value);
@@ -62,7 +57,7 @@ namespace Logic
         public Vector3 Position { get; private set; }
         public float Speed { get; } = 0.016f;
 
-        public Obstacle(Model model, Collider collider)  // TODO: check collider for null; in that case, the obstacle may not participate in collision checks
+        public Obstacle(Model model, Collider collider)
         {
             Model = model;
             Collider = collider;
@@ -76,15 +71,9 @@ namespace Logic
             Collider.Body.UserObject = this;
         }
 
-        public bool Contains(Vector3 point)
-        {
-            return Collider.Contains(point);
-        }
+        public bool Contains(Vector3 point) => Collider.Contains(point);
 
-        public Vector3 Extrude(Vector3 point)
-        {
-            return Collider.Extrude(point);
-        }
+        public Vector3 Extrude(Vector3 point) => Collider.Extrude(point);
 
         public void Translate(Vector3 translation)
         {
@@ -105,7 +94,7 @@ namespace Logic
                 Collider.Render(shader);
         }
 
-        public void Convert(RigidBodyType type, float mass)
+        public void Convert(RigidBodyType type, float? mass = null)
         {
             Collider.Convert(type, mass);
         }
