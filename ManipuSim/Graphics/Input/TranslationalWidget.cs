@@ -16,7 +16,7 @@ namespace Graphics
     {
         private class Axis : IDisposable
         {
-            private const float _scaleFactor = 0.15f;  // this value defines a constant size of axis on the screen
+            private const float _scaleFactor = 0.15f;  // determines a constant axis size on the screen
 
             private readonly Model _model;
             private Vector3 _offset;
@@ -62,9 +62,9 @@ namespace Graphics
                 Translate(origin - Origin);
             }
 
-            public void Render(Shader shader, Action render)
+            public void Render(Shader shader, Action action)
             {
-                _model.Render(shader, render);
+                _model.Render(shader, action);
             }
 
             public void Translate(Vector3 translation)
@@ -80,32 +80,36 @@ namespace Graphics
                 model.M43 += translation.Z;
             }
 
-            public void Scale(Camera camera)
+            public void Scale(Vector3 cameraPosition)
             {
-                // obtain new scale
-                var scaleNew = _scaleFactor * (camera.Position - Origin).Length;
+                // get the new scale
+                var scale = _scaleFactor * (cameraPosition - Origin).Length;
+
+                // hasn't changed -> no need to update
+                if (scale == _scale)
+                    return;
 
                 // scale axis points
-                End = Origin + scaleNew * Direction;
+                End = Origin + scale * Direction;
 
                 // scale axis model
                 ref var modelX = ref _model.State;
-                modelX = Matrix4.CreateScale(scaleNew / _scale) * modelX;
+                modelX = Matrix4.CreateScale(scale / _scale) * modelX;
 
-                // save new scale
-                _scale = scaleNew;
+                // save the new scale
+                _scale = scale;
             }
 
-            public void Setup(Camera camera, Ray ray)
+            public void Setup(Ray ray)
             {
                 // memoize the offset of the cursor from the axis tip
-                _offset = GetAxisCursorIntersection(camera, ray) - End;
+                _offset = GetAxisCursorIntersection(ray) - End;
             }
 
-            public Vector3 Poll(Camera camera, Ray ray)
+            public Vector3 Poll(Ray ray)
             {
                 // get world space translation for the axis
-                return GetAxisCursorIntersection(camera, ray) - End - _offset;
+                return GetAxisCursorIntersection(ray) - End - _offset;
             }
 
             private Vector3 GetAxisCursorIntersection(Ray ray)
@@ -117,13 +121,13 @@ namespace Graphics
                 // 3. Check whether these two overlap; this can be done by projecting the point onto the axis projection line
                 //    and then checking if the point projection is between the start and end of the axis projection
 
-                /*// project axis onto the view plane
+                // project axis onto the view plane
                 var axisView = Geometry.VectorPlaneProjection(  // TODO: refactor?
                     Direction.ToNumerics3(),
-                    camera.Front.ToNumerics3()).ToOpenTK();
+                    ray.CameraFront.ToNumerics3()).ToOpenTK();
 
                 // find vector orthogonal to the projected axis
-                var axisViewOrtho = Vector3.Cross(axisView, camera.Front);
+                var axisViewOrtho = Vector3.Cross(axisView, ray.CameraFront);
 
                 // construct a ray plane
                 var planeNormal = Vector3.Cross(axisViewOrtho, ray.Direction.Xyz);
@@ -135,7 +139,7 @@ namespace Graphics
                     ray.StartWorld.Xyz.ToNumerics3(),
                     planeNormal.ToNumerics3()).ToOpenTK();
 
-                return intersection;*/
+                return intersection;
             }
 
             /*public bool IsInteracted(Ray ray)
@@ -202,13 +206,13 @@ namespace Graphics
             _axisZ = new Axis(origin, new Vector3(0, 0, 1), new Vector4(0, 0, 1, 1));
         }
 
-        public void Render(Shader shader, Action render)
+        public void Render(Shader shader, Action action)
         {
             if (IsAttached && _parent.Model.RenderFlags.HasFlag(RenderFlags.Selected))
             {
-                _axisX.Render(shader, render);
-                _axisY.Render(shader, render);
-                _axisZ.Render(shader, render);
+                _axisX.Render(shader, action);
+                _axisY.Render(shader, action);
+                _axisZ.Render(shader, action);
             }
         }
 
@@ -223,9 +227,6 @@ namespace Graphics
                 _axisX.SetOrigin(origin);
                 _axisY.SetOrigin(origin);
                 _axisZ.SetOrigin(origin);
-
-                // perform an initial scale change
-                Scale(camera);
             }
         }
 
@@ -250,7 +251,7 @@ namespace Graphics
 
         public void Deactivate()
         {
-
+            _activeAxis = null;
         }
 
         private void Translate(Vector3 translation)
@@ -264,10 +265,11 @@ namespace Graphics
             _axisZ.Translate(translation);
         }
 
-        public void Scale(Camera camera)
+        public void Scale(Vector3 cameraPosition)
         {
-            foreach (var axis in Axes)
-                axis.Scale(camera);
+            _axisX.Scale(cameraPosition);
+            _axisY.Scale(cameraPosition);
+            _axisZ.Scale(cameraPosition);
         }
 
         private Axis GetActiveAxis(Ray ray)

@@ -2,45 +2,44 @@
 
 namespace Graphics
 {
-    public class Ray
+    public readonly struct Ray
     {
-        private Vector4 _startWorld;
-        public ref Vector4 StartWorld => ref _startWorld;
+        // ray properties
+        public Vector4 StartWorld { get; }
+        public Vector4 EndWorld { get; }
+        public Vector4 Direction { get; }
 
-        private Vector4 _endWorld;
-        public ref Vector4 EndWorld => ref _endWorld;
+        // minimal necessary camera state info
+        public Vector3 CameraPosition { get; }
+        public Vector3 CameraFront { get; }
 
-        private Vector4 _direction;
-        public ref Vector4 Direction => ref _direction;
-
-        private Ray(Vector4 rayStartWorld, Vector4 rayEndWorld, Vector4 rayDir)
+        private Ray(Camera camera, Vector4 startWorld, Vector4 endWorld, Vector4 direction)
         {
-            _startWorld = rayStartWorld;
-            EndWorld = rayEndWorld;
-            Direction = rayDir;
+            StartWorld = startWorld;
+            EndWorld = endWorld;
+            Direction = direction;
+            CameraPosition = camera.Position;
+            CameraFront = camera.Front;
         }
 
-        public static Ray Cast(Camera camera) => Cast(ref camera.ViewMatrix, ref camera.ProjectionMatrix);
-
-        private static Ray Cast(ref Matrix4 view, ref Matrix4 proj)  // TODO: casting is performed inaccurately; fix, optimize
+        // cast a ray from the given camera view
+        public static Ray Cast(Camera camera, Vector2 cursorPosition)  // TODO: casting is performed inaccurately; fix, optimize
         {
-            var cursorPos = InputHandler.CursorPositionNDC;
+            var pointStart = new Vector4(cursorPosition.X, cursorPosition.Y, -1, 1);
+            var pointEnd = new Vector4(cursorPosition.X, cursorPosition.Y, 0, 1);
 
-            var pointStart = new Vector4(cursorPos.X, cursorPos.Y, -1, 1);
-            var pointEnd = new Vector4(cursorPos.X, cursorPos.Y, 0, 1);
+            var projViewInv = Matrix4.Invert(camera.ViewMatrix * camera.ProjectionMatrix);
 
-            var projViewInv = Matrix4.Invert(view * proj);
+            var startWorld = pointStart * projViewInv;
+            startWorld /= startWorld.W;
 
-            var rayStartWorld = pointStart * projViewInv;
-            rayStartWorld /= rayStartWorld.W;
+            var endWorld = pointEnd * projViewInv;
+            endWorld /= endWorld.W;
 
-            var rayEndWorld = pointEnd * projViewInv;
-            rayEndWorld /= rayEndWorld.W;
+            var direction = Vector4.Normalize(endWorld - startWorld);
+            endWorld = startWorld + direction * 1000;
 
-            var rayDir = Vector4.Normalize(rayEndWorld - rayStartWorld);
-            rayEndWorld = rayStartWorld + rayDir * 1000;
-
-            return new Ray(rayStartWorld, rayEndWorld, rayDir);
+            return new Ray(camera, startWorld, endWorld, direction);
         }
     }
 }

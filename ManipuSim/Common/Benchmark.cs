@@ -6,6 +6,7 @@ using Logic;
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
 
+// TODO: consider moving to a separate testing project
 public static class Benchmark
 {
     private static Stopwatch _timer = new Stopwatch();
@@ -33,7 +34,7 @@ public static class Benchmark
 
     public static void RunInverseKinematics()
     {
-        _isErrorTaken = false;
+        /*_isErrorTaken = false;
 
         // setup dot separator for floats
         System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
@@ -94,7 +95,7 @@ public static class Benchmark
                     stream.WriteLine(str);
                 }
             }
-        }
+        }*/
     }
 
     public static void RunPathPlanning()

@@ -111,7 +111,7 @@ namespace Logic
             var joint = (Joint)MemberwiseClone();
 
             joint.Model = Model.DeepCopy();
-            joint.Collider = Collider.DeepCopy();
+            joint.Collider = Collider.Copy();
 
             return joint;
         }

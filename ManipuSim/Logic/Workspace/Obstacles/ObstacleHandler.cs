@@ -19,27 +19,27 @@ namespace Logic
         Cone
     }
 
-    public static class ObstacleHandler
+    public class ObstacleHandler
     {
-        private static class Ground
+        private class Ground
         {
-            private readonly static Model _grid = Primitives.Grid(21, 1, MeshMaterial.White);
+            private readonly Model _grid = Primitives.Grid(21, 1, MeshMaterial.White);
 
-            private readonly static Model _ground = Primitives.Plane(10, 10, new MeshMaterial
+            private readonly Model _ground = Primitives.Plane(10, 10, new MeshMaterial
             {
                 Diffuse = new OpenTK.Mathematics.Vector4(1.0f, 1.0f, 1.0f, 0.5f)
             });
 
-            private readonly static Collider _collider = PhysicsHandler.CreateStaticCollider(
+            private readonly Collider _collider = PhysicsHandler.CreateStaticCollider(
                 new BoxShape(10, 0.2f, 10),
                 Matrix.Translation(-0.2f * BulletSharp.Math.Vector3.UnitY));
 
-            public static void RenderGround(Shader shader)
+            public void RenderGround(Shader shader)
             {
                 _ground.Render(shader);
             }
 
-            public static void RenderGrid(Shader shader)
+            public void RenderGrid(Shader shader)
             {
                 _grid.Render(shader, () =>
                 {
@@ -47,7 +47,7 @@ namespace Logic
                 });
             }
 
-            public static void Dispose()
+            public void Dispose()
             {
                 // clear managed resources
                 _grid.Dispose();
@@ -55,6 +55,9 @@ namespace Logic
                 _collider.Dispose();
             }
         }
+
+        private readonly MainWindow _parent;
+        private readonly Ground _ground;
 
         private static MeshMaterial _defaultMaterial = new MeshMaterial
         {
@@ -64,13 +67,18 @@ namespace Logic
             Shininess = 8
         };
 
-        public static string[] Shapes { get; } = Enum.GetNames(typeof(ObstacleShape));
+        public string[] Shapes { get; } = Enum.GetNames(typeof(ObstacleShape));
 
-        public static List<Obstacle> Obstacles { get; } = new List<Obstacle>();
+        public List<Obstacle> Obstacles { get; } = new();
 
-        public static int Count => Obstacles.Count;
+        public int Count => Obstacles.Count;
 
-        public static void Add(params Obstacle[] obstacles)
+        public ObstacleHandler(MainWindow parent)
+        {
+            _parent = parent;
+        }
+
+        public void Add(params Obstacle[] obstacles)
         {
             if (obstacles == null)
                 throw new ArgumentNullException("obstacles");
@@ -82,43 +90,43 @@ namespace Logic
             }
         }
 
-        public static void AddDefault(ObstacleShape shape)
+        public void AddDefault(ObstacleShape shape)
         {
             switch (shape)
             {
                 case ObstacleShape.Box:
                     Add(new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, _defaultMaterial),
-                        PhysicsHandler.CreateKinematicCollider(new BoxShape(0.5f, 0.5f, 0.5f))));
+                        _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new BoxShape(0.5f, 0.5f, 0.5f))));
                     break;
                 case ObstacleShape.Sphere:
                     Add(new Obstacle(Primitives.Sphere(0.5f, 50, 50, _defaultMaterial),
-                        PhysicsHandler.CreateKinematicCollider(new SphereShape(0.5f))));
+                        _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new SphereShape(0.5f))));
                     break;
                 case ObstacleShape.Cylinder:
                     Add(new Obstacle(new Model(new Mesh[]
                     {
                         Primitives.Cylinder(0.25f, 1f, 1f, 50, _defaultMaterial)
-                    }), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1f, 0.25f))));
+                    }), _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new CylinderShape(0.25f, 1f, 0.25f))));
                     break;
                 case ObstacleShape.Cone:
                     Add(new Obstacle(new Model(new Mesh[]
                     {
                         Primitives.Cone(0.5f, 2, 50, _defaultMaterial)
-                    }), PhysicsHandler.CreateKinematicCollider(new ConeShape(0.5f, 2))));  // TODO: cone's rigid body center is not the circle center, but the center of mass; fix
+                    }), _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new ConeShape(0.5f, 2))));  // TODO: cone's rigid body center is not the circle center, but the center of mass; fix
                     break;
                 default:
                     throw new ArgumentException("The given obstacle shape is not implemented yet.", "shape");
             }
         }
 
-        public static void Remove(Obstacle obstacle)
+        public void Remove(Obstacle obstacle)
         {
             if (Obstacles.Remove(obstacle))
                 obstacle.Dispose();
         }
 
         // TODO: perhaps return all containing obstacles?
-        public static bool ContainmentTest(System.Numerics.Vector3 point, out Obstacle container)
+        public bool ContainmentTest(System.Numerics.Vector3 point, out Obstacle container)
         {
             foreach (var obstacle in Obstacles)
             {
@@ -133,7 +141,7 @@ namespace Logic
             return false;
         }
 
-        public static void ToDesign()
+        public void ToDesign()
         {
             foreach (var obst in Obstacles)
             {
@@ -142,7 +150,7 @@ namespace Logic
             }
         }
 
-        public static void ToAnimate()
+        public void ToAnimate()
         {
             foreach (var obst in Obstacles)
             {
@@ -150,7 +158,7 @@ namespace Logic
             }
         }
 
-        public static void UpdateDesign()
+        public void UpdateDesign()
         {
             foreach (var obst in Obstacles)
             {
@@ -158,7 +166,7 @@ namespace Logic
             }
         }
 
-        public static void UpdateAnimate()
+        public void UpdateAnimate()
         {
             foreach (var obst in Obstacles)
             {
@@ -166,7 +174,7 @@ namespace Logic
             }
         }
 
-        public static void UpdateModel()
+        public void UpdateModel()
         {
             foreach (var obst in Obstacles)
             {
@@ -176,17 +184,17 @@ namespace Logic
             }
         }
 
-        public static void RenderGrid(Shader shader)
+        public void RenderGrid(Shader shader)
         {
-            Ground.RenderGrid(shader);
+            _ground.RenderGrid(shader);
         }
 
-        public static void RenderGround(Shader shader)
+        public void RenderGround(Shader shader)
         {
-            Ground.RenderGround(shader);
+            _ground.RenderGround(shader);
         }
 
-        public static void RenderUnselected(Shader shader)
+        public void RenderUnselected(Shader shader)
         {
             foreach (var obst in Obstacles)
             {
@@ -198,7 +206,7 @@ namespace Logic
             }
         }
 
-        public static void RenderSelected(Shader shader)
+        public void RenderSelected(Shader shader)
         {
             foreach (var obst in Obstacles)
             {
@@ -207,10 +215,10 @@ namespace Logic
             }
         }
 
-        public static void Dispose()
+        public void Dispose()
         {
             // dispose of the ground
-            Ground.Dispose();
+            _ground.Dispose();
 
             // dispose of all the obstacles
             foreach (var obstacle in Obstacles)

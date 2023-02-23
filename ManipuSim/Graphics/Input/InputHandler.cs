@@ -44,42 +44,42 @@ namespace Graphics
 
     public class InputHandler
     {
-        public static string ExeDirectory { get; } = Environment.CurrentDirectory;
+        private readonly MainWindow _parent;
+        private readonly TranslationalWidget _translationalWidget;
+        private readonly HashSet<CollisionObject> _selectedObjects = new();
 
+        // resources paths
+        public static string ExeDirectory { get; } = Environment.CurrentDirectory;
         public string LinkPath { get; } = $"{ExeDirectory}/Resources/Models/manipulator/Link.obj";
         public string JointPath { get; } = $"{ExeDirectory}/Resources/Models/manipulator/Joint.obj";
         public string GripperPath { get; } = $"{ExeDirectory}/Resources/Models/manipulator/Gripper.obj";
         public string ScreenshotsPath { get; } = $"{ExeDirectory}/Screenshots";
 
-        private readonly MainWindow _parent;
+        // shaders paths
+        public string VertexShader { get; } = $"{ExeDirectory}/Resources/Shaders/VertexShader.glsl";
+        public string GenericFragmentShader { get; } = $"{ExeDirectory}/Resources/Shaders/LineShader.glsl";
+        public string ComplexFragmentShader { get; } = $"{ExeDirectory}/Resources/Shaders/FragmentShader.glsl";
 
         public bool TextIsEdited { get; set; }
-
-        private readonly TranslationalWidget _translationalWidget;
-
-        private readonly HashSet<CollisionObject> _selectedObjects = new();
-        public CollisionObject SelectedObject => _selectedObjects.Count == 1 ? _selectedObjects.First() : null;
+        
+        // currently selected object
+        public object SelectedObject => _selectedObjects.Count == 1 ? _selectedObjects.First().UserObject : null;
 
         // events
-        public static event Action<ObjectSelectEventArgs> SelectedObjectChanged;
-        public static event Action<CameraMoveEventArgs> CameraPositionChanged;
-        public static event Action<CameraRotateEventArgs> CameraOrientationChanged;
-        public static event Action<CameraZoomEventArgs> CameraZoomChanged;
+        public event Action<ObjectSelectEventArgs> SelectedObjectChanged;
+        public event Action<CameraMoveEventArgs> CameraPositionChanged;
+        public event Action<CameraRotateEventArgs> CameraOrientationChanged;
+        public event Action<CameraZoomEventArgs> CameraZoomChanged;
 
         public InputHandler(MainWindow parent)
         {
             _parent = parent;
 
             // widgets
-            _translationalWidget = new TranslationalWidget(Vector3.Zero, new (Vector3, Vector4)[3]
-            {
-                (new Vector3(1, 0, 0), new Vector4(1, 0, 0, 1)),
-                (new Vector3(0, 1, 0), new Vector4(0, 1, 0, 1)),
-                (new Vector3(0, 0, 1), new Vector4(0, 0, 1, 1))
-            });
+            _translationalWidget = new TranslationalWidget(Vector3.Zero);
 
             // subscribe widgets to the events
-            SelectedObjectChanged += _translationalWidget.
+            SelectedObjectChanged += _translationalWidget.OnSelectedObjectChanged;
         }
 
         public void ToAnimate()
@@ -100,18 +100,14 @@ namespace Graphics
             }
         }
 
+        public void Render(Shader shader, Action action)
+        {
+            _translationalWidget.Render(shader, action);
+        }
+
         public void Poll(FrameEventArgs e)
         {
-            // update cursor position in NDC space
-            CursorPositionNDC = MouseToViewportNDC();  // TODO: consider creating an extension method CursorPositionNDC() for MouseState
-
-            // attach widgets to or detach from the selected objects
-            AttachWidgets(camera);
-
-            // scale all axes so that their size on screen remains fixed
-            TranslationalWidget.Scale(camera);
-
-            if (MainWindow.Mode == InteractionMode.Design && !ImGui.IsWindowHovered(
+            if (_parent.Mode == InteractionMode.Design && !ImGui.IsWindowHovered(
                 ImGuiHoveredFlags.AnyWindow | 
                 ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?
             {
@@ -147,7 +143,6 @@ namespace Graphics
             }
         }
 
-        // 
         private Vector2 MouseToViewportNDC()
         {
             // mouse position relative to the main viewport, normalized to [-1, 1] range
@@ -159,7 +154,7 @@ namespace Graphics
 
         private void PollInteraction()
         {
-            var ray = Ray.Cast(_parent.Camera);
+            var ray = Ray.Cast(_parent.Camera, MouseToViewportNDC());
 
             PollSelection(ray);
 
@@ -175,7 +170,7 @@ namespace Graphics
                 var endWorld = ray.EndWorld.ToBullet3();
 
                 using var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld);
-                PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
+                _parent.PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
                 if (raycastCallback.HasHit)
                 {
                     var target = raycastCallback.CollisionObject;
@@ -207,20 +202,22 @@ namespace Graphics
             {
                 SelectedObjectChanged?.Invoke(new ObjectSelectEventArgs
                 {
-                    PreviousObject = previousObject.UserObject as ISelectable,
-                    Object = currentObject.UserObject as ISelectable
+                    PreviousObject = previousObject as ISelectable,
+                    Object = currentObject as ISelectable
                 });
             }
         }
 
         private void PollWidgets(Ray ray)
         {
-            if (SelectedObject.UserObject is not ITranslatable translatable)
+            if (SelectedObject is not ITranslatable)
                 return;
+
+            // scale the widget so that its size remains constant
+            _translationalWidget.Scale(ray.CameraPosition);
 
             if (_parent.MouseState.IsButtonPressed(MouseButton.Left))
             {
-                // try activate widget
                 _translationalWidget.TryActivate(ray);
             }
 
@@ -229,43 +226,11 @@ namespace Graphics
 
             if (_parent.MouseState.IsButtonDown(MouseButton.Left))
             {
-                // operate widget
                 _translationalWidget.Operate(ray);
             }
             else
             {
-                // deactivate widget
-            }
-
-            _translationalWidget.Poll(ray);
-        }
-
-        public void AttachWidgets()
-        {
-            if (_selectedObjects.Count == 1)
-            {
-                var selected = _selectedObjects..UserObject as ISelectable;
-                if (selected != SelectedObject)
-                {
-                    SelectedObject = selected;
-
-                    // fire an event of selected object being changed
-                    SelectedObjectChanged?.Invoke(new()
-                    {
-
-                    });
-                }
-
-                // attach the widget
-                _translationalWidget.Attach(SelectedObject as ITranslatable, _parent.Camera);
-            }
-            else
-            {
-                if (_selectedObjects.Count == 0 || SelectedObject is not Manipulator)
-                    SelectedObject = null;
-
-                // detach the widget
-                TranslationalWidget.Detach();
+                _translationalWidget.Deactivate();
             }
         }
 
@@ -290,7 +255,7 @@ namespace Graphics
             _selectedObjects.Remove(collisionObject);
         }
 
-        private void ClearSelection()
+        public void ClearSelection()
         {
             foreach (var collisionObject in _selectedObjects)
                 (collisionObject.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected;

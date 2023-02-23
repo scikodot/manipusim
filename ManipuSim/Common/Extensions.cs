@@ -1,4 +1,6 @@
 ﻿using BulletSharp;
+using BulletSharp.SoftBody;
+using Physics;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -196,9 +198,24 @@ public static class VectorConversionExtensions
 
 public static class RigidBodyExtensions
 {
-    public static void DisposeFromWorld(this RigidBody body)
+    public static void SetType(this RigidBody body, RigidBodyType type)
     {
-        Physics.PhysicsHandler.DisposeRigidBody(body);
+        switch (type)
+        {
+            case RigidBodyType.Static:
+                body.CollisionFlags = CollisionFlags.StaticObject;
+                body.ForceActivationState(ActivationState.ActiveTag);
+                break;
+            case RigidBodyType.Kinematic:
+                body.CollisionFlags = CollisionFlags.StaticObject | CollisionFlags.KinematicObject;
+                body.ForceActivationState(ActivationState.DisableDeactivation);
+                break;
+            case RigidBodyType.Dynamic:
+                body.CollisionFlags = CollisionFlags.None;
+                body.ForceActivationState(ActivationState.ActiveTag);
+                body.Activate();
+                break;
+        }
     }
 }
 

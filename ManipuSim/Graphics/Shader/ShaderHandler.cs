@@ -3,27 +3,26 @@ using OpenTK.Graphics.OpenGL4;
 
 namespace Graphics
 {
-    public static class ShaderHandler
+    public class ShaderHandler
     {
-        //private static string VertexShader => InputHandler.ExeDirectory + @"\Graphics\Shader\Shaders\VertexShader.glsl";
-        //private static string ComplexFragmentShader => InputHandler.ExeDirectory + @"\Graphics\Shader\Shaders\FragmentShader.glsl";
-        //private static string GenericFragmentShader => InputHandler.ExeDirectory + @"\Graphics\Shader\Shaders\LineShader.glsl";
+        private readonly MainWindow _parent;
 
-        private static string VertexShader => InputHandler.ExeDirectory + "/Resources/Shaders/VertexShader.glsl";
-        private static string ComplexFragmentShader => InputHandler.ExeDirectory + "/Resources/Shaders/FragmentShader.glsl";
-        private static string GenericFragmentShader => InputHandler.ExeDirectory + "/Resources/Shaders/LineShader.glsl";
+        public Shader GenericShader { get; private set; }
+        public Shader ComplexShader { get; private set; }
 
-        public static Shader GenericShader { get; private set; }
-        public static Shader ComplexShader { get; private set; }
-
-        public static void InitializeShaders()
+        public ShaderHandler(MainWindow parent)
         {
+            _parent = parent;
+
             // create shaders
-            GenericShader = new Shader(VertexShader, GenericFragmentShader);
-            ComplexShader = new Shader(VertexShader, ComplexFragmentShader);
+
+            GenericShader = new Shader(_parent.InputHandler.VertexShader, 
+                                       _parent.InputHandler.GenericFragmentShader);
+            ComplexShader = new Shader(_parent.InputHandler.VertexShader, 
+                                       _parent.InputHandler.ComplexFragmentShader);
         }
 
-        public static void SetupShaders(Camera camera)
+        public void SetupShaders(Camera camera)
         {
             // setup generic shader
             GenericShader.Use();
@@ -54,7 +53,7 @@ namespace Graphics
             }
         }
 
-        public static void Dispose()
+        public void Dispose()
         {
             // delete shader programs
             GL.DeleteProgram(ComplexShader.Handle);

@@ -17,21 +17,20 @@ namespace Physics
         private float _halfLength;
         public ref float HalfLength => ref _halfLength;
 
-        public CylinderCollider(RigidBody body)
+        public CylinderCollider(RigidBody body, RigidBodyType type) : base(body, type)
         {
-            var shape = (CylinderShape)body.CollisionShape;
-
-            if (shape == null)
-                throw new ArgumentException("The body shape does not match the collider!", "body.CollisionShape");
-
-            Model = new Model(new Mesh[]
-            {
-                Primitives.Cylinder(shape.Radius, shape.HalfExtentsWithMargin.Y, shape.HalfExtentsWithMargin.Y, 20, MeshMaterial.Green)
-            });
-            Body = body;
+            if (body.CollisionShape is not CylinderShape shape)
+                throw new ArgumentException($"Expected {nameof(CylinderShape)} collision shape; got {body.CollisionShape.GetType().Name}.");
 
             _radius = shape.Radius;
             _halfLength = shape.HalfExtentsWithMargin.Y;
+
+            // TODO: why does Primitives.Cylinder return a Mesh instead of a Model?
+            Model = new Model(new Mesh[]
+            {
+                Primitives.Cylinder(_radius, _halfLength, _halfLength, 20, MeshMaterial.Green)
+            });
+            Body = body;
         }
 
         public override void Scale()
@@ -41,11 +40,13 @@ namespace Physics
 
         public override bool Contains(Vector3 point)
         {
+            // TODO: implement
             return default;
         }
 
         public override Vector3 Extrude(Vector3 point)
         {
+            // TODO: implement
             return default;
         }
     }

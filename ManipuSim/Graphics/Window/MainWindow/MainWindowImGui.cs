@@ -17,12 +17,17 @@ namespace Graphics
         private const ImGuiTreeNodeFlags _baseTreeNodeFlags = ImGuiTreeNodeFlags.OpenOnArrow;
         private const ImGuiTreeNodeFlags _baseTreeLeafFlags = ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen;
 
-        private static bool _swapPropertiesWindows;
-        private static int _selectedPathIndex = -1;
-        private static Path.Node _selectedPoint;
-        private static int _selectedStatIndex = -1;
+        private bool _swapPropertiesWindows;
+        private int _selectedPathIndex = -1;
+        private Path.Node _selectedPoint;
+        private int _selectedStatIndex = -1;
 
-        public MainWindowImGui(MainWindow mainWindow) : base(mainWindow) { }
+        private readonly MainWindow _parent;
+
+        public MainWindowImGui(MainWindow mainWindow) : base(mainWindow)
+        {
+            _parent = mainWindow;
+        }
 
         public void Render(FrameEventArgs e)
         {
@@ -47,7 +52,7 @@ namespace Graphics
             RenderObstaclesWindow();
             //RenderOptionsWindow();
 
-            if (MainWindow.Mode == InteractionMode.Design)
+            if (_parent.Mode == InteractionMode.Design)
             {
                 RenderPropertiesWindow();
             }
@@ -141,18 +146,18 @@ namespace Graphics
 
                 if (ImGui.Button("Remove"))
                 {
-                    if (InputHandler.SelectedObject is Manipulator manipulator)
+                    if (_parent.InputHandler.SelectedObject is Manipulator manipulator)
                     {
-                        ManipulatorHandler.Remove(manipulator);
+                        _parent.ManipulatorHandler.Remove(manipulator);
                     }
                 }
 
                 if (ImGui.BeginPopup("ManipulatorCreate"))
                 {
-                    int linksNumber = ManipulatorHandler.DefaultLinksNumber;
+                    int linksNumber = _parent.ManipulatorHandler.DefaultLinksNumber;
                     ImGui.InputInt("Links number", ref linksNumber);
 
-                    float linksLength = ManipulatorHandler.DefaultLinksLength;
+                    float linksLength = _parent.ManipulatorHandler.DefaultLinksLength;
                     ImGui.InputFloat("Links length", ref linksLength);
 
                     if (linksNumber < 2 || linksLength <= 0)
@@ -162,12 +167,12 @@ namespace Graphics
                     else
                     {
                         // memoize parameters
-                        ManipulatorHandler.DefaultLinksNumber = linksNumber;
-                        ManipulatorHandler.DefaultLinksLength = linksLength;
+                        _parent.ManipulatorHandler.DefaultLinksNumber = linksNumber;
+                        _parent.ManipulatorHandler.DefaultLinksLength = linksLength;
 
                         if (ImGui.Button("Create"))
                         {
-                            MainWindow.CreateDefaultManipulator();
+                            _parent.CreateDefaultManipulator();
 
                             ImGui.CloseCurrentPopup();
                         }
@@ -181,11 +186,11 @@ namespace Graphics
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
                 if (ImGui.BeginChild("ManipulatorList", ImGui.GetContentRegionAvail(), true))
                 {
-                    if (ManipulatorHandler.Count != 0)
+                    if (_parent.ManipulatorHandler.Count != 0)
                     {
-                        for (int i = 0; i < ManipulatorHandler.Count; i++)
+                        for (int i = 0; i < _parent.ManipulatorHandler.Count; i++)
                         {
-                            var manipulator = ManipulatorHandler.Manipulators[i];
+                            var manipulator = _parent.ManipulatorHandler.Manipulators[i];
                             bool manipulatorTreeNodeOpen = ImGui.TreeNodeEx($"Manipulator {i}", _baseTreeNodeFlags | GetTreeNodeSelectionFlag(manipulator));
                             if (ImGui.IsItemDeactivated() && !ImGui.IsItemToggledOpen())
                             {
@@ -257,10 +262,10 @@ namespace Graphics
 
                 if (ImGui.Button("Remove"))
                 {
-                    if (InputHandler.SelectedObject is Obstacle obstacle)
+                    if (_parent.InputHandler.SelectedObject is Obstacle obstacle)
                     {
                         ObstacleHandler.Remove(obstacle);
-                        InputHandler.clearSelection();
+                        _parent.InputHandler.ClearSelection();
                     }
                 }
 
@@ -374,19 +379,19 @@ namespace Graphics
         #region PROPERTIES_WINDOW
         private void RenderPropertiesWindow()
         {
-            if (InputHandler.SelectedObject is Manipulator manipulator)
+            if (_parent.InputHandler.SelectedObject is Manipulator manipulator)
             {
                 RenderPropertiesWindowTemplate("Manipulator properties", manipulator, ManipulatorProperties);
             }
-            else if (InputHandler.SelectedObject is Joint joint)
+            else if (_parent.InputHandler.SelectedObject is Joint joint)
             {
                 RenderPropertiesWindowTemplate("Joint properties", joint, JointProperties);
             }
-            else if (InputHandler.SelectedObject is Link link)
+            else if (_parent.InputHandler.SelectedObject is Link link)
             {
                 RenderPropertiesWindowTemplate("Link properties", link, LinkProperties);
             }
-            else if (InputHandler.SelectedObject is Obstacle obstacle)
+            else if (_parent.InputHandler.SelectedObject is Obstacle obstacle)
             {
                 RenderPropertiesWindowTemplate("Obstacle properties", obstacle, ObstacleProperties);
             }
@@ -750,7 +755,7 @@ namespace Graphics
                 ImGui.SetWindowPos(new System.Numerics.Vector2((int)(0.25 * Window.Size.X), (int)(0.7 * Window.Size.Y)));
                 ImGui.SetWindowSize(new System.Numerics.Vector2((int)(0.3 * Window.Size.X - 2), (int)(0.3 * Window.Size.Y)));
 
-                if (ManipulatorHandler.Count > 0)
+                if (_parent.ManipulatorHandler.Count > 0)
                 {
                     var quarterWidth = 0.25f * ImGui.GetWindowWidth();
 
@@ -759,7 +764,7 @@ namespace Graphics
                     if (ImGui.BeginChild("ManipulatorStat", new System.Numerics.Vector2(quarterWidth, ImGui.GetContentRegionAvail().Y), true,
                         ImGuiWindowFlags.HorizontalScrollbar))
                     {
-                        foreach (var manipulator in ManipulatorHandler.Manipulators)
+                        foreach (var manipulator in _parent.ManipulatorHandler.Manipulators)
                         {
                             if (ImGui.Selectable($"Manip {++selectedIndex}"))
                             {
@@ -780,7 +785,7 @@ namespace Graphics
 
                         ImGui.Separator();
 
-                        RenderAlgorithmStatistics(ManipulatorHandler.Manipulators[_selectedStatIndex]);
+                        RenderAlgorithmStatistics(_parent.ManipulatorHandler.Manipulators[_selectedStatIndex]);
                     }
 
                     ImGui.EndGroup();
@@ -817,42 +822,43 @@ namespace Graphics
             SwapPropertiesWindows();
         }
 
+        // TODO: perhaps should be moved to InputHandler somehow?
         private void UpdateSelection(object selected)
         {
-            InputHandler.clearSelection();
+            /*_parent.InputHandler.ClearSelection();
 
-            if (selected == InputHandler.SelectedObject)
+            if (selected == _parent.InputHandler.SelectedObject)
             {
-                InputHandler.SelectedObject = null;
+                //_parent.InputHandler.SelectedObject = null;
             }
             else
             {
                 if (selected is Manipulator manipulator)
                 {
-                    InputHandler.AddSelection(manipulator.Joints.Select(joint => joint.Collider.Body));
-                    InputHandler.AddSelection(manipulator.Links.Select(link => link.Collider.Body));
+                    _parent.InputHandler.AddSelection(manipulator.Joints.Select(joint => joint.Collider.Body));
+                    _parent.InputHandler.AddSelection(manipulator.Links.Select(link => link.Collider.Body));
                 }
                 else if (selected is Joint joint)
                 {
-                    InputHandler.AddSelection(joint.Collider.Body);
+                    _parent.InputHandler.AddSelection(joint.Collider.Body);
                 }
                 else if (selected is Link link)
                 {
-                    InputHandler.AddSelection(link.Collider.Body);
+                    _parent.InputHandler.AddSelection(link.Collider.Body);
                 }
                 else if (selected is Obstacle obstacle)
                 {
-                    InputHandler.AddSelection(obstacle.Collider.Body);
+                    _parent.InputHandler.AddSelection(obstacle.Collider.Body);
                 }
 
-                InputHandler.SelectedObject = selected;
+                _parent.InputHandler.SelectedObject = selected;
                 SwapPropertiesWindows();
-            }
+            }*/
         }
 
         private ImGuiTreeNodeFlags GetTreeNodeSelectionFlag(object selected)
         {
-            return selected == InputHandler.SelectedObject ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None;
+            return selected == _parent.InputHandler.SelectedObject ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None;
         }
         #endregion
     }

@@ -52,7 +52,7 @@ namespace Logic
             var link = (Link)MemberwiseClone();
 
             link.Model = Model.DeepCopy();
-            link.Collider = Collider.DeepCopy();
+            link.Collider = Collider.Copy();
 
             return link;
         }

@@ -1,5 +1,7 @@
 ﻿using BulletSharp;
 using BulletSharp.Math;
+using BulletSharp.SoftBody;
+using Graphics;
 using Logic;
 using System;
 using System.Collections.Generic;
@@ -15,26 +17,29 @@ namespace Physics
         Dynamic
     }
 
-    public static class PhysicsHandler
+    public class PhysicsHandler
     {
-        public static string[] RigidBodyTypes { get; } = Enum.GetNames(typeof(RigidBodyType));
+        private readonly MainWindow _parent;
+        private readonly object _worldSyncRoot = new();
 
-        public static DiscreteDynamicsWorld World { get; }
-        private static object _worldSyncRoot = new object();
-
-        private static CollisionDispatcher _dispatcher;
-        private static DbvtBroadphase _broadphase;
-        private static List<CollisionShape> _collisionShapes = new List<CollisionShape>();
-        private static CollisionConfiguration _collisionConf;
+        private readonly CollisionDispatcher _dispatcher;
+        private readonly DbvtBroadphase _broadphase;
+        private readonly List<CollisionShape> _collisionShapes = new();
+        private readonly CollisionConfiguration _collisionConf;
 
         private const int MaxThreadCount = 64;
-        private static ConstraintSolverPoolMultiThreaded _solverPool;
-        private static SequentialImpulseConstraintSolverMultiThreaded _parallelSolver;
-        private static List<TaskScheduler> _schedulers = new List<TaskScheduler>();
-        private static int _currentScheduler = 0;
+        private ConstraintSolverPoolMultiThreaded _solverPool;
+        private SequentialImpulseConstraintSolverMultiThreaded _parallelSolver;
+        private List<TaskScheduler> _schedulers = new();
+        private int _currentScheduler = 0;
 
-        static PhysicsHandler()
+        public string[] RigidBodyTypes { get; } = Enum.GetNames(typeof(RigidBodyType));
+        public DiscreteDynamicsWorld World { get; }
+
+        public PhysicsHandler(MainWindow parent)
         {
+            _parent = parent;
+
             //CreateSchedulers();
             //NextTaskScheduler();
 
@@ -96,7 +101,7 @@ namespace Physics
             //}
         }
 
-        public static void NextTaskScheduler()
+        /*public void NextTaskScheduler()
         {
             _currentScheduler++;
             if (_currentScheduler >= _schedulers.Count)
@@ -108,7 +113,7 @@ namespace Physics
             Threads.TaskScheduler = scheduler;
         }
 
-        private static void CreateSchedulers()
+        private void CreateSchedulers()
         {
             AddScheduler(Threads.GetSequentialTaskScheduler());
             AddScheduler(Threads.GetOpenMPTaskScheduler());
@@ -116,55 +121,55 @@ namespace Physics
             AddScheduler(Threads.GetPplTaskScheduler());
         }
 
-        private static void AddScheduler(TaskScheduler scheduler)
+        private void AddScheduler(TaskScheduler scheduler)
         {
             if (scheduler != null)
             {
                 _schedulers.Add(scheduler);
             }
-        }
+        }*/        
 
-        public static void RayTestRef(ref Vector3 startWorld, ref Vector3 endWorld, ClosestRayResultCallback raycastCallback)
+        public void RayTestRef(ref Vector3 startWorld, ref Vector3 endWorld, ClosestRayResultCallback raycastCallback)
         {
             lock (_worldSyncRoot)
                 World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
         }
 
-        public static bool ContactPairTest(RigidBody body, RigidBody bodyOther, CollisionCallback collisionCallback)
+        public bool ContactPairTest(RigidBody first, RigidBody second, CollisionCallback callback)
         {
             lock (_worldSyncRoot)
-                World.ContactPairTest(body, bodyOther, collisionCallback);
+                World.ContactPairTest(first, second, callback);
 
-            return collisionCallback.ContactDetected;
+            return callback.ContactDetected;
         }
 
-        public static bool ContactTest(RigidBody body, CollisionCallback collisionCallback)
+        public bool ContactTest(RigidBody body, CollisionCallback callback)
         {
             lock (_worldSyncRoot)
-                World.ContactTest(body, collisionCallback);
+                World.ContactTest(body, callback);
 
-            return collisionCallback.ContactDetected;
+            return callback.ContactDetected;
         }
 
-        public static void Update(float elapsedTime)
+        public void Update(float elapsedTime)
         {
             lock (_worldSyncRoot)
                 World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
         }
 
-        public static void AddRigidBody(RigidBody body)
+        public void AddRigidBody(RigidBody body)
         {
             lock (_worldSyncRoot)
                 World.AddRigidBody(body);
         }
 
-        public static void RemoveRigidBody(RigidBody body)
+        public void RemoveRigidBody(RigidBody body)
         {
             lock (_worldSyncRoot)
                 World.RemoveRigidBody(body);
         }
 
-        public static void CleanRigidBody(RigidBody body)
+        /*public void CleanRigidBody(RigidBody body)
         {
             //// remove body from world
             //lock (_worldSyncRoot)
@@ -174,61 +179,47 @@ namespace Physics
             body.ClearForces();
             body.LinearVelocity = Vector3.Zero;
             body.AngularVelocity = Vector3.Zero;
+        }*/
+
+        public void DisposeRigidBody(RigidBody body)
+        {
+            // first, remove the body from the world
+            RemoveRigidBody(body);  // [legacy] TODO: can crash, perhaps due to a lack of thread sync
+
+            // then dipose of the body
+            body?.Dispose();
         }
 
-        public static void DisposeRigidBody(RigidBody body)
+        public Collider CreateCollider(RigidBodyType type, CollisionShape shape, Matrix transform = default, float mass = 0)
         {
-            if (body != null && body.MotionState != null)
+            var localInertia = mass == 0 ? Vector3.Zero : shape.CalculateLocalInertia(mass);
+            var motionState = new DefaultMotionState(transform == default ? Matrix.Identity : transform);
+            using var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia);
+            var body = new RigidBody(rbInfo);
+
+            // kinematic bodies
+
+            // add the body to the world
+            AddRigidBody(body);
+
+            // create a collider of the given shape
+            Collider collider = shape.ShapeType switch
             {
-                body.MotionState.Dispose();
-            }
+                BroadphaseNativeType.BoxShape => new BoxCollider(body, type),
+                BroadphaseNativeType.SphereShape => new SphereCollider(body, type),
+                BroadphaseNativeType.CylinderShape => new CylinderCollider(body, type),
+                BroadphaseNativeType.ConeShape => new ConeCollider(body, type),
+                _ => throw new ArgumentException("Unexpected collision shape.")
+            };
 
-            lock (_worldSyncRoot)
-                World.RemoveRigidBody(body);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
+            // change the collider type to kinematic if in design mode
+            if (_parent.Mode == InteractionMode.Design)
+                collider.Body.CollisionFlags = CollisionFlags.StaticObject | CollisionFlags.KinematicObject;
 
-            body.Dispose();
+            return collider;
         }
 
-        public static Collider CreateStaticCollider(CollisionShape shape, Matrix startTransform = default)
-        {
-            Vector3 localInertia = Vector3.Zero;
-            RigidBody body = CreateBody(0, startTransform, shape, localInertia);
-            return Collider.Create(body);
-        }
-
-        public static Collider CreateKinematicCollider(CollisionShape shape, Matrix startTransform = default)
-        {
-            Vector3 localInertia = Vector3.Zero;
-            RigidBody body = CreateBody(0, startTransform, shape, localInertia);
-
-            body.CollisionFlags = CollisionFlags.KinematicObject;
-            body.ActivationState = ActivationState.DisableDeactivation;
-
-            return Collider.Create(body);
-        }
-
-        public static Collider CreateDynamicCollider(CollisionShape shape, float mass, Matrix startTransform = default)
-        {
-            Vector3 localInertia = shape.CalculateLocalInertia(mass);
-            RigidBody body = CreateBody(mass, startTransform, shape, localInertia);
-            return Collider.Create(body);
-        }
-
-        public static RigidBody CreateBody(float mass, Matrix startTransform, CollisionShape shape, Vector3 localInertia)
-        {
-            var motionState = new DefaultMotionState(startTransform == default ? Matrix.Identity : startTransform);
-            using (var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia))
-            {
-                var body = new RigidBody(rbInfo);
-
-                lock (_worldSyncRoot)
-                    World.AddRigidBody(body);
-
-                return body;
-            }
-        }
-
-        public static void Dispose()  // TODO: can crash; examine!
+        public void Dispose()  // TODO: can crash; examine!
         {
             // remove/dispose of constraints
             for (int i = World.NumConstraints - 1; i >= 0; i--)

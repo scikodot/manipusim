@@ -13,50 +13,58 @@ using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
-    public static class ManipulatorHandler
+    public class ManipulatorHandler
     {
-        private static int _defaultLinksNumber = 3;
-        public static ref int DefaultLinksNumber => ref _defaultLinksNumber;
+        private readonly MainWindow _parent;
 
-        private static float _defaultLinksLength = 1f;
-        public static ref float DefaultLinksLength => ref _defaultLinksLength;
+        // components models
+        private Model _defaultJointModel;
+        private Model _defaultLinkModel;
+        private Model _defaultGripperModel;
 
-        private static Model _defaultJointModel;
-        private static Model _defaultLinkModel;
-        private static Model _defaultGripperModel;
+        private int _defaultLinksNumber = 3;
+        public ref int DefaultLinksNumber => ref _defaultLinksNumber;
 
-        private static JointData _defaultJoint = new JointData
+        private float _defaultLinksLength = 1f;
+        public ref float DefaultLinksLength => ref _defaultLinksLength;        
+
+        private JointData _defaultJoint = new()
         {
             Length = 0.4f,
             q = 0,
             qRanges = new Vector2(-180, 180)
         };
 
-        private static JointData _defaultGripper = new JointData
+        private JointData _defaultGripper = new()
         {
             Length = 0.2f,
             q = 0,
             qRanges = new Vector2(-180, 180)
         };
 
-        private static Vector3 _defaultGoal = new Vector3(0.0f/*-1.0f*/, 0.5f, -2.0f);
+        private Vector3 _defaultGoal = new Vector3(0.0f/*-1.0f*/, 0.5f, -2.0f);
 
-        public static List<Manipulator> Manipulators { get; } = new List<Manipulator>();
+        public List<Manipulator> Manipulators { get; } = new();
 
-        public static int Count => Manipulators.Count;
+        public int Count => Manipulators.Count;
 
-        public static void LoadDefaultModels()
+        public ManipulatorHandler(MainWindow parent)
+        {
+            _parent = parent;
+        }
+
+        public void LoadDefaultModels()
         {
             Dispatcher.ActiveTasks.Add(Task.Run(() =>
             {
                 // load components' models
-                _defaultJointModel = new Model(InputHandler.JointPath);
-                _defaultLinkModel = new Model(InputHandler.LinkPath);
-                _defaultGripperModel = new Model(InputHandler.GripperPath);
+                _defaultJointModel = new Model(_parent.InputHandler.JointPath);
+                _defaultLinkModel = new Model(_parent.InputHandler.LinkPath);
+                _defaultGripperModel = new Model(_parent.InputHandler.GripperPath);
             }));
         }
 
-        public static Manipulator CreateDefaultManipulator()
+        public Manipulator CreateDefaultManipulator()
         {
             // set links' parameters
             var links = new LinkData[_defaultLinksNumber];
@@ -69,7 +77,7 @@ namespace Logic
             for (int i = 0; i < links.Length; i++)
             {
                 links[i].Model = _defaultLinkModel.DeepCopy();
-                links[i].Collider = PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.15f, 0.5f, 0.15f));
+                links[i].Collider = _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new CylinderShape(0.15f, 0.5f, 0.15f));
             }
 
             // set joints' parameters
@@ -81,12 +89,12 @@ namespace Logic
             for (int i = 0; i < joints.Length - 1; i++)
             {
                 joints[i].Model = _defaultJointModel.DeepCopy();
-                joints[i].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.2f));
+                joints[i].Collider = _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new SphereShape(0.2f));
             }
 
             // TODO: gripper collider is not affected by the initial transform; fix!
             joints[_defaultLinksNumber].Model = _defaultGripperModel.DeepCopy();
-            joints[_defaultLinksNumber].Collider = PhysicsHandler.CreateKinematicCollider(new SphereShape(0.1f));
+            joints[_defaultLinksNumber].Collider = _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new SphereShape(0.1f));
 
             // set joints' axes
             var jointAxes = new Vector3[_defaultLinksNumber + 1];
@@ -127,12 +135,12 @@ namespace Logic
             return manipulator;
         }
 
-        public static void Add(Manipulator manipulator)
+        public void Add(Manipulator manipulator)
         {
             Manipulators.Add(manipulator);
         }
 
-        public static void Remove(Manipulator manipulator)
+        public void Remove(Manipulator manipulator)
         {
             int index = Manipulators.IndexOf(manipulator);
             if (Manipulators.Remove(manipulator))
@@ -186,7 +194,7 @@ namespace Logic
         //    Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
         //}
 
-        public static void ToDesign()
+        public void ToDesign()
         {
             // stop threads
             AbortControl();
@@ -195,13 +203,13 @@ namespace Logic
             Reset();
         }
 
-        public static void ToAnimate()
+        public void ToAnimate()
         {
             // start threads
             RunControl();
         }
 
-        public static void UpdateDesign()
+        public void UpdateDesign()
         {
             foreach (var manipulator in Manipulators)
             {
@@ -209,7 +217,7 @@ namespace Logic
             }
         }
 
-        public static void UpdateModel()
+        public void UpdateModel()
         {
             foreach(var manipulator in Manipulators)
             {
@@ -217,7 +225,7 @@ namespace Logic
             }
         }
 
-        public static void RenderUnselected(Shader shader)
+        public void RenderUnselected(Shader shader)
         {
             foreach (var manipulator in Manipulators)
             {
@@ -239,7 +247,7 @@ namespace Logic
             }
         }
 
-        public static void RenderSelected(Shader shader)
+        public void RenderSelected(Shader shader)
         {
             foreach (var manipulator in Manipulators)
             {
@@ -247,7 +255,7 @@ namespace Logic
             }
         }
 
-        public static void Reset()
+        public void Reset()
         {
             foreach (var manipulator in Manipulators)
             {
@@ -267,7 +275,7 @@ namespace Logic
             }
         }
 
-        public static void RunControl()
+        public void RunControl()
         {
             foreach (var manipulator in Manipulators)
             {
@@ -275,7 +283,7 @@ namespace Logic
             }
         }
 
-        public static void AbortControl()
+        public void AbortControl()
         {
             foreach (var manipulator in Manipulators)
             {
@@ -283,7 +291,7 @@ namespace Logic
             }
         }
 
-        public static void Dispose()
+        public void Dispose()
         {
             // dispose of all the manipulators
             foreach (var manipulator in Manipulators)

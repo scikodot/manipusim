@@ -31,7 +31,12 @@ namespace Graphics
 
     public class MainWindow : GameWindow
     {
+        // handlers of input, graphics, entities, etc.
+        public ShaderHandler ShaderHandler { get; private set; }
         public InputHandler InputHandler { get; private set; }
+        public PhysicsHandler PhysicsHandler { get; private set; }
+        public ManipulatorHandler ManipulatorHandler { get; private set; }
+        public ObstacleHandler ObstacleHandler { get; private set; }
 
         public Camera Camera { get; private set; }
         private readonly Vector3 _cameraDefaultPosition = new(-5, 3, 5);
@@ -44,13 +49,13 @@ namespace Graphics
         public static readonly List<Model> _goalModels = new List<Model>();  // TODO: consider distributing to the appropriate classes and checking whether the types (Model, etc.) are available at runtime
         //private static Model _bezierPoints;
 
-        private static float time = 0;
-        private static bool forward;
+        private float time = 0;
+        private bool forward;
 
-        private static Collider[] _dummyColliders;
-        private static Thread[] _dummyTasks;
+        private Collider[] _dummyColliders;
+        private Thread[] _dummyTasks;
 
-        public static bool enter;
+        public bool enter;
 
         //private static GhostObject ghostObject;
         //private static Model ghostObjectModel;
@@ -65,16 +70,19 @@ namespace Graphics
         //Model Crytek;
 
         // ImGUI variables
-        private static MainWindowImGui _imGui;
+        private MainWindowImGui _imGui;
 
-        public static Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
-        public static InteractionMode Mode { get; private set; } = InteractionMode.Design;
+        public Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
+        public InteractionMode Mode { get; private set; } = InteractionMode.Design;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : 
             base(gameWindowSettings, nativeWindowSettings)
         {
-            // attach handlers
+            ShaderHandler = new ShaderHandler(this);
             InputHandler = new InputHandler(this);
+            PhysicsHandler = new PhysicsHandler(this);
+            ManipulatorHandler = new ManipulatorHandler(this);
+            ObstacleHandler = new ObstacleHandler(this);
         }
 
         #region LOAD
@@ -106,8 +114,6 @@ namespace Graphics
 
             ManipulatorHandler.LoadDefaultModels();
 
-            ShaderHandler.InitializeShaders();
-
             // attach ImGUI to this window
             _imGui = new MainWindowImGui(this);  // TODO: make static?
 
@@ -116,8 +122,9 @@ namespace Graphics
 
             // subscribe to the events
             InputHandler.SelectedObjectChanged += _imGui.OnSelectedObjectChanged;
-            InputHandler.CameraPositionChanged += _camera.OnCameraMove;
-            InputHandler.CameraOrientationChanged += _camera.OnCameraRotate;
+            InputHandler.CameraPositionChanged += Camera.OnCameraMove;
+            InputHandler.CameraOrientationChanged += Camera.OnCameraRotate;
+            InputHandler.CameraZoomChanged += Camera.OnCameraZoom;
 
             //ObstacleHandler.Add(new Obstacle(new Model(new Mesh[]
             //    {
@@ -279,7 +286,7 @@ namespace Graphics
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
 
-            ShaderHandler.SetupShaders(_camera);
+            ShaderHandler.SetupShaders(Camera);
 
             RenderCoreOpaque();
 
@@ -366,7 +373,7 @@ namespace Graphics
         private void RenderCoreIndependent()
         {
             GL.Clear(ClearBufferMask.DepthBufferBit);
-            InputHandler.TranslationalWidget.Render(ShaderHandler.ComplexShader, null);
+            InputHandler.Render(ShaderHandler.ComplexShader, null);
         }
         #endregion
 
@@ -569,7 +576,7 @@ namespace Graphics
             base.OnUpdateFrame(e);
         }
 
-        public static void CreateDefaultManipulator()
+        public void CreateDefaultManipulator()
         {
             var manipulator = ManipulatorHandler.CreateDefaultManipulator();
 
@@ -577,7 +584,7 @@ namespace Graphics
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK()))));
         }
 
-        public static void SwitchMode()
+        public void SwitchMode()
         {
             switch (Mode)
             {
@@ -640,11 +647,12 @@ namespace Graphics
             // TODO: threads are not disposed correctly; fix!
 
             // dispose of all the handlers
-            ManipulatorHandler.Dispose();
-            ObstacleHandler.Dispose();
-            PhysicsHandler.Dispose();
-            InputHandler.Dispose();
             ShaderHandler.Dispose();
+            InputHandler.Dispose();
+            PhysicsHandler.Dispose();
+            ManipulatorHandler.Dispose();
+            ObstacleHandler.Dispose();            
+            
             _imGui.Dispose();
 
             // remove goals models

@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Data;
 using BulletSharp;
 
 using Graphics;
@@ -14,17 +14,15 @@ namespace Physics
         private float _radius;
         public ref float Radius => ref _radius;
 
-        public SphereCollider(RigidBody body)
+        public SphereCollider(RigidBody body, RigidBodyType type) : base(body, type)
         {
-            var shape = (SphereShape)body.CollisionShape;
-
-            if (shape == null)
-                throw new ArgumentException("The body shape does not match the collider!", "body.CollisionShape");
-
-            Model = Primitives.Sphere(shape.Radius, 20, 20, MeshMaterial.Green);
-            Body = body;
+            if (body.CollisionShape is not SphereShape shape)
+                throw new ArgumentException($"Expected {nameof(SphereShape)} collision shape; got {body.CollisionShape.GetType().Name}.");
 
             _radius = shape.Radius;
+
+            Model = Primitives.Sphere(_radius, 20, 20, MeshMaterial.Green);
+            Body = body;
         }
 
         public override void Scale()
