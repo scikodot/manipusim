@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Net.Http.Headers;
 using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Graphics
 {
@@ -52,22 +49,19 @@ namespace Graphics
 
         private Matrix4 _viewMatrix;
         public ref Matrix4 ViewMatrix => ref _viewMatrix;
-        public void UpdateViewMatrix() => 
-            _viewMatrix = Matrix4.LookAt(Position, Position + _front, _up);
 
         private Matrix4 _projectionMatrix;
         public ref Matrix4 ProjectionMatrix => ref _projectionMatrix;
-        private void UpdateProjectionMatrix(float aspect) => 
-            _projectionMatrix = Matrix4.CreatePerspectiveFieldOfView(_fov, aspect, 0.01f, 100f);
 
-        public Camera(Vector3 position, Vector2 orientation, float aspectRatio)
+        public Camera(Vector3 position, Vector2 orientation, float aspect)
         {
             Position = position;
             Pitch = orientation.X;
             Yaw = orientation.Y;
 
+            UpdateOrientationVectors();
             UpdateViewMatrix();
-            UpdateProjectionMatrix(aspectRatio);
+            UpdateProjectionMatrix(aspect);
         }
 
         public void OnCameraMove(CameraMoveEventArgs e)
@@ -77,12 +71,26 @@ namespace Graphics
 
             UpdateViewMatrix();
         }
+
         public void OnCameraRotate(CameraRotateEventArgs e)
         {
             // update angles; pitch is decreased because Y axis is pointing down in NDC
             Yaw += e.Delta.X * Sensitivity;
             Pitch -= e.Delta.Y * Sensitivity;
 
+            UpdateOrientationVectors();
+            UpdateViewMatrix();
+        }
+
+        public void OnCameraZoom(CameraZoomEventArgs e)
+        {
+            FOV -= e.Delta;
+
+            UpdateProjectionMatrix(e.AspectRatio);
+        }
+
+        private void UpdateOrientationVectors()
+        {
             // rotate the Z axis vector and normalize
             _front.X = (float)Math.Cos(_pitch) * (float)Math.Cos(_yaw);
             _front.Y = (float)Math.Sin(_pitch);
@@ -92,15 +100,16 @@ namespace Graphics
             // fill up the basis
             _right = Vector3.Normalize(Vector3.Cross(_front, Vector3.UnitY));
             _up = Vector3.Normalize(Vector3.Cross(_right, _front));
-
-            UpdateViewMatrix();
         }
 
-        public void OnCameraZoom(CameraZoomEventArgs e)
+        private void UpdateViewMatrix()
         {
-            FOV -= e.Delta;
+            _viewMatrix = Matrix4.LookAt(Position, Position + _front, _up);
+        }
 
-            UpdateProjectionMatrix(e.AspectRatio);
+        private void UpdateProjectionMatrix(float aspect)
+        {
+            _projectionMatrix = Matrix4.CreatePerspectiveFieldOfView(_fov, aspect, 0.01f, 100f);
         }
     }
 }

@@ -88,7 +88,7 @@ namespace Logic.PathPlanning
                 // get new tree node point
                 Vector3 point = nodeClosest.Point + Vector3.Normalize(sample - nodeClosest.Point) * _step;
 
-                if (!(_collisionCheck && ObstacleHandler.ContainmentTest(point, out _)))
+                if (!(_collisionCheck /*&& ObstacleHandler.ContainmentTest(point, out _)*/))
                 {
                     // solve inverse kinematics for the new node to obtain the agent configuration
                     manipulator.q = nodeClosest.q;

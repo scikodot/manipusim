@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
@@ -19,6 +20,12 @@ using Assimp;
 
 namespace Graphics
 {
+    public enum InteractionMode
+    {
+        Design,
+        Animate
+    }
+
     public readonly struct CameraMoveEventArgs
     {
         public Vector2i Direction { get; init; }
@@ -42,14 +49,23 @@ namespace Graphics
         public ISelectable Object { get; init; }
     }
 
+    public readonly struct InteractionModeSwitchEventArgs
+    {
+        public InteractionMode PreviousMode { get; init; }
+        public InteractionMode Mode { get; init; }
+    }
+
     public class InputHandler
     {
         private readonly MainWindow _parent;
         private readonly TranslationalWidget _translationalWidget;
         private readonly HashSet<CollisionObject> _selectedObjects = new();
 
-        // resources paths
+        // assembly related data
+        public static string ProjectName { get; } = Assembly.GetEntryAssembly().GetName().Name;
         public static string ExeDirectory { get; } = Environment.CurrentDirectory;
+
+        // resources paths
         public string LinkPath { get; } = $"{ExeDirectory}/Resources/Models/manipulator/Link.obj";
         public string JointPath { get; } = $"{ExeDirectory}/Resources/Models/manipulator/Joint.obj";
         public string GripperPath { get; } = $"{ExeDirectory}/Resources/Models/manipulator/Gripper.obj";
@@ -60,9 +76,7 @@ namespace Graphics
         public string GenericFragmentShader { get; } = $"{ExeDirectory}/Resources/Shaders/LineShader.glsl";
         public string ComplexFragmentShader { get; } = $"{ExeDirectory}/Resources/Shaders/FragmentShader.glsl";
 
-        public bool TextIsEdited { get; set; }
-        
-        // currently selected object
+        public InteractionMode InteractionMode { get; private set; } = InteractionMode.Design;
         public object SelectedObject => _selectedObjects.Count == 1 ? _selectedObjects.First().UserObject : null;
 
         // events
@@ -70,6 +84,7 @@ namespace Graphics
         public event Action<CameraMoveEventArgs> CameraPositionChanged;
         public event Action<CameraRotateEventArgs> CameraOrientationChanged;
         public event Action<CameraZoomEventArgs> CameraZoomChanged;
+        public event Action<InteractionModeSwitchEventArgs> InteractionModeSwitched;
 
         public InputHandler(MainWindow parent)
         {
@@ -82,33 +97,10 @@ namespace Graphics
             SelectedObjectChanged += _translationalWidget.OnSelectedObjectChanged;
         }
 
-        public void ToAnimate()
+        public void Update(FrameEventArgs e)
         {
-            // clear Selected flag for selected objects
-            foreach (var select in _selectedObjects)
-            {
-                (select.UserObject as ISelectable).Model.RenderFlags &= ~RenderFlags.Selected;
-            }
-        }
-
-        public void ToDesign()
-        {
-            // restore Selected flag for selected objects
-            foreach (var select in _selectedObjects)
-            {
-                (select.UserObject as ISelectable).Model.RenderFlags |= RenderFlags.Selected;
-            }
-        }
-
-        public void Render(Shader shader, Action action)
-        {
-            _translationalWidget.Render(shader, action);
-        }
-
-        public void Poll(FrameEventArgs e)
-        {
-            if (_parent.Mode == InteractionMode.Design && !ImGui.IsWindowHovered(
-                ImGuiHoveredFlags.AnyWindow | 
+            if (InteractionMode == InteractionMode.Design && !ImGui.IsWindowHovered(
+                ImGuiHoveredFlags.AnyWindow |
                 ImGuiHoveredFlags.AllowWhenBlockedByPopup))  // TODO: perhaps use some other way of obtaining current mode?
             {
                 PollInteraction();
@@ -117,6 +109,30 @@ namespace Graphics
             PollMouse();
 
             PollKeyboard(e);
+        }
+
+        public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
+        {
+            foreach (var selected in _selectedObjects)
+            {
+                var model = (selected.UserObject as ISelectable).Model;
+                switch (e.Mode)
+                {
+                    case InteractionMode.Design:
+                        // restore Selected flag for selected objects
+                        model.RenderFlags |= RenderFlags.Selected;
+                        break;
+                    case InteractionMode.Animate:
+                        // clear Selected flag for selected objects
+                        model.RenderFlags &= ~RenderFlags.Selected;
+                        break;
+                }
+            }
+        }
+
+        public void Render(Shader shader, Action action)
+        {
+            _translationalWidget.Render(shader, action);
         }
 
         private void PollMouse()
@@ -143,15 +159,6 @@ namespace Graphics
             }
         }
 
-        private Vector2 MouseToViewportNDC()
-        {
-            // mouse position relative to the main viewport, normalized to [-1, 1] range
-            var mousePosition = 2 * (_parent.MouseState.Position - _parent.ViewportOrigin) / _parent.ViewportSize - Vector2.One;
-            
-            // Y axis is oriented upwards in NDC
-            return new(mousePosition.X, -mousePosition.Y);
-        }
-
         private void PollInteraction()
         {
             var ray = Ray.Cast(_parent.Camera, MouseToViewportNDC());
@@ -163,47 +170,43 @@ namespace Graphics
 
         private void PollSelection(Ray ray)  // TODO: raycast is performed wrong on shapes' edges; check!
         {
-            var previousObject = SelectedObject;
-            if (_parent.MouseState.IsButtonPressed(MouseButton.Right))
-            {
-                var startWorld = ray.StartWorld.ToBullet3();
-                var endWorld = ray.EndWorld.ToBullet3();
+            if (!_parent.MouseState.IsButtonPressed(MouseButton.Right))
+                return;
 
-                using var raycastCallback = new ClosestRayResultCallback(ref startWorld, ref endWorld);
-                _parent.PhysicsHandler.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
-                if (raycastCallback.HasHit)
+            var selectedPrev = SelectedObject;
+
+            var target = _parent.PhysicsHandler.RayTest(ray);
+            if (target != null)
+            {
+                if (_parent.KeyboardState.IsKeyDown(Keys.LeftControl))
                 {
-                    var target = raycastCallback.CollisionObject;
-                    if (_parent.KeyboardState.IsKeyDown(Keys.LeftControl))
+                    if (_selectedObjects.Contains(target))
                     {
-                        if (_selectedObjects.Contains(target))
-                        {
-                            RemoveSelection(target);
-                        }
-                        else
-                        {
-                            AddSelection(target);
-                        }
+                        RemoveSelection(target);
                     }
                     else
                     {
-                        ClearSelection();
                         AddSelection(target);
                     }
                 }
                 else
                 {
                     ClearSelection();
+                    AddSelection(target);
                 }
             }
+            else
+            {
+                ClearSelection();
+            }
 
-            var currentObject = SelectedObject;
-            if (currentObject != previousObject)
+            var selectedCurr = SelectedObject;
+            if (selectedCurr != selectedPrev)
             {
                 SelectedObjectChanged?.Invoke(new ObjectSelectEventArgs
                 {
-                    PreviousObject = previousObject as ISelectable,
-                    Object = currentObject as ISelectable
+                    PreviousObject = selectedPrev as ISelectable,
+                    Object = selectedCurr as ISelectable
                 });
             }
         }
@@ -267,32 +270,50 @@ namespace Graphics
             if (_parent.KeyboardState.IsKeyDown(Keys.Escape))
                 _parent.Close();
 
-            if (!TextIsEdited)
-            {
-                int dx = 0, dy = 0;
-                if (_parent.KeyboardState.IsKeyDown(Keys.W)) dy += 1;
-                if (_parent.KeyboardState.IsKeyDown(Keys.S)) dy -= 1;
-                if (_parent.KeyboardState.IsKeyDown(Keys.A)) dx -= 1;
-                if (_parent.KeyboardState.IsKeyDown(Keys.D)) dx += 1;
+            // TODO: this block should only be executed if text is not edited;
+            // the corresponding identifier should be placed in GuiHandler class
+            int dx = 0, dy = 0;
+            if (_parent.KeyboardState.IsKeyDown(Keys.W)) dy += 1;
+            if (_parent.KeyboardState.IsKeyDown(Keys.S)) dy -= 1;
+            if (_parent.KeyboardState.IsKeyDown(Keys.A)) dx -= 1;
+            if (_parent.KeyboardState.IsKeyDown(Keys.D)) dx += 1;
 
-                if (dx != 0 || dy != 0)
+            if (dx != 0 || dy != 0)
+            {
+                CameraPositionChanged?.Invoke(new CameraMoveEventArgs
                 {
-                    CameraPositionChanged?.Invoke(new CameraMoveEventArgs
-                    {
-                        Direction = new Vector2i { X = dx, Y = dy },
-                        Time = (float)e.Time
-                    });
-                }
+                    Direction = new Vector2i { X = dx, Y = dy },
+                    Time = (float)e.Time
+                });
+            }
+
+            if (_parent.KeyboardState.IsKeyPressed(Keys.P))
+            {
+                InteractionModeSwitched?.Invoke(new InteractionModeSwitchEventArgs
+                {
+                    PreviousMode = InteractionMode,
+                    Mode = InteractionMode = 1 - InteractionMode
+                });
             }
 
             if (_parent.KeyboardState.IsKeyPressed(Keys.K))
                 CaptureScreenFull();
         }
 
+        private Vector2 MouseToViewportNDC()
+        {
+            // mouse position relative to the main viewport, normalized to [-1, 1] range
+            var mousePosition = 2 * (_parent.MouseState.Position - _parent.ViewportOrigin) / _parent.ViewportSize - Vector2.One;
+
+            // Y axis is oriented upwards in NDC
+            return new(mousePosition.X, -mousePosition.Y);
+        }
+
         public void CaptureScreenFull() => CaptureScreenArea(Vector2i.Zero, _parent.Size);
 
         public void CaptureScreenViewport() => CaptureScreenArea(_parent.ViewportOrigin, _parent.ViewportSize);
 
+        // TODO: review
         private void CaptureScreenArea(Vector2i origin, Vector2i size)
         {
             // taking a picture of a viewport

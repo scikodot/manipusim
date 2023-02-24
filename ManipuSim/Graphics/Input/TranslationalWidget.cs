@@ -156,8 +156,11 @@ namespace Graphics
 
             public bool IsPrioritized(Ray ray, out float priority)
             {
+                // TODO: the best way is to get a line (= ray) to cone (= arrow tip) intersection,
+                // but it requires an additional method LineConeIntersection() to be implemented
+
                 // find the distance between the axis tip (sphere approx) and a ray
-                var origin = Origin + Direction * 1.1f * _scale;
+                var origin = Origin + Direction * _scale;
                 var distance = Geometry.PointLineDistance(
                     origin.ToNumerics3(), 
                     ray.StartWorld.ToNumerics3(), 
@@ -167,6 +170,7 @@ namespace Graphics
                 // but it is only defined if the ray comes close enough to the tip
                 bool prioritized = distance <= 0.1f * _scale;
                 priority = prioritized ? (origin - ray.StartWorld.Xyz).Length : float.MaxValue;
+
                 return prioritized;
             }
 

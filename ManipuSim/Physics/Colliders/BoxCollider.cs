@@ -14,15 +14,10 @@ namespace Physics
         private Vector3 _size;
         public ref Vector3 Size => ref _size;
 
-        public BoxCollider(RigidBody body, RigidBodyType type) : base(body, type)
+        public BoxCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
-            if (body.CollisionShape is not BoxShape shape)
-                throw new ArgumentException($"Expected {nameof(BoxShape)} collision shape; got {body.CollisionShape.GetType().Name}.");
-
+            var shape = body.CollisionShape as BoxShape;
             _size = shape.HalfExtentsWithMargin.ToNumerics3();
-
-            Model = Primitives.Cube(_size.X, _size.Y, _size.Z, MeshMaterial.Green);
-            Body = body;
         }
 
         public override void Scale()

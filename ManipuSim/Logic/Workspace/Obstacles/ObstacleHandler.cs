@@ -111,47 +111,16 @@ namespace Logic
             return false;
         }
 
-        public void ToDesign()
+        public void Update()
         {
-            foreach (var obst in Obstacles)
-            {
-                obst.Convert(RigidBodyType.Kinematic, obst.Mass);
-                obst.Reset();
-            }
+            foreach (var obstacle in Obstacles)
+                obstacle.Update(_parent.InputHandler.InteractionMode);
         }
 
-        public void ToAnimate()
+        public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
         {
-            foreach (var obst in Obstacles)
-            {
-                obst.Convert(obst.Type, obst.Mass);
-            }
-        }
-
-        public void UpdateDesign()
-        {
-            foreach (var obst in Obstacles)
-            {
-                obst.UpdateStateDesign();
-            }
-        }
-
-        public void UpdateAnimate()
-        {
-            foreach (var obst in Obstacles)
-            {
-                obst.UpdateStateAnimate();
-            }
-        }
-
-        public void UpdateModel()
-        {
-            foreach (var obst in Obstacles)
-            {
-                obst.UpdateModel();
-
-                obst.Path.Model.Update();
-            }
+            foreach (var obstacle in Obstacles)
+                obstacle.OnMainWindowModeSwitched(e);
         }
 
         public void RenderGrid(Shader shader)

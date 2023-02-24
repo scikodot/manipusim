@@ -55,10 +55,10 @@ namespace Logic
                             {
                                 for (int j = current.Points.Length - 1; j > 0; j--)
                                 {
-                                    if (ObstacleHandler.ContainmentTest(current.Points[j], out Obstacle obstacle))
+                                    /*if (ObstacleHandler.ContainmentTest(current.Points[j], out Obstacle obstacle))
                                     {
                                         //Deform(manipulatorCopy, obstacle, current, j);
-                                    }
+                                    }*/
                                 }
 
                                 current = current.Child;

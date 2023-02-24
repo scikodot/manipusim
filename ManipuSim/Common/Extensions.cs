@@ -296,7 +296,7 @@ public static class QuaternionExtensions
 
 public static class MatrixExtensions
 {
-    public static OpenTK.Mathematics.Matrix4 TopOpenTK(this BulletSharp.Math.Matrix mat)
+    public static OpenTK.Mathematics.Matrix4 ToOpenTK(this BulletSharp.Math.Matrix mat)
     {
         return new OpenTK.Mathematics.Matrix4(
             mat.M11, mat.M12, mat.M13, mat.M14,

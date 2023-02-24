@@ -17,20 +17,11 @@ namespace Physics
         private float _halfLength;
         public ref float HalfLength => ref _halfLength;
 
-        public CylinderCollider(RigidBody body, RigidBodyType type) : base(body, type)
+        public CylinderCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
-            if (body.CollisionShape is not CylinderShape shape)
-                throw new ArgumentException($"Expected {nameof(CylinderShape)} collision shape; got {body.CollisionShape.GetType().Name}.");
-
+            var shape = body.CollisionShape as CylinderShape;
             _radius = shape.Radius;
             _halfLength = shape.HalfExtentsWithMargin.Y;
-
-            // TODO: why does Primitives.Cylinder return a Mesh instead of a Model?
-            Model = new Model(new Mesh[]
-            {
-                Primitives.Cylinder(_radius, _halfLength, _halfLength, 20, MeshMaterial.Green)
-            });
-            Body = body;
         }
 
         public override void Scale()

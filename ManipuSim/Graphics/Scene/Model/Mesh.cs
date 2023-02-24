@@ -74,17 +74,20 @@ namespace Graphics
             Textures = textures;
             Material = material;
 
-            // setup can be done only on the main thread, holding the GL context
+            // setup can be done only on the main thread, holding the GL context;
+            // hence, send necessary actions to dispatcher
+            Dispatcher.RenderActions.Enqueue(() =>
+            {
+                SetupMesh();
+            });
+
+            /*
             if (Thread.CurrentThread == MainWindow.MainThread)
                 SetupMesh();
             else
             {
-                // send necessary actions to dispatcher
-                Dispatcher.RenderActions.Enqueue(() =>
-                {
-                    SetupMesh();
-                });
-            }
+                
+            }*/
         }
 
         private void SetupMesh()

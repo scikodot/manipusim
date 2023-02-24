@@ -38,7 +38,7 @@ namespace Logic
                 Vector3 point = RandomThreadStatic.NextPointSphere(manipulator.WorkspaceRadius) + manipulator.Base;
 
                 // checking whether the attractor is inside any obstacle or not if requested
-                if (!(discardOutliers && ObstacleHandler.ContainmentTest(point, out _)))  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
+                if (!(discardOutliers /*&& ObstacleHandler.ContainmentTest(point, out _)*/))  // TODO: consider creating a list of bad attractors; they may serve as repulsion points
                 {
                     // adding attractor to the list
                     Vector3 attrPoint = point;

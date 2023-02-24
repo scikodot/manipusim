@@ -59,7 +59,7 @@ namespace Logic
 
         public bool CollisionTest()
         {
-            // perform collision test with each obstacle
+            /*// perform collision test with each obstacle
             bool collision = false;
             foreach (var obstacle in ObstacleHandler.Obstacles)
             {
@@ -70,7 +70,9 @@ namespace Logic
 
             // TODO: perform collision test with each link and gripper
 
-            return collision;
+            return collision;*/
+
+            return default;
         }
 
         public void Render(Shader shader, Action render = null)
@@ -89,7 +91,7 @@ namespace Logic
         public void UpdateModel()  // TODO: unify
         {
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
-            Model.State = state.TopOpenTK();
+            Model.State = state.ToOpenTK();
 
             Collider.UpdateModel();
         }

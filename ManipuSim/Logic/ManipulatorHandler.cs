@@ -194,26 +194,28 @@ namespace Logic
         //    Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
         //}
 
-        public void ToDesign()
+        public void Update()
         {
-            // stop threads
-            AbortControl();
-
-            // reset positions
-            Reset();
-        }
-
-        public void ToAnimate()
-        {
-            // start threads
-            RunControl();
-        }
-
-        public void UpdateDesign()
-        {
-            foreach (var manipulator in Manipulators)
+            if (_parent.InputHandler.InteractionMode == InteractionMode.Design)
             {
-                manipulator.UpdateStateDesign();
+                foreach (var manipulator in Manipulators)
+                {
+                    manipulator.UpdateStateDesign();
+                }
+            }
+        }
+
+        public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
+        {
+            switch (e.Mode)
+            {
+                case InteractionMode.Design:
+                    AbortControl();  // stop threads
+                    Reset();  // reset positions
+                    break;
+                case InteractionMode.Animate:
+                    RunControl();  // start threads
+                    break;
             }
         }
 
@@ -275,7 +277,7 @@ namespace Logic
             }
         }
 
-        public void RunControl()
+        private void RunControl()
         {
             foreach (var manipulator in Manipulators)
             {
@@ -283,7 +285,7 @@ namespace Logic
             }
         }
 
-        public void AbortControl()
+        private void AbortControl()
         {
             foreach (var manipulator in Manipulators)
             {
@@ -298,6 +300,7 @@ namespace Logic
             {
                 manipulator.Dispose();
 
+                // TODO: this should be included in a Manipulator disposal process
                 if (manipulator.Controller.PathPlanner is RRT rrt)
                 {
                     rrt.Tree.Dispose();

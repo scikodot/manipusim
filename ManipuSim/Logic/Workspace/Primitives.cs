@@ -4,11 +4,48 @@ using System.Collections.Generic;
 using OpenTK.Mathematics;
 
 using Graphics;
+using BulletSharp;
 
 namespace Logic
 {
     public static class Primitives  // TODO: refactor!!!
     {
+        public static Model FromCollisionShape(CollisionShape shape, MeshMaterial material)
+        {
+            if (shape is BoxShape box)
+            {
+                var size = box.HalfExtentsWithMargin;
+                return Cube(size.X, size.Y, size.Z, material);
+            }
+            else if (shape is SphereShape sphere)
+            {
+                var radius = sphere.Radius;
+                return Sphere(radius, 20, 20, material);
+            }
+            // TODO: why does Primitives.Cylinder return a Mesh instead of a Model?
+            else if (shape is CylinderShape cylinder)
+            {
+                var radius = cylinder.Radius;
+                var halfLength = cylinder.HalfExtentsWithMargin.Y;
+                return new Model(new Mesh[]
+                {
+                    Cylinder(radius, halfLength, halfLength, 20, material)
+                });
+            }
+            // TODO: why does Primitives.Cone return a Mesh instead of a Model?
+            else if (shape is ConeShape cone)
+            {
+                var radius = cone.Radius;
+                var height = cone.Height;
+                return new Model(new Mesh[]
+                {
+                    Cone(radius, height, 20, material)
+                });
+            }
+            else
+                throw new ArgumentException("Unknown collision shape.");
+        }
+
         public static Model Grid(int lines, float stride, MeshMaterial material, OpenTK.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float lineLengthHalf = (lines - 1) * stride / 2;

@@ -16,20 +16,11 @@ namespace Physics
         private float _height;
         public ref float Height => ref _height;
 
-        public ConeCollider(RigidBody body, RigidBodyType type) : base(body, type)
+        public ConeCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
-            if (body.CollisionShape is not ConeShape shape)
-                throw new ArgumentException($"Expected {nameof(ConeShape)} collision shape; got {body.CollisionShape.GetType().Name}.");
-
+            var shape = body.CollisionShape as ConeShape;
             _radius = shape.Radius;
             _height = shape.Height;
-
-            // TODO: why does Primitives.Cylinder return a Mesh instead of a Model?
-            Model = new Model(new Mesh[]
-            {
-                Primitives.Cone(_radius, _height, 20, MeshMaterial.Green)
-            });
-            Body = body;
         }
 
         public override void Scale()

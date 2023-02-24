@@ -14,15 +14,10 @@ namespace Physics
         private float _radius;
         public ref float Radius => ref _radius;
 
-        public SphereCollider(RigidBody body, RigidBodyType type) : base(body, type)
+        public SphereCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
-            if (body.CollisionShape is not SphereShape shape)
-                throw new ArgumentException($"Expected {nameof(SphereShape)} collision shape; got {body.CollisionShape.GetType().Name}.");
-
+            var shape = body.CollisionShape as SphereShape;
             _radius = shape.Radius;
-
-            Model = Primitives.Sphere(_radius, 20, 20, MeshMaterial.Green);
-            Body = body;
         }
 
         public override void Scale()

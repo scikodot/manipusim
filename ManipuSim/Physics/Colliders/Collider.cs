@@ -6,12 +6,14 @@ using BulletSharp;
 using Graphics;
 using BulletSharp.Math;
 using Vector3 = System.Numerics.Vector3;
+using Logic;
 
 namespace Physics
 {
     public abstract class Collider : IDisposable
     {
         private readonly PhysicsHandler _physicsHandler;
+        private readonly MeshMaterial _defaultMaterial = MeshMaterial.Green;
         
         public RigidBody Body { get; protected set; }
         public RigidBodyType Type { get; protected set; }
@@ -20,14 +22,28 @@ namespace Physics
 
         public BroadphaseNativeType Shape => Body.CollisionShape.ShapeType;
         
-
-        public Collider(RigidBody body, RigidBodyType type)
+        protected Collider(PhysicsHandler handler, RigidBody body, RigidBodyType type)
         {
+            _physicsHandler = handler;
+
             Body = body;
             Type = type;
+            Model = Primitives.FromCollisionShape(body.CollisionShape, _defaultMaterial);
             CollisionCallback = new CollisionCallback(body, null);
 
             UpdateModel();
+        }
+
+        public static Collider Create(PhysicsHandler handler, RigidBody body, RigidBodyType type)
+        {
+            return body.CollisionShape.ShapeType switch
+            {
+                BroadphaseNativeType.BoxShape => new BoxCollider(handler, body, type),
+                BroadphaseNativeType.SphereShape => new SphereCollider(handler, body, type),
+                BroadphaseNativeType.CylinderShape => new CylinderCollider(handler, body, type),
+                BroadphaseNativeType.ConeShape => new ConeCollider(handler, body, type),
+                _ => throw new ArgumentException("Unknown collision shape.")
+            };
         }
 
         public abstract bool Contains(Vector3 point);
@@ -47,7 +63,7 @@ namespace Physics
         public void UpdateModel()
         {
             var state = Matrix.Scaling(Body.CollisionShape.LocalScaling) * Body.MotionState.WorldTransform;
-            Model.State = state.TopOpenTK();
+            Model.State = state.ToOpenTK();
         }
 
         public abstract void Scale();

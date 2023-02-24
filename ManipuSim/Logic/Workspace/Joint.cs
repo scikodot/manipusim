@@ -132,7 +132,7 @@ namespace Logic
         public void UpdateModel()  // TODO: unify
         {
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
-            Model.State = state.TopOpenTK();
+            Model.State = state.ToOpenTK();
 
             Collider.UpdateModel();
         }

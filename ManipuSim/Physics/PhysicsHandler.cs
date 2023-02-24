@@ -3,6 +3,7 @@ using BulletSharp.Math;
 using BulletSharp.SoftBody;
 using Graphics;
 using Logic;
+using OpenTK.Windowing.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -129,10 +130,16 @@ namespace Physics
             }
         }*/        
 
-        public void RayTestRef(ref Vector3 startWorld, ref Vector3 endWorld, ClosestRayResultCallback raycastCallback)
+        public CollisionObject RayTest(Ray ray)
         {
+            var start = ray.StartWorld.ToBullet3();
+            var end = ray.EndWorld.ToBullet3();
+
+            using var callback = new ClosestRayResultCallback(ref start, ref end);
             lock (_worldSyncRoot)
-                World.RayTestRef(ref startWorld, ref endWorld, raycastCallback);
+                World.RayTestRef(ref start, ref end, callback);
+
+            return callback.CollisionObject;
         }
 
         public bool ContactPairTest(RigidBody first, RigidBody second, CollisionCallback callback)
@@ -151,10 +158,10 @@ namespace Physics
             return callback.ContactDetected;
         }
 
-        public void Update(float elapsedTime)
+        public void Update(FrameEventArgs e)
         {
             lock (_worldSyncRoot)
-                World.StepSimulation(elapsedTime);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
+                World.StepSimulation((float)e.Time);  // TODO: can crash, perhaps due to thread sync absent; fix!!!
         }
 
         public void AddRigidBody(RigidBody body)
@@ -197,23 +204,14 @@ namespace Physics
             using var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia);
             var body = new RigidBody(rbInfo);
 
-            // kinematic bodies
-
             // add the body to the world
             AddRigidBody(body);
 
             // create a collider of the given shape
-            Collider collider = shape.ShapeType switch
-            {
-                BroadphaseNativeType.BoxShape => new BoxCollider(body, type),
-                BroadphaseNativeType.SphereShape => new SphereCollider(body, type),
-                BroadphaseNativeType.CylinderShape => new CylinderCollider(body, type),
-                BroadphaseNativeType.ConeShape => new ConeCollider(body, type),
-                _ => throw new ArgumentException("Unexpected collision shape.")
-            };
+            var collider = Collider.Create(this, body, type);
 
             // change the collider type to kinematic if in design mode
-            if (_parent.Mode == InteractionMode.Design)
+            if (_parent.InputHandler.InteractionMode == InteractionMode.Design)
                 collider.Body.CollisionFlags = CollisionFlags.StaticObject | CollisionFlags.KinematicObject;
 
             return collider;

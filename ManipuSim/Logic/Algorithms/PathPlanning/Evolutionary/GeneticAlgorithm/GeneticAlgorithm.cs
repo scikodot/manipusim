@@ -260,10 +260,10 @@ namespace Logic.PathPlanning
                 {
                     if (_collisionCheck)
                     {
-                        if (ObstacleHandler.ContainmentTest(currPos, out _))
+                        /*if (ObstacleHandler.ContainmentTest(currPos, out _))
                         {
                             pointWeight += 1;
-                        }
+                        }*/
 
                         if (_manipulator.CollisionTest().Contains(true))
                         {

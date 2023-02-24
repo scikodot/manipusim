@@ -77,13 +77,16 @@ namespace Logic
 
         public void Translate(Vector3 translation)
         {
-            if (MainWindow.Mode == InteractionMode.Design)
+            /*if (MainWindow.Mode == InteractionMode.Design)
                 Position = _initialPosition += translation;
             else if (MainWindow.Mode == InteractionMode.Animate)
                 Position += translation;
 
             if (MainWindow.Mode == InteractionMode.Design && translation != Vector3.Zero)
-                Path.Translate(translation);
+                Path.Translate(translation);*/
+
+            Collider.Body.Translate(translation.ToBullet3());
+            Path.Translate(translation);
         }
 
         public void Render(Shader shader, Action render = null)
@@ -106,17 +109,45 @@ namespace Logic
 
             Position = _initialPosition;
 
-            UpdateStateDesign();
-        }
-
-        public void UpdateStateDesign()
-        {
             Collider.Scale();
-
             UpdateState();
         }
 
-        public void UpdateState()
+        public void Update(InteractionMode mode)
+        {
+            switch (mode)
+            {
+                case InteractionMode.Design:
+                    Collider.Scale();
+                    UpdateState();
+                    break;
+                case InteractionMode.Animate:
+                    if (Type == RigidBodyType.Kinematic)
+                    {
+                        FollowPath();
+                        UpdateState();
+                    }
+                    break;
+            }
+
+            UpdateModel();
+        }
+
+        public void OnMainWindowModeSwitched(InteractionModeSwitchEventArgs e)
+        {
+            switch (e.Mode)
+            {
+                case InteractionMode.Design:
+                    Convert(RigidBodyType.Kinematic, Mass);
+                    Reset();
+                    break;
+                case InteractionMode.Animate:
+                    Convert(Type, Mass);
+                    break;
+            }
+        }
+
+        private void UpdateState()
         {
             // TODO: optimize; consider using ImpDualQuats
             // TODO: create separate method RotateWorld() that will create rotation matrix about world XYZ axes
@@ -128,17 +159,15 @@ namespace Logic
                 Matrix.Translation(Position.ToBullet3());
         }
 
-        public void UpdateStateAnimate()
+        private void UpdateModel()
         {
-            if (Type == RigidBodyType.Kinematic)
-            {
-                FollowPath();
-
-                UpdateState();
-            }
+            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
+            Model.State = state.ToOpenTK();
+            Collider.UpdateModel();
+            Path.Model.Update();
         }
 
-        public void FollowPath()
+        private void FollowPath()
         {
             if (Path != null)
             {
@@ -160,14 +189,6 @@ namespace Logic
                     }
                 }
             }
-        }
-
-        public void UpdateModel()  // TODO: unify
-        {
-            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
-            Model.State = state.TopOpenTK();
-
-            Collider.UpdateModel();
         }
 
         public void Dispose()

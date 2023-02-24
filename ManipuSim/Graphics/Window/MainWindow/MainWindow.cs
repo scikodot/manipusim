@@ -21,19 +21,11 @@ using System.Reflection;
 
 namespace Graphics
 {
-    public enum InteractionMode
-    {
-        Design,
-        Animate,
-        ToDesign,
-        ToAnimate
-    }
-
     public class MainWindow : GameWindow
     {
         // handlers of input, graphics, entities, etc.
-        public ShaderHandler ShaderHandler { get; private set; }
         public InputHandler InputHandler { get; private set; }
+        public ShaderHandler ShaderHandler { get; private set; }
         public PhysicsHandler PhysicsHandler { get; private set; }
         public ManipulatorHandler ManipulatorHandler { get; private set; }
         public ObstacleHandler ObstacleHandler { get; private set; }
@@ -73,13 +65,13 @@ namespace Graphics
         private MainWindowImGui _imGui;
 
         public Thread MainThread { get; } = Thread.CurrentThread;  // TODO: move to Dispatcher?
-        public InteractionMode Mode { get; private set; } = InteractionMode.Design;
 
         public MainWindow(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : 
             base(gameWindowSettings, nativeWindowSettings)
         {
-            ShaderHandler = new ShaderHandler(this);
+            // InputHandler is initialized first because it holds all paths
             InputHandler = new InputHandler(this);
+            ShaderHandler = new ShaderHandler(this);
             PhysicsHandler = new PhysicsHandler(this);
             ManipulatorHandler = new ManipulatorHandler(this);
             ObstacleHandler = new ObstacleHandler(this);
@@ -248,12 +240,6 @@ namespace Graphics
             if (IsExiting)
                 return;
 
-            // render main part, i.e. workspace
-            RenderCore(e);
-
-            // render GUI
-            _imGui.Render(e);
-
             // TODO: refactor
             // execute all actions, enqueued while loading a model
             int count = Dispatcher.RenderActions.Count;
@@ -268,6 +254,12 @@ namespace Graphics
 
             if (Dispatcher.RenderActions.Count == 0)
                 Dispatcher.ActionsDone.Set();
+
+            // render main part, i.e. workspace
+            RenderCore(e);
+
+            // render GUI
+            _imGui.Render(e);
 
             SwapBuffers();
         }
@@ -383,14 +375,15 @@ namespace Graphics
             if (IsExiting)
                 return;
 
-            // poll for input events
-            InputHandler.Poll(e);
+            // update title
+            Title = $"{InputHandler.ProjectName} | Framerate: {ImGui.GetIO().Framerate: 0.0} FPS";
 
-            // update framerate in title
-            Title = $"ManipuSim | Framerate: {ImGui.GetIO().Framerate : 0.0}";
+            // update handlers states
+            InputHandler.Update(e);
+            PhysicsHandler.Update(e);
+            ManipulatorHandler.Update();
+            ObstacleHandler.Update();
 
-            // update physics controller
-            PhysicsHandler.Update((float)e.Time);
             //Console.SetCursorPosition(0, 5);
             //Console.Write("                                                        ");
             //Console.SetCursorPosition(0, 5);
@@ -481,13 +474,11 @@ namespace Graphics
                 return;
             }
 
-            switch (Mode)
+            switch (InputHandler.InteractionMode)
             {
                 case InteractionMode.Design:
 
-                    ManipulatorHandler.UpdateDesign();
-                    ObstacleHandler.UpdateDesign();
-
+                    // TODO: goals logic should be moved to ManipulatorHandler
                     // update goals positions
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
@@ -502,8 +493,6 @@ namespace Graphics
 
                     break;
                 case InteractionMode.Animate:
-
-                    ObstacleHandler.UpdateAnimate();
 
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
@@ -549,29 +538,7 @@ namespace Graphics
                     }
 
                     break;
-                case InteractionMode.ToDesign:
-
-                    ManipulatorHandler.ToDesign();
-                    ObstacleHandler.ToDesign();
-                    InputHandler.ToDesign();
-
-                    Mode = InteractionMode.Design;
-
-                    break;
-                case InteractionMode.ToAnimate:
-
-                    ManipulatorHandler.ToAnimate();
-                    ObstacleHandler.ToAnimate();
-                    InputHandler.ToAnimate();
-
-                    Mode = InteractionMode.Animate;
-
-                    break;
             }
-
-            // update all models of all the objects
-            ManipulatorHandler.UpdateModel();
-            ObstacleHandler.UpdateModel();
 
             base.OnUpdateFrame(e);
         }
@@ -582,20 +549,6 @@ namespace Graphics
 
             // create new model for the manipulator goal
             _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK()))));
-        }
-
-        public void SwitchMode()
-        {
-            switch (Mode)
-            {
-                case InteractionMode.Design:
-                    Mode = InteractionMode.ToAnimate;
-                    break;
-                case InteractionMode.Animate:
-                    Mode = InteractionMode.ToDesign;
-                    break;
-            }
-                
         }
         #endregion
 
@@ -621,11 +574,8 @@ namespace Graphics
 
         protected override void OnKeyDown(KeyboardKeyEventArgs e)
         {
-            if (e.Key == Keys.P)
-                SwitchMode();
-
-            if (e.Key == Keys.H)
-                enter = true;
+            //if (e.Key == Keys.H)
+            //    enter = true;
 
             base.OnKeyDown(e);
         }
@@ -647,8 +597,8 @@ namespace Graphics
             // TODO: threads are not disposed correctly; fix!
 
             // dispose of all the handlers
-            ShaderHandler.Dispose();
             InputHandler.Dispose();
+            ShaderHandler.Dispose();
             PhysicsHandler.Dispose();
             ManipulatorHandler.Dispose();
             ObstacleHandler.Dispose();            

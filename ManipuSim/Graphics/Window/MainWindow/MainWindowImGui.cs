@@ -52,7 +52,7 @@ namespace Graphics
             RenderObstaclesWindow();
             //RenderOptionsWindow();
 
-            if (_parent.Mode == InteractionMode.Design)
+            if (_parent.InputHandler.InteractionMode == InteractionMode.Design)
             {
                 RenderPropertiesWindow();
             }
@@ -264,19 +264,19 @@ namespace Graphics
                 {
                     if (_parent.InputHandler.SelectedObject is Obstacle obstacle)
                     {
-                        ObstacleHandler.Remove(obstacle);
+                        _parent.ObstacleHandler.Remove(obstacle);
                         _parent.InputHandler.ClearSelection();
                     }
                 }
 
                 if (ImGui.BeginPopup("ObstacleCreate"))
                 {
-                    foreach (var shape in ObstacleHandler.Shapes)
+                    foreach (var shape in _parent.ObstacleHandler.Shapes)
                     {
                         if (ImGui.Selectable(shape))
                         {
                             var shapeValue = (ObstacleShape)Enum.Parse(typeof(ObstacleShape), shape);
-                            ObstacleHandler.AddDefault(shapeValue);
+                            _parent.ObstacleHandler.AddDefault(shapeValue);
 
                             ImGui.CloseCurrentPopup();
                         }
@@ -290,11 +290,11 @@ namespace Graphics
                 ImGui.PushStyleVar(ImGuiStyleVar.ChildRounding, 5);
                 if (ImGui.BeginChild("ObstacleList", ImGui.GetContentRegionAvail(), true))
                 {
-                    if (ObstacleHandler.Count != 0)
+                    if (_parent.ObstacleHandler.Obstacles.Count > 0)
                     {
-                        for (int i = 0; i < ObstacleHandler.Count; i++)
+                        for (int i = 0; i < _parent.ObstacleHandler.Obstacles.Count; i++)
                         {
-                            var obstacle = ObstacleHandler.Obstacles[i];
+                            var obstacle = _parent.ObstacleHandler.Obstacles[i];
                             ImGui.TreeNodeEx($"Obstacle {i}", _baseTreeLeafFlags | GetTreeNodeSelectionFlag(obstacle));
                             if (ImGui.IsItemDeactivated())
                             {
@@ -650,9 +650,9 @@ namespace Graphics
                 {
                     int type = (int)obstacle.Type;
                     ImGui.Combo("Type", ref type,
-                        PhysicsHandler.RigidBodyTypes,
-                        PhysicsHandler.RigidBodyTypes.Length);
-                    obstacle.Type = (RigidBodyType)type;
+                        _parent.PhysicsHandler.RigidBodyTypes,
+                        _parent.PhysicsHandler.RigidBodyTypes.Length);
+                    //obstacle.Type = (RigidBodyType)type;
 
                     if (obstacle.Type == RigidBodyType.Dynamic)
                     {
