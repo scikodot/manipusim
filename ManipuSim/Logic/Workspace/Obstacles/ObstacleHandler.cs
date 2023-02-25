@@ -137,8 +137,8 @@ namespace Logic
         {
             foreach (var obstacle in Obstacles)
             {
-                if (obstacle.Type == RigidBodyType.Kinematic)
-                    obstacle.Path.Model.Render(shader);
+                //if (obstacle.Type == RigidBodyType.Kinematic)
+                //    obstacle.Path.Model.Render(shader);
 
                 if (!obstacle.Model.RenderFlags.HasFlag(RenderFlags.Selected))
                     obstacle.Render(shader);

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Numerics;
 
 using OpenTK.Graphics.OpenGL4;
+using BulletSharp.Math;
 
 using Graphics;
 using System.Linq;
@@ -264,7 +264,7 @@ namespace Logic
             for (var i = precision; i < 1.0f + precision; i += precision)
             {
                 var n = CalculatePoint(points, i, parallel);
-                length += (n - old).Length();
+                length += (n - old).Length;
                 old = n;
             }
 

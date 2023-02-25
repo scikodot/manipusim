@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Numerics;
 
 using OpenTK.Graphics.OpenGL4;
+using BulletSharp.Math;
 
 using Graphics;
 
@@ -343,7 +343,7 @@ namespace Logic.PathPlanning
             int lastIndex = current.Points.Length - 1;
             while (current.Child != null)
             {
-                length += current.Points[lastIndex].DistanceTo(current.Child.Points[lastIndex]);
+                length += Vector3.Distance(current.Points[lastIndex], current.Child.Points[lastIndex]);
                 current = current.Child;
             }
 

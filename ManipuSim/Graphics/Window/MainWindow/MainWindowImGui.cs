@@ -9,6 +9,7 @@ using Logic;
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
 using Physics;
+using System.Numerics;
 
 namespace Graphics
 {
@@ -66,9 +67,29 @@ namespace Graphics
             Util.CheckGLError("End of frame");
         }
 
-        private void InputElement()
+        // ImGui expects input variables passed by ref, which is not possible without breaking the property model;
+        // thus, each time make a local copy and pass it instead, then return its new value
+        private static bool CustomCheckbox(string label, bool value)
         {
+            ImGui.Checkbox(label, ref value);
+            return value;
+        }
 
+        private static float CustomInputFloat(string label, float value, float step = 0, float stepFast = 0, 
+            string format = null, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
+        {
+            ImGui.InputFloat(label, ref value, step, stepFast, format, flags);
+            return value;
+        }
+
+        // as for vectors, ImGui expects System.Numerics types, but the app uses other variations;
+        // thus, first convert to the appropriate type
+        private static BulletSharp.Math.Vector3 CustomInputFloat3(string label, BulletSharp.Math.Vector3 value, 
+            string format = null, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
+        {
+            var numerics = value.ToNumerics3();
+            ImGui.InputFloat3(label, ref numerics, format, flags);
+            return numerics.ToBullet3();
         }
 
         #region MAIN_MENU_BAR
@@ -428,7 +449,7 @@ namespace Graphics
         private void ManipulatorProperties(Manipulator manipulator)
         {
             ImGui.Checkbox($"Show collider", ref manipulator.ShowCollider);
-            ImGui.InputFloat3("Goal", ref manipulator.Goal);
+            manipulator.Goal = CustomInputFloat3("Goal", manipulator.Goal);
 
             ImGui.Separator();
 
@@ -559,10 +580,9 @@ namespace Graphics
         {
             //ImGui.Checkbox("Activate", ref joint.Active);  // TODO: for debug use only
 
-            ImGui.Checkbox("Show collider", ref joint.ShowCollider);
-            var axis = joint.InitialAxis.ToNumerics3();
-            ImGui.InputFloat3("Axis", ref axis);
-            ImGui.InputFloat3("Position", ref joint.InitialPosition);
+            joint.ShowCollider = CustomCheckbox("Show collider", joint.ShowCollider);
+            joint.InitialAxis = CustomInputFloat3("Axis", joint.InitialAxis);
+            joint.InitialPosition = CustomInputFloat3("Position", joint.InitialPosition);
 
             if (joint.Collider is SphereCollider sphere)
             {
@@ -615,9 +635,9 @@ namespace Graphics
 
         private void ObstacleProperties(Obstacle obstacle)
         {
-            ImGui.Checkbox("Show collider", ref obstacle.ShowCollider);
-            ImGui.InputFloat3("Orientation", ref obstacle.Orientation);
-            ImGui.InputFloat3("Position", ref obstacle.InitialPosition);
+            obstacle.ShowCollider = CustomCheckbox("Show collider", obstacle.ShowCollider);
+            obstacle.Orientation = CustomInputFloat3("Orientation", obstacle.Orientation);
+            obstacle.Position = CustomInputFloat3("Position", obstacle.Position);
 
             ImGui.Separator();
 
@@ -631,7 +651,7 @@ namespace Graphics
 
                     if (obstacle.Collider is BoxCollider box)  // TODO: handle zero cases; when the dimensions are zeroed, objects disappear!!!
                     {
-                        ImGui.InputFloat3("Half extents", ref box.Size);
+                        box.Size = CustomInputFloat3("Half extents", box.Size);
                     }
                     else if (obstacle.Collider is SphereCollider sphere)
                     {
@@ -657,16 +677,16 @@ namespace Graphics
                     ImGui.Combo("Type", ref type,
                         _parent.PhysicsHandler.RigidBodyTypes,
                         _parent.PhysicsHandler.RigidBodyTypes.Length);
-                    //obstacle.Type = (RigidBodyType)type;
+                    obstacle.Type = (RigidBodyType)type;
 
                     if (obstacle.Type == RigidBodyType.Dynamic)
                     {
-                        ImGui.InputFloat("Mass", ref obstacle.Mass);
+                        obstacle.Mass = CustomInputFloat("Mass", obstacle.Mass);
                     }
                     else
                     {
                         ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.5f);
-                        ImGui.InputFloat("Mass", ref obstacle.Mass, 0, 0, null, ImGuiInputTextFlags.ReadOnly);
+                        obstacle.Mass = CustomInputFloat("Mass", obstacle.Mass, flags: ImGuiInputTextFlags.ReadOnly);
                         ImGui.PopStyleVar();
                     }
 
@@ -710,9 +730,9 @@ namespace Graphics
 
                         if (ImGui.Button("Add point"))
                         {
-                            obstacle.Path.AddLast(new System.Numerics.Vector3[] 
+                            obstacle.Path.AddLast(new BulletSharp.Math.Vector3[] 
                             { 
-                                obstacle.Path.Last.Points[0] + System.Numerics.Vector3.UnitX 
+                                obstacle.Path.Last.Points[0] + BulletSharp.Math.Vector3.UnitX 
                             }, null);
                         }
 
@@ -723,8 +743,8 @@ namespace Graphics
                             ImGui.Text($"Point {_selectedPathIndex}");
 
                             var point = _selectedPoint.Points[0];
-                            ImGui.InputFloat3("", ref point);
-                            obstacle.Path.ChangeNode(_selectedPoint, new System.Numerics.Vector3[] { point }, null);
+                            point = CustomInputFloat3("", point);
+                            obstacle.Path.ChangeNode(_selectedPoint, new BulletSharp.Math.Vector3[] { point }, null);
                         }
 
                         ImGui.EndGroup();

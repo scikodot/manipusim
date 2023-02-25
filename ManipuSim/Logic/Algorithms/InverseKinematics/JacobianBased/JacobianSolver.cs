@@ -1,6 +1,6 @@
-﻿using System.Numerics;
+﻿using MathNet.Numerics.LinearAlgebra;
 
-using MathNet.Numerics.LinearAlgebra;
+using BulletSharp.Math;
 
 namespace Logic.InverseKinematics
 {

@@ -1,11 +1,11 @@
-﻿using BulletSharp;
-using BulletSharp.SoftBody;
-using Physics;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
-using System.Numerics;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+
+using BulletSharp;
+
+using Physics;
 
 public static class ArrayExtensions
 {
@@ -120,25 +120,7 @@ public static class ConcurrentQueueExtensions
     }
 }
 
-public static class Vector3Extensions
-{
-    public static float DistanceTo(this Vector3 v1, Vector3 v2)
-    {
-        return (v2 - v1).Length();
-    }
-
-    public static OpenTK.Mathematics.Vector3 ToOpenTK(this Vector3 vec)
-    {
-        return new OpenTK.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
-    }
-
-    public static Vector3 Sum(this IEnumerable<Vector3> source)
-    {
-        return source.Aggregate((x, y) => x + y);
-    }
-}
-
-public static class VectorConversionExtensions
+public static class OpenTKExtensions
 {
     public static BulletSharp.Math.Vector4 ToBullet4(this OpenTK.Mathematics.Vector4 vec)
     {
@@ -155,29 +137,90 @@ public static class VectorConversionExtensions
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static BulletSharp.Math.Vector3 ToBullet3(this System.Numerics.Vector3 vec)
-    {
-        return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
-    }
-
     public static System.Numerics.Vector4 ToNumerics4(this OpenTK.Mathematics.Vector4 vec)
     {
-        return new Vector4(vec.X, vec.Y, vec.Z, vec.W);
+        return new System.Numerics.Vector4(vec.X, vec.Y, vec.Z, vec.W);
     }
 
     public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Mathematics.Vector4 vec)
     {
-        return new Vector3(vec.X, vec.Y, vec.Z);
+        return new System.Numerics.Vector3(vec.X, vec.Y, vec.Z);
     }
 
     public static System.Numerics.Vector3 ToNumerics3(this OpenTK.Mathematics.Vector3 vec)
     {
-        return new Vector3(vec.X, vec.Y, vec.Z);
+        return new System.Numerics.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    public static System.Numerics.Vector2 ToNumerics2(this OpenTK.Mathematics.Vector2 vec)
+    {
+        return new System.Numerics.Vector2(vec.X, vec.Y);
+    }
+
+    public static BulletSharp.Math.Matrix ToBullet(this OpenTK.Mathematics.Matrix4 mat)
+    {
+        return new BulletSharp.Math.Matrix(
+            mat.M11, mat.M12, mat.M13, mat.M14,
+            mat.M21, mat.M22, mat.M23, mat.M24,
+            mat.M31, mat.M32, mat.M33, mat.M34,
+            mat.M41, mat.M42, mat.M43, mat.M44
+        );
+    }
+}
+
+public static class BulletSharpExtensions
+{
+    public static void Deconstruct(this BulletSharp.Math.Vector3 vec, out float x, out float y, out float z)
+    {
+        x = vec.X;
+        y = vec.Y;
+        z = vec.Z;
+    }
+
+    public static BulletSharp.Math.Vector3 ToEuler(this BulletSharp.Math.Quaternion quat)
+    {
+        var eulers = new BulletSharp.Math.Vector3
+        {
+            X = (float)Math.Atan2(2 * (quat.W * quat.X + quat.Y * quat.Z), 1 - 2 * (quat.X * quat.X + quat.Y * quat.Y)),
+            Z = (float)Math.Atan2(2 * (quat.W * quat.Z + quat.X * quat.Y), 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z))
+        };
+
+        var expr = 2 * (quat.W * quat.Y - quat.Z * quat.X);
+        if (Math.Abs(expr) >= 1)
+            eulers.Y = (float)(Math.Sign(expr) * Math.PI / 2);
+        else
+            eulers.Y = (float)Math.Asin(expr);
+
+        return eulers;
+    }
+
+    public static OpenTK.Mathematics.Matrix3 ToMatrix(this BulletSharp.Math.Quaternion quat)
+    {
+        float w = quat.W, w2 = w * w;
+        float x = quat.X, x2 = x * x;
+        float y = quat.Y, y2 = y * y;
+        float z = quat.Z, z2 = z * z;
+
+        var rxx = w2 + x2 - y2 - z2;
+        var rxy = 2 * x * y - 2 * w * z;
+        var rxz = 2 * x * z + 2 * w * y;
+        var ryx = 2 * x * y + 2 * w * z;
+        var ryy = w2 - x2 + y2 - z2;
+        var ryz = 2 * y * z - 2 * w * x;
+        var rzx = 2 * x * z - 2 * w * y;
+        var rzy = 2 * y * z + 2 * w * x;
+        var rzz = w2 - x2 - y2 + z2;
+
+        return new OpenTK.Mathematics.Matrix3(
+            rxx, ryx, rzx,
+            rxy, ryy, rzy,
+            rxz, ryz, rzz
+        );
     }
 
     public static System.Numerics.Vector3 ToNumerics3(this BulletSharp.Math.Vector3 vec)
     {
-        return new Vector3(vec.X, vec.Y, vec.Z);
+        return new System.Numerics.Vector3(vec.X, vec.Y, vec.Z);
     }
 
     public static OpenTK.Mathematics.Vector3 ToOpenTK3(this BulletSharp.Math.Vector3 vec)
@@ -185,24 +228,16 @@ public static class VectorConversionExtensions
         return new OpenTK.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
     }
 
-    public static System.Numerics.Vector2 ToNumerics2(this OpenTK.Mathematics.Vector2 vec)
+    public static OpenTK.Mathematics.Matrix4 ToOpenTK(this BulletSharp.Math.Matrix mat)
     {
-        return new Vector2(vec.X, vec.Y);
+        return new OpenTK.Mathematics.Matrix4(
+            mat.M11, mat.M12, mat.M13, mat.M14,
+            mat.M21, mat.M22, mat.M23, mat.M24,
+            mat.M31, mat.M32, mat.M33, mat.M34,
+            mat.M41, mat.M42, mat.M43, mat.M44
+        );
     }
 
-    //public static System.Numerics.Vector3 XYZ(this System.Numerics.Vector4 vec)
-    //{
-    //    return new Vector3(vec.X, vec.Y, vec.Z);
-    //}
-
-    //public static System.Numerics.Vector2 XY(this System.Numerics.Vector3 vec)
-    //{
-    //    return new Vector2(vec.X, vec.Y);
-    //}
-}
-
-public static class RigidBodyExtensions
-{
     public static void SetType(this RigidBody body, RigidBodyType type)
     {
         switch (type)
@@ -224,67 +259,52 @@ public static class RigidBodyExtensions
     }
 }
 
-public static class VectorMathNetExtensions
+public static class SystemNumericsExtensions
 {
-    public static MathNet.Numerics.LinearAlgebra.Vector<float> AddSubVector(
-        this MathNet.Numerics.LinearAlgebra.Vector<float> vec, 
-        MathNet.Numerics.LinearAlgebra.Vector<float> sub)
+    public static float DistanceTo(this System.Numerics.Vector3 v1, System.Numerics.Vector3 v2)
     {
-        for (int i = 0; i < sub.Count; i++)  // TODO: test performance
-        {
-            vec.At(i, vec.At(i) + sub.At(i));
-        }
-
-        return vec;
-    }
-}
-
-public static class BulletSharpExtensions
-{
-    public static void Deconstruct(this BulletSharp.Math.Vector3 vec, out float x, out float y, out float z)
-    {
-        x = vec.X;
-        y = vec.Y;
-        z = vec.Z;
-    }
-}
-
-public static class BulletSharpQuaternionExtensions
-{
-    public static BulletSharp.Math.Vector3 ToEuler(this BulletSharp.Math.Quaternion quat)
-    {
-        var eulers = new BulletSharp.Math.Vector3
-        {
-            X = (float)Math.Atan2(2 * (quat.W * quat.X + quat.Y * quat.Z), 1 - 2 * (quat.X * quat.X + quat.Y * quat.Y)),
-            Z = (float)Math.Atan2(2 * (quat.W * quat.Z + quat.X * quat.Y), 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z))
-        };
-
-        var expr = 2 * (quat.W * quat.Y - quat.Z * quat.X);
-        if (Math.Abs(expr) >= 1)
-            eulers.Y = (float)(Math.Sign(expr) * Math.PI / 2);
-        else
-            eulers.Y = (float)Math.Asin(expr);
-
-        return eulers;
-    }
-}
-
-public static class QuaternionExtensions
-{
-    public static Vector3 XYZ(this Quaternion quat)
-    {
-        return new Vector3(quat.X, quat.Y, quat.Z);
+        return (v2 - v1).Length();
     }
 
-    public static Vector3 Rotate(this Quaternion quat, Vector3 vec)
+    public static System.Numerics.Vector3 Sum(this IEnumerable<System.Numerics.Vector3> source)
     {
-        var xyz = new Vector3(quat.X, quat.Y, quat.Z);
-        Vector3 uv = Vector3.Cross(xyz, vec);
+        return source.Aggregate((x, y) => x + y);
+    }
+
+    public static System.Numerics.Vector3 XYZ(this System.Numerics.Quaternion quat)
+    {
+        return new System.Numerics.Vector3(quat.X, quat.Y, quat.Z);
+    }
+
+    public static System.Numerics.Vector3 Rotate(this System.Numerics.Quaternion quat, System.Numerics.Vector3 vec)
+    {
+        var xyz = new System.Numerics.Vector3(quat.X, quat.Y, quat.Z);
+        System.Numerics.Vector3 uv = System.Numerics.Vector3.Cross(xyz, vec);
         uv += uv;
-        return vec + quat.W * uv + Vector3.Cross(xyz, uv);
+        return vec + quat.W * uv + System.Numerics.Vector3.Cross(xyz, uv);
     }
 
-    public static OpenTK.Mathematics.Matrix3 ToMatrix(this Quaternion quat)
+    public static OpenTK.Mathematics.Vector3 ToOpenTK(this System.Numerics.Vector3 vec)
+    {
+        return new OpenTK.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    public static BulletSharp.Math.Vector3 ToBullet3(this System.Numerics.Vector3 vec)
+    {
+        return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    //public static System.Numerics.Vector3 XYZ(this System.Numerics.Vector4 vec)
+    //{
+    //    return new Vector3(vec.X, vec.Y, vec.Z);
+    //}
+
+    //public static System.Numerics.Vector2 XY(this System.Numerics.Vector3 vec)
+    //{
+    //    return new Vector2(vec.X, vec.Y);
+    //}
+
+    public static OpenTK.Mathematics.Matrix3 ToMatrix(this System.Numerics.Quaternion quat)
     {
         float w = quat.W, w2 = w * w;
         float x = quat.X, x2 = x * x;
@@ -309,25 +329,17 @@ public static class QuaternionExtensions
     }
 }
 
-public static class MatrixExtensions
+public static class MathNetExtensions
 {
-    public static OpenTK.Mathematics.Matrix4 ToOpenTK(this BulletSharp.Math.Matrix mat)
+    public static MathNet.Numerics.LinearAlgebra.Vector<float> AddSubVector(
+        this MathNet.Numerics.LinearAlgebra.Vector<float> vec,
+        MathNet.Numerics.LinearAlgebra.Vector<float> sub)
     {
-        return new OpenTK.Mathematics.Matrix4(
-            mat.M11, mat.M12, mat.M13, mat.M14,
-            mat.M21, mat.M22, mat.M23, mat.M24,
-            mat.M31, mat.M32, mat.M33, mat.M34,
-            mat.M41, mat.M42, mat.M43, mat.M44
-        );
-    }
+        for (int i = 0; i < sub.Count; i++)  // TODO: test performance
+        {
+            vec.At(i, vec.At(i) + sub.At(i));
+        }
 
-    public static BulletSharp.Math.Matrix ToBullet(this OpenTK.Mathematics.Matrix4 mat)
-    {
-        return new BulletSharp.Math.Matrix(
-            mat.M11, mat.M12, mat.M13, mat.M14,
-            mat.M21, mat.M22, mat.M23, mat.M24,
-            mat.M31, mat.M32, mat.M33, mat.M34,
-            mat.M41, mat.M42, mat.M43, mat.M44
-        );
+        return vec;
     }
 }

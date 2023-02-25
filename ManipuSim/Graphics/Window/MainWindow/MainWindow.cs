@@ -482,7 +482,7 @@ namespace Graphics
                     // update goals positions
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        _goalModels[i].State = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK());
+                        _goalModels[i].State = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK3());
 
                         foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
                         {
@@ -548,7 +548,7 @@ namespace Graphics
             var manipulator = ManipulatorHandler.CreateDefaultManipulator();
 
             // create new model for the manipulator goal
-            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK()))));
+            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK3()))));
         }
         #endregion
 

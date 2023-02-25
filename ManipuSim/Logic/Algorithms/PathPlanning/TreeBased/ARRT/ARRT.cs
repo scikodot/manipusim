@@ -2,8 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Threading;
+
+using BulletSharp.Math;
 
 namespace Logic.PathPlanning
 {
@@ -106,7 +107,7 @@ namespace Logic.PathPlanning
                         Tree.AddNode(node);
 
                         // check exit condition
-                        if (point.DistanceTo(attractors[index].Center) < attractors[index].Radius)
+                        if (Vector3.Distance(point, attractors[index].Center) < attractors[index].Radius)
                         {
                             if (index == 0)
                                 // stop in case the main attractor has been hit

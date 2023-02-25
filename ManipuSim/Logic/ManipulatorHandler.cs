@@ -1,15 +1,13 @@
 ﻿using System.Collections.Generic;
-using System.Numerics;
 using System.Threading.Tasks;
 
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
 using Logic.InverseKinematics;
 using Logic.PathPlanning;
 using Physics;
-
-using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
@@ -32,14 +30,14 @@ namespace Logic
         {
             Length = 0.4f,
             q = 0,
-            qRanges = new Vector2(-180, 180)
+            qRanges = new System.Numerics.Vector2(-180, 180)
         };
 
         private JointData _defaultGripper = new()
         {
             Length = 0.2f,
             q = 0,
-            qRanges = new Vector2(-180, 180)
+            qRanges = new System.Numerics.Vector2(-180, 180)
         };
 
         private Vector3 _defaultGoal = new Vector3(0.0f/*-1.0f*/, 0.5f, -2.0f);

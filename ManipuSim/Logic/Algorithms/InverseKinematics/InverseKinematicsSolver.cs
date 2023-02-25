@@ -1,7 +1,8 @@
-﻿using BulletSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
+
+using BulletSharp;
+using BulletSharp.Math;
 
 namespace Logic.InverseKinematics
 {
@@ -58,7 +59,7 @@ namespace Logic.InverseKinematics
             // TODO: integrate orientation goal somehow?
             error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
 
-            return errorPos.Length() > _threshold;
+            return errorPos.Length > _threshold;
         }
 
         protected bool JointLimitsExceeded(Manipulator manipulator, VectorFloat configuration)

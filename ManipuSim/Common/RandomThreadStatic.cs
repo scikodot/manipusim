@@ -1,5 +1,6 @@
 ﻿using System;
-using System.Numerics;
+
+using BulletSharp.Math;
 
 public static class RandomThreadStatic
 {

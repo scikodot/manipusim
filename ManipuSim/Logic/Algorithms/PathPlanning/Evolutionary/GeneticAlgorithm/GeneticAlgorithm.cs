@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+
+using BulletSharp.Math;
 
 using Logic.InverseKinematics;
 using System.Threading;
@@ -151,7 +152,7 @@ namespace Logic.PathPlanning
 
             Vector3 direction = end - start;
             Vector3 directionNorm = Vector3.Normalize(direction);
-            float length = direction.Length();
+            float length = direction.Length;
             float segmentCountInv = 1.0f / (points.Length - 1);
 
             points[0] = start;

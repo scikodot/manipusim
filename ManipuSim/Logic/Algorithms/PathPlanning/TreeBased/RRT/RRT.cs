@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
-using System.Numerics;
+
+using BulletSharp.Math;
+
 using System.Threading;
 using Logic.InverseKinematics;
 

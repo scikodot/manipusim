@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
+
 using BulletSharp;
+using BulletSharp.Math;
+
 using Graphics;
 using Logic.PathPlanning;
 using Physics;
@@ -294,12 +296,12 @@ namespace Logic
 
         public bool ApproxWithinReach(Vector3 point)
         {
-            return point.Length() <= WorkspaceRadius;
+            return point.Length <= WorkspaceRadius;
         }
 
         public float DistanceTo(Vector3 p)  // TODO: this one is ambiguous; remove and use usual GripperPos
         {
-            return GripperPos.DistanceTo(p);
+            return Vector3.Distance(GripperPos, p);
         }
 
         public void FollowPath()

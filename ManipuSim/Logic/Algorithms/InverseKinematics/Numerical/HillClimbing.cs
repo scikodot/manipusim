@@ -1,6 +1,5 @@
-﻿using System.Numerics;
-
-using BulletSharp;
+﻿using BulletSharp;
+using BulletSharp.Math;
 
 namespace Logic.InverseKinematics
 {
@@ -32,7 +31,7 @@ namespace Logic.InverseKinematics
             VectorFloat configuration = manipulator.q, dq = VectorFloat.Build.Dense(manipulator.Joints.Length);
             var errorPos = goal - manipulator.Joints[joint].Position;
             var error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
-            float distance = errorPos.Length();
+            float distance = errorPos.Length;
             float maxStepSize = _maxStepSize, scale = 1;
 
             int iterations = 0;
@@ -60,7 +59,7 @@ namespace Logic.InverseKinematics
                 configurationNew.AddSubVector(dq);
                 var fkRes = manipulator.ForwardKinematics(configurationNew);
 
-                float distanceNew = fkRes.JointPositions[joint].DistanceTo(goal);
+                float distanceNew = Vector3.Distance(fkRes.JointPositions[joint], goal);
                 if (distanceNew < distance)
                 {
                     // update configuration, distance and scale

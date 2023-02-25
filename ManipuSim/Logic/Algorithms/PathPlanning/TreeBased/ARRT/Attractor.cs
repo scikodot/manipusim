@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Numerics;
+using BulletSharp.Math;
 
 namespace Logic
 {
@@ -51,7 +51,7 @@ namespace Logic
 
         private static float CalculateAttractorWeight(Manipulator manipulator, Vector3 point)
         {
-            return manipulator.DistanceTo(point) + manipulator.Goal.DistanceTo(point);
+            return manipulator.DistanceTo(point) + Vector3.Distance(manipulator.Goal, point);
         }
 
         private static float CalculateAttractorRadius(Manipulator manipulator, float weight, float goalThreshold)

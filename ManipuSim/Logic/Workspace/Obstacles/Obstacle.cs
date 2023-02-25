@@ -88,7 +88,9 @@ namespace Logic
             if (!Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
                 throw new InvalidOperationException("Attempt to translate a non-kinematic object.");
 
-            Collider.Body.MotionState.WorldTransform += Matrix.Translation(translation);
+            var transform = Collider.Body.MotionState.WorldTransform;
+            transform.Origin += translation;
+            Collider.Body.MotionState.WorldTransform = transform;
 
             //Path.Translate(translation);
         }
@@ -122,7 +124,7 @@ namespace Logic
             Collider.Body.MotionState.WorldTransform = Matrix.RotationYawPitchRoll(yaw, pitch, roll) * Matrix.Translation(_position);
 
             Collider.Reset();
-            Path.Reset();
+            //Path.Reset();
 
             //Collider.Scale();
         }
@@ -168,7 +170,7 @@ namespace Logic
             var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
             Model.State = state.ToOpenTK();
             Collider.UpdateModel();
-            Path.Model.Update();
+            //Path.Model.Update();
         }
 
         private void FollowPath()
@@ -200,7 +202,7 @@ namespace Logic
             // clear managed resources
             Model.Dispose();
             Collider.Dispose();
-            Path.Dispose();
+            //Path.Dispose();
 
             // suppress finalization
             GC.SuppressFinalize(this);

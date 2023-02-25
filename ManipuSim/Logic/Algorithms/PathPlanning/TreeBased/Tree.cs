@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Numerics;
 
 using OpenTK.Graphics.OpenGL4;
+using BulletSharp.Math;
 
 using Logic.InverseKinematics;
 using Graphics;
@@ -249,7 +249,7 @@ namespace Logic.PathPlanning
 
         public Node Closest(Vector3 point)
         {
-            return Nodes.MinBy(x => x.Point.DistanceTo(point));
+            return Nodes.MinBy(x => Vector3.Distance(x.Point, point));
         }
 
         public void Rectify()
