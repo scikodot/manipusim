@@ -1,28 +1,35 @@
 ﻿using System;
 
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
 using Logic;
-
-using Vector3 = System.Numerics.Vector3;
 
 namespace Physics
 {
     public class BoxCollider : Collider
     {
         private Vector3 _size;
-        public ref Vector3 Size => ref _size;
+        public Vector3 Size
+        {
+            get => _size;
+            set
+            {
+                _size = value;
+                Scale();
+            }
+        }
 
         public BoxCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
             var shape = body.CollisionShape as BoxShape;
-            _size = shape.HalfExtentsWithMargin.ToNumerics3();
+            _size = shape.HalfExtentsWithMargin;
         }
 
         public override void Scale()
         {
-            Body.CollisionShape.LocalScaling *= new BulletSharp.Math.Vector3(_size.X, _size.Y, _size.Z) / ((BoxShape)Body.CollisionShape).HalfExtentsWithMargin;
+            Body.CollisionShape.LocalScaling *= _size / (Body.CollisionShape as BoxShape).HalfExtentsWithMargin;
         }
 
         public override bool Contains(Vector3 point)

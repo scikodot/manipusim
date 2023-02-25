@@ -2,10 +2,9 @@
 
 using OpenTK.Graphics.OpenGL4;
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
-using BulletSharp.Math;
-using Vector3 = System.Numerics.Vector3;
 using Logic;
 
 namespace Physics

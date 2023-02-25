@@ -1,8 +1,7 @@
 ﻿using BulletSharp;
+using BulletSharp.Math;
 
 using Physics;
-
-using Vector3 = System.Numerics.Vector3;
 
 namespace Graphics
 {
@@ -31,7 +30,7 @@ namespace Graphics
         Model Model { get; }
         Collider Collider { get; }
 
-        ref Vector3 InitialPosition { get; }
+        Vector3 Position { get; set; }  // TODO: this could have a default impl in an abstract class
 
         void Translate(Vector3 translation);
     }

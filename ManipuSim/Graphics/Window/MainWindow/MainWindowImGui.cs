@@ -66,6 +66,11 @@ namespace Graphics
             Util.CheckGLError("End of frame");
         }
 
+        private void InputElement()
+        {
+
+        }
+
         #region MAIN_MENU_BAR
         private void RenderMenu()
         {
@@ -555,8 +560,8 @@ namespace Graphics
             //ImGui.Checkbox("Activate", ref joint.Active);  // TODO: for debug use only
 
             ImGui.Checkbox("Show collider", ref joint.ShowCollider);
-
-            ImGui.InputFloat3("Axis", ref joint.InitialAxis);
+            var axis = joint.InitialAxis.ToNumerics3();
+            ImGui.InputFloat3("Axis", ref axis);
             ImGui.InputFloat3("Position", ref joint.InitialPosition);
 
             if (joint.Collider is SphereCollider sphere)

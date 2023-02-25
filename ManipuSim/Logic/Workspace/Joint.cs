@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Numerics;
 using BulletSharp.Math;
 using Graphics;
 using Physics;
-
-using Vector3 = System.Numerics.Vector3;
 
 namespace Logic
 {
@@ -24,7 +21,7 @@ namespace Logic
 
         public float Length;
         public float q;
-        public Vector2 qRanges;
+        public System.Numerics.Vector2 qRanges;
     }
 
     public class TranslationEventArgs : EventArgs
@@ -72,8 +69,8 @@ namespace Logic
         private float _initialCoordinate;
         public ref float InitialCoordinate => ref _initialCoordinate;
 
-        private Vector2 _coordinateRange;
-        public ref Vector2 CoordinateRange => ref _coordinateRange;
+        private System.Numerics.Vector2 _coordinateRange;
+        public ref System.Numerics.Vector2 CoordinateRange => ref _coordinateRange;
 
         public float Coordinate { get; set; }
 

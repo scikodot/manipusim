@@ -261,7 +261,7 @@ namespace Graphics
         private void Translate(Vector3 translation)
         {
             // translate the parent object
-            _parent.Translate(translation.ToNumerics3());
+            _parent.Translate(translation.ToBullet3());
 
             // translate the widget axes
             _axisX.Translate(translation);

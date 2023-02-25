@@ -7,8 +7,6 @@ using Graphics;
 using Logic.PathPlanning;
 using Physics;
 
-using Vector3 = System.Numerics.Vector3;
-
 namespace Logic
 {
     /*public struct ObstData
@@ -25,47 +23,49 @@ namespace Logic
         public Collider Collider { get; }
         public Path Path { get; }
 
-        public RigidBodyType Type => Collider.Type;
         public BroadphaseNativeType Shape => Collider.Shape;
 
         public Matrix State
         {
-            get => Collider.Body.WorldTransform;
+            get => Collider.Body.MotionState.WorldTransform;
+            set => Collider.Body.MotionState.WorldTransform = value;
+        }
+        public RigidBodyType Type { get; set; }
+        public float Mass { get; set; }
+        public bool ShowCollider { get; set; }
+        public float Speed { get; } = 0.016f;
+
+        private Vector3 _orientation;
+        public Vector3 Orientation
+        {
+            get => _orientation;
             set
             {
-                // explicitly set position of the body
-                Collider.Body.WorldTransform = value;
-                
-                // set its motion state to update position (for kinematic objects only)
-                if (Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
-                    Collider.Body.MotionState.SetWorldTransform(ref value);
+                Rotate(value - _orientation);
+                _orientation = value;
             }
         }
 
-        private bool _showCollider;
-        public ref bool ShowCollider => ref _showCollider;
-
-        private float _mass;
-        public ref float Mass => ref _mass;
-
-        private Vector3 _orientation;
-        public ref Vector3 Orientation => ref _orientation;
-
-        private Vector3 _initialPosition;
-        public ref Vector3 InitialPosition => ref _initialPosition;
-
-        public Vector3 Position { get; private set; }
-        public float Speed { get; } = 0.016f;
+        private Vector3 _position;
+        public Vector3 Position
+        {
+            get => _position;
+            set
+            {
+                Translate(value - _position);
+                _position = value;
+            }
+        }
 
         public Obstacle(Model model, Collider collider)
         {
             Model = model;
             Collider = collider;
 
-            Path = new Path(new Path.Node(null, new Vector3[] { _initialPosition }, null));
-            Path.Model.SetColor(new Vector3(0.2f, 0.6f, 0.08f));
+            //Path = new Path(new Path.Node(null, new Vector3[] { _position }, null));
+            //Path.Model.SetColor(new System.Numerics.Vector3(0.2f, 0.6f, 0.08f));
 
-            _initialPosition = Collider.Body.WorldTransform.Origin.ToNumerics3();
+            _position = Collider.Body.WorldTransform.Origin;
 
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
             Collider.Body.UserObject = this;
@@ -85,15 +85,29 @@ namespace Logic
             if (MainWindow.Mode == InteractionMode.Design && translation != Vector3.Zero)
                 Path.Translate(translation);*/
 
-            Collider.Body.Translate(translation.ToBullet3());
-            Path.Translate(translation);
+            if (!Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
+                throw new InvalidOperationException("Attempt to translate a non-kinematic object.");
+
+            Collider.Body.MotionState.WorldTransform += Matrix.Translation(translation);
+
+            //Path.Translate(translation);
+        }
+
+        public void Rotate(Vector3 rotation)
+        {
+            if (!Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
+                throw new InvalidOperationException("Attempt to rotate a non-kinematic object.");
+
+            var (yaw, pitch, roll) = rotation * MathUtil.SIMD_RADS_PER_DEG;
+            Collider.Body.MotionState.WorldTransform = 
+                Matrix.RotationYawPitchRoll(yaw, pitch, roll) * Collider.Body.MotionState.WorldTransform;
         }
 
         public void Render(Shader shader, Action render = null)
         {
             Model.Render(shader, render);
 
-            if (_showCollider)
+            if (ShowCollider)
                 Collider.Render(shader);
         }
 
@@ -104,50 +118,40 @@ namespace Logic
 
         public void Reset()
         {
+            var (yaw, pitch, roll) = _orientation * MathUtil.SIMD_RADS_PER_DEG;
+            Collider.Body.MotionState.WorldTransform = Matrix.RotationYawPitchRoll(yaw, pitch, roll) * Matrix.Translation(_position);
+
             Collider.Reset();
             Path.Reset();
 
-            Position = _initialPosition;
-
-            Collider.Scale();
-            UpdateState();
+            //Collider.Scale();
         }
 
         public void Update(InteractionMode mode)
         {
-            switch (mode)
-            {
-                case InteractionMode.Design:
-                    Collider.Scale();
-                    UpdateState();
-                    break;
-                case InteractionMode.Animate:
-                    if (Type == RigidBodyType.Kinematic)
-                    {
-                        FollowPath();
-                        UpdateState();
-                    }
-                    break;
-            }
+            /*if (Collider.Type == RigidBodyType.Kinematic)
+                FollowPath();*/
 
             UpdateModel();
         }
 
-        public void OnMainWindowModeSwitched(InteractionModeSwitchEventArgs e)
+        public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
         {
             switch (e.Mode)
             {
                 case InteractionMode.Design:
                     Convert(RigidBodyType.Kinematic, Mass);
+                    //Collider.Body.ForceActivationState(ActivationState.DisableSimulation);
                     Reset();
                     break;
                 case InteractionMode.Animate:
+                    //Collider.Body.ForceActivationState(ActivationState.ActiveTag);
                     Convert(Type, Mass);
                     break;
             }
         }
 
-        private void UpdateState()
+        /*private void UpdateState()
         {
             // TODO: optimize; consider using ImpDualQuats
             // TODO: create separate method RotateWorld() that will create rotation matrix about world XYZ axes
@@ -156,8 +160,8 @@ namespace Logic
             var roll = _orientation.Z * MathUtil.SIMD_RADS_PER_DEG;
 
             State = Matrix.RotationQuaternion(BulletSharp.Math.Quaternion.RotationYawPitchRoll(yaw, pitch, roll)) *
-                Matrix.Translation(Position.ToBullet3());
-        }
+                Matrix.Translation(_initialPosition.ToBullet3());
+        }*/
 
         private void UpdateModel()
         {
@@ -169,7 +173,7 @@ namespace Logic
 
         private void FollowPath()
         {
-            if (Path != null)
+            /*if (Path != null)
             {
                 var target = Path.Current.Child;
                 if (target != null)
@@ -188,7 +192,7 @@ namespace Logic
                         Translate(translation);
                     }
                 }
-            }
+            }*/
         }
 
         public void Dispose()

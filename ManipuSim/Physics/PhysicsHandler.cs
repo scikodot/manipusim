@@ -204,15 +204,14 @@ namespace Physics
             using var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia);
             var body = new RigidBody(rbInfo);
 
+            // change the collider type to kinematic if in design mode
+            body.CollisionFlags = CollisionFlags.KinematicObject;
+
             // add the body to the world
             AddRigidBody(body);
 
             // create a collider of the given shape
             var collider = Collider.Create(this, body, type);
-
-            // change the collider type to kinematic if in design mode
-            if (_parent.InputHandler.InteractionMode == InteractionMode.Design)
-                collider.Body.CollisionFlags = CollisionFlags.StaticObject | CollisionFlags.KinematicObject;
 
             return collider;
         }

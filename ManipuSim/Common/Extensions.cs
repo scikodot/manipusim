@@ -145,6 +145,11 @@ public static class VectorConversionExtensions
         return new BulletSharp.Math.Vector4(vec.X, vec.Y, vec.Z, vec.W);
     }
 
+    public static BulletSharp.Math.Vector3 ToBullet3(this OpenTK.Mathematics.Vector3 vec)
+    {
+        return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
     public static BulletSharp.Math.Vector3 ToBullet3(this OpenTK.Mathematics.Vector4 vec)
     {
         return new BulletSharp.Math.Vector3(vec.X, vec.Y, vec.Z);
@@ -231,6 +236,16 @@ public static class VectorMathNetExtensions
         }
 
         return vec;
+    }
+}
+
+public static class BulletSharpExtensions
+{
+    public static void Deconstruct(this BulletSharp.Math.Vector3 vec, out float x, out float y, out float z)
+    {
+        x = vec.X;
+        y = vec.Y;
+        z = vec.Z;
     }
 }
 

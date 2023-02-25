@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Numerics;
 
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
 using Logic;
@@ -28,7 +28,7 @@ namespace Physics
             var shape = (ConeShape)Body.CollisionShape;
             var radiusRatio = _radius / shape.Radius;
             var heightRatio = _height / shape.Height;
-            Body.CollisionShape.LocalScaling *= new BulletSharp.Math.Vector3(radiusRatio, heightRatio, radiusRatio);
+            Body.CollisionShape.LocalScaling *= new Vector3(radiusRatio, heightRatio, radiusRatio);
         }
 
         public override bool Contains(Vector3 point)

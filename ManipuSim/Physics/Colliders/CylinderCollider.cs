@@ -1,11 +1,10 @@
 ﻿using System;
 
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
 using Logic;
-
-using Vector3 = System.Numerics.Vector3;
 
 namespace Physics
 {

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Data;
+
 using BulletSharp;
+using BulletSharp.Math;
 
 using Graphics;
 using Logic;
-
-using Vector3 = System.Numerics.Vector3;
 
 namespace Physics
 {
@@ -27,8 +27,7 @@ namespace Physics
 
         public override bool Contains(Vector3 point)
         {
-            var center = Body.CenterOfMassPosition;
-            return new Vector3(center.X, center.Y, center.Z).DistanceTo(point) <= _radius;
+            return Vector3.Distance(Body.CenterOfMassPosition, point) <= _radius;
         }
 
         public override Vector3 Extrude(Vector3 point)

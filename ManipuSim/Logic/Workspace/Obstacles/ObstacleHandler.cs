@@ -96,7 +96,7 @@ namespace Logic
         }
 
         // TODO: perhaps return all containing obstacles?
-        public bool ContainmentTest(System.Numerics.Vector3 point, out Obstacle container)
+        public bool ContainmentTest(Vector3 point, out Obstacle container)
         {
             foreach (var obstacle in Obstacles)
             {
@@ -120,7 +120,7 @@ namespace Logic
         public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
         {
             foreach (var obstacle in Obstacles)
-                obstacle.OnMainWindowModeSwitched(e);
+                obstacle.OnInteractionModeSwitched(e);
         }
 
         public void RenderGrid(Shader shader)
