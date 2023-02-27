@@ -211,7 +211,7 @@ namespace Logic
                     AbortControl();  // stop threads
                     Reset();  // reset positions
                     break;
-                case InteractionMode.Animate:
+                case InteractionMode.Simulate:
                     RunControl();  // start threads
                     break;
             }

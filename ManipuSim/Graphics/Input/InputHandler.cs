@@ -23,7 +23,7 @@ namespace Graphics
     public enum InteractionMode
     {
         Design,
-        Animate
+        Simulate
     }
 
     public readonly struct CameraMoveEventArgs
@@ -122,7 +122,7 @@ namespace Graphics
                         // restore Selected flag for selected objects
                         model.RenderFlags |= RenderFlags.Selected;
                         break;
-                    case InteractionMode.Animate:
+                    case InteractionMode.Simulate:
                         // clear Selected flag for selected objects
                         model.RenderFlags &= ~RenderFlags.Selected;
                         break;

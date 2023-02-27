@@ -2,7 +2,7 @@
 
 using BulletSharp;
 using BulletSharp.Math;
-
+using BulletSharp.SoftBody;
 using Graphics;
 using Logic.PathPlanning;
 using Physics;
@@ -30,6 +30,7 @@ namespace Logic
             get => Collider.Body.MotionState.WorldTransform;
             set => Collider.Body.MotionState.WorldTransform = value;
         }
+
         public RigidBodyType Type { get; set; }
         public float Mass { get; set; }
         public bool ShowCollider { get; set; }
@@ -39,22 +40,14 @@ namespace Logic
         public Vector3 Orientation
         {
             get => _orientation;
-            set
-            {
-                Rotate(value - _orientation);
-                _orientation = value;
-            }
+            set => Rotate(value - _orientation);
         }
 
         private Vector3 _position;
         public Vector3 Position
         {
             get => _position;
-            set
-            {
-                Translate(value - _position);
-                _position = value;
-            }
+            set => Translate(value - _position);
         }
 
         public Obstacle(Model model, Collider collider)
@@ -88,8 +81,10 @@ namespace Logic
             if (!Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
                 throw new InvalidOperationException("Attempt to translate a non-kinematic object.");
 
+            _position += translation;
+
             var transform = Collider.Body.MotionState.WorldTransform;
-            transform.Origin += translation;
+            transform.Origin = _position;
             Collider.Body.MotionState.WorldTransform = transform;
 
             //Path.Translate(translation);
@@ -99,6 +94,8 @@ namespace Logic
         {
             if (!Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
                 throw new InvalidOperationException("Attempt to rotate a non-kinematic object.");
+
+            _orientation += rotation;
 
             var (yaw, pitch, roll) = rotation * MathUtil.SIMD_RADS_PER_DEG;
             Collider.Body.MotionState.WorldTransform = 
@@ -142,13 +139,37 @@ namespace Logic
             switch (e.Mode)
             {
                 case InteractionMode.Design:
+                    // during design, objects positions are updated manually, 
+                    // and only kinematic objects provide this capability
                     Convert(RigidBodyType.Kinematic, Mass);
-                    //Collider.Body.ForceActivationState(ActivationState.DisableSimulation);
+
+                    // interactable objects should not get deactivated, 
+                    // otherwise the body position will not be updating
+                    Collider.Body.ForceActivationState(ActivationState.DisableDeactivation);
+
+                    // revert body changes that took place during simulation
                     Reset();
                     break;
-                case InteractionMode.Animate:
-                    //Collider.Body.ForceActivationState(ActivationState.ActiveTag);
+                case InteractionMode.Simulate:
+                    // during simulation, objects positions are updated automatically 
+                    // by the physics engine, hence set the target props
                     Convert(Type, Mass);
+
+                    // here activation state has to be forced; see source for btCollisionObject::activate
+                    Collider.Body.ForceActivationState(ActivationState.ActiveTag);
+
+                    /* When object's velocities (both linear and angular) fall below respective thresholds,
+                     * the DeactivationTime counter (it is *not* a limit) starts incrementing until it reaches the standard 
+                     * time limit, which is 2 seconds. Then, its activation state becomes WantsDeactivation,
+                     * and if its island neighbours come to rest, its activation state becomes IslandSleeping.
+                     * 
+                     * Note, however, that a constant interaction between a dynamic object and a kinematic object 
+                     * (as in the first resting on the second) will *not* let the former become deactivated 
+                     * (DeactivationTime won't increment), even if it is completely still.
+                     * This is reasonable though, because supposedly a kinematic object can be moved at any moment of time.
+                     */
+                    // reset the deactivation timer (same as in btCollisionObject::activate);
+                    Collider.Body.DeactivationTime = 0;
                     break;
             }
         }

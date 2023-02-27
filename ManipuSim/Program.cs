@@ -2,6 +2,15 @@
 
 namespace Graphics
 {
+    // TODO: ImGui requires some resources (probably higher GL version, but not sure) that are not available on integrated Intel graphics;
+    // there's this workwaround (for Windows only):
+    //
+    // extern "C" __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+    // extern "C" __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
+    //
+    // However, a better way would be to find the graphics card with the highest GL version
+    // and use it, if it satisfies the requirements
+
     // TODO: maintain proper transformation sequence: scale -> rotate -> translate; this may differ in different parts of program
     public static class Program
     {

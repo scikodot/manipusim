@@ -41,7 +41,7 @@ namespace Logic
             _ground = new Ground(_parent.PhysicsHandler.CreateCollider(
                 RigidBodyType.Static, 
                 new BoxShape(10, 0.2f, 10), 
-                Matrix.Translation(-0.2f * BulletSharp.Math.Vector3.UnitY)));
+                Matrix.Translation(-0.2f * Vector3.UnitY)));
         }
 
         public void Add(params Obstacle[] obstacles)
@@ -120,7 +120,9 @@ namespace Logic
         public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
         {
             foreach (var obstacle in Obstacles)
+            {
                 obstacle.OnInteractionModeSwitched(e);
+            }
         }
 
         public void RenderGrid(Shader shader)

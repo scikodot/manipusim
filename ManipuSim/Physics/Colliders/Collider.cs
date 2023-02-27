@@ -91,8 +91,9 @@ namespace Physics
             // set the given body type
             Body.SetType(type);
 
-            // set mass properties if needed
-            if (mass != null)
+            // set mass properties if needed;
+            // setting those for a static object would silently make it dynamic
+            if (type != RigidBodyType.Static && mass != null)
                 Body.SetMassProps(mass.Value, Body.CollisionShape.CalculateLocalInertia(mass.Value));
 
             // return the body to the world

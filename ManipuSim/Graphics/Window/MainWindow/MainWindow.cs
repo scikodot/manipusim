@@ -118,6 +118,9 @@ namespace Graphics
             InputHandler.CameraOrientationChanged += Camera.OnCameraRotate;
             InputHandler.CameraZoomChanged += Camera.OnCameraZoom;
 
+            InputHandler.InteractionModeSwitched += InputHandler.OnInteractionModeSwitched;
+            InputHandler.InteractionModeSwitched += ObstacleHandler.OnInteractionModeSwitched;
+
             //ObstacleHandler.Add(new Obstacle(new Model(new Mesh[]
             //    {
             //        Primitives.Cone(1, 2, 50, new MeshMaterial
@@ -492,7 +495,7 @@ namespace Graphics
                     }
 
                     break;
-                case InteractionMode.Animate:
+                case InteractionMode.Simulate:
 
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {

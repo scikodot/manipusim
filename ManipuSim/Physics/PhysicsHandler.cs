@@ -204,16 +204,16 @@ namespace Physics
             using var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia);
             var body = new RigidBody(rbInfo);
 
-            // change the collider type to kinematic if in design mode
-            body.CollisionFlags = CollisionFlags.KinematicObject;
+            // set the provided type and disable deactivation,
+            // because objects are created in design mode
+            body.SetType(type);
+            body.ForceActivationState(ActivationState.DisableDeactivation);
 
             // add the body to the world
             AddRigidBody(body);
 
             // create a collider of the given shape
-            var collider = Collider.Create(this, body, type);
-
-            return collider;
+            return Collider.Create(this, body, type);
         }
 
         public void Dispose()  // TODO: can crash; examine!

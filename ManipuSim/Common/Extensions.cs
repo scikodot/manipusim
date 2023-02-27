@@ -240,22 +240,13 @@ public static class BulletSharpExtensions
 
     public static void SetType(this RigidBody body, RigidBodyType type)
     {
-        switch (type)
+        body.CollisionFlags = type switch
         {
-            case RigidBodyType.Static:
-                body.CollisionFlags = CollisionFlags.StaticObject;
-                body.ForceActivationState(ActivationState.ActiveTag);
-                break;
-            case RigidBodyType.Kinematic:
-                body.CollisionFlags = CollisionFlags.StaticObject | CollisionFlags.KinematicObject;
-                body.ForceActivationState(ActivationState.DisableDeactivation);
-                break;
-            case RigidBodyType.Dynamic:
-                body.CollisionFlags = CollisionFlags.None;
-                body.ForceActivationState(ActivationState.ActiveTag);
-                body.Activate();
-                break;
-        }
+            RigidBodyType.Static => CollisionFlags.StaticObject,
+            RigidBodyType.Kinematic => CollisionFlags.KinematicObject,
+            RigidBodyType.Dynamic => CollisionFlags.None,
+            _ => throw new ArgumentException("Unknown rigid body type.")
+        };
     }
 }
 
