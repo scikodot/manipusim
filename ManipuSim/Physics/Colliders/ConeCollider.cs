@@ -1,34 +1,26 @@
-﻿using System;
-
-using BulletSharp;
+﻿using BulletSharp;
 using BulletSharp.Math;
-
-using Graphics;
-using Logic;
 
 namespace Physics
 {
     class ConeCollider : Collider
     {
-        private float _radius;
-        public ref float Radius => ref _radius;
+        public float Radius
+        {
+            get => _size.X;
+            set => Size = new Vector3(value, _size.Y, value);
+        }
 
-        private float _height;
-        public ref float Height => ref _height;
+        public float Height
+        {
+            get => _size.Y;
+            set => Size = new Vector3(_size.X, value, _size.Z);
+        }
 
         public ConeCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
             var shape = body.CollisionShape as ConeShape;
-            _radius = shape.Radius;
-            _height = shape.Height;
-        }
-
-        public override void Scale()
-        {
-            var shape = (ConeShape)Body.CollisionShape;
-            var radiusRatio = _radius / shape.Radius;
-            var heightRatio = _height / shape.Height;
-            Body.CollisionShape.LocalScaling *= new Vector3(radiusRatio, heightRatio, radiusRatio);
+            _size = new Vector3(shape.Radius, shape.Height, shape.Radius);
         }
 
         public override bool Contains(Vector3 point)

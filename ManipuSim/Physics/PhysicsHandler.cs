@@ -176,17 +176,13 @@ namespace Physics
                 World.RemoveRigidBody(body);
         }
 
-        /*public void CleanRigidBody(RigidBody body)
+        public void CleanRigidBody(RigidBody body)
         {
-            //// remove body from world
-            //lock (_worldSyncRoot)
-            //    World.RemoveRigidBody(body);
-
             // clear all forces and velocities for that body
             body.ClearForces();
             body.LinearVelocity = Vector3.Zero;
             body.AngularVelocity = Vector3.Zero;
-        }*/
+        }
 
         public void DisposeRigidBody(RigidBody body)
         {

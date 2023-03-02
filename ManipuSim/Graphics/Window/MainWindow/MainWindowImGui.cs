@@ -76,20 +76,25 @@ namespace Graphics
         }
 
         private static float CustomInputFloat(string label, float value, float step = 0, float stepFast = 0, 
-            string format = null, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
+            string format = null, ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue)
         {
-            ImGui.InputFloat(label, ref value, step, stepFast, format, flags);
+            var res = value;
+            if (ImGui.InputFloat(label, ref res, step, stepFast, format, flags))
+                return res;
+
             return value;
         }
 
         // as for vectors, ImGui expects System.Numerics types, but the app uses other variations;
         // thus, first convert to the appropriate type
         private static BulletSharp.Math.Vector3 CustomInputFloat3(string label, BulletSharp.Math.Vector3 value, 
-            string format = null, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
+            string format = null, ImGuiInputTextFlags flags = ImGuiInputTextFlags.EnterReturnsTrue)
         {
-            var numerics = value.ToNumerics3();
-            ImGui.InputFloat3(label, ref numerics, format, flags);
-            return numerics.ToBullet3();
+            var res = value.ToNumerics3();
+            if (ImGui.InputFloat3(label, ref res, format, flags))
+                return res.ToBullet3();
+
+            return value;
         }
 
         #region MAIN_MENU_BAR
@@ -586,7 +591,7 @@ namespace Graphics
 
             if (joint.Collider is SphereCollider sphere)
             {
-                ImGui.InputFloat("Radius", ref sphere.Radius);
+                sphere.Radius = CustomInputFloat("Radius", sphere.Radius);
             }
 
             ImGui.Separator();
@@ -602,8 +607,8 @@ namespace Graphics
             // TODO: add length property
             if (link.Collider is CylinderCollider cylinder)
             {
-                ImGui.InputFloat("Radius", ref cylinder.Radius);
-                ImGui.InputFloat("Half length", ref cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
+                cylinder.Radius = CustomInputFloat("Radius", cylinder.Radius);
+                cylinder.HalfLength = CustomInputFloat("Half length", cylinder.HalfLength, 0, 0, null, ImGuiInputTextFlags.ReadOnly);  // TODO: this should not be read-only; implement!
             }
 
             //if (ImGui.BeginTabBar("LinkTabs"))
@@ -655,17 +660,17 @@ namespace Graphics
                     }
                     else if (obstacle.Collider is SphereCollider sphere)
                     {
-                        ImGui.InputFloat("Radius", ref sphere.Radius);
+                        sphere.Radius = CustomInputFloat("Radius", sphere.Radius);
                     }
                     else if (obstacle.Collider is CylinderCollider cylinder)
                     {
-                        ImGui.InputFloat("Radius", ref cylinder.Radius);
-                        ImGui.InputFloat("Half length", ref cylinder.HalfLength);
+                        cylinder.Radius = CustomInputFloat("Radius", cylinder.Radius);
+                        cylinder.HalfLength = CustomInputFloat("Half length", cylinder.HalfLength);
                     }
                     else if (obstacle.Collider is ConeCollider cone)
                     {
-                        ImGui.InputFloat("Radius", ref cone.Radius);
-                        ImGui.InputFloat("Height", ref cone.Height);
+                        cone.Radius = CustomInputFloat("Radius", cone.Radius);
+                        cone.Height = CustomInputFloat("Height", cone.Height);
                     }
 
                     ImGui.EndTabItem();

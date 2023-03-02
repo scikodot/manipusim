@@ -123,15 +123,14 @@ namespace Logic
 
         public void UpdateStateDesign()
         {
-            Collider.Scale();
+            //Collider.Scale();
         }
 
         public void UpdateModel()  // TODO: unify
         {
-            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
-            Model.State = state.ToOpenTK();
-
-            Collider.UpdateModel();
+            var state = Collider.State.ToOpenTK();
+            Model.Update(state);
+            Collider.Model.Update(state);
         }
 
         public void UpdateState(ref ImpDualQuat state)

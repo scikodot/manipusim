@@ -123,6 +123,9 @@ namespace Logic
                 Joints[next].Translate(e.Translation);
         }
 
+        // TODO: consider performing collision tests through handlers somehow
+        // (e.g. ManipulatorHandler queries collisions of its components between each other or with obstacles
+        // and probably stores results of those queries somewhere for them to be later used by algorithms)
         public IEnumerable<bool> CollisionTest()
         {
             foreach (var link in Links)

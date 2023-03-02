@@ -6,6 +6,7 @@ using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
+using System.Data;
 
 namespace Graphics
 {
@@ -53,6 +54,11 @@ namespace Graphics
         public Model(string path)
         {
             LoadModel(path);
+        }
+
+        public void Update(Matrix4 state)
+        {
+            State = state;
         }
 
         public void Render(Shader shader, Action render = default)

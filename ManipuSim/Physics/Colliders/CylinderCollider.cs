@@ -1,31 +1,26 @@
-﻿using System;
-
-using BulletSharp;
+﻿using BulletSharp;
 using BulletSharp.Math;
-
-using Graphics;
-using Logic;
 
 namespace Physics
 {
     class CylinderCollider : Collider
     {
-        private float _radius;
-        public ref float Radius => ref _radius;
+        public float Radius
+        {
+            get => _size.X;
+            set => Size = new Vector3(value, _size.Y, value);
+        }
 
-        private float _halfLength;
-        public ref float HalfLength => ref _halfLength;
+        public float HalfLength
+        {
+            get => _size.Y;
+            set => Size = new Vector3(_size.X, value, _size.Z);
+        }
 
         public CylinderCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
             var shape = body.CollisionShape as CylinderShape;
-            _radius = shape.Radius;
-            _halfLength = shape.HalfExtentsWithMargin.Y;
-        }
-
-        public override void Scale()
-        {
-            Body.CollisionShape.LocalScaling *= new BulletSharp.Math.Vector3(_radius, _halfLength, _radius) / ((CylinderShape)Body.CollisionShape).HalfExtentsWithMargin;
+            _size = new Vector3(shape.Radius, shape.HalfExtentsWithMargin.Y, shape.Radius);
         }
 
         public override bool Contains(Vector3 point)

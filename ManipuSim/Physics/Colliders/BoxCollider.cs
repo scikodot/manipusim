@@ -1,35 +1,14 @@
-﻿using System;
-
-using BulletSharp;
+﻿using BulletSharp;
 using BulletSharp.Math;
-
-using Graphics;
-using Logic;
 
 namespace Physics
 {
     public class BoxCollider : Collider
     {
-        private Vector3 _size;
-        public Vector3 Size
-        {
-            get => _size;
-            set
-            {
-                _size = value;
-                Scale();
-            }
-        }
-
         public BoxCollider(PhysicsHandler handler, RigidBody body, RigidBodyType type) : base(handler, body, type)
         {
             var shape = body.CollisionShape as BoxShape;
             _size = shape.HalfExtentsWithMargin;
-        }
-
-        public override void Scale()
-        {
-            Body.CollisionShape.LocalScaling *= _size / (Body.CollisionShape as BoxShape).HalfExtentsWithMargin;
         }
 
         public override bool Contains(Vector3 point)

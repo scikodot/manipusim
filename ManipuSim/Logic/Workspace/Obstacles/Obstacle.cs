@@ -1,5 +1,5 @@
 ﻿using System;
-
+using System.Drawing;
 using BulletSharp;
 using BulletSharp.Math;
 using BulletSharp.SoftBody;
@@ -17,37 +17,36 @@ namespace Logic
         public bool ShowCollider;
     }*/
 
-    public class Obstacle : IDisposable, ISelectable, ITranslatable
+    public class Obstacle : IDisposable, ISelectable, IScalable, IRotatable, ITranslatable
     {
         public Model Model { get; }
         public Collider Collider { get; }
         public Path Path { get; }
 
         public BroadphaseNativeType Shape => Collider.Shape;
-
-        public Matrix State
-        {
-            get => Collider.Body.MotionState.WorldTransform;
-            set => Collider.Body.MotionState.WorldTransform = value;
-        }
+        public Matrix State => Collider.State;
 
         public RigidBodyType Type { get; set; }
         public float Mass { get; set; }
         public bool ShowCollider { get; set; }
         public float Speed { get; } = 0.016f;
 
-        private Vector3 _orientation;
-        public Vector3 Orientation
+        public Vector3 Size
         {
-            get => _orientation;
-            set => Rotate(value - _orientation);
+            get => Collider.Size;
+            set => Collider.Size = value;
         }
 
-        private Vector3 _position;
+        public Vector3 Orientation
+        {
+            get => Collider.Orientation;
+            set => Collider.Orientation = value;
+        }
+
         public Vector3 Position
         {
-            get => _position;
-            set => Translate(value - _position);
+            get => Collider.Position;
+            set => Collider.Position = value;
         }
 
         public Obstacle(Model model, Collider collider)
@@ -58,8 +57,6 @@ namespace Logic
             //Path = new Path(new Path.Node(null, new Vector3[] { _position }, null));
             //Path.Model.SetColor(new System.Numerics.Vector3(0.2f, 0.6f, 0.08f));
 
-            _position = Collider.Body.WorldTransform.Origin;
-
             Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
             Collider.Body.UserObject = this;
         }
@@ -68,38 +65,21 @@ namespace Logic
 
         public Vector3 Extrude(Vector3 point) => Collider.Extrude(point);
 
-        public void Translate(Vector3 translation)
+        public void Scale(Vector3 scaling) => Collider.Scale(scaling);
+
+        public void Rotate(Vector3 rotation) => Collider.Rotate(rotation);
+
+        public void Translate(Vector3 translation) => Collider.Translate(translation);
+
+        public void Update(InteractionMode mode)
         {
-            /*if (MainWindow.Mode == InteractionMode.Design)
-                Position = _initialPosition += translation;
-            else if (MainWindow.Mode == InteractionMode.Animate)
-                Position += translation;
+            /*if (Collider.Type == RigidBodyType.Kinematic)
+                FollowPath();*/
 
-            if (MainWindow.Mode == InteractionMode.Design && translation != Vector3.Zero)
-                Path.Translate(translation);*/
+            var state = State.ToOpenTK();
+            Model.Update(state);
+            Collider.Model.Update(state);
 
-            if (!Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
-                throw new InvalidOperationException("Attempt to translate a non-kinematic object.");
-
-            _position += translation;
-
-            var transform = Collider.Body.MotionState.WorldTransform;
-            transform.Origin = _position;
-            Collider.Body.MotionState.WorldTransform = transform;
-
-            //Path.Translate(translation);
-        }
-
-        public void Rotate(Vector3 rotation)
-        {
-            if (!Collider.Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
-                throw new InvalidOperationException("Attempt to rotate a non-kinematic object.");
-
-            _orientation += rotation;
-
-            var (yaw, pitch, roll) = rotation * MathUtil.SIMD_RADS_PER_DEG;
-            Collider.Body.MotionState.WorldTransform = 
-                Matrix.RotationYawPitchRoll(yaw, pitch, roll) * Collider.Body.MotionState.WorldTransform;
         }
 
         public void Render(Shader shader, Action render = null)
@@ -110,28 +90,10 @@ namespace Logic
                 Collider.Render(shader);
         }
 
-        public void Convert(RigidBodyType type, float? mass = null)
-        {
-            Collider.Convert(type, mass);
-        }
-
         public void Reset()
         {
-            var (yaw, pitch, roll) = _orientation * MathUtil.SIMD_RADS_PER_DEG;
-            Collider.Body.MotionState.WorldTransform = Matrix.RotationYawPitchRoll(yaw, pitch, roll) * Matrix.Translation(_position);
-
             Collider.Reset();
             //Path.Reset();
-
-            //Collider.Scale();
-        }
-
-        public void Update(InteractionMode mode)
-        {
-            /*if (Collider.Type == RigidBodyType.Kinematic)
-                FollowPath();*/
-
-            UpdateModel();
         }
 
         public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
@@ -141,7 +103,7 @@ namespace Logic
                 case InteractionMode.Design:
                     // during design, objects positions are updated manually, 
                     // and only kinematic objects provide this capability
-                    Convert(RigidBodyType.Kinematic, Mass);
+                    Collider.Convert(RigidBodyType.Kinematic, Mass);
 
                     // interactable objects should not get deactivated, 
                     // otherwise the body position will not be updating
@@ -153,7 +115,7 @@ namespace Logic
                 case InteractionMode.Simulate:
                     // during simulation, objects positions are updated automatically 
                     // by the physics engine, hence set the target props
-                    Convert(Type, Mass);
+                    Collider.Convert(Type, Mass);
 
                     // here activation state has to be forced; see source for btCollisionObject::activate
                     Collider.Body.ForceActivationState(ActivationState.ActiveTag);
@@ -186,17 +148,9 @@ namespace Logic
                 Matrix.Translation(_initialPosition.ToBullet3());
         }*/
 
-        private void UpdateModel()
+        /*private void FollowPath()
         {
-            var state = Matrix.Scaling(Collider.Body.CollisionShape.LocalScaling) * State;
-            Model.State = state.ToOpenTK();
-            Collider.UpdateModel();
-            //Path.Model.Update();
-        }
-
-        private void FollowPath()
-        {
-            /*if (Path != null)
+            if (Path != null)
             {
                 var target = Path.Current.Child;
                 if (target != null)
@@ -215,8 +169,8 @@ namespace Logic
                         Translate(translation);
                     }
                 }
-            }*/
-        }
+            }
+        }*/
 
         public void Dispose()
         {

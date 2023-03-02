@@ -5,7 +5,7 @@ using Physics;
 
 namespace Graphics
 {
-    public interface ICollidable
+    /*public interface ICollidable
     {
         Model Model { get; }
         RigidBody Body { get; }
@@ -17,7 +17,7 @@ namespace Graphics
         void Render(Shader shader);
 
         void UpdateState(ref OpenTK.Mathematics.Matrix4 state);
-    }
+    }*/
 
     public interface ISelectable  // TODO: consider switching to abstract class Selectable
     {
@@ -25,12 +25,32 @@ namespace Graphics
         Collider Collider { get; }
     }
 
+    public interface IScalable
+    {
+        Model Model { get; }
+        Collider Collider { get; }
+
+        Vector3 Size { get; set; }
+
+        void Scale(Vector3 scaling);
+    }
+
+    public interface IRotatable
+    {
+        Model Model { get; }
+        Collider Collider { get; }
+
+        Vector3 Orientation { get; set; }
+
+        void Rotate(Vector3 rotation);
+    }
+
     public interface ITranslatable
     {
         Model Model { get; }
         Collider Collider { get; }
 
-        Vector3 Position { get; set; }  // TODO: this could have a default impl in an abstract class
+        Vector3 Position { get; set; }
 
         void Translate(Vector3 translation);
     }
