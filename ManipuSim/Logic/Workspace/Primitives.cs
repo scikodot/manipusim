@@ -8,49 +8,24 @@ using BulletSharp;
 
 namespace Logic
 {
-    // TODO: some methods return Model, while others return Mesh; 
-    // presumably they should all return Mesh for flexibility, i.e. for composing Model of multiple meshes?
-    // (see TranslationalWidget.Axis ctor)
-    public static class Primitives  // TODO: refactor!!!
+    // TODO: determine the purpose of _state_ param in mesh construction;
+    // it can be used to set the initial displace of a mesh inside a model (that contains other meshes), 
+    // but not sure that applying the transform matrix to each vertex is efficient
+    public static class Primitives
     {
-        public static Model FromCollisionShape(CollisionShape shape, MeshMaterial material)
+        public static Mesh FromCollisionShape(CollisionShape shape, MeshMaterial material)
         {
-            if (shape is BoxShape box)
+            return shape switch
             {
-                var size = box.HalfExtentsWithMargin;
-                return Cube(size.X, size.Y, size.Z, material);
-            }
-            else if (shape is SphereShape sphere)
-            {
-                var radius = sphere.Radius;
-                return Sphere(radius, 20, 20, material);
-            }
-            // TODO: why does Primitives.Cylinder return a Mesh instead of a Model?
-            else if (shape is CylinderShape cylinder)
-            {
-                var radius = cylinder.Radius;
-                var halfLength = cylinder.HalfExtentsWithMargin.Y;
-                return new Model(new Mesh[]
-                {
-                    Cylinder(radius, halfLength, halfLength, 20, material)
-                });
-            }
-            // TODO: why does Primitives.Cone return a Mesh instead of a Model?
-            else if (shape is ConeShape cone)
-            {
-                var radius = cone.Radius;
-                var height = cone.Height;
-                return new Model(new Mesh[]
-                {
-                    Cone(radius, height, 20, material)
-                });
-            }
-            else
-                throw new ArgumentException("Unknown collision shape.");
+                BoxShape box => Cube(box.HalfExtentsWithMargin, material),
+                SphereShape sphere => Sphere(sphere.Radius, 20, 20, material),
+                CylinderShape cylinder => Cylinder(cylinder.Radius, cylinder.HalfExtentsWithMargin.Y, 20, material),
+                ConeShape cone => Cone(cone.Radius, cone.Height, 20, material),
+                _ => throw new ArgumentException("Unknown collision shape.")
+            };
         }
 
-        public static Model Grid(int lines, float stride, 
-            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Grid(int lines, float stride, MeshMaterial material, Matrix4 transform = default)
         {
             float lineHalfLength = (lines - 1) * stride / 2;
 
@@ -73,18 +48,18 @@ namespace Logic
             for (uint i = 0; i < indices.Length; i++)
                 indices[i] = i;
 
-            return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
+            return new Mesh(nameof(Grid), vertices.ToArray(), indices, Array.Empty<MeshTexture>(), material);
         }
 
-        public static Model Plane(float halfX, float halfY, 
-            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Plane(float halfExtentX, float halfExtentY, MeshMaterial material, Matrix4 transform = default)
         {
             var vertices = new List<MeshVertex>();
             for (int z = -1; z <= 1; z += 2)
             {
                 for (int x = -1; x <= 1; x += 2)
                 {
-                    vertices.Add(new MeshVertex { Position = new Vector3(x * halfX, 0.0f, z * halfY), Normal = Vector3.UnitY });
+                    var position = new Vector3(x * halfExtentX, 0.0f, z * halfExtentY);
+                    vertices.Add(new MeshVertex { Position = position, Normal = Vector3.UnitY });
                 }
             }
 
@@ -93,14 +68,17 @@ namespace Logic
                 0, 1, 2, 1, 2, 3
             };
 
-            return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
+            return new Mesh(nameof(Plane), vertices.ToArray(), indices, Array.Empty<MeshTexture>(), material);
         }
 
-        public static Model Cube(float halfX, float halfY, float halfZ, 
-            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
-        {
-            var size = new Vector3(halfX, halfY, halfZ);
+        public static Mesh Cube(float halfExtent, MeshMaterial material, Matrix4 state = default) =>
+            Cube(halfExtent, halfExtent, halfExtent, material, state);
 
+        public static Mesh Cube(BulletSharp.Math.Vector3 size, MeshMaterial material, Matrix4 state = default) =>
+            Cube(size.X, size.Y, size.Z, material, state);
+
+        public static Mesh Cube(float halfExtentX, float halfExtentY, float halfExtentZ, MeshMaterial material, Matrix4 transform = default)
+        {
             var vertices = new List<MeshVertex>();
             for (int z = -1; z <= 1; z += 2)
             {
@@ -108,7 +86,7 @@ namespace Logic
                 {
                     for (int x = -1; x <= 1; x += 2)
                     {
-                        var position = new Vector3(x, y, z) * size;
+                        var position = new Vector3(x * halfExtentX, y * halfExtentY, z * halfExtentZ);
                         vertices.Add(new MeshVertex { Position = position, Normal = x * Vector3.UnitX });
                         vertices.Add(new MeshVertex { Position = position, Normal = y * Vector3.UnitY });
                         vertices.Add(new MeshVertex { Position = position, Normal = z * Vector3.UnitZ });
@@ -120,22 +98,21 @@ namespace Logic
             {
                 // X ortho faces
                 0, 6, 12, 6, 12, 18,
-                3, 9, 15, 9, 15, 21, 
+                3, 9, 15, 9, 15, 21,
 
                 // Y ortho faces
                 1, 4, 13, 4, 13, 16,
-                7, 10, 19, 10, 19, 22, 
+                7, 10, 19, 10, 19, 22,
 
                 // Z ortho faces
                 2, 5, 8, 5, 8, 11,
                 14, 17, 20, 17, 20, 23
             };
 
-            return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
+            return new Mesh(nameof(Cube), vertices.ToArray(), indices, Array.Empty<MeshTexture>(), material);
         }
 
-        public static Model Sphere(float radius, uint stackCount, uint sectorCount, 
-            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material, Matrix4 transform = default)
         {
             float radiusInv = 1.0f / radius;
             float pi2 = (float)Math.PI / 2;
@@ -196,15 +173,16 @@ namespace Logic
                 }
             }
 
-            // return a model
-            return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
+            return new Mesh(nameof(Sphere), vertices.ToArray(), indices.ToArray(), Array.Empty<MeshTexture>(), material);
         }
 
-        public static Mesh Cylinder(float radius, float extentDown, float extentUp, int circleCount, 
-            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Cylinder(float radius, float halfLength, uint sectorCount, MeshMaterial material, Matrix4 transform = default)
         {
+            var origin = transform.ExtractTranslation();
+
             float radiusInv = 1.0f / radius;
-            float angleStep = 2 * (float)Math.PI / circleCount;
+            float angleStep = 2 * (float)Math.PI / sectorCount;
+            var heightVec = new Vector3(0, halfLength, 0);
 
             // the order of the vertices:
             // [L, U, LC1, UC1, LS1, US1, LC2, UC2, LS2, US2, ...],
@@ -218,30 +196,28 @@ namespace Logic
             var vertices = new List<MeshVertex>
             {
                 // add L and U
-                new MeshVertex { Position = new Vector3(0, -extentDown, 0), Normal = -Vector3.UnitY },
-                new MeshVertex { Position = new Vector3(0, extentUp, 0), Normal = Vector3.UnitY }
+                new MeshVertex { Position = origin - heightVec, Normal = -Vector3.UnitY },
+                new MeshVertex { Position = origin + heightVec, Normal = Vector3.UnitY }
             };
 
             float angle, cos, sin;
-            for (int i = 0; i <= circleCount; i++)
+            for (int i = 0; i <= sectorCount; i++)
             {
                 angle = i * angleStep;
                 cos = radius * (float)Math.Cos(angle);
                 sin = radius * (float)Math.Sin(angle);
 
-                // add LCi and UCi
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extentDown, sin), Normal = -Vector3.UnitY });
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, extentUp, sin), Normal = Vector3.UnitY });
-
-                // add LSi and USi
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, -extentDown, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
-                vertices.Add(new MeshVertex { Position = new Vector3(cos, extentUp, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+                var radiusVec = new Vector3(cos, 0.0f, sin);
+                vertices.Add(new MeshVertex { Position = origin - heightVec + radiusVec, Normal = -Vector3.UnitY });  // LCi
+                vertices.Add(new MeshVertex { Position = origin + heightVec + radiusVec, Normal = Vector3.UnitY });  // UCi
+                vertices.Add(new MeshVertex { Position = origin - heightVec + radiusVec, Normal = radiusInv * radiusVec });  // LSi
+                vertices.Add(new MeshVertex { Position = origin + heightVec + radiusVec, Normal = radiusInv * radiusVec });  // USi
             }
 
             var indices = new List<uint>();
 
             // lower circle faces
-            for (uint i = 0; i < circleCount; i++)
+            for (uint i = 0; i < sectorCount; i++)
             {
                 indices.Add(0);
                 indices.Add(4 * i + 2);
@@ -249,7 +225,7 @@ namespace Logic
             }
 
             // upper circle faces
-            for (uint i = 0; i < circleCount; i++)
+            for (uint i = 0; i < sectorCount; i++)
             {
                 indices.Add(1);
                 indices.Add(4 * i + 3);
@@ -257,7 +233,7 @@ namespace Logic
             }
 
             // side faces
-            for (uint i = 0; i < circleCount; i++)
+            for (uint i = 0; i < sectorCount; i++)
             {
                 // lower triangle
                 indices.Add(4 * i + 4);
@@ -270,18 +246,15 @@ namespace Logic
                 indices.Add(4 * i + 9);
             }
 
-            //return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
-            return new Mesh("Cylinder", vertices.ToArray(), indices.ToArray(), new MeshTexture[0], material);
+            return new Mesh(nameof(Cylinder), vertices.ToArray(), indices.ToArray(), Array.Empty<MeshTexture>(), material);
         }
 
-        public static Mesh Cone(float radius, float height, int circleCount, 
-            MeshMaterial material, Vector3 origin = default/*, OpenTK.Matrix4 state = default*/, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Cone(float radius, float height, uint sectorCount, MeshMaterial material, Matrix4 transform = default)
         {
-            // cone center should be in the middle
-            origin -= 0.5f * height * Vector3.UnitY;
+            var origin = transform.ExtractTranslation();
 
             float radiusInv = 1.0f / radius;
-            float angleStep = 2 * (float)Math.PI / circleCount;
+            float angleStep = 2 * (float)Math.PI / sectorCount;
 
             // the order of the vertices:
             // [L, U, LC1, LS1, LC2, LS2, ...],
@@ -298,23 +271,21 @@ namespace Logic
             };
 
             float angle, cos, sin;
-            for (int i = 0; i <= circleCount; i++)
+            for (int i = 0; i <= sectorCount; i++)
             {
                 angle = i * angleStep;
                 cos = radius * (float)Math.Cos(angle);
                 sin = radius * (float)Math.Sin(angle);
 
-                // add LCi
-                vertices.Add(new MeshVertex { Position = origin + new Vector3(cos, 0, sin), Normal = -Vector3.UnitY });
-
-                // add LSi
-                vertices.Add(new MeshVertex { Position = origin + new Vector3(cos, 0, sin), Normal = new Vector3(cos * radiusInv, 0, sin * radiusInv) });
+                var radiusVec = new Vector3(cos, 0.0f, sin);
+                vertices.Add(new MeshVertex { Position = origin + radiusVec, Normal = -Vector3.UnitY });  // LCi
+                vertices.Add(new MeshVertex { Position = origin + radiusVec, Normal = radiusInv * radiusVec }); // LSi
             }
 
             var indices = new List<uint>();
 
             // lower circle faces
-            for (uint i = 0; i < circleCount; i++)
+            for (uint i = 0; i < sectorCount; i++)
             {
                 indices.Add(0);
                 indices.Add(2 * i + 2);
@@ -322,18 +293,17 @@ namespace Logic
             }
 
             // side faces
-            for (uint i = 0; i < circleCount; i++)
+            for (uint i = 0; i < sectorCount; i++)
             {
                 indices.Add(1);
                 indices.Add(2 * i + 3);
                 indices.Add(2 * i + 5);
             }
 
-            //return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
-            return new Mesh("Cone", vertices.ToArray(), indices.ToArray(), new MeshTexture[0], material);
+            return new Mesh(nameof(Cone), vertices.ToArray(), indices.ToArray(), Array.Empty<MeshTexture>(), material);
         }
 
-        public static System.Numerics.Vector3[] SpherePointCloud(float radius, System.Numerics.Vector3 center, int pointsNum)
+        /*public static System.Numerics.Vector3[] SpherePointCloud(float radius, System.Numerics.Vector3 center, int pointsNum)
         {
             var data = new System.Numerics.Vector3[pointsNum];
             double x, yPos, y, zPos, z;
@@ -349,6 +319,6 @@ namespace Logic
             }
 
             return data;
-        }
+        }*/
     }
 }

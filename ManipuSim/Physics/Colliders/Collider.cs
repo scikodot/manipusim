@@ -69,7 +69,10 @@ namespace Physics
 
             Body = body;
             Type = type;
-            Model = Primitives.FromCollisionShape(body.CollisionShape, _defaultMaterial);
+            Model = new Model(new Mesh[]
+            {
+                Primitives.FromCollisionShape(body.CollisionShape, _defaultMaterial)
+            });
             CollisionCallback = new CollisionCallback(body, null);
 
             Model.Update(State.ToOpenTK());

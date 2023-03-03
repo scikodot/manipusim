@@ -551,7 +551,11 @@ namespace Graphics
             var manipulator = ManipulatorHandler.CreateDefaultManipulator();
 
             // create new model for the manipulator goal
-            _goalModels.Add(Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK3()))));
+            var state = Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK3()));
+            _goalModels.Add(new Model(new Mesh[]
+            {
+                Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, state)
+            }));
         }
         #endregion
 

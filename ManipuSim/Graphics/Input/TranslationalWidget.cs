@@ -46,14 +46,14 @@ namespace Graphics
 
                 return new Model(new Mesh[]
                 {
-                    Primitives.Cylinder(0.01f, 0, 1f, 20, new MeshMaterial
+                    Primitives.Cylinder(0.01f, 0.45f, 20, new MeshMaterial
                     {
                         Diffuse = color
-                    }),
+                    }, Matrix4.CreateTranslation(0.45f * Vector3.UnitY)),
                     Primitives.Cone(0.05f, 0.2f, 20, new MeshMaterial
                     {
                         Diffuse = color
-                    }, Vector3.UnitY)
+                    }, Matrix4.CreateTranslation(0.9f * Vector3.UnitY))
                 }, align * Matrix4.CreateScale(_scale));
             }
 

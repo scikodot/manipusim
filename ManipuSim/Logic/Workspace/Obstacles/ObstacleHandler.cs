@@ -66,15 +66,21 @@ namespace Logic
             var obstacle = shape switch
             {
                 ObstacleShape.Box => new Obstacle(
-                    Primitives.Cube(0.5f, 0.5f, 0.5f, _defaultMaterial),
-                    _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new BoxShape(0.5f, 0.5f, 0.5f))),
+                    new Model(new Mesh[]
+                    {
+                        Primitives.Cube(0.5f, _defaultMaterial)
+                    }),
+                    _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new BoxShape(0.5f))),
                 ObstacleShape.Sphere => new Obstacle(
-                    Primitives.Sphere(0.5f, 50, 50, _defaultMaterial),
+                    new Model(new Mesh[]
+                    {
+                        Primitives.Sphere(0.5f, 50, 50, _defaultMaterial)
+                    }),
                     _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new SphereShape(0.5f))),
                 ObstacleShape.Cylinder => new Obstacle(
                     new Model(new Mesh[]
                     {
-                        Primitives.Cylinder(0.25f, 1f, 1f, 50, _defaultMaterial)
+                        Primitives.Cylinder(0.25f, 1f, 50, _defaultMaterial)
                     }),
                     _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new CylinderShape(0.25f, 1f, 0.25f))),
                 ObstacleShape.Cone => new Obstacle(

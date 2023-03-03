@@ -12,15 +12,25 @@ namespace Logic
 {
     public class Ground : IDisposable
     {
-        public Model GridModel { get; } = Primitives.Grid(21, 1, MeshMaterial.White);
-        public Model GroundModel { get; } = Primitives.Plane(10, 10, new MeshMaterial
-        {
-            Diffuse = new OpenTK.Mathematics.Vector4(1.0f, 1.0f, 1.0f, 0.5f)
-        });
+        public Model GroundModel { get; }
+        public Model GridModel { get; }
         public Collider Collider { get; }
 
         public Ground(Collider collider)
         {
+            GridModel = new Model(new Mesh[]
+            {
+                Primitives.Grid(21, 1, MeshMaterial.White)
+            });
+
+            GroundModel = new Model(new Mesh[]
+            {
+                Primitives.Plane(10, 10, new MeshMaterial
+                {
+                    Diffuse = new OpenTK.Mathematics.Vector4(1.0f, 1.0f, 1.0f, 0.5f)
+                })
+            });
+
             Collider = collider;
         }
 
