@@ -8,6 +8,9 @@ using BulletSharp;
 
 namespace Logic
 {
+    // TODO: some methods return Model, while others return Mesh; 
+    // presumably they should all return Mesh for flexibility, i.e. for composing Model of multiple meshes?
+    // (see TranslationalWidget.Axis ctor)
     public static class Primitives  // TODO: refactor!!!
     {
         public static Model FromCollisionShape(CollisionShape shape, MeshMaterial material)
@@ -46,115 +49,103 @@ namespace Logic
                 throw new ArgumentException("Unknown collision shape.");
         }
 
-        public static Model Grid(int lines, float stride, MeshMaterial material, OpenTK.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Grid(int lines, float stride, 
+            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
-            float lineLengthHalf = (lines - 1) * stride / 2;
+            float lineHalfLength = (lines - 1) * stride / 2;
 
             var vertices = new List<MeshVertex>();
+            float current;
             for (int i = 0; i < lines; i++)
             {
-                var current = -lineLengthHalf + i * stride;
-
-                // Z parallel lines
-                vertices.Add(new MeshVertex { Position = new Vector3(current, 0, -lineLengthHalf), Normal = Vector3.UnitY });
-                vertices.Add(new MeshVertex { Position = new Vector3(current, 0, lineLengthHalf), Normal = Vector3.UnitY });
+                current = -lineHalfLength + i * stride;
 
                 // X parallel lines
-                vertices.Add(new MeshVertex { Position = new Vector3(-lineLengthHalf, 0, current), Normal = Vector3.UnitY });
-                vertices.Add(new MeshVertex { Position = new Vector3(lineLengthHalf, 0, current), Normal = Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(-lineHalfLength, 0, current), Normal = Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(lineHalfLength, 0, current), Normal = Vector3.UnitY });
+
+                // Z parallel lines
+                vertices.Add(new MeshVertex { Position = new Vector3(current, 0, -lineHalfLength), Normal = Vector3.UnitY });
+                vertices.Add(new MeshVertex { Position = new Vector3(current, 0, lineHalfLength), Normal = Vector3.UnitY });
             }
 
             var indices = new uint[vertices.Count];
             for (uint i = 0; i < indices.Length; i++)
-            {
                 indices[i] = i;
-            }
 
             return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
         }
 
-        public static Model Plane(float width, float height, MeshMaterial material, OpenTK.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Plane(float halfX, float halfY, 
+            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
-            var vertices = new MeshVertex[]
+            var vertices = new List<MeshVertex>();
+            for (int z = -1; z <= 1; z += 2)
             {
-                new MeshVertex { Position = new Vector3(-width, 0.0f, -height), Normal = Vector3.UnitY },
-                new MeshVertex { Position = new Vector3(width, 0.0f, -height), Normal = Vector3.UnitY },
-                new MeshVertex { Position = new Vector3(-width, 0.0f, height), Normal = Vector3.UnitY },
-                new MeshVertex { Position = new Vector3(width, 0.0f, height), Normal = Vector3.UnitY }
-            };
+                for (int x = -1; x <= 1; x += 2)
+                {
+                    vertices.Add(new MeshVertex { Position = new Vector3(x * halfX, 0.0f, z * halfY), Normal = Vector3.UnitY });
+                }
+            }
 
             var indices = new uint[]
             {
                 0, 1, 2, 1, 2, 3
             };
 
-            return new Model(vertices, indices, material, state, renderFlags: renderFlags);
+            return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
         }
 
-        public static Model Cube(float halfX, float halfY, float halfZ, MeshMaterial material, OpenTK.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Cube(float halfX, float halfY, float halfZ, 
+            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
-            var vertices = new List<MeshVertex>();
+            var size = new Vector3(halfX, halfY, halfZ);
 
-            float x, y, z;
-            foreach (var sign in new int[] { -1, 1 })
+            var vertices = new List<MeshVertex>();
+            for (int z = -1; z <= 1; z += 2)
+            {
+                for (int y = -1; y <= 1; y += 2)
+                {
+                    for (int x = -1; x <= 1; x += 2)
+                    {
+                        var position = new Vector3(x, y, z) * size;
+                        vertices.Add(new MeshVertex { Position = position, Normal = x * Vector3.UnitX });
+                        vertices.Add(new MeshVertex { Position = position, Normal = y * Vector3.UnitY });
+                        vertices.Add(new MeshVertex { Position = position, Normal = z * Vector3.UnitZ });
+                    }
+                }
+            }
+
+            var indices = new uint[]
             {
                 // X ortho faces
-                x = sign * halfX;
-                vertices.Add(new MeshVertex { Position = new Vector3(x, halfY, halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
-                vertices.Add(new MeshVertex { Position = new Vector3(x, halfY, -halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
-                vertices.Add(new MeshVertex { Position = new Vector3(x, -halfY, halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
-                vertices.Add(new MeshVertex { Position = new Vector3(x, -halfY, -halfZ), Normal = new Vector3(sign, 0.0f, 0.0f) });
+                0, 6, 12, 6, 12, 18,
+                3, 9, 15, 9, 15, 21, 
 
                 // Y ortho faces
-                y = sign * halfY;
-                vertices.Add(new MeshVertex { Position = new Vector3(halfX, y, halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
-                vertices.Add(new MeshVertex { Position = new Vector3(halfX, y, -halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
-                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, y, halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
-                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, y, -halfZ), Normal = new Vector3(0.0f, sign, 0.0f) });
+                1, 4, 13, 4, 13, 16,
+                7, 10, 19, 10, 19, 22, 
 
                 // Z ortho faces
-                z = sign * halfZ;
-                vertices.Add(new MeshVertex { Position = new Vector3(halfX, halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
-                vertices.Add(new MeshVertex { Position = new Vector3(halfX, -halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
-                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
-                vertices.Add(new MeshVertex { Position = new Vector3(-halfX, -halfY, z), Normal = new Vector3(0.0f, 0.0f, sign) });
-            }
+                2, 5, 8, 5, 8, 11,
+                14, 17, 20, 17, 20, 23
+            };
 
-            var indices = new List<uint>();
-
-            uint k;
-            for (uint i = 0; i < 6; i++)
-            {
-                k = 4 * i;
-
-                // lower triangle
-                indices.Add(k);
-                indices.Add(k + 1);
-                indices.Add(k + 2);
-
-                // upper triangle
-                indices.Add(k + 1);
-                indices.Add(k + 2);
-                indices.Add(k + 3);
-            }
-
-            return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
+            return new Model(vertices.ToArray(), indices, material, state, renderFlags: renderFlags);
         }
 
-        public static Model Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material, OpenTK.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Model Sphere(float radius, uint stackCount, uint sectorCount, 
+            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float radiusInv = 1.0f / radius;
             float pi2 = (float)Math.PI / 2;
-
-            var vertices = new List<MeshVertex>();
-
-            float x, y, z, xy;  // positions
-            float nx, ny, nz;  // normals
-            //float s, t;  //textures
-
             float stackStep = (float)Math.PI / stackCount;
             float sectorStep = 2 * (float)Math.PI / sectorCount;
+
+            var vertices = new List<MeshVertex>();
             float stackAngle, sectorAngle;
+            float x, y, z, xy;  // positions
+            //float s, t;  //textures
             for (int i = 0; i <= stackCount; i++)
             {
                 stackAngle = pi2 - i * stackStep;
@@ -164,30 +155,23 @@ namespace Logic
                 for (int j = 0; j <= sectorCount; j++)
                 {
                     sectorAngle = j * sectorStep;
-
-                    // positions
                     x = xy * (float)Math.Cos(sectorAngle);
                     y = xy * (float)Math.Sin(sectorAngle);
-
-                    // normals
-                    nx = x * radiusInv;
-                    ny = y * radiusInv;
-                    nz = z * radiusInv;
 
                     // textures
                     //s = (float)j / sectorCount;
                     //t = (float)i / stackCount;
 
+                    var position = new Vector3(x, y, z);
                     vertices.Add(new MeshVertex
                     {
-                        Position = new Vector3(x, y, z),
-                        Normal = new Vector3(nx, ny, nz)
+                        Position = position,
+                        Normal = radiusInv * position
                     });
                 }
             }
 
             var indices = new List<uint>();
-
             uint k1, k2;
             for (uint i = 0; i < stackCount; i++)
             {
@@ -216,7 +200,8 @@ namespace Logic
             return new Model(vertices.ToArray(), indices.ToArray(), material, state, renderFlags: renderFlags);
         }
 
-        public static Mesh Cylinder(float radius, float extentDown, float extentUp, int circleCount, MeshMaterial material, OpenTK.Mathematics.Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Cylinder(float radius, float extentDown, float extentUp, int circleCount, 
+            MeshMaterial material, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
         {
             float radiusInv = 1.0f / radius;
             float angleStep = 2 * (float)Math.PI / circleCount;
@@ -289,7 +274,8 @@ namespace Logic
             return new Mesh("Cylinder", vertices.ToArray(), indices.ToArray(), new MeshTexture[0], material);
         }
 
-        public static Mesh Cone(float radius, float height, int circleCount, MeshMaterial material, Vector3 origin = default/*, OpenTK.Matrix4 state = default*/, RenderFlags renderFlags = RenderFlags.Solid)
+        public static Mesh Cone(float radius, float height, int circleCount, 
+            MeshMaterial material, Vector3 origin = default/*, OpenTK.Matrix4 state = default*/, RenderFlags renderFlags = RenderFlags.Solid)
         {
             // cone center should be in the middle
             origin -= 0.5f * height * Vector3.UnitY;
