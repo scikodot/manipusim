@@ -91,7 +91,7 @@ namespace Graphics
             _parent = parent;
 
             // widgets
-            _translationalWidget = new TranslationalWidget(Vector3.Zero);
+            _translationalWidget = new TranslationalWidget();
 
             // subscribe widgets to the events
             SelectedObjectChanged += _translationalWidget.OnSelectedObjectChanged;

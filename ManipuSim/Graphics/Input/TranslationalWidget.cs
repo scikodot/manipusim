@@ -3,12 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 
 using OpenTK.Mathematics;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using Logic;
-
-using Matrix4 = OpenTK.Mathematics.Matrix4;
-using Assimp;
 
 namespace Graphics
 {
@@ -17,44 +13,49 @@ namespace Graphics
         private class Axis : IDisposable
         {
             private const float _scaleFactor = 0.15f;  // determines a constant axis size on the screen
+            private const float _tipRadius = 0.05f;
+            private const float _tipLength = 0.2f;
+            private const float _shaftRadius = 0.01f;
 
             private readonly Model _model;
             private Vector3 _offset;
-            private float _scale;
 
-            public Vector3 Origin { get; private set; }
-            public Vector3 Direction { get; private set; }
-            public Vector3 End { get; private set; }
+            private Vector3 _origin;
+            public Vector3 Origin => _origin;
 
-            public Axis(Vector3 origin, Vector3 direction, Vector4 color)
+            private Vector3 _direction;
+            public Vector3 Direction => _direction;
+
+            private float _length;
+            private float _approxSphereRadius;  // radius of an approximation sphere of the axis tip
+            public Vector3 Tip => _origin + _length * _direction;
+
+            public Axis(Vector3 direction, Vector4 color)
             {
-                Origin = origin;
-                Direction = direction.Normalized();
+                _direction = direction.Normalized();
+                _length = 1f;
+                _approxSphereRadius = (_tipRadius * _tipRadius + _tipLength * _tipLength) / (2f * _tipLength);
 
-                _scale = _scaleFactor;
-                End = Origin + _scale * Direction;
-
-                _model = CreateModel(Origin, Direction, color);
-            }
-
-            public Model CreateModel(Vector3 origin, Vector3 direction, Vector4 color)
-            {
                 // TODO: create Align method for matrices, the same as for quaternions
-                Matrix4 align = Matrix4.CreateTranslation(origin);
+                Matrix4 align = Matrix4.CreateTranslation(_origin);
                 if (direction != Vector3.UnitY)
                     align *= Matrix4.CreateFromAxisAngle(Vector3.Cross(Vector3.UnitY, direction), (float)Math.Acos(Vector3.Dot(Vector3.UnitY, direction)));
 
-                return new Model(new Mesh[]
+                var shaftHalfLength = (1f - _tipLength + _approxSphereRadius) / 2f;
+                _model = new Model(new Mesh[]
                 {
-                    Primitives.Cylinder(0.01f, 0.45f, 20, new MeshMaterial
+                    Primitives.Cylinder(_shaftRadius, shaftHalfLength, 20, new MeshMaterial
                     {
                         Diffuse = color
-                    }, Matrix4.CreateTranslation(0.45f * Vector3.UnitY)),
-                    Primitives.Cone(0.05f, 0.2f, 20, new MeshMaterial
+                    }, Matrix4.CreateTranslation(shaftHalfLength * Vector3.UnitY)),
+                    Primitives.Cone(_tipRadius, _tipLength, 20, new MeshMaterial
                     {
                         Diffuse = color
-                    }, Matrix4.CreateTranslation(0.9f * Vector3.UnitY))
-                }, align * Matrix4.CreateScale(_scale));
+                    }, Matrix4.CreateTranslation(2f * shaftHalfLength * Vector3.UnitY))
+                }, align * Matrix4.CreateScale(_scaleFactor));
+
+                _length *= _scaleFactor;
+                _approxSphereRadius *= _scaleFactor;
             }
 
             public void SetOrigin(Vector3 origin)
@@ -67,49 +68,45 @@ namespace Graphics
                 _model.Render(shader, action);
             }
 
-            public void Translate(Vector3 translation)
-            {
-                // update edge points
-                Origin += translation;
-                End += translation;
-
-                // update axis model
-                ref var model = ref _model.State;
-                model.M41 += translation.X;
-                model.M42 += translation.Y;
-                model.M43 += translation.Z;
-            }
-
             public void Scale(Vector3 cameraPosition)
             {
-                // get the new scale
-                var scale = _scaleFactor * (cameraPosition - Origin).Length;
-
-                // hasn't changed -> no need to update
-                if (scale == _scale)
+                var length = _scaleFactor * (cameraPosition - Origin).Length;
+                if (length == _length)
                     return;
 
-                // scale axis points
-                End = Origin + scale * Direction;
+                var state = _model.State;
+                var scale = length / _length;
+                state.Row0 *= scale;
+                state.Row1 *= scale;
+                state.Row2 *= scale;
+                _model.Update(state);
 
-                // scale axis model
-                ref var modelX = ref _model.State;
-                modelX = Matrix4.CreateScale(scale / _scale) * modelX;
+                _length = length;
+                _approxSphereRadius *= scale;
+            }
 
-                // save the new scale
-                _scale = scale;
+            public void Translate(Vector3 translation)
+            {
+                if (translation == Vector3.Zero)
+                    return;
+
+                _origin += translation;
+
+                var state = _model.State;
+                state.Row3.Xyz += translation;
+                _model.Update(state);
             }
 
             public void Setup(Ray ray)
             {
                 // memoize the offset of the cursor from the axis tip
-                _offset = GetAxisCursorIntersection(ray) - End;
+                _offset = GetAxisCursorIntersection(ray) - Tip;
             }
 
             public Vector3 Poll(Ray ray)
             {
                 // get world space translation for the axis
-                return GetAxisCursorIntersection(ray) - End - _offset;
+                return GetAxisCursorIntersection(ray) - Tip - _offset;
             }
 
             private Vector3 GetAxisCursorIntersection(Ray ray)
@@ -160,28 +157,27 @@ namespace Graphics
                 // but it requires an additional method LineConeIntersection() to be implemented
 
                 // find the distance between the axis tip (sphere approx) and a ray
-                var origin = Origin + Direction * _scale;
                 var distance = Geometry.PointLineDistance(
-                    origin.ToNumerics3(), 
+                    Tip.ToNumerics3(), 
                     ray.StartWorld.ToNumerics3(), 
                     ray.Direction.ToNumerics3());
 
                 // priority is the distance between the axis tip and a ray's origin, 
                 // but it is only defined if the ray comes close enough to the tip
-                bool prioritized = distance <= 0.1f * _scale;
-                priority = prioritized ? (origin - ray.StartWorld.Xyz).Length : float.MaxValue;
+                bool prioritized = distance <= _approxSphereRadius;
+                priority = prioritized ? (Tip - ray.StartWorld.Xyz).Length : float.MaxValue;
 
                 return prioritized;
             }
 
-            public (Vector3, Vector3) Project(ref Matrix4 view, ref Matrix4 proj)
+            /*public (Vector3, Vector3) Project(ref Matrix4 view, ref Matrix4 proj)
             {
                 // transform end point to NDC
                 var viewProj = view * proj;
                 var originProj = new Vector4(Origin, 1.0f) * viewProj;
-                var endProj = new Vector4(End, 1.0f) * viewProj;
+                var endProj = new Vector4(Tip, 1.0f) * viewProj;
                 return ((endProj / endProj.W).Xyz, (originProj / originProj.W).Xyz);
-            }
+            }*/
 
             public void Dispose()
             {
@@ -202,12 +198,12 @@ namespace Graphics
         public bool IsAttached => _parent != null;
         public bool IsActive => _activeAxis != null;
 
-        public TranslationalWidget(Vector3 origin)
+        public TranslationalWidget()
         {
             // standard right-handed system with RGB color scheme
-            _axisX = new Axis(origin, new Vector3(1, 0, 0), new Vector4(1, 0, 0, 1));
-            _axisY = new Axis(origin, new Vector3(0, 1, 0), new Vector4(0, 1, 0, 1));
-            _axisZ = new Axis(origin, new Vector3(0, 0, 1), new Vector4(0, 0, 1, 1));
+            _axisX = new Axis(Vector3.UnitX, new Vector4(1, 0, 0, 1));
+            _axisY = new Axis(Vector3.UnitY, new Vector4(0, 1, 0, 1));
+            _axisZ = new Axis(Vector3.UnitZ, new Vector4(0, 0, 1, 1));
         }
 
         public void Render(Shader shader, Action action)
