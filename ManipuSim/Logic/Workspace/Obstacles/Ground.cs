@@ -1,6 +1,7 @@
 ﻿using BulletSharp;
 using Graphics;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using Physics;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,9 @@ namespace Logic
 {
     public class Ground : IDisposable
     {
+        private readonly static MeshMaterial _defaultGroundMaterial = new() { Diffuse = new(1.0f, 1.0f, 1.0f, 0.5f) };
+        private readonly static MeshMaterial _defaultGridMaterial = new() { Diffuse = Color4.White };
+
         public Model GroundModel { get; }
         public Model GridModel { get; }
         public Collider Collider { get; }
@@ -20,15 +24,12 @@ namespace Logic
         {
             GridModel = new Model(new Mesh[]
             {
-                Primitives.Grid(21, 1, MeshMaterial.White)
+                Primitives.Grid(21, 1, _defaultGridMaterial)
             });
 
             GroundModel = new Model(new Mesh[]
             {
-                Primitives.Plane(10, 10, new MeshMaterial
-                {
-                    Diffuse = new OpenTK.Mathematics.Vector4(1.0f, 1.0f, 1.0f, 0.5f)
-                })
+                Primitives.Plane(10, 10, _defaultGroundMaterial)
             });
 
             Collider = collider;

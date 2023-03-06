@@ -48,7 +48,7 @@ namespace Logic
             for (uint i = 0; i < indices.Length; i++)
                 indices[i] = i;
 
-            return new Mesh(nameof(Grid), vertices.ToArray(), indices, Array.Empty<MeshTexture>(), material);
+            return new Mesh(vertices.ToArray(), indices, material: material);
         }
 
         public static Mesh Plane(float halfExtentX, float halfExtentY, MeshMaterial material, Matrix4 transform = default)
@@ -68,7 +68,7 @@ namespace Logic
                 0, 1, 2, 1, 2, 3
             };
 
-            return new Mesh(nameof(Plane), vertices.ToArray(), indices, Array.Empty<MeshTexture>(), material);
+            return new Mesh(vertices.ToArray(), indices, material: material);
         }
 
         public static Mesh Cube(float halfExtent, MeshMaterial material, Matrix4 state = default) =>
@@ -109,7 +109,7 @@ namespace Logic
                 14, 17, 20, 17, 20, 23
             };
 
-            return new Mesh(nameof(Cube), vertices.ToArray(), indices, Array.Empty<MeshTexture>(), material);
+            return new Mesh(vertices.ToArray(), indices, material: material);
         }
 
         public static Mesh Sphere(float radius, uint stackCount, uint sectorCount, MeshMaterial material, Matrix4 transform = default)
@@ -173,7 +173,7 @@ namespace Logic
                 }
             }
 
-            return new Mesh(nameof(Sphere), vertices.ToArray(), indices.ToArray(), Array.Empty<MeshTexture>(), material);
+            return new Mesh(vertices.ToArray(), indices.ToArray(), material: material);
         }
 
         public static Mesh Cylinder(float radius, float halfLength, uint sectorCount, MeshMaterial material, Matrix4 transform = default)
@@ -246,7 +246,7 @@ namespace Logic
                 indices.Add(4 * i + 9);
             }
 
-            return new Mesh(nameof(Cylinder), vertices.ToArray(), indices.ToArray(), Array.Empty<MeshTexture>(), material);
+            return new Mesh(vertices.ToArray(), indices.ToArray(), material: material);
         }
 
         public static Mesh Cone(float radius, float height, uint sectorCount, MeshMaterial material, Matrix4 transform = default)
@@ -300,7 +300,7 @@ namespace Logic
                 indices.Add(2 * i + 5);
             }
 
-            return new Mesh(nameof(Cone), vertices.ToArray(), indices.ToArray(), Array.Empty<MeshTexture>(), material);
+            return new Mesh(vertices.ToArray(), indices.ToArray(), material: material);
         }
 
         /*public static System.Numerics.Vector3[] SpherePointCloud(float radius, System.Numerics.Vector3 center, int pointsNum)

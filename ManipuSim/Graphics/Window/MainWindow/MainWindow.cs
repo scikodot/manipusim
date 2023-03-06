@@ -485,7 +485,8 @@ namespace Graphics
                     // update goals positions
                     for (int i = 0; i < ManipulatorHandler.Count; i++)
                     {
-                        _goalModels[i].State = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK3());
+                        var state = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK3());
+                        _goalModels[i].Update(state);
 
                         foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
                         {
@@ -554,7 +555,7 @@ namespace Graphics
             var state = Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK3()));
             _goalModels.Add(new Model(new Mesh[]
             {
-                Primitives.Sphere(0.05f, 5, 5, MeshMaterial.Yellow, state)
+                Primitives.Sphere(0.05f, 5, 5, new MeshMaterial { Diffuse = Color4.Yellow }, state)
             }));
         }
         #endregion
@@ -617,6 +618,8 @@ namespace Graphics
             {
                 goal.Dispose();
             }
+
+            // TODO: wait for the Dispatcher to process all disposal actions!
 
             // free buffers and program
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);

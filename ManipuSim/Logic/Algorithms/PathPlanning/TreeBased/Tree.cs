@@ -78,12 +78,12 @@ namespace Logic.PathPlanning
 
                 // create an empty model with the specified max buffer size and material
                 Model = new Model(new MeshVertex[tree.MaxSize], new uint[2 * (tree.MaxSize - 1)], 
-                    new MeshMaterial { Diffuse = new OpenTK.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
+                    new MeshMaterial { Diffuse = new OpenTK.Mathematics.Color4(_color.X, _color.Y, _color.Z, 1.0f) });
             }
 
             public void SetColor(Vector3 color)
             {
-                Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenTK.Mathematics.Vector4(color.X, color.Y, color.Z, 1.0f) };
+                Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenTK.Mathematics.Color4(color.X, color.Y, color.Z, 1.0f) };
             }
 
             public void Render(Shader shader)

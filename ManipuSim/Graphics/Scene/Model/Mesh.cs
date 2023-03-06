@@ -11,21 +11,24 @@ namespace Graphics
 {
     public struct MeshVertex
     {
-        public static int Size => Marshal.SizeOf<MeshVertex>();
+        public static readonly int Size = Marshal.SizeOf<MeshVertex>();
+        public static readonly IntPtr NormalOffset = Marshal.OffsetOf<MeshVertex>("Normal");
+        public static readonly IntPtr TexCoordsOffset = Marshal.OffsetOf<MeshVertex>("TexCoords");
 
         public Vector3 Position;
         public Vector3 Normal;
         public Vector2 TexCoords;
 
-        public static MeshVertex[] Convert(IEnumerable<System.Numerics.Vector3> vertices)
+        /*public static MeshVertex[] Convert(IEnumerable<System.Numerics.Vector3> vertices)
         {
             return vertices.Select(v => new MeshVertex
             {
                 Position = new Vector3(v.X, v.Y, v.Z)
             }).ToArray();
-        }
+        }*/
     }
 
+    // TODO: revisit
     // reference has to be hold for texture generation in GL.GenTextures() in main thread => class instead of struct;
     // see TextureFromFile() in Model class
     public class MeshTexture
@@ -37,88 +40,76 @@ namespace Graphics
 
     public struct MeshMaterial  // TODO: consider using readonly refs
     {
-        public static MeshMaterial Black => new MeshMaterial { Diffuse = Vector4.UnitW };
-        public static MeshMaterial Red => new MeshMaterial { Diffuse = new Vector4(1.0f, 0.0f, 0.0f, 1.0f) };
-        public static MeshMaterial Green => new MeshMaterial { Diffuse = new Vector4(0.0f, 1.0f, 0.0f, 1.0f) };
-        public static MeshMaterial Blue => new MeshMaterial { Diffuse = new Vector4(0.0f, 0.0f, 1.0f, 1.0f) };
-        public static MeshMaterial Yellow => new MeshMaterial { Diffuse = new Vector4(1.0f, 1.0f, 0.0f, 1.0f) };
-        public static MeshMaterial Pink => new MeshMaterial { Diffuse = new Vector4(1.0f, 0.0f, 1.0f, 1.0f) };
-        public static MeshMaterial Cyan => new MeshMaterial { Diffuse = new Vector4(0.0f, 1.0f, 1.0f, 1.0f) };
-        public static MeshMaterial White => new MeshMaterial { Diffuse = Vector4.One };
-
-        public static MeshMaterial Brown => new MeshMaterial { Diffuse = new Vector4(0.6f, 0.2f, 0.08f, 1.0f) };
-
-        public Vector4 Ambient;
-        public Vector4 Diffuse;
-        public Vector4 Specular;
+        public Color4 Ambient;
+        public Color4 Diffuse;
+        public Color4 Specular;
         public float Shininess;
     }
 
     public class Mesh : IDisposable
     {
-        private int VAO, VBO, EBO;
-        public bool IsSetup { get; private set; }
+        private readonly static MeshMaterial _defaultMaterial = new() { Diffuse = Color4.Yellow };
 
-        public string Name { get; }
+        private int VAO, VBO, EBO;
 
         public MeshVertex[] Vertices { get; }
         public uint[] Indices { get; }
         public MeshTexture[] Textures { get; }
         public MeshMaterial Material { get; set; }
+        public string Name { get; }
+        public bool IsSetup { get; private set; }
 
-        public Mesh(string name, MeshVertex[] vertices, uint[] indices, MeshTexture[] textures, MeshMaterial material)
+        public Mesh(MeshVertex[] vertices, uint[] indices = null, MeshTexture[] textures = null, 
+            MeshMaterial? material = null, string name = null)
         {
-            Name = name;
             Vertices = vertices;
-            Indices = indices;
-            Textures = textures;
-            Material = material;
+            Indices = indices ?? Array.Empty<uint>();
+            Textures = textures ?? Array.Empty<MeshTexture>();
+            Material = material ?? _defaultMaterial;
+            Name = name;
 
-            // setup can be done only on the main thread, holding the GL context;
+            // TODO: indices buffer (EBO) is bound for every Mesh, even for those that do not use indices,
+            // which seems redundant
+
+            // setup can only be done on the main thread, holding the GL context;
             // hence, send necessary actions to dispatcher
             Dispatcher.RenderActions.Enqueue(() =>
             {
-                SetupMesh();
+                // create the array and bind it
+                VAO = GL.GenVertexArray();
+                GL.BindVertexArray(VAO);
+
+                // create the vertex buffer and bind it to the array
+                VBO = GL.GenBuffer();
+                GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
+                GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * MeshVertex.Size, Vertices, BufferUsageHint.StaticDraw);
+
+                // create the indices buffer and bind it to the array
+                EBO = GL.GenBuffer();
+                GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
+                GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Length * sizeof(uint), Indices, BufferUsageHint.StaticDraw);
+
+                // vertex positions
+                GL.EnableVertexAttribArray(0);
+                GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, MeshVertex.Size, 0);
+
+                // vertex normals
+                GL.EnableVertexAttribArray(1);
+                GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, MeshVertex.Size, MeshVertex.NormalOffset);
+
+                // vertex colors; we use materials though, so this one is not used
+                // GL.EnableVertexAttribArray(2);
+                // GL.VertexAttribPointer(2, 4, ...);
+
+                // vertex texture coords
+                GL.EnableVertexAttribArray(3);
+                GL.VertexAttribPointer(3, 2, VertexAttribPointerType.Float, false, MeshVertex.Size, MeshVertex.TexCoordsOffset);
+
+                // unbind the array
+                GL.BindVertexArray(0);
+
+                IsSetup = true;
             });
-
-            /*
-            if (Thread.CurrentThread == MainWindow.MainThread)
-                SetupMesh();
-            else
-            {
-                
-            }*/
-        }
-
-        private void SetupMesh()
-        {
-            VAO = GL.GenVertexArray();
-            VBO = GL.GenBuffer();
-            EBO = GL.GenBuffer();
-
-            GL.BindVertexArray(VAO);
-
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-            GL.BufferData(BufferTarget.ArrayBuffer, Vertices.Length * MeshVertex.Size, Vertices, BufferUsageHint.StaticDraw);
-
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, Indices.Length * sizeof(uint), Indices, BufferUsageHint.StaticDraw);
-
-            // vertex positions
-            GL.EnableVertexAttribArray(0);
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, MeshVertex.Size, 0);
-
-            // vertex normals
-            GL.EnableVertexAttribArray(1);
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, MeshVertex.Size, Marshal.OffsetOf<MeshVertex>("Normal"));
-
-            // vertex texture coords
-            GL.EnableVertexAttribArray(3);
-            GL.VertexAttribPointer(3, 2, VertexAttribPointerType.Float, false, MeshVertex.Size, Marshal.OffsetOf<MeshVertex>("TexCoords"));
-
-            GL.BindVertexArray(0);
-
-            IsSetup = true;
         }
 
         public void UpdateVertices(uint offset, int size, MeshVertex[] vertices)
@@ -166,9 +157,9 @@ namespace Graphics
                 GL.ActiveTexture(TextureUnit.Texture0);
 
                 // set colors
-                shader.SetVector4("material.ambientCol", Material.Ambient);  // TODO: add ref
-                shader.SetVector4("material.diffuseCol", Material.Diffuse);
-                shader.SetVector4("material.specularCol", Material.Specular);
+                shader.SetColor4("material.ambientCol", Material.Ambient);  // TODO: add ref
+                shader.SetColor4("material.diffuseCol", Material.Diffuse);
+                shader.SetColor4("material.specularCol", Material.Specular);
                 shader.SetFloat("material.shininess", Material.Shininess);
 
                 // render mesh
@@ -205,25 +196,10 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        public Mesh DeepCopy()
-        {
-            return new Mesh(Name, Vertices, Indices, Textures, Material);
-        }
+        public Mesh DeepCopy() => new(Vertices, Indices, Textures, Material, Name);
 
         public void Dispose()
         {
-            // dispose the mesh
-            DisposeInner();
-
-            // suppress additional finalization, because all unmanaged resources have already been closed
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void DisposeInner()
-        {
-            // TODO: check for disposed; see documentation
-
-            // clear unmanaged resources
             Dispatcher.RenderActions.Enqueue(() =>
             {
                 GL.DeleteVertexArray(VAO);
@@ -231,15 +207,12 @@ namespace Graphics
                 GL.DeleteBuffer(EBO);
             });
 
+            // TODO: this has to be displayed immediately after the disposal actions (see above) are performed,
+            // not after the Dispatcher receives a request for those actions
+            // TODO: all logging should be centralized, say, in a Logger class
             Console.WriteLine($"Disposed mesh: VAO - {VAO}, VBO - {VBO}");
-        }
 
-        // TODO: finalizer runs AFTER the GL context is already deleted, 
-        // so all buffers have to be freed manually on context destruction!
-        //~Mesh()
-        //{
-        //    // clear all resources if they haven't been cleared by the user
-        //    DisposeInner();
-        //}
+            GC.SuppressFinalize(this);
+        }
     }
 }

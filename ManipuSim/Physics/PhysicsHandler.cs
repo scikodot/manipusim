@@ -187,7 +187,7 @@ namespace Physics
         public void DisposeRigidBody(RigidBody body)
         {
             // first, remove the body from the world
-            RemoveRigidBody(body);  // [legacy] TODO: can crash, perhaps due to a lack of thread sync
+            RemoveRigidBody(body);  // [obsolete] TODO: can crash, perhaps due to a lack of thread sync
 
             // then dipose of the body
             body?.Dispose();

@@ -35,7 +35,7 @@ namespace Logic
 
                 // create an empty model with the specified material
                 Model = new Model(new MeshVertex[_pointsCount], new uint[2 * _pointsCount],
-                    new MeshMaterial { Diffuse = new OpenTK.Mathematics.Vector4(_color.X, _color.Y, _color.Z, 1.0f) });
+                    new MeshMaterial { Diffuse = new OpenTK.Mathematics.Color4(_color.X, _color.Y, _color.Z, 1.0f) });
 
                 float step = 1.0f / (_pointsCount - 1);
                 var vertices = bezierCurve.CalculatePoints(step).Select(p => new MeshVertex { Position = new OpenTK.Mathematics.Vector3(p.X, p.Y, p.Z) });

@@ -7,6 +7,7 @@ using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
 using System.Data;
+using static OpenTK.Graphics.OpenGL.GL;
 
 namespace Graphics
 {
@@ -21,159 +22,120 @@ namespace Graphics
 
     public class Model : IDisposable
     {
-        private static readonly List<MeshTexture> TexturesLoaded = new List<MeshTexture>();
-        public List<Mesh> Meshes { get; private set; } = new List<Mesh>();
-        public bool IsSetup => Meshes.All(mesh => mesh.IsSetup);
+        private static readonly List<MeshTexture> _texturesLoaded = new();
 
-        public string Directory { get; private set; }  // TODO: remove
+        private string _directory;
+
+        public List<Mesh> Meshes { get; } = new();
 
         private Matrix4 _state;
-        public ref Matrix4 State => ref _state;
+        public Matrix4 State => _state;
 
         public RenderFlags RenderFlags { get; set; } = RenderFlags.Solid;
+        public bool IsSetup => Meshes.All(mesh => mesh.IsSetup);
 
-        public Model(MeshVertex[] vertices, uint[] indices = null, MeshMaterial material = default, Matrix4 state = default, string name = "", RenderFlags renderFlags = RenderFlags.Solid)
+        public Model(MeshVertex[] vertices, uint[] indices = null, MeshMaterial? material = null, Matrix4? state = null, 
+            string name = null, RenderFlags renderFlags = RenderFlags.Solid)
         {
-            Meshes.Add(new Mesh(name, vertices, indices ?? new uint[0], new MeshTexture[0], material));  // TODO: perhaps replace empty array with nulls?
+            Meshes.Add(new Mesh(vertices, indices, material: material, name: name));
 
-            State = state == default ? Matrix4.Identity : state;
+            _state = state ?? Matrix4.Identity;
 
             RenderFlags = renderFlags;
         }
 
-        public Model(Mesh[] meshes, Matrix4 state = default, RenderFlags renderFlags = RenderFlags.Solid)
+        public Model(IEnumerable<Mesh> meshes, Matrix4? state = null, RenderFlags renderFlags = RenderFlags.Solid)
         {
             Meshes.AddRange(meshes);
 
-            State = state == default ? Matrix4.Identity : state;
+            _state = state ?? Matrix4.Identity;
 
             RenderFlags = renderFlags;
         }
 
-        // load an arbitrary model, located at the specified path
         public Model(string path)
         {
             LoadModel(path);
         }
 
-        public void Update(Matrix4 state)
-        {
-            State = state;
-        }
-
-        public void Render(Shader shader, Action render = default)
-        {
-            // setup model matrix
-            shader.SetMatrix4("model", ref State);
-
-            foreach (var mesh in Meshes)
-                mesh.Render(shader, RenderFlags, render);
-        }
-
         private void LoadModel(string path)
         {
-            var importer = new AssimpContext();
+            using var importer = new AssimpContext();
             var scene = importer.ImportFile(path, PostProcessSteps.Triangulate | PostProcessSteps.FlipUVs);
-
-            if (scene == null || scene.RootNode == null || (scene.SceneFlags & SceneFlags.Incomplete) == SceneFlags.Incomplete)
+            if (scene?.RootNode == null || scene.SceneFlags.HasFlag(SceneFlags.Incomplete))
             {
                 // TODO: throw exception in case of an unsuccessful scene import
                 return;
             }
 
-            Directory = path.Substring(0, path.LastIndexOfAny(new char[] { '/', '\\' }));
+            _directory = path.Substring(0, path.LastIndexOfAny(new char[] { '/', '\\' }));
 
-            ProcessNode(scene.RootNode, scene);
+            ProcessNode(scene, scene.RootNode);
         }
 
-        private void ProcessNode(Node node, Scene scene)
+        private void ProcessNode(Scene scene, Node node)
         {
-            // process all the node's meshes (if any)
-            for (int i = 0; i < node.MeshCount; i++)
-            {
-                Assimp.Mesh mesh = scene.Meshes[node.MeshIndices[i]];
-                Meshes.Add(ProcessMesh(mesh, scene));
-            }
+            // process all node's meshes, if any
+            foreach (var index in node.MeshIndices)
+                Meshes.Add(ProcessMesh(scene, scene.Meshes[index]));
 
-            // then do the same for each of its children
-            for (int i = 0; i < node.ChildCount; i++)
-            {
-                ProcessNode(node.Children[i], scene);
-            }
+            // process all descendant nodes
+            foreach (var child in node.Children)
+                ProcessNode(scene, child);
         }
 
-        private Mesh ProcessMesh(Assimp.Mesh mesh, Scene scene)
+        private Mesh ProcessMesh(Scene scene, Assimp.Mesh mesh)
         {
+            // process vertices
             var vertices = new List<MeshVertex>();
-            var indices = new List<uint>();
-            var textures = new List<MeshTexture>();
-            var color = new MeshMaterial();
-
             for (int i = 0; i < mesh.VertexCount; i++)
             {
-                var vertex = new MeshVertex();
-
-                // process vertex positions, normals and texture coordinates
-                var pos = mesh.Vertices[i];
-                vertex.Position = new Vector3(pos.X, pos.Y, pos.Z);
-
-                var norm = mesh.Normals[i];
-                vertex.Normal = new Vector3(norm.X, norm.Y, norm.Z);
-
-                if (mesh.HasTextureCoords(0))  // does the mesh contain texture coordinates?
+                var vertex = new MeshVertex
                 {
-                    var tex = mesh.TextureCoordinateChannels[0][i];
-                    vertex.TexCoords = new Vector2(tex.X, tex.Y);
-                }
+                    Position = mesh.Vertices[i].ToOpenTK(),
+                    Normal = mesh.Normals[i].ToOpenTK()
+                };
+
+                // add texture coords if present
+                if (mesh.HasTextureCoords(0))
+                    vertex.TexCoords = mesh.TextureCoordinateChannels[0][i].ToOpenTK().Xy;
 
                 vertices.Add(vertex);
             }
 
             // process indices
-            for (int i = 0; i < mesh.FaceCount; i++)
-            {
-                Face face = mesh.Faces[i];
-                for (int j = 0; j < face.IndexCount; j++)
-                    indices.Add((uint)face.Indices[j]);
-            }
+            var indices = mesh.Faces.SelectMany(face => face.Indices).Select(x => (uint)x);
 
             // process material
+            var textures = new List<MeshTexture>();
+            MeshMaterial? material = null;
             if (mesh.MaterialIndex >= 0)
             {
-                Material material = scene.Materials[mesh.MaterialIndex];
+                Material mat = scene.Materials[mesh.MaterialIndex];
 
-                // get all the needed material textures
-                if (material.HasTextureDiffuse)
+                // get material textures
+                if (mat.HasTextureDiffuse)
                 {
-                    List<MeshTexture> diffuseMaps = LoadMaterialTextures(material, TextureType.Diffuse, "texture_diffuse");
+                    var diffuseMaps = LoadMaterialTextures(mat, TextureType.Diffuse, "texture_diffuse");
                     textures.AddRange(diffuseMaps);
                 }
-                if (material.HasTextureSpecular)
+                if (mat.HasTextureSpecular)
                 {
-                    List<MeshTexture> specularMaps = LoadMaterialTextures(material, TextureType.Specular, "texture_specular");
+                    var specularMaps = LoadMaterialTextures(mat, TextureType.Specular, "texture_specular");
                     textures.AddRange(specularMaps);
                 }
 
-                // get all the needed material colors (default values if they're not presented)
-                color.Ambient = new Vector4(
-                    material.ColorAmbient.R, 
-                    material.ColorAmbient.G, 
-                    material.ColorAmbient.B, 
-                    material.ColorAmbient.A);
-                color.Diffuse = new Vector4(
-                    material.ColorDiffuse.R, 
-                    material.ColorDiffuse.G, 
-                    material.ColorDiffuse.B, 
-                    material.ColorDiffuse.A);
-                color.Specular = new Vector4(
-                    material.ColorSpecular.R, 
-                    material.ColorSpecular.G, 
-                    material.ColorSpecular.B, 
-                    material.ColorSpecular.A);
-                color.Shininess = material.Shininess;
+                // get material color props
+                material = new MeshMaterial
+                {
+                    Ambient = mat.ColorAmbient.ToOpenTK(),
+                    Diffuse = mat.ColorDiffuse.ToOpenTK(),
+                    Specular = mat.ColorSpecular.ToOpenTK(),
+                    Shininess = mat.Shininess
+                };
             }
 
-            return new Mesh(mesh.Name, vertices.ToArray(), indices.ToArray(), textures.ToArray(), color);
+            return new Mesh(vertices.ToArray(), indices.ToArray(), textures.ToArray(), material, mesh.Name);
         }
 
         private List<MeshTexture> LoadMaterialTextures(Material mat, TextureType type, string typeName)
@@ -183,12 +145,12 @@ namespace Graphics
             {
                 mat.GetMaterialTexture(type, i, out TextureSlot slot);
 
-                var texLoaded = TexturesLoaded.Find(t => t.Path == slot.FilePath);
+                var texLoaded = _texturesLoaded.Find(t => t.Path == slot.FilePath);
                 if (texLoaded == null)
                 {
-                    MeshTexture texture = TextureFromFile(slot.FilePath, Directory, typeName);
+                    MeshTexture texture = TextureFromFile(slot.FilePath, _directory, typeName);
                     textures.Add(texture);
-                    TexturesLoaded.Add(texture);  // add to loaded textures
+                    _texturesLoaded.Add(texture);  // add to loaded textures
                 }
                 else
                     textures.Add(texLoaded);
@@ -197,7 +159,7 @@ namespace Graphics
             return textures;
         }
 
-        private MeshTexture TextureFromFile(string filename, string directory, string typeName)  // TODO: return by ref
+        private MeshTexture TextureFromFile(string filename, string directory, string typeName)  // [obsolete] TODO: return by ref
         {
             string resPath = directory + @"\" + filename;
 
@@ -252,27 +214,29 @@ namespace Graphics
             return texture;
         }
 
-        public Model DeepCopy()
+        public void Update(Matrix4 state)
         {
-            var model = (Model)MemberwiseClone();
-
-            // copy all meshes
-            model.Meshes = new List<Mesh>();
-            for (int i = 0; i < Meshes.Count; i++)
-            {
-                model.Meshes.Add(Meshes[i].DeepCopy());
-            }
-
-            return model;
+            _state = state;
         }
 
-        public void Dispose()  // TODO: fix finalization, it seems to be not proper
+        public void Render(Shader shader, Action render = default)
         {
-            // dispose all meshes
+            // setup model matrix
+            shader.SetMatrix4("model", ref _state);
+
             foreach (var mesh in Meshes)
-            {
+                mesh.Render(shader, RenderFlags, render);
+        }
+
+        public Model DeepCopy() => new(Meshes.Select(mesh => mesh.DeepCopy()), _state, RenderFlags);
+
+        public void Dispose()  // [obsolete] TODO: fix finalization, it seems to be not proper
+        {
+            // dispose of all meshes
+            foreach (var mesh in Meshes)
                 mesh.Dispose();
-            }
+
+            GC.SuppressFinalize(this);
         }
     }
 }

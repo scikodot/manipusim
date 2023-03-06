@@ -334,3 +334,16 @@ public static class MathNetExtensions
         return vec;
     }
 }
+
+public static class AssimpExtensions
+{
+    public static OpenTK.Mathematics.Vector3 ToOpenTK(this Assimp.Vector3D vec)
+    {
+        return new OpenTK.Mathematics.Vector3(vec.X, vec.Y, vec.Z);
+    }
+
+    public static OpenTK.Mathematics.Color4 ToOpenTK(this Assimp.Color4D vec)
+    {
+        return new OpenTK.Mathematics.Color4(vec.R, vec.G, vec.B, vec.A);
+    }
+}

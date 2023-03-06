@@ -30,7 +30,7 @@ namespace Graphics
             private float _approxSphereRadius;  // radius of an approximation sphere of the axis tip
             public Vector3 Tip => _origin + _length * _direction;
 
-            public Axis(Vector3 direction, Vector4 color)
+            public Axis(Vector3 direction, Color4 color)
             {
                 _direction = direction.Normalized();
                 _length = 1f;
@@ -44,14 +44,10 @@ namespace Graphics
                 var shaftHalfLength = (1f - _tipLength + _approxSphereRadius) / 2f;
                 _model = new Model(new Mesh[]
                 {
-                    Primitives.Cylinder(_shaftRadius, shaftHalfLength, 20, new MeshMaterial
-                    {
-                        Diffuse = color
-                    }, Matrix4.CreateTranslation(shaftHalfLength * Vector3.UnitY)),
-                    Primitives.Cone(_tipRadius, _tipLength, 20, new MeshMaterial
-                    {
-                        Diffuse = color
-                    }, Matrix4.CreateTranslation(2f * shaftHalfLength * Vector3.UnitY))
+                    Primitives.Cylinder(_shaftRadius, shaftHalfLength, 20, new MeshMaterial { Diffuse = color }, 
+                        Matrix4.CreateTranslation(shaftHalfLength * Vector3.UnitY)),
+                    Primitives.Cone(_tipRadius, _tipLength, 20, new MeshMaterial { Diffuse = color }, 
+                        Matrix4.CreateTranslation(2f * shaftHalfLength * Vector3.UnitY))
                 }, align * Matrix4.CreateScale(_scaleFactor));
 
                 _length *= _scaleFactor;
@@ -201,9 +197,9 @@ namespace Graphics
         public TranslationalWidget()
         {
             // standard right-handed system with RGB color scheme
-            _axisX = new Axis(Vector3.UnitX, new Vector4(1, 0, 0, 1));
-            _axisY = new Axis(Vector3.UnitY, new Vector4(0, 1, 0, 1));
-            _axisZ = new Axis(Vector3.UnitZ, new Vector4(0, 0, 1, 1));
+            _axisX = new Axis(Vector3.UnitX, Color4.Red);
+            _axisY = new Axis(Vector3.UnitY, Color4.Lime);
+            _axisZ = new Axis(Vector3.UnitZ, Color4.Blue);
         }
 
         public void Render(Shader shader, Action action)
