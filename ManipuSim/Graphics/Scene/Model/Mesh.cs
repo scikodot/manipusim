@@ -38,7 +38,9 @@ namespace Graphics
         public string Path;
     }
 
-    public struct MeshMaterial  // TODO: consider using readonly refs
+    // TODO: consider injecting MeshTexture into MeshMaterial, or even replacing both with Assimp.Material
+    // (though might not be a great idea, as that class is used primarily for imports); see Assimp.Material class 
+    public struct MeshMaterial  // [obsolete] TODO: consider using readonly refs
     {
         public Color4 Ambient;
         public Color4 Diffuse;

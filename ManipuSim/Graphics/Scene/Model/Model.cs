@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
-using System.Data;
-using static OpenTK.Graphics.OpenGL.GL;
 
 namespace Graphics
 {
@@ -22,9 +21,7 @@ namespace Graphics
 
     public class Model : IDisposable
     {
-        private static readonly List<MeshTexture> _texturesLoaded = new();
-
-        private string _directory;
+        private static readonly Dictionary<string, MeshTexture> _texturesLoaded = new();
 
         public List<Mesh> Meshes { get; } = new();
 
@@ -55,10 +52,10 @@ namespace Graphics
 
         public Model(string path)
         {
-            LoadModel(path);
+            Load(path);
         }
 
-        private void LoadModel(string path)
+        private void Load(string path)
         {
             using var importer = new AssimpContext();
             var scene = importer.ImportFile(path, PostProcessSteps.Triangulate | PostProcessSteps.FlipUVs);
@@ -68,23 +65,21 @@ namespace Graphics
                 return;
             }
 
-            _directory = path.Substring(0, path.LastIndexOfAny(new char[] { '/', '\\' }));
-
-            ProcessNode(scene, scene.RootNode);
+            ProcessNode(Path.GetDirectoryName(path), scene, scene.RootNode);
         }
 
-        private void ProcessNode(Scene scene, Node node)
+        private void ProcessNode(string directory, Scene scene, Node node)
         {
             // process all node's meshes, if any
             foreach (var index in node.MeshIndices)
-                Meshes.Add(ProcessMesh(scene, scene.Meshes[index]));
+                Meshes.Add(ProcessMesh(directory, scene, scene.Meshes[index]));
 
             // process all descendant nodes
             foreach (var child in node.Children)
-                ProcessNode(scene, child);
+                ProcessNode(directory, scene, child);
         }
 
-        private Mesh ProcessMesh(Scene scene, Assimp.Mesh mesh)
+        private static Mesh ProcessMesh(string directory, Scene scene, Assimp.Mesh mesh)
         {
             // process vertices
             var vertices = new List<MeshVertex>();
@@ -116,12 +111,12 @@ namespace Graphics
                 // get material textures
                 if (mat.HasTextureDiffuse)
                 {
-                    var diffuseMaps = LoadMaterialTextures(mat, TextureType.Diffuse, "texture_diffuse");
+                    var diffuseMaps = LoadMaterialTextures(directory, mat, TextureType.Diffuse, "texture_diffuse");
                     textures.AddRange(diffuseMaps);
                 }
                 if (mat.HasTextureSpecular)
                 {
-                    var specularMaps = LoadMaterialTextures(mat, TextureType.Specular, "texture_specular");
+                    var specularMaps = LoadMaterialTextures(directory, mat, TextureType.Specular, "texture_specular");
                     textures.AddRange(specularMaps);
                 }
 
@@ -138,78 +133,60 @@ namespace Graphics
             return new Mesh(vertices.ToArray(), indices.ToArray(), textures.ToArray(), material, mesh.Name);
         }
 
-        private List<MeshTexture> LoadMaterialTextures(Material mat, TextureType type, string typeName)
+        private static IEnumerable<MeshTexture> LoadMaterialTextures(string directory, Material mat, TextureType type, string typeName)
         {
-            var textures = new List<MeshTexture>();
-            for (int i = 0; i < mat.GetMaterialTextureCount(type); i++)
+            int count = mat.GetMaterialTextureCount(type);
+            for (int i = 0; i < count; i++)
             {
                 mat.GetMaterialTexture(type, i, out TextureSlot slot);
 
-                var texLoaded = _texturesLoaded.Find(t => t.Path == slot.FilePath);
-                if (texLoaded == null)
-                {
-                    MeshTexture texture = TextureFromFile(slot.FilePath, _directory, typeName);
-                    textures.Add(texture);
-                    _texturesLoaded.Add(texture);  // add to loaded textures
-                }
-                else
-                    textures.Add(texLoaded);
-            }
+                var path = $"{directory}\\{slot.FilePath}";
+                if (!_texturesLoaded.TryGetValue(path, out var texture))
+                    _texturesLoaded[path] = texture = TextureFromFile(path, typeName);
 
-            return textures;
+                yield return texture;
+            }
         }
 
-        private MeshTexture TextureFromFile(string filename, string directory, string typeName)  // [obsolete] TODO: return by ref
+        private static MeshTexture TextureFromFile(string path, string typeName)  // [obsolete] TODO: return by ref
         {
-            string resPath = directory + @"\" + filename;
+            using var io = new FileStream(path, FileMode.Open);
+
+            // load texture file with StbImage
+            var img = ImageResult.FromStream(io);
 
             var texture = new MeshTexture
             {
                 Type = typeName,
-                Path = filename
+                Path = path
             };
 
-            // load texture file with StbImage
-            var io = new System.IO.FileStream(resPath, System.IO.FileMode.Open);
-            var resLoad = ImageResult.FromStream(io);
-
-            int width = resLoad.Width, height = resLoad.Height;
-            ColorComponents nrComponents = resLoad.SourceComp;
-
-            if (resLoad != null)
+            var format = img.SourceComp switch
             {
-                PixelInternalFormat format = 0;
-                if (nrComponents == ColorComponents.Grey)
-                    format = PixelInternalFormat.CompressedRed;
-                else if (nrComponents == ColorComponents.RedGreenBlue)
-                    format = PixelInternalFormat.Rgb;
-                else if (nrComponents == ColorComponents.RedGreenBlueAlpha)
-                    format = PixelInternalFormat.Rgba;
+                ColorComponents.Grey => PixelInternalFormat.R8,
+                ColorComponents.GreyAlpha => PixelInternalFormat.Rg8,
+                ColorComponents.RedGreenBlue => PixelInternalFormat.Rgb8,
+                ColorComponents.RedGreenBlueAlpha => PixelInternalFormat.Rgba8,
+                _ => throw new ArgumentException("Unknown pixel format.")
+            };
 
-                // send necessary actions to dispatcher
-                Dispatcher.RenderActions.Enqueue(() =>
-                {
-                    // load and generate the texture
-                    GL.GenTextures(1, out texture.ID);
-
-                    GL.BindTexture(TextureTarget.Texture2D, texture.ID);
-                    GL.TexImage2D(TextureTarget.Texture2D, 0, format, width, height, 0, (PixelFormat)format, PixelType.UnsignedByte, resLoad.Data);
-                    GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
-
-                    // set the texture wrapping/filtering options (on the currently bound texture object)
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
-                    GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                });
-            }
-            else
+            // send necessary actions to dispatcher
+            Dispatcher.RenderActions.Enqueue(() =>
             {
-                // TODO: throw new exception, although not necessarily - it's already implemented in ImageResult.FromResult
-            }
+                // load and generate the texture
+                GL.GenTextures(1, out texture.ID);
 
-            // explicitly destroy I/O stream object
-            io.Dispose();
+                // set texture data
+                GL.BindTexture(TextureTarget.Texture2D, texture.ID);
+                GL.TexImage2D(TextureTarget.Texture2D, 0, format, img.Width, img.Height, 0, (PixelFormat)format, PixelType.UnsignedByte, img.Data);
+                GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+                // set texture wrapping/filtering options
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            });
 
             return texture;
         }
