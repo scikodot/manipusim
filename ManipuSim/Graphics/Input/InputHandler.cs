@@ -55,7 +55,7 @@ namespace Graphics
         public InteractionMode Mode { get; init; }
     }
 
-    public class InputHandler
+    public class InputHandler : IDisposable
     {
         private readonly MainWindow _parent;
         private readonly TranslationalWidget _translationalWidget;
@@ -130,7 +130,7 @@ namespace Graphics
             }
         }
 
-        public void Render(Shader shader, Action action)
+        public void Render(ShaderProgram shader, Action action)
         {
             _translationalWidget.Render(shader, action);
         }

@@ -53,6 +53,8 @@ namespace Graphics
         private Matrix4 _projectionMatrix;
         public ref Matrix4 ProjectionMatrix => ref _projectionMatrix;
 
+        // TODO: add Vector2.Deconstruct() extension method to allow this:
+        // (Pitch, Yaw) = orientation
         public Camera(Vector3 position, Vector2 orientation, float aspect)
         {
             Position = position;

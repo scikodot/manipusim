@@ -19,7 +19,7 @@ namespace Logic
         Cone
     }
 
-    public class ObstacleHandler
+    public class ObstacleHandler : IDisposable
     {
         private readonly MainWindow _parent;
         private readonly Ground _ground;
@@ -131,17 +131,17 @@ namespace Logic
             }
         }
 
-        public void RenderGrid(Shader shader)
+        public void RenderGrid(ShaderProgram shader)
         {
             _ground.RenderGrid(shader);
         }
 
-        public void RenderGround(Shader shader)
+        public void RenderGround(ShaderProgram shader)
         {
             _ground.RenderGround(shader);
         }
 
-        public void RenderUnselected(Shader shader)
+        public void RenderUnselected(ShaderProgram shader)
         {
             foreach (var obstacle in Obstacles)
             {
@@ -153,7 +153,7 @@ namespace Logic
             }
         }
 
-        public void RenderSelected(Shader shader)
+        public void RenderSelected(ShaderProgram shader)
         {
             foreach (var obstacle in Obstacles)
             {

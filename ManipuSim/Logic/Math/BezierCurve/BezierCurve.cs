@@ -51,7 +51,7 @@ namespace Logic
                 Model.Meshes[0].UpdateIndices(0, 2 * (_pointsCount - 1), indices.ToArray());
             }
 
-            public void Render(Shader shader)
+            public void Render(ShaderProgram shader)
             {
                 if (IsSetup)
                     Model.Render(shader, () =>

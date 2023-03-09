@@ -1,4 +1,15 @@
 #version 330 core
+
+#define NR_DIR_LIGHTS 3
+
+in VertexData
+{
+	vec3 Position;
+	vec3 Normal;
+	vec4 Color;  // vertex color is not used directly in model shader, hence it is discarded
+	vec2 TexCoords;
+} vIn;
+
 out vec4 FragColor;
 
 struct Material {
@@ -49,13 +60,6 @@ struct SpotLight {
 	vec3 specular;
 };
 
-#define NR_DIR_LIGHTS 3
-
-in vec3 FragPos;
-in vec3 Normal;
-in vec2 TexCoords;
-in vec4 Color;  // vertex color is not used directly in model shader, hence it is discarded
-
 // material components depending on current mode (textures/colors)
 vec3 ambientComp;
 vec3 diffuseComp;
@@ -88,13 +92,13 @@ void main()
 		if (enableLighting)
 		{
 			// properties
-			vec3 norm = normalize(Normal);
-			vec3 viewDir = normalize(viewPos - FragPos);
+			vec3 norm = normalize(vIn.Normal);
+			vec3 viewDir = normalize(viewPos - vIn.Position);
 
 			// material components
-			ambientComp = enableTextures ? vec3(texture(material.diffuseTex, TexCoords)) : vec3(material.ambientCol);
-			diffuseComp = enableTextures ? vec3(texture(material.diffuseTex, TexCoords)) : vec3(material.diffuseCol);
-			specularComp = enableTextures ? vec3(texture(material.specularTex, TexCoords)) : vec3(material.specularCol);
+			ambientComp = enableTextures ? vec3(texture(material.diffuseTex, vIn.TexCoords)) : vec3(material.ambientCol);
+			diffuseComp = enableTextures ? vec3(texture(material.diffuseTex, vIn.TexCoords)) : vec3(material.diffuseCol);
+			specularComp = enableTextures ? vec3(texture(material.specularTex, vIn.TexCoords)) : vec3(material.specularCol);
 
 			// directional light
 			vec3 result = vec3(0.0);

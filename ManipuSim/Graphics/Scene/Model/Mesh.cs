@@ -126,7 +126,7 @@ namespace Graphics
             GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * sizeof(uint)), size * sizeof(uint), indices);
         }
 
-        public void Render(Shader shader, RenderFlags mode, Action render)
+        public void Render(ShaderProgram shader, RenderFlags mode, Action render)
         {
             GL.BindVertexArray(VAO);
 

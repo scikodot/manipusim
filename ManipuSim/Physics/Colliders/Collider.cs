@@ -143,7 +143,7 @@ namespace Physics
             Body.MotionState.WorldTransform = state;
         }
 
-        public void Render(Shader shader)
+        public void Render(ShaderProgram shader)
         {
             Model.Render(shader, () =>
             {

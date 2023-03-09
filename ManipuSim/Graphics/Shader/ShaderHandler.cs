@@ -1,14 +1,14 @@
 ﻿using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
+using System;
 
 namespace Graphics
 {
-    public class ShaderHandler
+    public class ShaderHandler : IDisposable
     {
         private readonly MainWindow _parent;
 
-        public Shader GenericShader { get; private set; }
-        public Shader ComplexShader { get; private set; }
+        public ShaderProgram MainShader { get; private set; }
 
         public ShaderHandler(MainWindow parent)
         {
@@ -16,48 +16,40 @@ namespace Graphics
 
             // create shaders
 
-            GenericShader = new Shader(_parent.InputHandler.VertexShader, 
-                                       _parent.InputHandler.GenericFragmentShader);
-            ComplexShader = new Shader(_parent.InputHandler.VertexShader, 
-                                       _parent.InputHandler.ComplexFragmentShader);
+            MainShader = new ShaderProgram(
+                (ShaderType.VertexShader, _parent.InputHandler.VertexShader),
+                (ShaderType.FragmentShader, _parent.InputHandler.ComplexFragmentShader));
         }
 
         public void SetupShaders(Camera camera)
         {
-            // setup generic shader
-            GenericShader.Use();
-            GenericShader.SetMatrix4("view", ref camera.ViewMatrix);
-            GenericShader.SetMatrix4("projection", ref camera.ProjectionMatrix);
-            GenericShader.SetVector3("color", Vector3.One);
-
-            // setup complex shader
-            ComplexShader.Use();
+            MainShader.Use();
 
             // set view and projection matrices;
             // these matrices come pre-transposed, so there's no need to transpose them again (see VertexShader file)
-            ComplexShader.SetMatrix4("view", ref camera.ViewMatrix);
-            ComplexShader.SetMatrix4("projection", ref camera.ProjectionMatrix);
+            MainShader.SetMatrix4("view", camera.ViewMatrix);
+            MainShader.SetMatrix4("projection", camera.ProjectionMatrix);
 
             // set general properties
-            ComplexShader.SetVector3("viewPos", camera.Position);
+            MainShader.SetVector3("viewPos", camera.Position);
 
             // set directional light properties
-            ComplexShader.SetVector3("dirLight[0].direction", new Vector3(1.0f, -0.2f, -1.0f));
-            ComplexShader.SetVector3("dirLight[1].direction", new Vector3(-1.0f, -0.5f, 0.0f));
-            ComplexShader.SetVector3("dirLight[2].direction", new Vector3(0.3f, -0.8f, 0.7f));
+            MainShader.SetVector3("dirLight[0].direction", new Vector3(1.0f, -0.2f, -1.0f));
+            MainShader.SetVector3("dirLight[1].direction", new Vector3(-1.0f, -0.5f, 0.0f));
+            MainShader.SetVector3("dirLight[2].direction", new Vector3(0.3f, -0.8f, 0.7f));
             for (int i = 0; i < 3; i++)
             {
-                ComplexShader.SetVector3($"dirLight[{i}].ambient", new Vector3(0.05f, 0.05f, 0.05f));
-                ComplexShader.SetVector3($"dirLight[{i}].diffuse", new Vector3(0.7f, 0.7f, 0.7f));
-                ComplexShader.SetVector3($"dirLight[{i}].specular", new Vector3(0.2f, 0.2f, 0.2f));
+                MainShader.SetVector3($"dirLight[{i}].ambient", new Vector3(0.05f, 0.05f, 0.05f));
+                MainShader.SetVector3($"dirLight[{i}].diffuse", new Vector3(0.7f, 0.7f, 0.7f));
+                MainShader.SetVector3($"dirLight[{i}].specular", new Vector3(0.2f, 0.2f, 0.2f));
             }
         }
 
         public void Dispose()
         {
-            // delete shader programs
-            GL.DeleteProgram(ComplexShader.Handle);
-            GL.DeleteProgram(GenericShader.Handle);
+            MainShader.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -35,12 +35,12 @@ namespace Logic
             Collider = collider;
         }
 
-        public void RenderGround(Shader shader)
+        public void RenderGround(ShaderProgram shader)
         {
             GroundModel.Render(shader);
         }
 
-        public void RenderGrid(Shader shader)
+        public void RenderGrid(ShaderProgram shader)
         {
             GridModel.Render(shader, () =>
             {

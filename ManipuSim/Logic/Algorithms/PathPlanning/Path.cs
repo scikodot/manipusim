@@ -112,7 +112,7 @@ namespace Logic.PathPlanning
                 Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenTK.Mathematics.Color4(color.X, color.Y, color.Z, 1.0f) };
             }
 
-            public void Render(Shader shader)
+            public void Render(ShaderProgram shader)
             {
                 if (IsSetup)
                     Model.Render(shader, () =>

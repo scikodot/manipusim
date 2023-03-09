@@ -113,7 +113,7 @@ namespace Logic
             return joint;
         }
 
-        public void Render(Shader shader, Action render = null)
+        public void Render(ShaderProgram shader, Action render = null)
         {
             Model.Render(shader, render);
 

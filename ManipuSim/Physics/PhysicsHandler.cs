@@ -18,7 +18,7 @@ namespace Physics
         Dynamic
     }
 
-    public class PhysicsHandler
+    public class PhysicsHandler : IDisposable
     {
         private readonly MainWindow _parent;
         private readonly object _worldSyncRoot = new();

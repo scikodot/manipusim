@@ -59,7 +59,7 @@ namespace Graphics
                 Translate(origin - Origin);
             }
 
-            public void Render(Shader shader, Action action)
+            public void Render(ShaderProgram shader, Action action)
             {
                 _model.Render(shader, action);
             }
@@ -202,7 +202,7 @@ namespace Graphics
             _axisZ = new Axis(Vector3.UnitZ, Color4.Blue);
         }
 
-        public void Render(Shader shader, Action action)
+        public void Render(ShaderProgram shader, Action action)
         {
             if (IsAttached && _parent.Model.RenderFlags.HasFlag(RenderFlags.Selected))
             {

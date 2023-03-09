@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using BulletSharp;
@@ -11,7 +12,7 @@ using Physics;
 
 namespace Logic
 {
-    public class ManipulatorHandler
+    public class ManipulatorHandler : IDisposable
     {
         private readonly MainWindow _parent;
 
@@ -225,7 +226,7 @@ namespace Logic
             }
         }
 
-        public void RenderUnselected(Shader shader)
+        public void RenderUnselected(ShaderProgram shader)
         {
             foreach (var manipulator in Manipulators)
             {
@@ -247,7 +248,7 @@ namespace Logic
             }
         }
 
-        public void RenderSelected(Shader shader)
+        public void RenderSelected(ShaderProgram shader)
         {
             foreach (var manipulator in Manipulators)
             {

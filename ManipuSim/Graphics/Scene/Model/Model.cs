@@ -196,10 +196,16 @@ namespace Graphics
             _state = state;
         }
 
-        public void Render(Shader shader, Action render = default)
+        public void Render(ShaderProgram shader, Action render = default)
         {
+            /* The shader must be enabled by UseProgram() for uniforms to be set.
+             * But since every object on the scene is rendered via Model.Render(),
+             * it is easier to enable the shader only once here than every time a uniform is being set.
+             */
+            shader.Use();
+
             // setup model matrix
-            shader.SetMatrix4("model", ref _state);
+            shader.SetMatrix4("model", _state);
 
             foreach (var mesh in Meshes)
                 mesh.Render(shader, RenderFlags, render);

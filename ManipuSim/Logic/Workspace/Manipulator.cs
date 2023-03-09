@@ -315,7 +315,7 @@ namespace Logic
             }
         }
 
-        public void RenderUnselected(Shader shader)
+        public void RenderUnselected(ShaderProgram shader)
         {
             // joints
             foreach (var joint in Joints)
@@ -332,7 +332,7 @@ namespace Logic
             }
         }
 
-        public void RenderSelected(Shader shader)
+        public void RenderSelected(ShaderProgram shader)
         {
             // joints
             foreach (var joint in Joints)

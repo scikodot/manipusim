@@ -304,16 +304,16 @@ namespace Graphics
         private void RenderCoreOpaque()
         {
             // render the unselected parts of the manipulators
-            ManipulatorHandler.RenderUnselected(ShaderHandler.ComplexShader);
+            ManipulatorHandler.RenderUnselected(ShaderHandler.MainShader);
 
             // render the unselected obstacles
-            ObstacleHandler.RenderUnselected(ShaderHandler.ComplexShader);
+            ObstacleHandler.RenderUnselected(ShaderHandler.MainShader);
 
             // render goals
             foreach (var goal in _goalModels)
             {
                 if (goal.IsSetup)
-                    goal.Render(ShaderHandler.ComplexShader);
+                    goal.Render(ShaderHandler.MainShader);
             }
 
             //// render Bezier curve points
@@ -328,7 +328,7 @@ namespace Graphics
             //}
 
             // workspace grid
-            ObstacleHandler.RenderGrid(ShaderHandler.ComplexShader);
+            ObstacleHandler.RenderGrid(ShaderHandler.MainShader);
         }
 
         private void RenderCoreTransparent()
@@ -354,13 +354,13 @@ namespace Graphics
             //doorModel.Render(ShaderHandler.ComplexShader);
 
             // render the ground
-            ObstacleHandler.RenderGround(ShaderHandler.ComplexShader);
+            ObstacleHandler.RenderGround(ShaderHandler.MainShader);
 
             // render the selected parts of the manipulators
-            ManipulatorHandler.RenderSelected(ShaderHandler.ComplexShader);
+            ManipulatorHandler.RenderSelected(ShaderHandler.MainShader);
 
             // render the selected obstacles
-            ObstacleHandler.RenderSelected(ShaderHandler.ComplexShader);
+            ObstacleHandler.RenderSelected(ShaderHandler.MainShader);
 
             GL.Disable(EnableCap.Blend);
         }
@@ -368,7 +368,7 @@ namespace Graphics
         private void RenderCoreIndependent()
         {
             GL.Clear(ClearBufferMask.DepthBufferBit);
-            InputHandler.Render(ShaderHandler.ComplexShader, null);
+            InputHandler.Render(ShaderHandler.MainShader, null);
         }
         #endregion
 
