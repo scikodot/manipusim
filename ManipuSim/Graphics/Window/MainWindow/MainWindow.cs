@@ -281,7 +281,7 @@ namespace Graphics
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             GL.Disable(EnableCap.ScissorTest);
 
-            ShaderHandler.SetupShaders(Camera);
+            ShaderHandler.Update(Camera);
 
             RenderCoreOpaque();
 

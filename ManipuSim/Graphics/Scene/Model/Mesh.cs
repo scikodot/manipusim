@@ -66,7 +66,7 @@ namespace Graphics
         {
             Vertices = vertices;
             Indices = indices ?? Array.Empty<uint>();
-            Textures = textures ?? Array.Empty<MeshTexture>();
+            Textures = textures ?? new[] { new MeshTexture() { Type = "diffuseTex" } };  /*Array.Empty<MeshTexture>();*/
             Material = material ?? _defaultMaterial;
             Name = name;
 
@@ -110,6 +110,16 @@ namespace Graphics
                 // unbind the array
                 GL.BindVertexArray(0);
 
+                // for the compliance with the shader, if no textures are supplied,
+                // generate a "placeholder" texture of 1 white pixel
+                if (textures == null)
+                {
+                    GL.GenTextures(1, out Textures[0].ID);
+                    GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
+                    GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte,
+                        new byte[] { 255, 255, 255, 255 });
+                }
+
                 IsSetup = true;
             });
         }
@@ -134,32 +144,24 @@ namespace Graphics
             {
                 shader.SetBool("enableWireframe", 0);
                 shader.SetBool("enableLighting", mode.HasFlag(RenderFlags.Lighting) ? 1u : 0u);
-                shader.SetBool("enableTextures", Textures.Length == 0 ? 0u : 1u);
                 shader.SetBool("isSelected", mode.HasFlag(RenderFlags.Selected) ? 1u : 0u);
 
+                // TODO: below is a placeholder that works only for meshes with no external textures;
+                // replace with actual bindings of arbitrary textures
+
                 // set textures
-                int diffuseNr = 1;
-                int specularNr = 1;
-                for (int i = 0; i < Textures.Length; i++)
-                {
-                    //activate proper texture unit before binding
-                    GL.ActiveTexture(TextureUnit.Texture0 + i);
+                GL.ActiveTexture(TextureUnit.Texture0);
+                shader.SetInt("material.diffuseTex", 0);
+                GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
 
-                    // retrieve texture number
-                    string number = "";
-                    string name = Textures[i].Type;
-                    if (name == "texture_diffuse")  // TODO: fix names in shaders
-                        number = diffuseNr++.ToString();
-                    else if (name == "texture_specular")
-                        number = specularNr++.ToString();
+                GL.ActiveTexture(TextureUnit.Texture1);
+                shader.SetInt("material.specularTex", 1);
+                GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
 
-                    shader.SetInt("material." + name + number, i);
-                    GL.BindTexture(TextureTarget.Texture2D, Textures[i].ID);
-                }
                 GL.ActiveTexture(TextureUnit.Texture0);
 
                 // set colors
-                shader.SetColor4("material.ambientCol", Material.Ambient);  // TODO: add ref
+                shader.SetColor4("material.ambientCol", Material.Ambient);
                 shader.SetColor4("material.diffuseCol", Material.Diffuse);
                 shader.SetColor4("material.specularCol", Material.Specular);
                 shader.SetFloat("material.shininess", Material.Shininess);

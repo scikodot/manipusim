@@ -14,14 +14,12 @@ namespace Graphics
         {
             _parent = parent;
 
-            // create shaders
-
             MainShader = new ShaderProgram(
                 (ShaderType.VertexShader, _parent.InputHandler.VertexShader),
                 (ShaderType.FragmentShader, _parent.InputHandler.ComplexFragmentShader));
         }
 
-        public void SetupShaders(Camera camera)
+        public void Update(Camera camera)
         {
             MainShader.Use();
 

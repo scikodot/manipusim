@@ -32,6 +32,16 @@ out VertexData
 	vec2 TexCoords;
 } vOut;
 
+// TODO: this doesn't work for some reason; 
+// the uniforms are recognized in the code (both app's and shader's), but they do not receive the values;
+// maybe in OpenTK uniform block's members cannot be set by UniformMatrix4() but only with, say, UniformBlockBinding()?
+//uniform Matrices
+//{
+//	mat4 model;
+//	mat4 view;
+//	mat4 projection;
+//} mats;
+
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
