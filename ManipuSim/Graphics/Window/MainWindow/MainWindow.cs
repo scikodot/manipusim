@@ -368,7 +368,7 @@ namespace Graphics
         private void RenderCoreIndependent()
         {
             GL.Clear(ClearBufferMask.DepthBufferBit);
-            InputHandler.Render(ShaderHandler.MainShader, null);
+            InputHandler.Render(ShaderHandler.MainShader);
         }
         #endregion
 

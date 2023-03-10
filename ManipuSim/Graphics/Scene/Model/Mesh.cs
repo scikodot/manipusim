@@ -111,7 +111,7 @@ namespace Graphics
                 GL.BindVertexArray(0);
 
                 // for the compliance with the shader, if no textures are supplied,
-                // generate a "placeholder" texture of 1 white pixel
+                // generate a placeholder texture of 1 white pixel
                 if (textures == null)
                 {
                     GL.GenTextures(1, out Textures[0].ID);
@@ -136,55 +136,39 @@ namespace Graphics
             GL.BufferSubData(BufferTarget.ElementArrayBuffer, (IntPtr)(offset * sizeof(uint)), size * sizeof(uint), indices);
         }
 
-        public void Render(ShaderProgram shader, RenderFlags mode, Action render)
+        public void Render(ShaderProgram shader, PrimitiveType type, int? count, RenderFlags mode)
         {
             GL.BindVertexArray(VAO);
 
-            if (mode.HasFlag(RenderFlags.Solid))
+            // set colors
+            shader.SetColor4("material.ambientCol", Material.Ambient);
+            shader.SetColor4("material.diffuseCol", Material.Diffuse);
+            shader.SetColor4("material.specularCol", Material.Specular);
+            shader.SetFloat("material.shininess", Material.Shininess);
+
+            // set textures
+            // TODO: this is a stub that works only for meshes with no external textures;
+            // replace with actual bindings of arbitrary textures
+            GL.ActiveTexture(TextureUnit.Texture0);
+            shader.SetInt("material.diffuseTex", 0);
+            GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
+
+            GL.ActiveTexture(TextureUnit.Texture1);
+            shader.SetInt("material.specularTex", 1);
+            GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
+
+            GL.ActiveTexture(TextureUnit.Texture0);
+
+            // set different rendering options
+            // TODO: use the same words as for RenderFlags
+            shader.SetBool("enableWireframe", (uint)(mode & RenderFlags.Wireframe));
+            shader.SetBool("enableLighting", (uint)(mode & RenderFlags.Lighting));
+            shader.SetBool("isSelected", (uint)(mode & RenderFlags.Selected));
+
+            // render wireframe
+            // TODO: replace with single-pass render, i.e. through geometry shader or anything
+            if (mode.HasFlag(RenderFlags.Wireframe))  
             {
-                shader.SetBool("enableWireframe", 0);
-                shader.SetBool("enableLighting", mode.HasFlag(RenderFlags.Lighting) ? 1u : 0u);
-                shader.SetBool("isSelected", mode.HasFlag(RenderFlags.Selected) ? 1u : 0u);
-
-                // TODO: below is a placeholder that works only for meshes with no external textures;
-                // replace with actual bindings of arbitrary textures
-
-                // set textures
-                GL.ActiveTexture(TextureUnit.Texture0);
-                shader.SetInt("material.diffuseTex", 0);
-                GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
-
-                GL.ActiveTexture(TextureUnit.Texture1);
-                shader.SetInt("material.specularTex", 1);
-                GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
-
-                GL.ActiveTexture(TextureUnit.Texture0);
-
-                // set colors
-                shader.SetColor4("material.ambientCol", Material.Ambient);
-                shader.SetColor4("material.diffuseCol", Material.Diffuse);
-                shader.SetColor4("material.specularCol", Material.Specular);
-                shader.SetFloat("material.shininess", Material.Shininess);
-
-                // render mesh
-                if (render != null)
-                {
-                    render();
-                }
-                else
-                {
-                    // if render action is not specified, use default
-                    if (Indices.Length != 0)
-                        GL.DrawElements(BeginMode.Triangles, Indices.Length, DrawElementsType.UnsignedInt, 0);
-                    else
-                        GL.DrawArrays(PrimitiveType.Triangles, 0, Vertices.Length);
-                }
-            }
-
-            if (mode.HasFlag(RenderFlags.Wireframe))  // TODO: replace with single-pass render, i.e. through geometry shader or anything
-            {
-                shader.SetBool("enableWireframe", 1);  // TODO: use the same words as for RenderFlags
-
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                 GL.PointSize(2);
                 GL.DrawElements(BeginMode.Points, Indices.Length, DrawElementsType.UnsignedInt, 0);
@@ -192,10 +176,11 @@ namespace Graphics
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
             }
 
-            if (mode == 0)
-            {
-                // TODO: maybe notify the user about drawing nothing?
-            }
+            // render mesh
+            if (Indices.Length != 0)
+                GL.DrawElements(type, count ?? Indices.Length, DrawElementsType.UnsignedInt, 0);
+            else
+                GL.DrawArrays(type, 0, count ?? Vertices.Length);
 
             GL.BindVertexArray(0);
         }
@@ -204,6 +189,7 @@ namespace Graphics
 
         public void Dispose()
         {
+            // TODO: delete textures?
             Dispatcher.RenderActions.Enqueue(() =>
             {
                 GL.DeleteVertexArray(VAO);

@@ -145,12 +145,10 @@ namespace Physics
 
         public void Render(ShaderProgram shader)
         {
-            Model.Render(shader, () =>
-            {
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-                GL.DrawElements(PrimitiveType.Triangles, Model.Meshes[0].Indices.Length, DrawElementsType.UnsignedInt, 0);
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-            });
+            // TODO: Collider must be rendered either with
+            // GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            // or with the alpha value less than that of the object it is attached to
+            Model.Render(shader);
         }
 
         public void Reset()

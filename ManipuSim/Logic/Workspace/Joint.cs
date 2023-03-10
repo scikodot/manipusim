@@ -90,7 +90,7 @@ namespace Logic
             Coordinate = data.q;
             CoordinateRange = data.qRanges;
 
-            Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
+            Model.RenderFlags = RenderFlags.Default | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
 
         public void Translate(Vector3 translation)
@@ -113,9 +113,9 @@ namespace Logic
             return joint;
         }
 
-        public void Render(ShaderProgram shader, Action render = null)
+        public void Render(ShaderProgram shader)
         {
-            Model.Render(shader, render);
+            Model.Render(shader);
 
             if (ShowCollider)
                 Collider.Render(shader);

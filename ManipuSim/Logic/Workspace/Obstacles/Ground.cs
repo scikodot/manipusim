@@ -1,6 +1,6 @@
 ﻿using BulletSharp;
 using Graphics;
-using OpenTK.Graphics.OpenGL;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using Physics;
 using System;
@@ -42,10 +42,7 @@ namespace Logic
 
         public void RenderGrid(ShaderProgram shader)
         {
-            GridModel.Render(shader, () =>
-            {
-                GL.DrawElements(BeginMode.Lines, GridModel.Meshes[0].Indices.Length, DrawElementsType.UnsignedInt, 0);
-            });
+            GridModel.Render(shader, PrimitiveType.Lines);
         }
 
         public void Dispose()

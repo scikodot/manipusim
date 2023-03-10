@@ -130,9 +130,9 @@ namespace Graphics
             }
         }
 
-        public void Render(ShaderProgram shader, Action action)
+        public void Render(ShaderProgram shader)
         {
-            _translationalWidget.Render(shader, action);
+            _translationalWidget.Render(shader);
         }
 
         private void PollMouse()

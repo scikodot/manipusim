@@ -59,9 +59,9 @@ namespace Graphics
                 Translate(origin - Origin);
             }
 
-            public void Render(ShaderProgram shader, Action action)
+            public void Render(ShaderProgram shader)
             {
-                _model.Render(shader, action);
+                _model.Render(shader);
             }
 
             public void Scale(Vector3 cameraPosition)
@@ -202,13 +202,13 @@ namespace Graphics
             _axisZ = new Axis(Vector3.UnitZ, Color4.Blue);
         }
 
-        public void Render(ShaderProgram shader, Action action)
+        public void Render(ShaderProgram shader)
         {
             if (IsAttached && _parent.Model.RenderFlags.HasFlag(RenderFlags.Selected))
             {
-                _axisX.Render(shader, action);
-                _axisY.Render(shader, action);
-                _axisZ.Render(shader, action);
+                _axisX.Render(shader);
+                _axisY.Render(shader);
+                _axisZ.Render(shader);
             }
         }
 

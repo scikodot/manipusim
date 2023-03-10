@@ -44,7 +44,7 @@ namespace Logic
 
             Collider.Body.UserObject = this;
 
-            Model.RenderFlags = RenderFlags.Solid | RenderFlags.Wireframe | RenderFlags.Lighting;
+            Model.RenderFlags = RenderFlags.Default | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
 
         public Link DeepCopy()
@@ -75,9 +75,9 @@ namespace Logic
             return default;
         }
 
-        public void Render(ShaderProgram shader, Action render = null)
+        public void Render(ShaderProgram shader)
         {
-            Model.Render(shader, render);
+            Model.Render(shader);
 
             if (_showCollider)
                 Collider.Render(shader);

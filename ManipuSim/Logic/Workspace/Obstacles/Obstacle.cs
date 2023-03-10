@@ -57,7 +57,7 @@ namespace Logic
             //Path = new Path(new Path.Node(null, new Vector3[] { _position }, null));
             //Path.Model.SetColor(new System.Numerics.Vector3(0.2f, 0.6f, 0.08f));
 
-            Model.RenderFlags = RenderFlags.Solid | RenderFlags.Lighting;
+            Model.RenderFlags = RenderFlags.Default | RenderFlags.Lighting;
             Collider.Body.UserObject = this;
         }
 
@@ -82,9 +82,9 @@ namespace Logic
 
         }
 
-        public void Render(ShaderProgram shader, Action render = null)
+        public void Render(ShaderProgram shader)
         {
-            Model.Render(shader, render);
+            Model.Render(shader);
 
             if (ShowCollider)
                 Collider.Render(shader);

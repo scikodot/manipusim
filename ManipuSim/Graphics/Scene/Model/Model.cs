@@ -8,15 +8,17 @@ using OpenTK.Graphics.OpenGL4;
 using Assimp;
 using StbImageSharp;
 
+using PrimitiveType = OpenTK.Graphics.OpenGL4.PrimitiveType;
+
 namespace Graphics
 {
     [Flags]
     public enum RenderFlags
     {
-        Solid = 1,
-        Wireframe = 2,
-        Lighting = 4,
-        Selected = 8
+        Default = 0,
+        Wireframe = 1,
+        Lighting = 2,
+        Selected = 4
     }
 
     public class Model : IDisposable
@@ -28,11 +30,11 @@ namespace Graphics
         private Matrix4 _state;
         public Matrix4 State => _state;
 
-        public RenderFlags RenderFlags { get; set; } = RenderFlags.Solid;
+        public RenderFlags RenderFlags { get; set; } = RenderFlags.Default;
         public bool IsSetup => Meshes.All(mesh => mesh.IsSetup);
 
         public Model(MeshVertex[] vertices, uint[] indices = null, MeshMaterial? material = null, Matrix4? state = null, 
-            string name = null, RenderFlags renderFlags = RenderFlags.Solid)
+            string name = null, RenderFlags renderFlags = RenderFlags.Default)
         {
             Meshes.Add(new Mesh(vertices, indices, material: material, name: name));
 
@@ -41,7 +43,7 @@ namespace Graphics
             RenderFlags = renderFlags;
         }
 
-        public Model(IEnumerable<Mesh> meshes, Matrix4? state = null, RenderFlags renderFlags = RenderFlags.Solid)
+        public Model(IEnumerable<Mesh> meshes, Matrix4? state = null, RenderFlags renderFlags = RenderFlags.Default)
         {
             Meshes.AddRange(meshes);
 
@@ -196,7 +198,7 @@ namespace Graphics
             _state = state;
         }
 
-        public void Render(ShaderProgram shader, Action render = default)
+        public void Render(ShaderProgram shader, PrimitiveType type = PrimitiveType.Triangles, int? count = null)
         {
             /* The shader must be enabled by UseProgram() for uniforms to be set.
              * But since every object on the scene is rendered via Model.Render(),
@@ -208,7 +210,7 @@ namespace Graphics
             shader.SetMatrix4("model", _state);
 
             foreach (var mesh in Meshes)
-                mesh.Render(shader, RenderFlags, render);
+                mesh.Render(shader, type, count, RenderFlags);
         }
 
         public Model DeepCopy() => new(Meshes.Select(mesh => mesh.DeepCopy()), _state, RenderFlags);

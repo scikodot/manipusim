@@ -54,10 +54,7 @@ namespace Logic
             public void Render(ShaderProgram shader)
             {
                 if (IsSetup)
-                    Model.Render(shader, () =>
-                    {
-                        GL.DrawElements(BeginMode.Lines, 2 * (_pointsCount - 1), DrawElementsType.UnsignedInt, 0);
-                    });
+                    Model.Render(shader, PrimitiveType.Lines, 2 * (_pointsCount - 1));
             }
 
             public void Dispose()

@@ -115,10 +115,7 @@ namespace Logic.PathPlanning
             public void Render(ShaderProgram shader)
             {
                 if (IsSetup)
-                    Model.Render(shader, () =>
-                    {
-                        GL.DrawElements(BeginMode.Lines, 2 * ((int)_freeTop - 1), DrawElementsType.UnsignedInt, 0);
-                    });
+                    Model.Render(shader, PrimitiveType.Lines, 2 * ((int)_freeTop - 1));
             }
 
             public void Reset()
