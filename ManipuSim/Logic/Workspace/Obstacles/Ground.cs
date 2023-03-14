@@ -13,8 +13,8 @@ namespace Logic
 {
     public class Ground : IDisposable
     {
-        private readonly static MeshMaterial _defaultGroundMaterial = new() { Diffuse = new(1.0f, 1.0f, 1.0f, 0.5f) };
-        private readonly static MeshMaterial _defaultGridMaterial = new() { Diffuse = Color4.White };
+        private readonly static MeshMaterial _defaultGroundMaterial = new() { ColorDiffuse = new(1.0f, 1.0f, 1.0f, 0.5f) };
+        private readonly static MeshMaterial _defaultGridMaterial = new() { ColorDiffuse = Color4.White };
 
         public Model GroundModel { get; }
         public Model GridModel { get; }

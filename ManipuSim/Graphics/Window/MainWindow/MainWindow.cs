@@ -555,7 +555,7 @@ namespace Graphics
             var state = Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK3()));
             _goalModels.Add(new Model(new Mesh[]
             {
-                Primitives.Sphere(0.05f, 5, 5, new MeshMaterial { Diffuse = Color4.Yellow }, state)
+                Primitives.Sphere(0.05f, 5, 5, new MeshMaterial { ColorDiffuse = Color4.Yellow }, state)
             }));
         }
         #endregion

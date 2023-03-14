@@ -4,9 +4,7 @@ using System.Linq;
 using System.IO;
 
 using OpenTK.Mathematics;
-using OpenTK.Graphics.OpenGL4;
 using Assimp;
-using StbImageSharp;
 
 using PrimitiveType = OpenTK.Graphics.OpenGL4.PrimitiveType;
 
@@ -23,8 +21,6 @@ namespace Graphics
 
     public class Model : IDisposable
     {
-        private static readonly Dictionary<string, MeshTexture> _texturesLoaded = new();
-
         public List<Mesh> Meshes { get; } = new();
 
         private Matrix4 _state;
@@ -104,93 +100,30 @@ namespace Graphics
             var indices = mesh.Faces.SelectMany(face => face.Indices).Select(x => (uint)x);
 
             // process material
-            var textures = new List<MeshTexture>();
             MeshMaterial? material = null;
             if (mesh.MaterialIndex >= 0)
             {
                 Material mat = scene.Materials[mesh.MaterialIndex];
-
-                // get material textures
-                if (mat.HasTextureDiffuse)
-                {
-                    var diffuseMaps = LoadMaterialTextures(directory, mat, TextureType.Diffuse, "texture_diffuse");
-                    textures.AddRange(diffuseMaps);
-                }
-                if (mat.HasTextureSpecular)
-                {
-                    var specularMaps = LoadMaterialTextures(directory, mat, TextureType.Specular, "texture_specular");
-                    textures.AddRange(specularMaps);
-                }
-
-                // get material color props
                 material = new MeshMaterial
                 {
-                    Ambient = mat.ColorAmbient.ToOpenTK(),
-                    Diffuse = mat.ColorDiffuse.ToOpenTK(),
-                    Specular = mat.ColorSpecular.ToOpenTK(),
+                    TextureDiffuse = new MeshTexture { Path = GetPath(directory, mat.TextureDiffuse.FilePath) },
+                    TextureSpecular = new MeshTexture { Path = GetPath(directory, mat.TextureSpecular.FilePath) },
+                    ColorAmbient = mat.ColorAmbient.ToOpenTK(),
+                    ColorDiffuse = mat.ColorDiffuse.ToOpenTK(),
+                    ColorSpecular = mat.ColorSpecular.ToOpenTK(),
                     Shininess = mat.Shininess
                 };
             }
-
-            return new Mesh(vertices.ToArray(), indices.ToArray(), textures.ToArray(), material, mesh.Name);
+            
+            return new Mesh(vertices.ToArray(), indices.ToArray(), material, mesh.Name);
         }
 
-        private static IEnumerable<MeshTexture> LoadMaterialTextures(string directory, Material mat, TextureType type, string typeName)
+        private static string GetPath(string directory, string filepath)
         {
-            int count = mat.GetMaterialTextureCount(type);
-            for (int i = 0; i < count; i++)
-            {
-                mat.GetMaterialTexture(type, i, out TextureSlot slot);
+            if (filepath == null)
+                return null;
 
-                var path = $"{directory}\\{slot.FilePath}";
-                if (!_texturesLoaded.TryGetValue(path, out var texture))
-                    _texturesLoaded[path] = texture = TextureFromFile(path, typeName);
-
-                yield return texture;
-            }
-        }
-
-        private static MeshTexture TextureFromFile(string path, string typeName)  // [obsolete] TODO: return by ref
-        {
-            using var io = new FileStream(path, FileMode.Open);
-
-            // load texture file with StbImage
-            var img = ImageResult.FromStream(io);
-
-            var texture = new MeshTexture
-            {
-                Type = typeName,
-                Path = path
-            };
-
-            var format = img.SourceComp switch
-            {
-                ColorComponents.Grey => PixelInternalFormat.R8,
-                ColorComponents.GreyAlpha => PixelInternalFormat.Rg8,
-                ColorComponents.RedGreenBlue => PixelInternalFormat.Rgb8,
-                ColorComponents.RedGreenBlueAlpha => PixelInternalFormat.Rgba8,
-                _ => throw new ArgumentException("Unknown pixel format.")
-            };
-
-            // send necessary actions to dispatcher
-            Dispatcher.RenderActions.Enqueue(() =>
-            {
-                // load and generate the texture
-                GL.GenTextures(1, out texture.ID);
-
-                // set texture data
-                GL.BindTexture(TextureTarget.Texture2D, texture.ID);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, format, img.Width, img.Height, 0, (PixelFormat)format, PixelType.UnsignedByte, img.Data);
-                GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
-
-                // set texture wrapping/filtering options
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)OpenTK.Graphics.OpenGL4.TextureWrapMode.Repeat);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            });
-
-            return texture;
+            return Path.Join(directory, filepath);
         }
 
         public void Update(Matrix4 state)

@@ -25,9 +25,9 @@ namespace Logic
         private readonly Ground _ground;
         private readonly MeshMaterial _defaultMaterial = new()
         {
-            Ambient = new OpenTK.Mathematics.Color4(0.1f, 0.1f, 0.0f, 1.0f),
-            Diffuse = new OpenTK.Mathematics.Color4(0.8f, 0.8f, 0.0f, 1.0f),
-            Specular = new OpenTK.Mathematics.Color4(0.5f, 0.5f, 0.0f, 1.0f),
+            ColorAmbient = new OpenTK.Mathematics.Color4(0.1f, 0.1f, 0.0f, 1.0f),
+            ColorDiffuse = new OpenTK.Mathematics.Color4(0.8f, 0.8f, 0.0f, 1.0f),
+            ColorSpecular = new OpenTK.Mathematics.Color4(0.5f, 0.5f, 0.0f, 1.0f),
             Shininess = 8
         };
 

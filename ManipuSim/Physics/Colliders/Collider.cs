@@ -12,7 +12,7 @@ namespace Physics
     public abstract class Collider : IDisposable
     {
         private readonly PhysicsHandler _physicsHandler;
-        private readonly MeshMaterial _defaultMaterial = new() { Diffuse = OpenTK.Mathematics.Color4.Lime };
+        private readonly MeshMaterial _defaultMaterial = new() { ColorDiffuse = OpenTK.Mathematics.Color4.Lime };
         
         public RigidBody Body { get; protected set; }
         public RigidBodyType Type { get; protected set; }

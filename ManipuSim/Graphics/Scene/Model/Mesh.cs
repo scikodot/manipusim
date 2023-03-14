@@ -1,11 +1,11 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Runtime.InteropServices;
 
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using StbImageSharp;
 
 namespace Graphics
 {
@@ -28,47 +28,105 @@ namespace Graphics
         }*/
     }
 
-    // TODO: revisit
-    // reference has to be hold for texture generation in GL.GenTextures() in main thread => class instead of struct;
-    // see TextureFromFile() in Model class
-    public class MeshTexture
+    public struct MeshTexture
     {
+        // TODO: might cause concurrency issues;
+        // _texturesLoaded is accessed from the aux loading thread,
+        // while _texturesInitialized is accessed from the main context thread
+        private static readonly Dictionary<string, ImageResult> _texturesLoaded = new();
+        private static readonly Dictionary<string, int> _texturesInitialized = new();
+
         public int ID;
-        public string Type;
         public string Path;
+
+        public void Load()
+        {
+            // Path is null -> nothing to load;
+            // texture w/ Path is loaded or initialized -> no need to load again
+            if (Path == null || _texturesLoaded.ContainsKey(Path) || _texturesInitialized.ContainsKey(Path))
+                return;
+
+            using var stream = new FileStream(Path, FileMode.Open);
+            _texturesLoaded[Path] = ImageResult.FromStream(stream);
+        }
+
+        public void Initialize()
+        {
+            // default texture should also be considered initialized, 
+            // hence use an empty string as its key
+            Path ??= "";
+
+            // texture w/ Path is initialized -> use its ID
+            if (_texturesInitialized.ContainsKey(Path))
+            {
+                ID = _texturesInitialized[Path];
+                return;
+            }
+
+            // no need to store texture image data anymore
+            _texturesLoaded.Remove(Path, out var image);
+
+            // if no texture image is supplied, generate a placeholder texture of 1 white pixel
+            var data = image?.Data ?? new byte[] { 255, 255, 255, 255 };
+            int width = image?.Width ?? 1;
+            int height = image?.Height ?? 1;
+
+            // TODO: this should be determined based on image.SourceComp, 
+            // but PixelInternalFormat and PixelFormat seem incompatible on some values
+            var format = PixelInternalFormat.Rgba;
+
+            // load and generate the texture
+            GL.GenTextures(1, out ID);
+            
+            // set texture data
+            GL.BindTexture(TextureTarget.Texture2D, ID);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, format, width, height, 0, (PixelFormat)format, PixelType.UnsignedByte, data);
+            GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+            // set texture parameters
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.LinearMipmapLinear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+
+            _texturesInitialized[Path] = ID;
+        }
     }
 
-    // TODO: consider injecting MeshTexture into MeshMaterial, or even replacing both with Assimp.Material
-    // (though might not be a great idea, as that class is used primarily for imports); see Assimp.Material class 
     public struct MeshMaterial  // [obsolete] TODO: consider using readonly refs
     {
-        public Color4 Ambient;
-        public Color4 Diffuse;
-        public Color4 Specular;
-        public float Shininess;
+        public MeshTexture TextureDiffuse = new();
+        public MeshTexture TextureSpecular = new();
+        public Color4 ColorAmbient = new(0, 0, 0, 0);
+        public Color4 ColorDiffuse = Color4.Yellow;
+        public Color4 ColorSpecular = new(0, 0, 0, 0);
+        public float Shininess = 0;
+
+        public MeshMaterial() { }
     }
 
     public class Mesh : IDisposable
     {
-        private readonly static MeshMaterial _defaultMaterial = new() { Diffuse = Color4.Yellow };
-
         private int VAO, VBO, EBO;
 
         public MeshVertex[] Vertices { get; }
         public uint[] Indices { get; }
-        public MeshTexture[] Textures { get; }
-        public MeshMaterial Material { get; set; }
+
+        private MeshMaterial _material;
+        public MeshMaterial Material => _material;
         public string Name { get; }
         public bool IsSetup { get; private set; }
 
-        public Mesh(MeshVertex[] vertices, uint[] indices = null, MeshTexture[] textures = null, 
-            MeshMaterial? material = null, string name = null)
+        public Mesh(MeshVertex[] vertices, uint[] indices = null, MeshMaterial? material = null, string name = null)
         {
             Vertices = vertices;
             Indices = indices ?? Array.Empty<uint>();
-            Textures = textures ?? new[] { new MeshTexture() { Type = "diffuseTex" } };  /*Array.Empty<MeshTexture>();*/
-            Material = material ?? _defaultMaterial;
+            _material = material ?? new();
             Name = name;
+
+            // load all the existent texture files
+            _material.TextureDiffuse.Load();
+            _material.TextureSpecular.Load();
 
             // TODO: indices buffer (EBO) is bound for every Mesh, even for those that do not use indices,
             // which seems redundant
@@ -110,15 +168,9 @@ namespace Graphics
                 // unbind the array
                 GL.BindVertexArray(0);
 
-                // for the compliance with the shader, if no textures are supplied,
-                // generate a placeholder texture of 1 white pixel
-                if (textures == null)
-                {
-                    GL.GenTextures(1, out Textures[0].ID);
-                    GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
-                    GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte,
-                        new byte[] { 255, 255, 255, 255 });
-                }
+                // setup textures
+                _material.TextureDiffuse.Initialize();
+                _material.TextureSpecular.Initialize();
 
                 IsSetup = true;
             });
@@ -141,21 +193,21 @@ namespace Graphics
             GL.BindVertexArray(VAO);
 
             // set colors
-            shader.SetColor4("material.ambientCol", Material.Ambient);
-            shader.SetColor4("material.diffuseCol", Material.Diffuse);
-            shader.SetColor4("material.specularCol", Material.Specular);
-            shader.SetFloat("material.shininess", Material.Shininess);
+            shader.SetColor4("material.ambientCol", _material.ColorAmbient);
+            shader.SetColor4("material.diffuseCol", _material.ColorDiffuse);
+            shader.SetColor4("material.specularCol", _material.ColorSpecular);
+            shader.SetFloat("material.shininess", _material.Shininess);
 
             // set textures
             // TODO: this is a stub that works only for meshes with no external textures;
             // replace with actual bindings of arbitrary textures
             GL.ActiveTexture(TextureUnit.Texture0);
             shader.SetInt("material.diffuseTex", 0);
-            GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
+            GL.BindTexture(TextureTarget.Texture2D, _material.TextureDiffuse.ID);
 
             GL.ActiveTexture(TextureUnit.Texture1);
             shader.SetInt("material.specularTex", 1);
-            GL.BindTexture(TextureTarget.Texture2D, Textures[0].ID);
+            GL.BindTexture(TextureTarget.Texture2D, _material.TextureSpecular.ID);
 
             GL.ActiveTexture(TextureUnit.Texture0);
 
@@ -185,7 +237,7 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        public Mesh DeepCopy() => new(Vertices, Indices, Textures, Material, Name);
+        public Mesh DeepCopy() => new(Vertices, Indices, Material, Name);
 
         public void Dispose()
         {

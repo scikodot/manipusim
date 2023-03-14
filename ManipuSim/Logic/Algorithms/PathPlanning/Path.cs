@@ -104,13 +104,13 @@ namespace Logic.PathPlanning
 
                 // create an empty model with the specified material
                 Model = new Model(new MeshVertex[_maxSize], new uint[2 * (_maxSize - 1)], 
-                    new MeshMaterial { Diffuse = new OpenTK.Mathematics.Color4(_color.X, _color.Y, _color.Z, 1.0f) });
+                    new MeshMaterial { ColorDiffuse = new OpenTK.Mathematics.Color4(_color.X, _color.Y, _color.Z, 1.0f) });
             }
 
-            public void SetColor(Vector3 color)
-            {
-                Model.Meshes[0].Material = new MeshMaterial { Diffuse = new OpenTK.Mathematics.Color4(color.X, color.Y, color.Z, 1.0f) };
-            }
+            //public void SetColor(Vector3 color)
+            //{
+            //    Model.Meshes[0].Material = new MeshMaterial { ColorDiffuse = new OpenTK.Mathematics.Color4(color.X, color.Y, color.Z, 1.0f) };
+            //}
 
             public void Render(ShaderProgram shader)
             {

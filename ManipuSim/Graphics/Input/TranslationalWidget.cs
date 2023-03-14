@@ -44,9 +44,9 @@ namespace Graphics
                 var shaftHalfLength = (1f - _tipLength + _approxSphereRadius) / 2f;
                 _model = new Model(new Mesh[]
                 {
-                    Primitives.Cylinder(_shaftRadius, shaftHalfLength, 20, new MeshMaterial { Diffuse = color }, 
+                    Primitives.Cylinder(_shaftRadius, shaftHalfLength, 20, new MeshMaterial { ColorDiffuse = color }, 
                         Matrix4.CreateTranslation(shaftHalfLength * Vector3.UnitY)),
-                    Primitives.Cone(_tipRadius, _tipLength, 20, new MeshMaterial { Diffuse = color }, 
+                    Primitives.Cone(_tipRadius, _tipLength, 20, new MeshMaterial { ColorDiffuse = color }, 
                         Matrix4.CreateTranslation(2f * shaftHalfLength * Vector3.UnitY))
                 }, align * Matrix4.CreateScale(_scaleFactor));
 
