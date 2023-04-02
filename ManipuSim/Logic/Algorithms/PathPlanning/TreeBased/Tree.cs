@@ -286,7 +286,7 @@ namespace Logic.PathPlanning
                         var childs = new List<Node>(source.Dequeue().Childs);
                         foreach (var child in childs)
                         {
-                            manipulator.q = child.q;
+                            manipulator.Coordinates = child.q;
                             if (manipulator.CollisionTest().Contains(true))
                             {
                                 RemoveNode(child);
@@ -309,7 +309,7 @@ namespace Logic.PathPlanning
 
         public void TrimRecursive(Manipulator manipulator, InverseKinematicsSolver solver, Node node)
         {
-            manipulator.q = node.q;
+            manipulator.Coordinates = node.q;
             if (manipulator.CollisionTest().Contains(true))
             {
                 RemoveNode(node);
@@ -328,7 +328,7 @@ namespace Logic.PathPlanning
             var configs = GetConfigs(node);
             return new Path(configs.Select(config =>  // TODO: refactor! probably will have to add joints positions to tree nodes (same as for path)
             {
-                manipulator.q = config;
+                manipulator.Coordinates = config;
                 return manipulator.DKP;
             }), configs);
         }

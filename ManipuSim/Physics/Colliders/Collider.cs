@@ -6,14 +6,16 @@ using BulletSharp.Math;
 
 using Graphics;
 using Logic;
+using BulletSharp.SoftBody;
 
 namespace Physics
 {
     public abstract class Collider : IDisposable
     {
-        private readonly PhysicsHandler _physicsHandler;
         private readonly MeshMaterial _defaultMaterial = new() { ColorDiffuse = OpenTK.Mathematics.Color4.Lime };
-        
+
+        private PhysicsHandler _physicsHandler;
+
         public RigidBody Body { get; protected set; }
         public RigidBodyType Type { get; protected set; }
         public Model Model { get; protected set; }
@@ -57,10 +59,8 @@ namespace Physics
             set => Translate(value - _position);
         }
 
-        protected Collider(PhysicsHandler handler, RigidBody body, RigidBodyType type)
+        protected Collider(RigidBody body, RigidBodyType type)
         {
-            _physicsHandler = handler;
-
             // set default orientation and position provided for the body;
             // default size is set separately for each shape
             body.WorldTransform.Decompose(out _, out var orientation, out var position);
@@ -78,16 +78,32 @@ namespace Physics
             Model.Update(State.ToOpenTK());
         }
 
-        public static Collider Create(PhysicsHandler handler, RigidBody body, RigidBodyType type)
+        public static Collider Create(CollisionShape shape, RigidBodyType type = RigidBodyType.Kinematic, 
+            Matrix transform = default, float mass = 0)
         {
+            var localInertia = mass == 0 ? Vector3.Zero : shape.CalculateLocalInertia(mass);
+            var motionState = new DefaultMotionState(transform == default ? Matrix.Identity : transform);
+            using var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia);
+            var body = new RigidBody(rbInfo);
+
+            // set the provided type and disable deactivation,
+            // because objects are created in design mode
+            body.SetType(type);
+            body.ForceActivationState(ActivationState.DisableDeactivation);
+
             return body.CollisionShape.ShapeType switch
             {
-                BroadphaseNativeType.BoxShape => new BoxCollider(handler, body, type),
-                BroadphaseNativeType.SphereShape => new SphereCollider(handler, body, type),
-                BroadphaseNativeType.CylinderShape => new CylinderCollider(handler, body, type),
-                BroadphaseNativeType.ConeShape => new ConeCollider(handler, body, type),
+                BroadphaseNativeType.BoxShape => new BoxCollider(body, type),
+                BroadphaseNativeType.SphereShape => new SphereCollider(body, type),
+                BroadphaseNativeType.CylinderShape => new CylinderCollider(body, type),
+                BroadphaseNativeType.ConeShape => new ConeCollider(body, type),
                 _ => throw new ArgumentException("Unknown collision shape.")
             };
+        }
+
+        public void Attach(PhysicsHandler physicsHandler)
+        {
+            (_physicsHandler = physicsHandler).AddRigidBody(Body);
         }
 
         // TODO: check usage
@@ -153,7 +169,7 @@ namespace Physics
 
         public void Reset()
         {
-            _physicsHandler.CleanRigidBody(Body);
+            _physicsHandler?.CleanRigidBody(Body);
 
             var state = GetRotationMatrix();
             state.Origin = _position;
@@ -162,11 +178,17 @@ namespace Physics
 
         public bool CollisionPairTest(Collider other)
         {
+            if (_physicsHandler == null)
+                throw new InvalidOperationException("Cannot collision pair test an unattached collider.");
+
             return _physicsHandler.ContactPairTest(Body, other.Body, CollisionCallback);
         }
 
         public bool CollisionTest()
         {
+            if (_physicsHandler == null)
+                throw new InvalidOperationException("Cannot collision test an unattached collider.");
+
             return _physicsHandler.ContactTest(Body, CollisionCallback);
         }
 
@@ -174,7 +196,7 @@ namespace Physics
         public void Convert(RigidBodyType type, float? mass = null)
         {
             // temporarily remove the body from the world
-            _physicsHandler.RemoveRigidBody(Body);
+            _physicsHandler?.RemoveRigidBody(Body);
 
             // set the given body type
             Body.SetType(type);
@@ -185,7 +207,7 @@ namespace Physics
                 Body.SetMassProps(mass.Value, Body.CollisionShape.CalculateLocalInertia(mass.Value));
 
             // return the body to the world
-            _physicsHandler.AddRigidBody(Body);
+            _physicsHandler?.AddRigidBody(Body);
         }
 
         //public void AttachGhost()
@@ -222,8 +244,14 @@ namespace Physics
 
         public Collider Copy()
         {
+            if (_physicsHandler == null)
+                throw new InvalidOperationException("Cannot copy an unattached collider.");
+
             // body cannot be cloned directly, so the only way is to re-initialize it
-            Collider collider = _physicsHandler.CreateCollider(Type, Body.CollisionShape, Body.MotionState.WorldTransform, 1f / Body.InvMass);
+            var collider = Create(Body.CollisionShape, Type, Body.MotionState.WorldTransform, 1f / Body.InvMass);
+
+            // add the newly created body to the world
+            _physicsHandler.AddRigidBody(collider.Body);
 
             // disable collider to prevent it from producing collision impulses
             collider.Body.CollisionFlags |= CollisionFlags.NoContactResponse;
@@ -236,9 +264,15 @@ namespace Physics
 
         public void Dispose()
         {
-            // clear managed resources
             Model.Dispose();
-            _physicsHandler.DisposeRigidBody(Body);
+
+            // remove the body from the world
+            _physicsHandler?.RemoveRigidBody(Body);  // [obsolete] TODO: can crash, perhaps due to a lack of thread sync
+
+            // then dipose of the body
+            Body.MotionState.Dispose();
+            Body.CollisionShape.Dispose();
+            Body.Dispose();
 
             // suppress finalization
             GC.SuppressFinalize(this);

@@ -67,7 +67,7 @@ namespace Logic.PathPlanning
                 State = ControllerState.Running;
 
                 // execute path planning
-                using (var manipulatorCopy = manipulator.DeepCopy())
+                using (var manipulatorCopy = manipulator.Copy())
                 {
                     res = RunAbstract(manipulatorCopy, goal, solver, cancellationToken);
                 }

@@ -25,7 +25,6 @@ namespace Physics
 
         private readonly CollisionDispatcher _dispatcher;
         private readonly DbvtBroadphase _broadphase;
-        private readonly List<CollisionShape> _collisionShapes = new();
         private readonly CollisionConfiguration _collisionConf;
 
         private const int MaxThreadCount = 64;
@@ -184,37 +183,8 @@ namespace Physics
             body.AngularVelocity = Vector3.Zero;
         }
 
-        public void DisposeRigidBody(RigidBody body)
-        {
-            // first, remove the body from the world
-            RemoveRigidBody(body);  // [obsolete] TODO: can crash, perhaps due to a lack of thread sync
-
-            // then dipose of the body
-            body?.Dispose();
-        }
-
-        public Collider CreateCollider(RigidBodyType type, CollisionShape shape, Matrix transform = default, float mass = 0)
-        {
-            var localInertia = mass == 0 ? Vector3.Zero : shape.CalculateLocalInertia(mass);
-            var motionState = new DefaultMotionState(transform == default ? Matrix.Identity : transform);
-            using var rbInfo = new RigidBodyConstructionInfo(mass, motionState, shape, localInertia);
-            var body = new RigidBody(rbInfo);
-
-            // set the provided type and disable deactivation,
-            // because objects are created in design mode
-            body.SetType(type);
-            body.ForceActivationState(ActivationState.DisableDeactivation);
-
-            // add the body to the world
-            AddRigidBody(body);
-
-            // create a collider of the given shape
-            return Collider.Create(this, body, type);
-        }
-
         public void Dispose()  // TODO: can crash; examine!
         {
-            // remove/dispose of constraints
             for (int i = World.NumConstraints - 1; i >= 0; i--)
             {
                 TypedConstraint constraint = World.GetConstraint(i);
@@ -225,37 +195,23 @@ namespace Physics
                 constraint.Dispose();
             }
 
-            // remove the rigidbodies from the dynamics world and delete them
             for (int i = World.NumCollisionObjects - 1; i >= 0; i--)
             {
                 CollisionObject obj = World.CollisionObjectArray[i];
-                RigidBody body = obj as RigidBody;
-                if (body != null && body.MotionState != null)
-                {
-                    body.MotionState.Dispose();
-                }
-                
+
                 lock (_worldSyncRoot)
                     World.RemoveCollisionObject(obj);
 
+                (obj as RigidBody)?.MotionState?.Dispose();
+                obj.CollisionShape?.Dispose();
                 obj.Dispose();
             }
-
-            // delete collision shapes
-            foreach (CollisionShape shape in _collisionShapes)
-            {
-                shape.Dispose();
-            }
-            _collisionShapes.Clear();
 
             lock (_worldSyncRoot)
                 World.Dispose();
 
             _broadphase.Dispose();
-            if (_dispatcher != null)
-            {
-                _dispatcher.Dispose();
-            }
+            _dispatcher.Dispose();
             _collisionConf.Dispose();
         }
     }

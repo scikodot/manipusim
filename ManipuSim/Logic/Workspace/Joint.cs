@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading.Tasks;
+using BulletSharp;
 using BulletSharp.Math;
 using Graphics;
 using Physics;
@@ -14,16 +16,6 @@ namespace Logic
         Planar  // Allows relative translation on a plane and relative rotation about an axis perpendicular to the plane
     }
 
-    public struct JointData
-    {
-        public Model Model;
-        public Collider Collider;
-
-        public float Length;
-        public float q;
-        public System.Numerics.Vector2 qRanges;
-    }
-
     public class TranslationEventArgs : EventArgs
     {
         public Vector3 Translation { get; }
@@ -36,59 +28,63 @@ namespace Logic
 
     public class Joint : IDisposable, ISelectable, ITranslatable  // TODO: consider using abstract class Selectable instead of interface
     {
+        private static Model _defaultModel;
+
+        // TODO: consider creating a separate EndEffector/Tool class
+        private static Model _defaultGripperModel;
+
         public Model Model { get; private set; }
         public Collider Collider { get; private set; }
 
+        public Matrix State => Collider.State;
+
         public float Radius => (Collider as SphereCollider).Radius;
+        public bool ShowCollider { get; set; }
 
-        private bool _showCollider;
-        public ref bool ShowCollider => ref _showCollider;
-
-        public Matrix State
-        {
-            get => Collider.Body.WorldTransform;
-            set
-            {
-                // explicitly set position of the body
-                Collider.Body.WorldTransform = value;
-
-                // set its motion state to update position (for kinematic objects only)
-                Collider.Body.MotionState.SetWorldTransform(ref value);
-            }
-        }
-
-        private Vector3 _initialPosition;
-        public ref Vector3 InitialPosition => ref _initialPosition;
-
-        private Vector3 _initialAxis;
-        public ref Vector3 InitialAxis => ref _initialAxis;
-
+        public Vector3 InitialPosition { get; set; }
         public Vector3 Position { get; set; }
+        public Vector3 InitialAxis { get; set; }
         public Vector3 Axis { get; set; }
-
-        private float _initialCoordinate;
-        public ref float InitialCoordinate => ref _initialCoordinate;
-
-        private System.Numerics.Vector2 _coordinateRange;
-        public ref System.Numerics.Vector2 CoordinateRange => ref _coordinateRange;
-
+        public float InitialCoordinate { get; }
         public float Coordinate { get; set; }
 
-        private bool _active;
-        public ref bool Active => ref _active;
+        private (float, float) _coordinateRange;
+        public (float l, float u) CoordinateRange
+        {
+            get => _coordinateRange;
+            set
+            {
+                if (value.l > value.u)
+                    throw new ArgumentException("Invalid coordinate range.");
+
+                _coordinateRange = value;
+            }
+        }
+        public bool Active { get; set; }
 
         public event EventHandler<TranslationEventArgs> TranslationChanged;
 
-        public Joint(JointData data)
+        public static void LoadDefaultModel(string jointPath, string gripperPath)
         {
-            Model = data.Model;
-            Collider = data.Collider;
+            Dispatcher.ActiveTasks.Add(Task.Run(() =>
+            {
+                _defaultModel = new Model(jointPath);
+                _defaultGripperModel = new Model(gripperPath);
+            }));
+        }
 
+        public Joint(Model model = null, Collider collider = null, Vector3? axis = null, Vector3? position = null, 
+            float coordinate = 0, float coordinateL = -180, float coordinateU = 180, bool isEndEffector = false)
+        {
+            Model = model ?? (isEndEffector ? _defaultGripperModel.Copy() : _defaultModel.Copy());
+            Collider = collider ?? (isEndEffector ? 
+                Collider.Create(new SphereShape(0.1f)) : 
+                Collider.Create(new SphereShape(0.2f)));
             Collider.Body.UserObject = this;
-
-            //Radius = data.Length;
-            Coordinate = data.q;
-            CoordinateRange = data.qRanges;
+            Axis = InitialAxis = axis ?? (isEndEffector ? Vector3.UnitY : Vector3.UnitX);
+            Position = InitialPosition = position ?? Vector3.Zero;
+            Coordinate = InitialCoordinate = coordinate;
+            CoordinateRange = (coordinateL, coordinateU);
 
             Model.RenderFlags = RenderFlags.Default | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
@@ -103,15 +99,7 @@ namespace Logic
             TranslationChanged?.Invoke(this, new TranslationEventArgs(translation));
         }
 
-        public Joint DeepCopy()
-        {
-            var joint = (Joint)MemberwiseClone();
-
-            joint.Model = Model.DeepCopy();
-            joint.Collider = Collider.Copy();
-
-            return joint;
-        }
+        public Joint Copy() => new(Model.Copy(), Collider.Copy());
 
         public void Render(ShaderProgram shader)
         {
@@ -121,30 +109,24 @@ namespace Logic
                 Collider.Render(shader);
         }
 
-        public void UpdateStateDesign()
+        public void Update(InteractionMode mode)
         {
             //Collider.Scale();
-        }
-
-        public void UpdateModel()  // TODO: unify
-        {
-            var state = Collider.State.ToOpenTK();
+            var state = State.ToOpenTK();
             Model.Update(state);
             Collider.Model.Update(state);
         }
 
-        public void UpdateState(ref ImpDualQuat state)
+        public void UpdateState(in ImpDualQuat state)
         {
-            State = state.ToMatrix().ToBullet();
+            
         }
 
         public void Dispose()
         {
-            // clear managed resources
             Model.Dispose();
             Collider.Dispose();
 
-            // suppress finalization
             GC.SuppressFinalize(this);
         }
     }

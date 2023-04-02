@@ -45,7 +45,7 @@ namespace Logic.PathPlanning
                 };
 
             // create new tree
-            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q), _maxIterations + 1);
+            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.Coordinates), _maxIterations + 1);
 
             // define local attractors as the goal attractor and copies of static attractors
             var attractors = new List<Attractor>() { new Attractor(goal) };
@@ -96,14 +96,14 @@ namespace Logic.PathPlanning
                 if (!(_collisionCheck /*&& ObstacleHandler.ContainmentTest(point, out _)*/))
                 {
                     // solve inverse kinematics for the new node
-                    manipulator.q = nodeClosest.q;
+                    manipulator.Coordinates = nodeClosest.q;
                     var ikRes = solver.Execute(manipulator, point);
                     if (ikRes.Converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))  // TODO: is convergence check really needed?
                     {
-                        manipulator.q = ikRes.Configuration;
+                        manipulator.Coordinates = ikRes.Configuration;
 
                         // add node to the tree
-                        Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.q);
+                        Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.Coordinates);
                         Tree.AddNode(node);
 
                         // check exit condition

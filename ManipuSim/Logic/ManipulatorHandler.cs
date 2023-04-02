@@ -16,30 +16,8 @@ namespace Logic
     {
         private readonly MainWindow _parent;
 
-        // components models
-        private Model _defaultJointModel;
-        private Model _defaultLinkModel;
-        private Model _defaultGripperModel;
-
-        private int _defaultLinksNumber = 3;
-        public ref int DefaultLinksNumber => ref _defaultLinksNumber;
-
-        private float _defaultLinksLength = 1f;
-        public ref float DefaultLinksLength => ref _defaultLinksLength;        
-
-        private JointData _defaultJoint = new()
-        {
-            Length = 0.4f,
-            q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180)
-        };
-
-        private JointData _defaultGripper = new()
-        {
-            Length = 0.2f,
-            q = 0,
-            qRanges = new System.Numerics.Vector2(-180, 180)
-        };
+        public int DefaultLinksNumber { get; set; } = 3;
+        public float DefaultLinksLength { get; set; } = 1f;
 
         private Vector3 _defaultGoal = new Vector3(0.0f/*-1.0f*/, 0.5f, -2.0f);
 
@@ -50,93 +28,25 @@ namespace Logic
         public ManipulatorHandler(MainWindow parent)
         {
             _parent = parent;
+
+            // pre-load models
+            LoadDefaultModels();
         }
 
-        public void LoadDefaultModels()
+        private void LoadDefaultModels()
         {
-            Dispatcher.ActiveTasks.Add(Task.Run(() =>
-            {
-                // load components' models
-                _defaultJointModel = new Model(_parent.InputHandler.JointPath);
-                _defaultLinkModel = new Model(_parent.InputHandler.LinkPath);
-                _defaultGripperModel = new Model(_parent.InputHandler.GripperPath);
-            }));
-        }
-
-        public Manipulator CreateDefaultManipulator()
-        {
-            // set links' parameters
-            var links = new LinkData[_defaultLinksNumber];
-            links.Fill(new LinkData
-            {
-                Length = _defaultLinksLength
-            });
-
-            // define model and collider for each link
-            for (int i = 0; i < links.Length; i++)
-            {
-                links[i].Model = _defaultLinkModel.DeepCopy();
-                links[i].Collider = _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new CylinderShape(0.15f, 0.5f, 0.15f));
-            }
-
-            // set joints' parameters
-            var joints = new JointData[_defaultLinksNumber + 1];
-            joints.Fill(_defaultJoint);
-            joints[joints.Length - 1] = _defaultGripper;
-
-            // define model and collider for each joint
-            for (int i = 0; i < joints.Length - 1; i++)
-            {
-                joints[i].Model = _defaultJointModel.DeepCopy();
-                joints[i].Collider = _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new SphereShape(0.2f));
-            }
-
-            // TODO: gripper collider is not affected by the initial transform; fix!
-            joints[_defaultLinksNumber].Model = _defaultGripperModel.DeepCopy();
-            joints[_defaultLinksNumber].Collider = _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new SphereShape(0.1f));
-
-            // set joints' axes
-            var jointAxes = new Vector3[_defaultLinksNumber + 1];
-            jointAxes[0] = jointAxes[jointAxes.Length - 1] = Vector3.UnitY;
-            for (int i = 1; i < _defaultLinksNumber; i++)
-            {
-                jointAxes[i] = /*Vector3.UnitX;*/ i % 2 == 0 ? Vector3.UnitZ : Vector3.UnitX;
-            }
-
-            // set joints' positions
-            var jointPositions = new Vector3[_defaultLinksNumber + 1];
-            jointPositions[0] = Vector3.Zero;
-            for (int i = 1; i < _defaultLinksNumber + 1; i++)
-            {
-                jointPositions[i] = jointPositions[i - 1] + ((joints[i - 1].Length + joints[i].Length) / 2 + links[i - 1].Length) * Vector3.UnitY;
-            }
-
-            // create a default manipulator
-            var manipulator = new Manipulator(new ManipData
-            {
-                N = _defaultLinksNumber,
-                Links = links,
-                Joints = joints,
-                JointAxes = jointAxes,
-                JointPositions = jointPositions,
-                Goal = _defaultGoal,
-                ShowTree = true
-            });
-
-            var solver = DampedLeastSquares.Default();
-            var planner = GeneticAlgorithm.Default(); /*ARRT.Default(manipulator);*/
-            var controller = MotionController.Default();
-            manipulator.Controller = new Controller(manipulator, planner, solver, controller);
-
-            // add manipulator to the list
-            Add(manipulator);
-
-            return manipulator;
+            Joint.LoadDefaultModel(_parent.InputHandler.JointPath, _parent.InputHandler.GripperPath);
+            Link.LoadDefaultModel(_parent.InputHandler.LinkPath);
         }
 
         public void Add(Manipulator manipulator)
         {
             Manipulators.Add(manipulator);
+        }
+
+        public void AddDefault(int linksNumber)
+        {
+            Add(Manipulator.CreateDefault(linksNumber));
         }
 
         public void Remove(Manipulator manipulator)
@@ -164,44 +74,10 @@ namespace Logic
             }
         }
 
-        //public static void Initialize()
-        //{
-        //    Obstacles[i] = new Obstacle(Primitives.Cube(0.5f, 0.5f, 0.5f, new Graphics.MeshMaterial
-        //    {
-        //        Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-        //        Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-        //        Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-        //        Shininess = 8
-        //    }), new BoxCollider(0.5f, 0.5f, 0.5f), new ImpDualQuat(OB[i].Center));
-
-        //    Obstacles[i] = new Obstacle(Primitives.Sphere(0.5f, 50, 25, new Graphics.MeshMaterial
-        //    {
-        //        Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-        //        Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-        //        Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-        //        Shininess = 8
-        //    }), new SphereCollider(0.5f, 50, 25), new ImpDualQuat(OB[i].Center));
-
-        //    Obstacles[i] = new Obstacle(Primitives.Cylinder(0.25f, 1, 1, 50, new Graphics.MeshMaterial
-        //    {
-        //        Ambient = new OpenTK.Vector4(0.1f, 0.1f, 0.0f, 1.0f),
-        //        Diffuse = new OpenTK.Vector4(0.8f, 0.8f, 0.0f, 1.0f),
-        //        Specular = new OpenTK.Vector4(0.5f, 0.5f, 0.0f, 1.0f),
-        //        Shininess = 8
-        //    }), PhysicsHandler.CreateKinematicCollider(new CylinderShape(0.25f, 1, 0.25f), Matrix.Translation(OB[i].Center.X, OB[i].Center.Y, OB[i].Center.Z)));
-
-        //    Obstacles[i] = new Obstacle(Primitives.SpherePointCloud(OB[i].Radius, Vector3.Zero, OB[i].PointsNum), new ImpDualQuat(OB[i].Center), ColliderShape.Sphere);
-        //}
-
-        public void Update()
+        public void Update(InteractionMode mode)
         {
-            if (_parent.InputHandler.InteractionMode == InteractionMode.Design)
-            {
-                foreach (var manipulator in Manipulators)
-                {
-                    manipulator.UpdateStateDesign();
-                }
-            }
+            foreach (var manipulator in Manipulators)
+                manipulator.Update(mode);
         }
 
         public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
@@ -215,14 +91,6 @@ namespace Logic
                 case InteractionMode.Simulate:
                     RunControl();  // start threads
                     break;
-            }
-        }
-
-        public void UpdateModel()
-        {
-            foreach(var manipulator in Manipulators)
-            {
-                manipulator.UpdateModel();
             }
         }
 

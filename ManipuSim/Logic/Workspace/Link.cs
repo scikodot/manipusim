@@ -1,61 +1,44 @@
 ﻿using System;
-using System.Security;
+using System.Threading.Tasks;
+
+using BulletSharp;
 using BulletSharp.Math;
+
 using Graphics;
 using Physics;
 
 namespace Logic
 {
-    public struct LinkData
-    {
-        public Model Model;
-        public Collider Collider;
-
-        public float Length;
-    }
-
     public class Link : IDisposable, ISelectable
     {
+        private static Model _defaultModel;
+
         public Model Model { get; private set; }
         public Collider Collider { get; private set; }
 
+        public Matrix State => Collider.State;
+
         public float Length => 2 * (Collider as CylinderCollider).HalfLength;  // TODO: perhaps optimize? or use another approach?
+        public bool ShowCollider { get; set; }
 
-        private bool _showCollider;
-        public ref bool ShowCollider => ref _showCollider;
-
-        public Matrix State
+        public static void LoadDefaultModel(string path)
         {
-            get => Collider.Body.WorldTransform;
-            set
+            Dispatcher.ActiveTasks.Add(Task.Run(() =>
             {
-                // explicitly set position of the body
-                Collider.Body.WorldTransform = value;
-
-                // set its motion state to update position (for kinematic objects only)
-                Collider.Body.MotionState.SetWorldTransform(ref value);
-            }
+                _defaultModel = new Model(path);
+            }));
         }
 
-        public Link(LinkData data)
+        public Link(Model model = null, Collider collider = null, float length = 0.5f)
         {
-            Model = data.Model;
-            Collider = data.Collider;
-
+            Model = model ?? _defaultModel.Copy();
+            Collider = collider ?? Collider.Create(new CylinderShape(0.15f, length, 0.15f));
             Collider.Body.UserObject = this;
 
             Model.RenderFlags = RenderFlags.Default | RenderFlags.Wireframe | RenderFlags.Lighting;
         }
 
-        public Link DeepCopy()
-        {
-            var link = (Link)MemberwiseClone();
-
-            link.Model = Model.DeepCopy();
-            link.Collider = Collider.Copy();
-
-            return link;
-        }
+        public Link Copy() => new(Model.Copy(), Collider.Copy());
 
         public bool CollisionTest()
         {
@@ -79,18 +62,14 @@ namespace Logic
         {
             Model.Render(shader);
 
-            if (_showCollider)
+            if (ShowCollider)
                 Collider.Render(shader);
         }
 
-        public void UpdateStateDesign()
+        public void Update(InteractionMode mode)
         {
             //Collider.Scale();
-        }
-
-        public void UpdateModel()  // TODO: unify
-        {
-            var state = Collider.State.ToOpenTK();
+            var state = State.ToOpenTK();
             Model.Update(state);
             Collider.Model.Update(state);
         }
@@ -102,11 +81,9 @@ namespace Logic
 
         public void Dispose()
         {
-            // clear managed resources
             Model.Dispose();
             Collider.Dispose();
 
-            // suppress finalization
             GC.SuppressFinalize(this);
         }
     }

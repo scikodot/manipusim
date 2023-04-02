@@ -237,7 +237,7 @@ namespace Graphics
             GL.BindVertexArray(0);
         }
 
-        public Mesh DeepCopy() => new(Vertices, Indices, Material, Name);
+        public Mesh Copy() => new(Vertices, Indices, Material, Name);
 
         public void Dispose()
         {

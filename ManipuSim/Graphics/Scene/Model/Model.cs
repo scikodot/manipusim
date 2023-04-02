@@ -146,7 +146,7 @@ namespace Graphics
                 mesh.Render(shader, type, count, RenderFlags);
         }
 
-        public Model DeepCopy() => new(Meshes.Select(mesh => mesh.DeepCopy()), _state, RenderFlags);
+        public Model Copy() => new(Meshes.Select(mesh => mesh.Copy()), _state, RenderFlags);
 
         public void Dispose()  // [obsolete] TODO: fix finalization, it seems to be not proper
         {

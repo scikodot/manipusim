@@ -62,7 +62,7 @@ namespace Logic.PathPlanning
                 };
 
             // create new tree
-            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.q), _maxIterations + 1);
+            Tree = new Tree(new Tree.Node(null, manipulator.GripperPos, manipulator.Coordinates), _maxIterations + 1);
 
             Iterations = 0;
             while (Iterations < _maxIterations)
@@ -93,14 +93,14 @@ namespace Logic.PathPlanning
                 if (!(_collisionCheck /*&& ObstacleHandler.ContainmentTest(point, out _)*/))
                 {
                     // solve inverse kinematics for the new node to obtain the agent configuration
-                    manipulator.q = nodeClosest.q;
+                    manipulator.Coordinates = nodeClosest.q;
                     var ikRes = solver.Execute(manipulator, point);
                     if (ikRes.Converged && !(_collisionCheck && manipulator.CollisionTest().Contains(true)))
                     {
-                        manipulator.q = ikRes.Configuration;
+                        manipulator.Coordinates = ikRes.Configuration;
 
                         // add new node to the tree
-                        Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.q);
+                        Tree.Node node = new Tree.Node(nodeClosest, manipulator.GripperPos, manipulator.Coordinates);
                         Tree.AddNode(node);
 
                         // check exit condition

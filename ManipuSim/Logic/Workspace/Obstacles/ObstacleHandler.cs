@@ -38,16 +38,15 @@ namespace Logic
         {
             _parent = parent;
 
-            _ground = new Ground(_parent.PhysicsHandler.CreateCollider(
-                RigidBodyType.Static, 
-                new BoxShape(10, 0.2f, 10), 
-                Matrix.Translation(-0.2f * Vector3.UnitY)));
+            _ground = new Ground(
+                Collider.Create(new BoxShape(10, 0.2f, 10), RigidBodyType.Static, 
+                    Matrix.Translation(-0.2f * Vector3.UnitY)));
         }
 
         public void Add(params Obstacle[] obstacles)
         {
             if (obstacles == null)
-                throw new ArgumentNullException("obstacles");
+                throw new ArgumentNullException(nameof(obstacles));
 
             foreach (var obstacle in obstacles)
                 Add(obstacle);
@@ -70,25 +69,25 @@ namespace Logic
                     {
                         Primitives.Cube(0.5f, _defaultMaterial)
                     }),
-                    _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new BoxShape(0.5f))),
+                    Collider.Create(new BoxShape(0.5f))),
                 ObstacleShape.Sphere => new Obstacle(
                     new Model(new Mesh[]
                     {
                         Primitives.Sphere(0.5f, 50, 50, _defaultMaterial)
                     }),
-                    _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new SphereShape(0.5f))),
+                    Collider.Create(new SphereShape(0.5f))),
                 ObstacleShape.Cylinder => new Obstacle(
                     new Model(new Mesh[]
                     {
                         Primitives.Cylinder(0.25f, 1f, 50, _defaultMaterial)
                     }),
-                    _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new CylinderShape(0.25f, 1f, 0.25f))),
+                    Collider.Create(new CylinderShape(0.25f, 1f, 0.25f))),
                 ObstacleShape.Cone => new Obstacle(
                     new Model(new Mesh[]
                     {
                         Primitives.Cone(0.5f, 2, 50, _defaultMaterial)
                     }),
-                    _parent.PhysicsHandler.CreateCollider(RigidBodyType.Kinematic, new ConeShape(0.5f, 2))),
+                    Collider.Create(new ConeShape(0.5f, 2))),
                 _ => throw new ArgumentException("Unknown obstacle shape.")
             };
 
@@ -117,18 +116,16 @@ namespace Logic
             return false;
         }
 
-        public void Update()
+        public void Update(InteractionMode mode)
         {
             foreach (var obstacle in Obstacles)
-                obstacle.Update(_parent.InputHandler.InteractionMode);
+                obstacle.Update(mode);
         }
 
         public void OnInteractionModeSwitched(InteractionModeSwitchEventArgs e)
         {
             foreach (var obstacle in Obstacles)
-            {
                 obstacle.OnInteractionModeSwitched(e);
-            }
         }
 
         public void RenderGrid(ShaderProgram shader)

@@ -91,7 +91,7 @@ namespace Logic.PathPlanning
                 };
 
             _manipulator = manipulator;
-            _initialConfiguration = manipulator.q;
+            _initialConfiguration = manipulator.Coordinates;
             _solver = solver;
             _goal = goal;
 
@@ -168,20 +168,20 @@ namespace Logic.PathPlanning
         private Path ConstructPath(BezierCurve bezierCurve, float step)  // TODO: refactor!
         {
             // reset manipulator
-            _manipulator.q = _initialConfiguration;
+            _manipulator.Coordinates = _initialConfiguration;
 
             float counter = 0;
 
             var points = new List<Vector3[]> { _manipulator.DKP };
-            var configs = new List<VectorFloat> { _manipulator.q };
+            var configs = new List<VectorFloat> { _manipulator.Coordinates };
             while (counter <= 1)
             {
                 var ikRes = _solver.Execute(_manipulator, bezierCurve.CalculatePoint(counter));
 
-                _manipulator.q = ikRes.Configuration;
+                _manipulator.Coordinates = ikRes.Configuration;
 
                 points.Add(_manipulator.DKP);
-                configs.Add(_manipulator.q);
+                configs.Add(_manipulator.Coordinates);
 
                 counter += step;
             }
@@ -241,7 +241,7 @@ namespace Logic.PathPlanning
             float score = 0;
 
             // apply goal convergence criterion
-            _manipulator.q = sample.Last.q;
+            _manipulator.Coordinates = sample.Last.q;
             var distance = _manipulator.DistanceTo(_goal);
             if (distance > _threshold)
                 score += distance - _threshold;
@@ -249,7 +249,7 @@ namespace Logic.PathPlanning
             // extract parameters' values from chromosome
             foreach (var node in sample.Nodes)
             {
-                _manipulator.q = node.q;
+                _manipulator.Coordinates = node.q;
 
                 Vector3 currPos = node.Points[node.Points.Length - 1];
 

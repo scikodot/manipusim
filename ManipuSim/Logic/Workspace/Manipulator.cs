@@ -6,23 +6,13 @@ using BulletSharp;
 using BulletSharp.Math;
 
 using Graphics;
+using Logic.InverseKinematics;
 using Logic.PathPlanning;
 using Physics;
 
 namespace Logic
 {
     using VectorFloat = MathNet.Numerics.LinearAlgebra.Vector<float>;
-
-    public struct ManipData
-    {
-        public int N;
-        public LinkData[] Links;
-        public JointData[] Joints;
-        public Vector3[] JointAxes;
-        public Vector3[] JointPositions;
-        public Vector3 Goal;
-        public bool ShowTree;
-    }
 
     public struct ForwardKinematicsResult
     {
@@ -45,6 +35,7 @@ namespace Logic
 
         public Vector3 Base => Joints[0].Position;
 
+        // TODO: goals should be part of Controller tasks, not manipulator attributes
         private Vector3 _goal;
         public ref Vector3 Goal => ref _goal;
 
@@ -52,66 +43,70 @@ namespace Logic
 
         public Controller Controller { get; set; }
 
-        private bool _showCollider;
-        public ref bool ShowCollider => ref _showCollider;
+        public bool ShowCollider { get; set; }
 
-        private bool _showTree = true;
-        public ref bool ShowTree => ref _showTree;
+        // TODO: all algorithmic properties should be Controller attributes
+        public bool ShowTree { get; set; }
 
         // TODO: rename Gripper to EndEffector
         public Vector3 GripperPos { get; private set; }  // TODO: create a separate class Gripper/Tool/etc. and probably use DKP[Joints.Length - 1]
 
         public Vector3[] DKP { get; private set; }  // TODO: rename to JointPositions/DirectKinematics/etc.
 
-        public VectorFloat q
+        public VectorFloat Coordinates
         {
             get => VectorFloat.Build.Dense(Joints.Select(joint => joint.Coordinate).ToArray());
             set
             {
                 for (int i = 0; i < Joints.Length; i++)
                 {
-                    var jointLimits = Joints[i].CoordinateRange * MathUtil.SIMD_RADS_PER_DEG;
-
-                    if (value[i] > jointLimits.Y)
-                        Joints[i].Coordinate = jointLimits.Y;
-                    else if (value[i] < jointLimits.X)
-                        Joints[i].Coordinate = jointLimits.X;
-                    else
-                        Joints[i].Coordinate = value[i];
+                    var (l, u) = Joints[i].CoordinateRange;
+                    l *= MathUtil.SIMD_RADS_PER_DEG;
+                    u *= MathUtil.SIMD_RADS_PER_DEG;
+                    MathUtil.Clamp(value[i], l, u);
+                    Joints[i].Coordinate = value[i];
                 }
-
-                UpdateStateAnimate();
             }
         }
 
-        public Manipulator(ManipData data)
+        private Manipulator(Joint[] joints, Link[] links)
         {
-            Links = Array.ConvertAll(data.Links, x => new Link(x));
-            Joints = Array.ConvertAll(data.Joints, x => new Joint(x));
-
-            for (int i = 0; i < Joints.Length; i++)
-            {
-                Joints[i].InitialAxis = data.JointAxes[i];
-                Joints[i].InitialPosition = data.JointPositions[i];
-            }
-
-            for (int i = 0; i < Joints.Length; i++)
-            {
-                Joints[i].Axis = data.JointAxes[i];
-                Joints[i].Position = data.JointPositions[i];
-            }
+            Joints = joints;
+            Links = links;
 
             UpdateRelativeStates();
 
             WorkspaceRadius = Links.Sum(link => link.Length) + 2 * Joints.Sum(joint => joint.Radius);
-            
-            Goal = data.Goal;
 
             // subscribe to events
             foreach (var joint in Joints)
             {
                 joint.TranslationChanged += OnTranslationChanged;
             }
+
+            /*var solver = DampedLeastSquares.Default();
+            var planner = GeneticAlgorithm.Default();
+            var controller = MotionController.Default();
+            manipulator.Controller = new Controller(manipulator, planner, solver, controller);*/
+        }
+
+        public static Manipulator CreateDefault(int linksNumber)
+        {
+            var joints = new Joint[linksNumber + 1];
+            var links = new Link[linksNumber];
+            for (int i = 0; i < linksNumber; i++)
+            {
+                joints[i] = new Joint(
+                    axis: i == 0 ? Vector3.UnitY : (i % 2 == 0 ? Vector3.UnitZ : Vector3.UnitX), 
+                    position: i == 0 ? Vector3.Zero : joints[i - 1].Position + (2 * joints[0].Radius + links[0].Length) * Vector3.UnitY);
+                links[i] = new Link();
+            }
+            joints[^1] = new Joint(
+                axis: Vector3.UnitY, 
+                position: joints[^2].Position + (2 * joints[0].Radius + links[0].Length) * Vector3.UnitY, 
+                isEndEffector: true);
+
+            return new(joints, links);
         }
 
         public void OnTranslationChanged(object sender, TranslationEventArgs e)
@@ -139,53 +134,40 @@ namespace Logic
             }
         }
 
-        public void UpdateStateDesign()
+        public void Update(InteractionMode mode)
         {
+            // update states
             DKP = new Vector3[Joints.Length];
-
-            UpdateRelativeStates();
             UpdateJoints();
             UpdateLinks();
 
-            // update links lengths
-            for (int i = 0; i < Links.Length; i++)
+            switch (mode)
             {
-                var jointDistance = Vector3.Distance(Joints[i + 1].InitialPosition, Joints[i].InitialPosition);
-                jointDistance -= Joints[i + 1].Radius + Joints[i].Radius;
+                case InteractionMode.Design:
+                    UpdateRelativeStates();
 
-                (Links[i].Collider as CylinderCollider).HalfLength = jointDistance / 2;
-                Links[i].UpdateStateDesign();
+                    // update links lengths
+                    for (int i = 0; i < Links.Length; i++)
+                    {
+                        var jointDistance = Vector3.Distance(Joints[i + 1].InitialPosition, Joints[i].InitialPosition);
+                        jointDistance -= Joints[i + 1].Radius + Joints[i].Radius;
+
+                        (Links[i].Collider as CylinderCollider).HalfLength = jointDistance / 2;
+                    }
+
+                    for (int i = 0; i < Joints.Length; i++)
+                    {
+                        Joints[i].Coordinate = Joints[i].InitialCoordinate;
+                    }
+                    break;
             }
 
-            for (int i = 0; i < Joints.Length; i++)
-            {
-                Joints[i].UpdateStateDesign();
-
-                Joints[i].Coordinate = Joints[i].InitialCoordinate;
-            }
-        }
-
-        public void UpdateModel()
-        {
-            // update joints models
+            // update models
             foreach (var joint in Joints)
-            {
-                joint.UpdateModel();
-            }
+                joint.Update(mode);
 
-            // update link models
             foreach (var link in Links)
-            {
-                link.UpdateModel();
-            }
-        }
-
-        public void UpdateStateAnimate()
-        {
-            DKP = new Vector3[Joints.Length];
-
-            UpdateJoints();
-            UpdateLinks();
+                link.Update(mode);
         }
 
         private void UpdateRelativeStates()
@@ -290,8 +272,8 @@ namespace Logic
 
         public void Reset()
         {
-            // reset GCs to default values
-            q = VectorFloat.Build.Dense(Joints.Select(x => x.InitialCoordinate).ToArray());
+            // reset coordinates to their default values
+            Coordinates = VectorFloat.Build.Dense(Joints.Select(x => x.InitialCoordinate).ToArray());
 
             // clear path
             Path = null;
@@ -311,7 +293,7 @@ namespace Logic
         {
             if (Path != null)
             {
-                q = Path.Follow().q;
+                Coordinates = Path.Follow().q;
             }
         }
 
@@ -349,35 +331,19 @@ namespace Logic
             }
         }
 
-        public Manipulator DeepCopy()
-        {
-            Manipulator manip = (Manipulator)MemberwiseClone();
-
-            manip.Links = Array.ConvertAll(Links, x => x.DeepCopy());
-            manip.Joints = Array.ConvertAll(Joints, x => x.DeepCopy());
-
-            manip.Path = null;  // TODO: ???
-
-            return manip;
-        }
+        public Manipulator Copy() => new(Array.ConvertAll(Joints, j => j.Copy()), 
+                                         Array.ConvertAll(Links, l => l.Copy()));
 
         public void Dispose()
         {
-            // clear managed resources
             foreach (var joint in Joints)
-            {
                 joint.Dispose();
-            }
 
             foreach (var link in Links)
-            {
                 link.Dispose();
-            }
 
-            if (Path != null)
-                Path.Dispose();
+            Path?.Dispose();
 
-            // suppress finalization
             GC.SuppressFinalize(this);
         }
     }

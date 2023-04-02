@@ -42,7 +42,7 @@ namespace Logic
                 // start motion control if a path has been found
                 if (manipulator.Path != null)
                 {
-                    using (var manipulatorCopy = manipulator.DeepCopy())
+                    using (var manipulatorCopy = manipulator.Copy())
                     {
                         // execute motion control
                         Path.Node gripperPos = manipulator.Path.Current;

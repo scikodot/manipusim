@@ -104,8 +104,6 @@ namespace Graphics
             //    _dummyTasks[index].Start();
             //}
 
-            ManipulatorHandler.LoadDefaultModels();
-
             // attach ImGUI to this window
             _imGui = new MainWindowImGui(this);  // TODO: make static?
 
@@ -384,8 +382,8 @@ namespace Graphics
             // update handlers states
             InputHandler.Update(e);
             PhysicsHandler.Update(e);
-            ManipulatorHandler.Update();
-            ObstacleHandler.Update();
+            ManipulatorHandler.Update(InputHandler.InteractionMode);
+            ObstacleHandler.Update(InputHandler.InteractionMode);
 
             //Console.SetCursorPosition(0, 5);
             //Console.Write("                                                        ");
@@ -487,12 +485,6 @@ namespace Graphics
                     {
                         var state = Matrix4.CreateTranslation(ManipulatorHandler.Manipulators[i].Goal.ToOpenTK3());
                         _goalModels[i].Update(state);
-
-                        foreach (var joint in ManipulatorHandler.Manipulators[i].Joints)  // TODO: for debug use only
-                        {
-                            if (joint.Active)
-                                joint.InitialCoordinate += 0.016f;
-                        }
                     }
 
                     break;
@@ -549,14 +541,13 @@ namespace Graphics
 
         public void CreateDefaultManipulator()
         {
-            var manipulator = ManipulatorHandler.CreateDefaultManipulator();
-
+            // TODO: move to Controller
             // create new model for the manipulator goal
-            var state = Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK3()));
+            /*var state = Matrix4.Transpose(Matrix4.CreateTranslation(manipulator.Goal.ToOpenTK3()));
             _goalModels.Add(new Model(new Mesh[]
             {
                 Primitives.Sphere(0.05f, 5, 5, new MeshMaterial { ColorDiffuse = Color4.Yellow }, state)
-            }));
+            }));*/
         }
         #endregion
 
@@ -607,10 +598,10 @@ namespace Graphics
             // dispose of all the handlers
             InputHandler.Dispose();
             ShaderHandler.Dispose();
-            PhysicsHandler.Dispose();
             ManipulatorHandler.Dispose();
-            ObstacleHandler.Dispose();            
-            
+            ObstacleHandler.Dispose();
+            PhysicsHandler.Dispose();
+
             _imGui.Dispose();
 
             // remove goals models

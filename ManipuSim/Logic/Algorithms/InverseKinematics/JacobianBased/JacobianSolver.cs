@@ -45,7 +45,7 @@ namespace Logic.InverseKinematics
             if (joint == -1)
                 joint = manipulator.Joints.Length - 1;
 
-            VectorFloat configuration = manipulator.q, dq;
+            VectorFloat configuration = manipulator.Coordinates, dq;
             VectorFloat error;
 
             // TODO: check for oscillations (the error starts increasing) and break if they appear

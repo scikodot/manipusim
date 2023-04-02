@@ -203,7 +203,7 @@ namespace Graphics
 
                         if (ImGui.Button("Create"))
                         {
-                            _parent.CreateDefaultManipulator();
+                            _parent.ManipulatorHandler.AddDefault(linksNumber);
 
                             ImGui.CloseCurrentPopup();
                         }

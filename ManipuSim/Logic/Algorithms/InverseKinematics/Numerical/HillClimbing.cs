@@ -28,7 +28,7 @@ namespace Logic.InverseKinematics
             if (joint == -1)
                 joint = manipulator.Joints.Length - 1;
 
-            VectorFloat configuration = manipulator.q, dq = VectorFloat.Build.Dense(manipulator.Joints.Length);
+            VectorFloat configuration = manipulator.Coordinates, dq = VectorFloat.Build.Dense(manipulator.Joints.Length);
             var errorPos = goal - manipulator.Joints[joint].Position;
             var error = VectorFloat.Build.Dense(new float[] { errorPos.X, errorPos.Y, errorPos.Z, 0, 0, 0 });
             float distance = errorPos.Length;
