@@ -58,14 +58,27 @@ namespace Logic
             get => VectorFloat.Build.Dense(Joints.Select(joint => joint.Coordinate).ToArray());
             set
             {
+                //var transform = ImpDualQuat.Zero;
+
+                //for (int i = 0; i < Joints.Length; i++)
+                //{
+                //    var rotation = ImpDualQuat.Align(i == 0 ? Vector3.UnitY : Joints[i - 1].Axis, Joints[i].Axis);
+                //    rotation *= new ImpDualQuat(Vector3.UnitY, value[i] - Joints[i].Coordinate);
+                //    var translation = new ImpDualQuat(Joints[i].Position - (i == 0 ? Vector3.Zero : Joints[i - 1].Position));
+
+                //    transform *= transform.Conjugate().WithoutTranslation() * (translation * rotation) * transform.WithoutTranslation();
+
+                //    Joints[i].Axis = transform.Rotate(Vector3.UnitY);
+                //    Joints[i].Coordinate = value[i];
+                //    Joints[i].Position = transform.Translation;
+                //}
+
+                var transform = Matrix.Identity;
                 for (int i = 0; i < Joints.Length; i++)
-                {
-                    var (l, u) = Joints[i].CoordinateRange;
-                    l *= MathUtil.SIMD_RADS_PER_DEG;
-                    u *= MathUtil.SIMD_RADS_PER_DEG;
-                    MathUtil.Clamp(value[i], l, u);
-                    Joints[i].Coordinate = value[i];
-                }
+                    Joints[i].Update(ref transform, value[i]);
+
+                // TODO: the tool has to be updated with the total transform
+                // Tool.Update(transform);
             }
         }
 

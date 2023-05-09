@@ -24,7 +24,11 @@ namespace Graphics
         public List<Mesh> Meshes { get; } = new();
 
         private Matrix4 _state;
-        public Matrix4 State => _state;
+        public Matrix4 State
+        {
+            get => _state;
+            set => _state = value;
+        }
 
         public RenderFlags RenderFlags { get; set; } = RenderFlags.Default;
         public bool IsSetup => Meshes.All(mesh => mesh.IsSetup);
@@ -124,11 +128,6 @@ namespace Graphics
                 return null;
 
             return Path.Join(directory, filepath);
-        }
-
-        public void Update(Matrix4 state)
-        {
-            _state = state;
         }
 
         public void Render(ShaderProgram shader, PrimitiveType type = PrimitiveType.Triangles, int? count = null)

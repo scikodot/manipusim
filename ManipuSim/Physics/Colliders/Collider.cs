@@ -36,6 +36,15 @@ namespace Physics
 
                 return state;
             }
+            set
+            {
+                if (!Body.CollisionFlags.HasFlag(CollisionFlags.KinematicObject))
+                    throw new InvalidOperationException("Attempt to transform a non-kinematic object.");
+
+                Body.MotionState.WorldTransform = value;
+
+                Model.State = value.ToOpenTK();
+            }
         }
 
         protected Vector3 _size;
@@ -72,10 +81,8 @@ namespace Physics
             Model = new Model(new Mesh[]
             {
                 Primitives.FromCollisionShape(body.CollisionShape, _defaultMaterial)
-            });
+            }, state: State.ToOpenTK());
             CollisionCallback = new CollisionCallback(body, null);
-
-            Model.Update(State.ToOpenTK());
         }
 
         public static Collider Create(CollisionShape shape, RigidBodyType type = RigidBodyType.Kinematic, 

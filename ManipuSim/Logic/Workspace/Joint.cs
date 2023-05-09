@@ -36,25 +36,62 @@ namespace Logic
         public Model Model { get; private set; }
         public Collider Collider { get; private set; }
 
-        public Matrix State => Collider.State;
+        private Matrix _initialState;
+        public Matrix InitialState => _initialState;
+
+        private Matrix _state;
+        public Matrix State 
+        {
+            get => _state;
+            set
+            {
+                _state = value;
+
+                // propagate the provided state to all views
+                Model.State = _state.ToOpenTK();
+                Collider.State = _state;
+            }
+        }
 
         public float Radius => (Collider as SphereCollider).Radius;
         public bool ShowCollider { get; set; }
 
-        public Vector3 InitialPosition { get; set; }
-        public Vector3 Position { get; set; }
-        public Vector3 InitialAxis { get; set; }
-        public Vector3 Axis { get; set; }
-        public float InitialCoordinate { get; }
-        public float Coordinate { get; set; }
+        public Vector3 InitialPosition
+        {
+            get => _initialState.Origin;
+            set => _initialState.Origin = value;
+        }
+        public Vector3 Position => _state.Origin;
 
-        private (float, float) _coordinateRange;
-        public (float l, float u) CoordinateRange
+        public Vector3 InitialAxis
+        {
+            get => _initialState.GetRotation().Rotate(Vector3.UnitY);
+            set
+            {
+                value.Normalize();
+                var cross = Vector3.Cross(Vector3.UnitY, value);
+                var dot = Vector3.Dot(Vector3.UnitY, value);
+                _initialState.SetRotation(Quaternion.RotationAxis(cross, (float)Math.Acos(dot)), out _initialState);
+            }
+        }
+        public Vector3 Axis => _state.GetRotation().Rotate(Vector3.UnitY);
+
+        private float _coordinate;
+        public float Coordinate
+        {
+            get => _coordinate;
+            set => _coordinate = MathUtil.Clamp(value, 
+                _coordinateRange.Min * MathUtil.SIMD_RADS_PER_DEG,
+                _coordinateRange.Max * MathUtil.SIMD_RADS_PER_DEG);
+        }
+
+        private (float Min, float Max) _coordinateRange;
+        public (float Min, float Max) CoordinateRange
         {
             get => _coordinateRange;
             set
             {
-                if (value.l > value.u)
+                if (value.Min > value.Max)
                     throw new ArgumentException("Invalid coordinate range.");
 
                 _coordinateRange = value;
@@ -81,12 +118,25 @@ namespace Logic
                 Collider.Create(new SphereShape(0.1f)) : 
                 Collider.Create(new SphereShape(0.2f)));
             Collider.Body.UserObject = this;
-            Axis = InitialAxis = axis ?? (isEndEffector ? Vector3.UnitY : Vector3.UnitX);
-            Position = InitialPosition = position ?? Vector3.Zero;
-            Coordinate = InitialCoordinate = coordinate;
+            InitialAxis = axis ?? (isEndEffector ? Vector3.UnitY : Vector3.UnitX);
+            InitialPosition = position ?? Vector3.Zero;
+            Coordinate = coordinate;
             CoordinateRange = (coordinateL, coordinateU);
 
             Model.RenderFlags = RenderFlags.Default | RenderFlags.Wireframe | RenderFlags.Lighting;
+        }
+
+        // TODO: this is individual for each joint type
+        public (Vector3 Linear, Vector3 Angular) GetTwist() => (-Vector3.Cross(Axis, Position), Axis);
+
+        public Matrix GetTransform(float coordinate)
+        {
+            var (linearAxis, angularAxis) = GetTwist();
+            var rotation = Quaternion.RotationAxis(angularAxis, coordinate);
+            var translation = (Quaternion.Identity - rotation).Rotate(Vector3.Cross(angularAxis, linearAxis))
+                + angularAxis * Vector3.Dot(angularAxis, linearAxis) * coordinate;
+
+            return Matrix.AffineTransformation(1f, rotation, translation);
         }
 
         public void Translate(Vector3 translation)
@@ -99,7 +149,12 @@ namespace Logic
             TranslationChanged?.Invoke(this, new TranslationEventArgs(translation));
         }
 
-        public Joint Copy() => new(Model.Copy(), Collider.Copy());
+        public void Update(ref Matrix transform, float coordinate)
+        {
+            //Collider.Scale();
+
+            State = InitialState * (transform *= GetTransform(coordinate));
+        }
 
         public void Render(ShaderProgram shader)
         {
@@ -109,18 +164,7 @@ namespace Logic
                 Collider.Render(shader);
         }
 
-        public void Update(InteractionMode mode)
-        {
-            //Collider.Scale();
-            var state = State.ToOpenTK();
-            Model.Update(state);
-            Collider.Model.Update(state);
-        }
-
-        public void UpdateState(in ImpDualQuat state)
-        {
-            
-        }
+        public Joint Copy() => new(Model.Copy(), Collider.Copy());
 
         public void Dispose()
         {
